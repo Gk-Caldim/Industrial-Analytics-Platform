@@ -1,0 +1,23 @@
+from pydantic import BaseModel
+from datetime import datetime
+
+class PartColumnBase(BaseModel):
+    column_name: str
+    column_label: str
+    data_type: str = "text"
+    is_required: bool = False
+
+class PartColumnCreate(PartColumnBase):
+    pass
+
+class PartColumnUpdate(BaseModel):
+    column_label: str | None = None
+    data_type: str | None = None
+    is_required: bool | None = None
+
+class PartColumnOut(PartColumnBase):
+    id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
