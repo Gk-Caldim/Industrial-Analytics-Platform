@@ -510,10 +510,10 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
   return (
     <div className="space-y-4">
       {/* Mode Toggle */}
-      <div className="bg-white border border-gray-300 rounded-lg p-4">
+      <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
         <div className="flex items-center gap-2 mb-4">
-          <Settings className="h-5 w-5 text-gray-600" />
-          <h3 className="text-base font-medium text-gray-900">Transcription Mode</h3>
+          <Settings className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+          <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 Mode</h3>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
@@ -521,8 +521,8 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
             onClick={() => setTranscriptionMode('live')}
             className={`flex items-center justify-center gap-2 p-4 rounded-lg border transition-all ${
               transcriptionMode === 'live'
-                ? 'bg-black text-white border-black'
-                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                ? 'bg-black text-white border-black dark:border-gray-700'
+                : 'bg-white dark:bg-gray-950 border-gray-300 text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
           >
             <MessageCircle className="h-5 w-5" />
@@ -533,8 +533,8 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
             onClick={() => setTranscriptionMode('upload')}
             className={`flex items-center justify-center gap-2 p-4 rounded-lg border transition-all ${
               transcriptionMode === 'upload'
-                ? 'bg-black text-white border-black'
-                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                ? 'bg-black text-white border-black dark:border-gray-700'
+                : 'bg-white dark:bg-gray-950 border-gray-300 text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
           >
             <Upload className="h-5 w-5" />
@@ -545,8 +545,8 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
             onClick={() => setTranscriptionMode('screen')}
             className={`flex items-center justify-center gap-2 p-4 rounded-lg border transition-all ${
               transcriptionMode === 'screen'
-                ? 'bg-black text-white border-black'
-                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                ? 'bg-black text-white border-black dark:border-gray-700'
+                : 'bg-white dark:bg-gray-950 border-gray-300 text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
             }`}
           >
             <Monitor className="h-5 w-5" />
@@ -557,10 +557,10 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
 
       {/* Live Speech Section */}
       {transcriptionMode === 'live' && (
-        <div className="bg-white border border-gray-300 rounded-lg p-4">
+        <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-4">
-            <Volume2 className="h-5 w-5 text-gray-600" />
-            <h3 className="text-base font-medium text-gray-900">Live Speech Controls</h3>
+            <Volume2 className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 Speech Controls</h3>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
@@ -570,7 +570,7 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
               className={`flex flex-col items-center justify-center p-4 rounded-lg transition-all ${
                 listening
                   ? 'bg-green-600 text-white'
-                  : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                  : 'bg-white dark:bg-gray-950 border border-gray-300 text-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
             >
               {listening ? (
@@ -586,7 +586,7 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
               disabled={!listening}
               className={`flex flex-col items-center justify-center p-4 rounded-lg transition-all ${
                 !listening
-                  ? 'opacity-50 cursor-not-allowed bg-gray-100'
+                  ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800'
                   : 'bg-red-100 border border-red-300 text-red-700 hover:bg-red-200'
               }`}
             >
@@ -596,7 +596,7 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
 
             <button
               onClick={resetLiveTranscript}
-              className="flex flex-col items-center justify-center p-4 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all"
+              className="flex flex-col items-center justify-center p-4 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all"
             >
               <Trash2 className="h-6 w-6 mb-2" />
               <span className="text-sm font-medium">Clear</span>
@@ -607,7 +607,7 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
               disabled={!transcript || isProcessing}
               className={`flex flex-col items-center justify-center p-4 rounded-lg transition-all ${
                 !transcript || isProcessing
-                  ? 'opacity-50 cursor-not-allowed bg-gray-100'
+                  ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800'
                   : 'bg-black text-white hover:bg-gray-800'
               }`}
             >
@@ -633,21 +633,21 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
 
       {/* Audio Upload Section */}
       {transcriptionMode === 'upload' && (
-        <div className="bg-white border border-gray-300 rounded-lg p-4">
+        <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-4">
-            <MessageCircle className="h-5 w-5 text-gray-600" />
-            <h3 className="text-base font-medium text-gray-900">Upload Audio Recording</h3>
+            <MessageCircle className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 Audio Recording</h3>
           </div>
 
           <div className="space-y-6">
             {/* File Upload */}
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-gray-400 transition-colors">
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 text-center hover:border-gray-400 transition-colors">
               <div className="flex flex-col items-center">
                 <UploadCloud className="h-10 w-10 text-gray-400 mb-3" />
-                <p className="text-sm text-gray-600 mb-2">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                   Upload recorded meeting audio
                 </p>
-                <p className="text-xs text-gray-500 mb-4">
+                <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
                   Supports MP3, WAV, M4A, WEBM (max 50MB)
                 </p>
 
@@ -667,8 +667,8 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
 
             {/* Audio Recorder */}
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-3">Or record audio directly:</p>
-              <div className="border border-gray-200 rounded-lg p-4">
+              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Or record audio directly:</p>
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <AudioRecorder
                   onRecordingComplete={handleAudioRecordingComplete}
                   audioTrackConstraints={{
@@ -685,14 +685,14 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
             {/* Audio Preview */}
             {audioFile && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div className="flex items-center gap-3">
                     <FileAudio className="h-6 w-6 text-blue-600" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100"
                         {audioFile.name}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-500">
                         {`${(audioFile.size / (1024 * 1024)).toFixed(2)} MB • ${audioFile.type}`}
                       </p>
                     </div>
@@ -714,7 +714,7 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
                       controls
                       className="w-full rounded-lg"
                     />
-                    <p className="text-xs text-gray-500 text-center">
+                    <p className="text-xs text-gray-500 dark:text-gray-500 text-center">
                       Click play to preview the audio
                     </p>
                   </div>
@@ -723,7 +723,7 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
                 {/* Upload Progress */}
                 {uploadProgress > 0 && (
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm text-gray-600">
+                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400"
                       <span>{transcriptionStatus}</span>
                       <span>{uploadProgress}%</span>
                     </div>
@@ -742,7 +742,7 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
                   disabled={isTranscribing}
                   className={`w-full flex items-center justify-center gap-3 py-3.5 rounded-lg transition-all ${
                     isTranscribing
-                      ? 'opacity-50 cursor-not-allowed bg-gray-100'
+                      ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800'
                       : 'bg-black text-white hover:bg-gray-800'
                   }`}
                 >
@@ -768,18 +768,18 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
 
       {/* Screen Recording Section */}
       {transcriptionMode === 'screen' && (
-        <div className="bg-white border border-gray-300 rounded-lg p-4">
+        <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-4">
-            <Monitor className="h-5 w-5 text-gray-600" />
-            <h3 className="text-base font-medium text-gray-900">Screen Recording</h3>
+            <Monitor className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+            <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 Recording</h3>
           </div>
 
           <div className="space-y-6">
             {/* Screen Recording Controls */}
-            <div className="text-center p-6 border-2 border-dashed border-gray-300 rounded-xl">
+            <div className="text-center p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl">
               <MonitorPlay className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-              <p className="text-sm text-gray-600 mb-2">Record your screen with audio</p>
-              <p className="text-xs text-gray-500 mb-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Record your screen with audio</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mb-4">
                 Share your entire screen, application window, or browser tab with audio
               </p>
               
@@ -823,14 +823,14 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
             {/* Screen Recording Preview */}
             {screenRecordingFile && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <Video className="h-6 w-6 text-gray-600" />
+                    <Video className="h-6 w-6 text-gray-600 dark:text-gray-400" />
                     <div>
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100"
                         {screenRecordingFile.name}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-500">
                         Screen recording with audio
                       </p>
                     </div>
@@ -849,9 +849,8 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
                     <video
                       src={screenRecordingUrl}
                       controls
-                      className="w-full rounded-lg border border-gray-200"
-                    />
-                    <p className="text-xs text-gray-500 text-center">
+                      className="w-full rounded-lg border border-gray-200 dark:border-gray-700" />
+                    <p className="text-xs text-gray-500 dark:text-gray-500 text-center">
                       Click play to preview your screen recording
                     </p>
                   </div>
@@ -860,7 +859,7 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
                 {/* Upload Progress */}
                 {uploadProgress > 0 && (
                   <div className="space-y-2">
-                    <div className="flex justify-between text-sm text-gray-600">
+                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400"
                       <span>{transcriptionStatus}</span>
                       <span>{uploadProgress}%</span>
                     </div>
@@ -879,7 +878,7 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
                   disabled={isTranscribing}
                   className={`w-full flex items-center justify-center gap-3 py-3.5 rounded-lg transition-all ${
                     isTranscribing
-                      ? 'opacity-50 cursor-not-allowed bg-gray-100'
+                      ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800'
                       : 'bg-black text-white hover:bg-gray-800'
                   }`}
                 >
@@ -904,16 +903,16 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
       )}
 
       {/* Transcript Display */}
-      <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
-        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+        <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700"
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-base font-medium text-gray-900">
+              <h3 className="text-base font-medium text-gray-900 dark:text-gray-100"
                 {transcriptionMode === 'live' ? 'Live Transcript' : 
                  transcriptionMode === 'upload' ? 'Audio Transcript' : 
                  'Screen Recording Transcript'}
               </h3>
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-600 dark:text-gray-400"
                 {transcriptionMode === 'live'
                   ? 'Speech appears here in real-time'
                   : transcriptionMode === 'upload'
@@ -926,7 +925,7 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
                 onClick={handleProcess}
                 disabled={isProcessing}
                 className={`px-4 py-2 text-sm rounded-lg transition-all flex items-center gap-2 ${
-                  isProcessing ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'bg-black text-white hover:bg-gray-800'
+                  isProcessing ? 'opacity-50 cursor-not-allowed bg-gray-100 dark:bg-gray-800' : 'bg-black text-white hover:bg-gray-800'
                 }`}
               >
                 {isProcessing ? (
@@ -946,19 +945,19 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
         </div>
 
         <div className="p-4">
-          <div className="h-64 overflow-y-auto bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <div className="h-64 overflow-y-auto bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700"
             {transcript ? (
               <div className="space-y-3">
                 {transcript.split('. ').map(
                   (sentence, index) =>
                     sentence.trim() && (
-                      <div key={index} className="flex gap-3 p-3 bg-white rounded-lg border border-gray-100">
+                      <div key={index} className="flex gap-3 p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-100 dark:border-gray-800">
                         <div className="flex-shrink-0">
                           <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
                             <span className="text-xs font-medium text-blue-600">{index + 1}</span>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-700 leading-relaxed">
+                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
                           {sentence.trim()}
                           {!sentence.endsWith('.') && '.'}
                         </p>
@@ -988,14 +987,14 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
           </div>
 
           {transcript && (
-            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600">
-              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+            <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-600 dark:text-gray-400"
+              <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <FileText className="h-4 w-4" />
                 <span>
                   <span className="font-medium">{transcript.split(' ').length}</span> words
                 </span>
               </div>
-              <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <MessageSquare className="h-4 w-4" />
                 <span>
                   <span className="font-medium">{transcript.split('. ').filter((s) => s.trim()).length}</span> discussion points

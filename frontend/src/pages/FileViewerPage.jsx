@@ -151,7 +151,7 @@ const FileViewerPage = () => {
               className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center ${
                 isEditing 
                   ? 'bg-green-100 text-green-700 border border-green-300' 
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 hover:bg-gray-200'
               }`}
             >
               <Edit3 className="h-4 w-4 mr-1.5" />
@@ -170,7 +170,7 @@ const FileViewerPage = () => {
             
             <button
               onClick={exportToCSV}
-              className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium flex items-center hover:bg-gray-200"
+              className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium flex items-center hover:bg-gray-200"
             >
               <Download className="h-4 w-4 mr-1.5" />
               Export CSV
@@ -187,27 +187,27 @@ const FileViewerPage = () => {
         </div>
 
         {/* Table */}
-        <div className="flex-1 overflow-auto border border-gray-200 rounded-lg">
+        <div className="flex-1 overflow-auto border border-gray-200 dark:border-gray-700 rounded-lg">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50 sticky top-0">
+            <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0">
               <tr>
                 {headers.map((header, index) => (
                   <th
                     key={index}
-                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200 last:border-r-0"
+                    className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider border-r border-gray-200 dark:border-gray-700 last:border-r-0"
                   >
                     {header}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200">
               {currentRows.map((row, rowIndex) => (
-                <tr key={rowIndex} className="hover:bg-gray-50">
+                <tr key={rowIndex} className="hover:bg-gray-50 dark:hover:bg-gray-800
                   {headers.map((header, colIndex) => (
                     <td
                       key={colIndex}
-                      className={`px-4 py-2 text-sm text-gray-900 border-r border-gray-200 last:border-r-0 ${
+                      className={`px-4 py-2 text-sm text-gray-900 dark:text-white border-r border-gray-200 dark:border-gray-800 last:border-r-0 ${
                         isEditing ? 'cursor-text' : ''
                       }`}
                       onClick={() => {
@@ -249,24 +249,24 @@ const FileViewerPage = () => {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-4 px-2">
-            <div className="text-sm text-gray-700">
+            <div className="text-sm text-gray-700 dark:text-gray-300">
               Showing {startIndex + 1} to {Math.min(endIndex, rows.length)} of {rows.length} rows
             </div>
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-gray-700 dark:text-gray-300">
                 Page {currentPage} of {totalPages}
               </span>
               <button
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -306,7 +306,7 @@ const FileViewerPage = () => {
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={exportToCSV}
-            className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium flex items-center hover:bg-gray-200"
+            className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium flex items-center hover:bg-gray-200"
           >
             <Download className="h-4 w-4 mr-1.5" />
             Export CSV
@@ -316,11 +316,11 @@ const FileViewerPage = () => {
         <div className="flex-1 overflow-auto">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {currentRows.map((row, rowIndex) => (
-              <div key={rowIndex} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+              <div key={rowIndex} className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow">
                 {headers.map((header, colIndex) => (
                   <div key={colIndex} className="mb-2 last:mb-0">
-                    <span className="text-xs font-medium text-gray-500 block">{header}</span>
-                    <span className="text-sm text-gray-900 break-words">{row[colIndex] || '-'}</span>
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-500 block">{header}</span>
+                    <span className="text-sm text-gray-900 dark:text-gray-100 break-words">{row[colIndex] || '-'}</span>
                   </div>
                 ))}
               </div>
@@ -330,24 +330,24 @@ const FileViewerPage = () => {
 
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-4">
-            <div className="text-sm text-gray-700">
+            <div className="text-sm text-gray-700 dark:text-gray-300">
               Showing {startIndex + 1} to {Math.min(endIndex, rows.length)} of {rows.length} rows
             </div>
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 disabled={currentPage === 1}
-                className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-gray-700 dark:text-gray-300">
                 Page {currentPage} of {totalPages}
               </span>
               <button
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={currentPage === totalPages}
-                className="p-2 rounded-lg border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                className="p-2 rounded-lg border border-gray-300 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-gray-800
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -360,10 +360,10 @@ const FileViewerPage = () => {
 
   if (!fileData || !trackerInfo) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
         <div className="text-center">
           <FileSpreadsheet className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-600 mb-4">No file data found</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">No file data found</p>
           <button
             onClick={handleBack}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -376,9 +376,9 @@ const FileViewerPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-800 flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
+      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <button
@@ -394,10 +394,10 @@ const FileViewerPage = () => {
             <div className="flex items-center">
               <FileSpreadsheet className="h-5 w-5 text-blue-600 mr-2" />
               <div>
-                <h1 className="text-lg font-semibold text-gray-900">
+                <h1 className="text-lg font-semibold text-gray-900 dark:text-gray-100
                   {trackerInfo.fileName}
                 </h1>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-gray-500 dark:text-gray-500">
                   Uploaded by {trackerInfo.employeeName} • {new Date(trackerInfo.uploadDate).toLocaleDateString()}
                 </p>
               </div>
@@ -405,13 +405,13 @@ const FileViewerPage = () => {
           </div>
 
           {/* View Toggle */}
-          <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+          <div className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
             <button
               onClick={() => setViewMode('table')}
               className={`p-2 rounded-lg transition-colors ${
                 viewMode === 'table' 
-                  ? 'bg-white text-blue-600 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white dark:bg-gray-950 text-blue-600 shadow-sm' 
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white'
               }`}
               title="Table View"
             >
@@ -421,8 +421,8 @@ const FileViewerPage = () => {
               onClick={() => setViewMode('cards')}
               className={`p-2 rounded-lg transition-colors ${
                 viewMode === 'cards' 
-                  ? 'bg-white text-blue-600 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-white dark:bg-gray-950 text-blue-600 shadow-sm' 
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white'
               }`}
               title="Card View"
             >
@@ -434,7 +434,7 @@ const FileViewerPage = () => {
 
       {/* Content */}
       <div className="flex-1 p-6 overflow-auto">
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm h-full p-6">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm h-full p-6">
           {viewMode === 'table' ? renderTable() : renderCards()}
         </div>
       </div>

@@ -85,8 +85,8 @@ const AnalyticsDashboard = ({ meetings }) => {
       {/* Analytics Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Analytics Dashboard</h2>
-          <p className="text-sm text-gray-600">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 Dashboard</h2>
+          <p className="text-sm text-gray-600 dark:text-gray-400"
             Comprehensive analysis of {meetings.length} meeting minutes • Last updated: {new Date().toLocaleDateString()}
           </p>
         </div>
@@ -94,7 +94,7 @@ const AnalyticsDashboard = ({ meetings }) => {
         <select
           value={timeRange}
           onChange={(e) => setTimeRange(e.target.value)}
-          className="px-3 py-2 text-sm border border-gray-300 rounded"
+          className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded"
         >
           <option value="all">All Time</option>
           <option value="month">Last 30 Days</option>
@@ -180,10 +180,10 @@ const AnalyticsDashboard = ({ meetings }) => {
       {/* Analytics Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Status Distribution */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-gray-900">Status Distribution</h3>
-            <div className="text-sm text-gray-600">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 Distribution</h3>
+            <div className="text-sm text-gray-600 dark:text-gray-400"
               {stats.total} total items
             </div>
           </div>
@@ -191,7 +191,7 @@ const AnalyticsDashboard = ({ meetings }) => {
           <div className="space-y-4">
             <div>
               <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium text-gray-700">Completed</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Completed</span>
                 <span className="text-sm font-bold text-green-600">{stats.completed} ({stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}%)</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
@@ -204,7 +204,7 @@ const AnalyticsDashboard = ({ meetings }) => {
 
             <div>
               <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium text-gray-700">In Progress</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">In Progress</span>
                 <span className="text-sm font-bold text-blue-600">{stats.inProgress} ({stats.total > 0 ? Math.round((stats.inProgress / stats.total) * 100) : 0}%)</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
@@ -217,7 +217,7 @@ const AnalyticsDashboard = ({ meetings }) => {
 
             <div>
               <div className="flex justify-between mb-1">
-                <span className="text-sm font-medium text-gray-700">Pending</span>
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Pending</span>
                 <span className="text-sm font-bold text-yellow-600">{stats.pending} ({stats.total > 0 ? Math.round((stats.pending / stats.total) * 100) : 0}%)</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-3">
@@ -231,10 +231,10 @@ const AnalyticsDashboard = ({ meetings }) => {
         </div>
 
         {/* Criticality Analysis */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-bold text-gray-900">Criticality Analysis</h3>
-            <div className="text-sm text-gray-600">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 Analysis</h3>
+            <div className="text-sm text-gray-600 dark:text-gray-400"
               Priority breakdown
             </div>
           </div>
@@ -244,7 +244,7 @@ const AnalyticsDashboard = ({ meetings }) => {
               <div className="flex justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <span className="text-sm font-medium text-gray-700">Critical</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Critical</span>
                 </div>
                 <span className="text-sm font-bold text-red-600">{stats.critical}</span>
               </div>
@@ -260,7 +260,7 @@ const AnalyticsDashboard = ({ meetings }) => {
               <div className="flex justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                  <span className="text-sm font-medium text-gray-700">High</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">High</span>
                 </div>
                 <span className="text-sm font-bold text-orange-600">{stats.high}</span>
               </div>
@@ -276,7 +276,7 @@ const AnalyticsDashboard = ({ meetings }) => {
               <div className="flex justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <span className="text-sm font-medium text-gray-700">Medium</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Medium</span>
                 </div>
                 <span className="text-sm font-bold text-yellow-600">{stats.medium}</span>
               </div>
@@ -292,7 +292,7 @@ const AnalyticsDashboard = ({ meetings }) => {
               <div className="flex justify-between mb-1">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                  <span className="text-sm font-medium text-gray-700">Low</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Low</span>
                 </div>
                 <span className="text-sm font-bold text-green-600">{stats.low}</span>
               </div>
@@ -310,11 +310,11 @@ const AnalyticsDashboard = ({ meetings }) => {
       {/* Additional Analytics Sections */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Speakers */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Top Contributors</h3>
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-6">Top Contributors</h3>
           <div className="space-y-4">
             {topSpeakers.map((speaker, index) => (
-              <div key={speaker.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div key={speaker.name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
                     <span className="text-lg font-bold text-blue-600">
@@ -322,19 +322,19 @@ const AnalyticsDashboard = ({ meetings }) => {
                     </span>
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900">{speaker.name}</div>
-                    <div className="text-xs text-gray-600">{speaker.count} contributions</div>
+                    <div className="font-medium text-gray-900 dark:text-gray-100"
+                    <div className="text-xs text-gray-600 dark:text-gray-400 contributions</div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-blue-600">{speaker.count}</div>
-                  <div className="text-xs text-gray-500">meetings</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-500">meetings</div>
                 </div>
               </div>
             ))}
             
             {topSpeakers.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-500 dark:text-gray-500">
                 <Icons.Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>No speaker data available</p>
               </div>
@@ -343,11 +343,11 @@ const AnalyticsDashboard = ({ meetings }) => {
         </div>
 
         {/* Top Projects */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6">
-          <h3 className="text-lg font-bold text-gray-900 mb-6">Active Projects</h3>
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-6">Active Projects</h3>
           <div className="space-y-4">
             {topProjects.map((project, index) => (
-              <div key={project.name} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div key={project.name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                     <span className="text-lg font-bold text-green-600">
@@ -355,19 +355,19 @@ const AnalyticsDashboard = ({ meetings }) => {
                     </span>
                   </div>
                   <div className="max-w-[200px]">
-                    <div className="font-medium text-gray-900 truncate">{project.name}</div>
-                    <div className="text-xs text-gray-600">{project.count} meetings</div>
+                    <div className="font-medium text-gray-900 dark:text-gray-100 truncate">{project.name}</div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 meetings</div>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold text-green-600">{project.count}</div>
-                  <div className="text-xs text-gray-500">discussions</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-500">discussions</div>
                 </div>
               </div>
             ))}
             
             {topProjects.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-gray-500 dark:text-gray-500">
                 <Icons.Folder className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>No project data available</p>
               </div>
@@ -377,11 +377,11 @@ const AnalyticsDashboard = ({ meetings }) => {
       </div>
 
       {/* Overdue Tasks */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-bold text-gray-900">Overdue Action Items</h3>
-            <p className="text-sm text-gray-600">Tasks past their due date</p>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 Action Items</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 past their due date</p>
           </div>
           <div className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium">
             {overdueTasks.length} overdue
@@ -406,7 +406,7 @@ const AnalyticsDashboard = ({ meetings }) => {
                     </div>
                     <p className="text-sm text-red-700 mb-3">{meeting.discussion_point}</p>
                     
-                    <div className="grid grid-cols-2 gap-4 text-xs text-gray-600">
+                    <div className="grid grid-cols-2 gap-4 text-xs text-gray-600 dark:text-gray-400"
                       <div className="flex items-center gap-1">
                         <Icons.User className="h-3 w-3" />
                         <span>Speaker: {meeting.speaker || 'Unknown'}</span>

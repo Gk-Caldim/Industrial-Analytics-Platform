@@ -48,13 +48,13 @@ const MeetingSummary = ({ meetings, stats, onClose }) => {
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-900 rounded-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900">Meeting Summary Report</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 Summary Report</h2>
             <button 
               onClick={onClose} 
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-400 hover:text-gray-600 dark:text-gray-400"
             >
               <Icons.X className="h-5 w-5" />
             </button>
@@ -62,35 +62,35 @@ const MeetingSummary = ({ meetings, stats, onClose }) => {
 
           {/* Executive Summary */}
           <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Executive Summary</h3>
+            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Executive Summary</h3>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div className="bg-blue-50 p-3 rounded border border-blue-100">
                 <div className="text-xs text-blue-600 mb-1">Total Meetings</div>
-                <div className="text-xl font-bold text-gray-900">{stats.totalMeetings}</div>
+                <div className="text-xl font-bold text-gray-900 dark:text-gray-100"
               </div>
               <div className="bg-green-50 p-3 rounded border border-green-100">
                 <div className="text-xs text-green-600 mb-1">Completion Rate</div>
-                <div className="text-xl font-bold text-gray-900">
+                <div className="text-xl font-bold text-gray-900 dark:text-gray-100"
                   {completionRate}%
                 </div>
               </div>
               <div className="bg-purple-50 p-3 rounded border border-purple-100">
                 <div className="text-xs text-purple-600 mb-1">Avg Attendance</div>
-                <div className="text-xl font-bold text-gray-900">{stats.attendanceRate}%</div>
+                <div className="text-xl font-bold text-gray-900 dark:text-gray-100"
               </div>
               <div className="bg-red-50 p-3 rounded border border-red-100">
                 <div className="text-xs text-red-600 mb-1">Critical Items</div>
-                <div className="text-xl font-bold text-gray-900">{stats.critical}</div>
+                <div className="text-xl font-bold text-gray-900 dark:text-gray-100"
               </div>
             </div>
           </div>
 
           {/* Recent Meetings */}
           <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Recent Meetings</h3>
-            <div className="bg-gray-50 rounded border overflow-hidden">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Recent Meetings</h3>
+            <div className="bg-gray-50 dark:bg-gray-800 rounded border overflow-hidden">
               <table className="w-full text-xs">
-                <thead className="bg-gray-100">
+                <thead className="bg-gray-100 dark:bg-gray-800"
                   <tr>
                     <th className="text-left p-2">Title</th>
                     <th className="text-left p-2">Date</th>
@@ -100,7 +100,7 @@ const MeetingSummary = ({ meetings, stats, onClose }) => {
                 </thead>
                 <tbody>
                   {recentMeetings.map((meeting) => (
-                    <tr key={meeting.id} className="border-t border-gray-200 hover:bg-white">
+                    <tr key={meeting.id} className="border-t border-gray-200 dark:border-gray-700 hover:bg-white dark:bg-gray-950">
                       <td className="p-2">{meeting.title || `Meeting ${meeting.sno}`}</td>
                       <td className="p-2">
                         {meeting.date ? new Date(meeting.date).toLocaleDateString() : '-'}
@@ -132,10 +132,10 @@ const MeetingSummary = ({ meetings, stats, onClose }) => {
 
           {/* Department-wise Analysis */}
           <div className="mb-6">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Department Analysis</h3>
-            <div className="bg-gray-50 rounded border overflow-hidden">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">Department Analysis</h3>
+            <div className="bg-gray-50 dark:bg-gray-800 rounded border overflow-hidden">
               <table className="w-full text-xs">
-                <thead className="bg-gray-100">
+                <thead className="bg-gray-100 dark:bg-gray-800"
                   <tr>
                     <th className="text-left p-2">Department</th>
                     <th className="text-left p-2">Total Meetings</th>
@@ -153,7 +153,7 @@ const MeetingSummary = ({ meetings, stats, onClose }) => {
                       : 0;
                     
                     return (
-                      <tr key={dept} className="border-t border-gray-200 hover:bg-white">
+                      <tr key={dept} className="border-t border-gray-200 dark:border-gray-700 hover:bg-white dark:bg-gray-950">
                         <td className="p-2 capitalize">{dept}</td>
                         <td className="p-2">{data.total}</td>
                         <td className="p-2">
@@ -172,9 +172,9 @@ const MeetingSummary = ({ meetings, stats, onClose }) => {
 
           {/* Key Metrics */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            <div className="bg-gray-50 p-3 rounded border">
-              <h4 className="text-xs font-medium text-gray-900 mb-2">Productivity Metrics</h4>
-              <ul className="text-xs text-gray-600 space-y-1">
+            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded border">
+              <h4 className="text-xs font-medium text-gray-900 dark:text-gray-100 mb-2">Productivity Metrics</h4>
+              <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                 <li className="flex justify-between">
                   <span>Meetings per Month:</span>
                   <span className="font-medium">{meetingsPerMonth}</span>
@@ -189,9 +189,9 @@ const MeetingSummary = ({ meetings, stats, onClose }) => {
                 </li>
               </ul>
             </div>
-            <div className="bg-gray-50 p-3 rounded border">
-              <h4 className="text-xs font-medium text-gray-900 mb-2">Performance Indicators</h4>
-              <ul className="text-xs text-gray-600 space-y-1">
+            <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded border">
+              <h4 className="text-xs font-medium text-gray-900 dark:text-gray-100 mb-2">Performance Indicators</h4>
+              <ul className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                 <li className="flex justify-between">
                   <span>On-time Completion:</span>
                   <span className={`font-medium ${

@@ -16,7 +16,7 @@ function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
-            
+
             {/* Dashboard route - this contains the sidebar and header */}
             <Route
               path="/dashboard"

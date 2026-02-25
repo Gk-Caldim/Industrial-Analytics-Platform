@@ -21,16 +21,16 @@ class ErrorBoundary extends React.Component {
     if (this.state.hasError) {
       // You can render any custom fallback UI
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-          <div className="bg-white p-8 rounded-lg shadow-md max-w-2xl w-full">
+        <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-800 p-4">
+          <div className="bg-white dark:bg-gray-900 p-8 rounded-lg shadow-md max-w-2xl w-full">
             <h2 className="text-2xl font-bold text-red-600 mb-4">Something went wrong</h2>
-            <p className="text-gray-700 mb-4">
+            <p className="text-gray-700 dark:text-gray-300 mb-4">
               We're sorry, but an unexpected error has occurred. Please try refreshing the page.
             </p>
             {this.state.error && (
-              <div className="bg-gray-100 p-4 rounded overflow-auto max-h-64 mb-4 text-sm font-mono text-red-800">
+              <div className="bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-auto max-h-64 mb-4 text-sm font-mono text-red-800">
                 <p className="font-bold">{this.state.error.toString()}</p>
-                <pre className="mt-2 text-xs text-gray-600">{this.state.errorInfo?.componentStack}</pre>
+                <pre className="mt-2 text-xs text-gray-600 dark:text-gray-400"
               </div>
             )}
             <button

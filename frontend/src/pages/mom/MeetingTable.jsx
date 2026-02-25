@@ -2,13 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as Icons from 'lucide-react';
 import { jsPDF } from "jspdf";
 import * as XLSX from 'xlsx';
-import { 
-  CRITICALITY_OPTIONS, 
+import {
+  CRITICALITY_OPTIONS,
   STATUS_OPTIONS,
   FUNCTION_OPTIONS,
   REMINDER_OPTIONS,
   APPROVAL_OPTIONS,
-  COLUMN_TYPES, 
+  COLUMN_TYPES,
   DEFAULT_COLUMNS
 } from '../constants';
 
@@ -17,10 +17,10 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
   const [editForm, setEditForm] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeletePrompt, setShowDeletePrompt] = useState(null);
-  
+
   // Use DEFAULT_COLUMNS directly - they're already in your specified order
   const [columns, setColumns] = useState(DEFAULT_COLUMNS);
-  
+
   const [editingColumnHeader, setEditingColumnHeader] = useState(null);
   const [tempColumnName, setTempColumnName] = useState('');
   const [showAddColumnForm, setShowAddColumnForm] = useState(false);
@@ -28,29 +28,29 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
   const [newColumnType, setNewColumnType] = useState('text');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
   const [editingCell, setEditingCell] = useState({ id: null, column: null });
-  
+
   // State for export options
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [showAddSummary, setShowAddSummary] = useState(false);
   const [meetingSummary, setMeetingSummary] = useState('');
   const [summaryTitle, setSummaryTitle] = useState('');
-  
+
   // Refs for column header editing
   const headerInputRef = useRef(null);
   const newColumnInputRef = useRef(null);
   const summaryInputRef = useRef(null);
-  
+
   // Focus header input when editing starts
   useEffect(() => {
     if (editingColumnHeader && headerInputRef.current) {
       headerInputRef.current.focus();
       headerInputRef.current.select();
     }
-    
+
     if (showAddColumnForm && newColumnInputRef.current) {
       newColumnInputRef.current.focus();
     }
-    
+
     if (showAddSummary && summaryInputRef.current) {
       summaryInputRef.current.focus();
     }
@@ -58,7 +58,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
 
   // Filter meetings
   const filteredMeetings = meetings.filter(meeting =>
-    Object.values(meeting).some(value => 
+    Object.values(meeting).some(value =>
       String(value).toLowerCase().includes(searchTerm.toLowerCase())
     )
   );
@@ -70,7 +70,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
     return [...filteredMeetings].sort((a, b) => {
       const aVal = a[sortConfig.key] || '';
       const bVal = b[sortConfig.key] || '';
-      
+
       if (aVal < bVal) {
         return sortConfig.direction === 'ascending' ? -1 : 1;
       }
@@ -103,23 +103,23 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
       dailyReminder: meetings.filter(m => m.remainder === 'daily').length,
       monthlyReminder: meetings.filter(m => m.remainder === 'monthly').length
     };
-    
+
     // Calculate completion rate
-    stats.completionRate = meetings.length > 0 
-      ? Math.round((stats.completed / meetings.length) * 100) 
+    stats.completionRate = meetings.length > 0
+      ? Math.round((stats.completed / meetings.length) * 100)
       : 0;
-    
+
     // Calculate overdue percentage
-    stats.overduePercentage = meetings.length > 0 
-      ? Math.round((stats.overdue / meetings.length) * 100) 
+    stats.overduePercentage = meetings.length > 0
+      ? Math.round((stats.overdue / meetings.length) * 100)
       : 0;
-    
+
     // Calculate approval rate
     const totalWithApproval = stats.approved + stats.rejected + stats.pendingApproval;
-    stats.approvalRate = totalWithApproval > 0 
-      ? Math.round((stats.approved / totalWithApproval) * 100) 
+    stats.approvalRate = totalWithApproval > 0
+      ? Math.round((stats.approved / totalWithApproval) * 100)
       : 0;
-    
+
     return stats;
   }, [meetings]);
 
@@ -137,8 +137,8 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
     if (sortConfig.key !== key) {
       return <Icons.ChevronUp className="h-3 w-3 opacity-30" />;
     }
-    return sortConfig.direction === 'ascending' 
-      ? <Icons.ChevronUp className="h-3 w-3" /> 
+    return sortConfig.direction === 'ascending'
+      ? <Icons.ChevronUp className="h-3 w-3" />
       : <Icons.ChevronDown className="h-3 w-3" />;
   };
 
@@ -197,7 +197,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
   // Save column header edit
   const saveHeaderEdit = () => {
     if (editingColumnHeader && tempColumnName.trim()) {
-      setColumns(columns.map(col => 
+      setColumns(columns.map(col =>
         col.id === editingColumnHeader ? { ...col, label: tempColumnName.trim() } : col
       ));
       setEditingColumnHeader(null);
@@ -215,13 +215,13 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
   const handleAddColumn = () => {
     if (newColumnName.trim()) {
       const newColumnId = newColumnName.toLowerCase().replace(/\s+/g, '_');
-      
+
       // Check if column already exists
       if (columns.find(col => col.id === newColumnId)) {
         alert('Column with this name already exists');
         return;
       }
-      
+
       const newColumn = {
         id: newColumnId,
         label: newColumnName.trim(),
@@ -232,18 +232,18 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
         deletable: true,
         required: false
       };
-      
+
       // Add new column to columns (at the end, before action columns)
       const actionColumns = columns.filter(col => col.type === 'action');
       const regularColumns = columns.filter(col => col.type !== 'action');
-      
+
       setColumns([...regularColumns, newColumn, ...actionColumns]);
-      
+
       // Add empty value for this column to all existing meetings
       meetings.forEach(meeting => {
         onUpdateMeeting(meeting.id, { [newColumnId]: '' });
       });
-      
+
       // Reset form
       setNewColumnName('');
       setNewColumnType('text');
@@ -285,39 +285,39 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
   // Special handler for S.No editing - renumbers all rows
   const handleSnoEdit = (meetingId, newSno) => {
     if (!newSno || isNaN(newSno) || newSno < 1) return;
-    
+
     const newSnoNum = parseInt(newSno);
     const meetingIndex = meetings.findIndex(m => m.id === meetingId);
-    
+
     if (meetingIndex === -1) return;
-    
+
     // Create a copy of meetings
     const updatedMeetings = [...meetings];
-    
+
     // If new number is same as current, just update
     if (newSnoNum === updatedMeetings[meetingIndex].sno) {
       onUpdateMeeting(meetingId, { sno: newSnoNum });
       return;
     }
-    
+
     // Reorder meetings based on new S.No
     updatedMeetings.sort((a, b) => {
       if (a.id === meetingId) return -1;
       if (b.id === meetingId) return 1;
       return a.sno - b.sno;
     });
-    
+
     // Find the position to insert
     let insertIndex = newSnoNum - 1;
     if (insertIndex < 0) insertIndex = 0;
     if (insertIndex >= updatedMeetings.length) insertIndex = updatedMeetings.length - 1;
-    
+
     // Remove the meeting from current position
     const [movedMeeting] = updatedMeetings.splice(meetingIndex, 1);
-    
+
     // Insert at new position
     updatedMeetings.splice(insertIndex, 0, movedMeeting);
-    
+
     // Renumber all meetings
     updatedMeetings.forEach((meeting, index) => {
       if (meeting.sno !== index + 1) {
@@ -346,7 +346,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
 
   // Handle edit form change
   const handleEditFormChange = (field, value) => {
-    setEditForm({...editForm, [field]: value});
+    setEditForm({ ...editForm, [field]: value });
   };
 
   // Handle inline cell edit change
@@ -395,7 +395,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
   const getExportData = () => {
     const visibleColumns = columns.filter(col => col.visible && col.type !== 'action');
     const headers = visibleColumns.map(col => col.label);
-    
+
     const rows = filteredMeetings.map(meeting => {
       return visibleColumns.map(col => {
         if (col.id === 'criticality') return getCriticalityInfo(meeting[col.id])?.label || meeting[col.id];
@@ -430,24 +430,24 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
   // Export to Excel (XLSX)
   const exportToExcel = () => {
     const { headers, rows } = getExportData();
-    
+
     // Create worksheet data
     const worksheetData = [
       headers,
       ...rows
     ];
-    
+
     // Create workbook
     const workbook = XLSX.utils.book_new();
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-    
+
     // Set column widths
     const colWidths = headers.map(() => ({ wch: 20 }));
     worksheet['!cols'] = colWidths;
-    
+
     // Add worksheet to workbook
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Meeting Minutes');
-    
+
     // Generate Excel file
     XLSX.writeFile(workbook, `meeting-minutes-${new Date().toISOString().split('T')[0]}.xlsx`);
   };
@@ -455,33 +455,33 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
   // Export to PDF - FIXED VERSION
   const exportToPDF = () => {
     const { headers, rows } = getExportData();
-    
+
     // Use the imported jsPDF directly
     const doc = new jsPDF({
       orientation: 'landscape',
       unit: 'mm',
       format: 'a4'
     });
-    
+
     const pageWidth = doc.internal.pageSize.width;
     const pageHeight = doc.internal.pageSize.height;
     const margin = 10;
-    
+
     // Add title
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text('Meeting Minutes Report', pageWidth / 2, 15, { align: 'center' });
-    
+
     // Add date
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 22, { align: 'center' });
-    
+
     // Calculate table dimensions
     const colCount = headers.length;
     const colWidth = (pageWidth - (margin * 2)) / colCount;
     let yPos = 30;
-    
+
     // Add table headers
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
@@ -490,9 +490,9 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
       const truncatedHeader = header.length > 15 ? header.substring(0, 12) + '...' : header;
       doc.text(truncatedHeader, xPos, yPos, { maxWidth: colWidth - 2 });
     });
-    
+
     yPos += 8;
-    
+
     // Add table data
     doc.setFont('helvetica', 'normal');
     rows.forEach((row, rowIndex) => {
@@ -508,23 +508,23 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
         });
         yPos += 8;
       }
-      
+
       row.forEach((cell, colIndex) => {
         const xPos = margin + (colIndex * colWidth);
         const cellText = String(cell);
         const truncatedText = cellText.length > 20 ? cellText.substring(0, 17) + '...' : cellText;
         doc.text(truncatedText, xPos, yPos, { maxWidth: colWidth - 2 });
       });
-      
+
       yPos += 6;
     });
-    
+
     // Add summary
     yPos += 5;
     doc.setFontSize(10);
     doc.text(`Total Meetings: ${rows.length}`, margin, yPos);
     doc.text(`Generated by Meeting Minutes System`, pageWidth / 2, yPos + 10, { align: 'center' });
-    
+
     // Save PDF
     doc.save(`meeting-minutes-${new Date().toISOString().split('T')[0]}.pdf`);
   };
@@ -532,7 +532,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
   // Export to Word (DOCX)
   const exportToWord = () => {
     const { headers, rows } = getExportData();
-    
+
     // Create HTML content
     const htmlContent = `
       <!DOCTYPE html>
@@ -541,7 +541,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
         <meta charset="UTF-8">
         <title>Meeting Minutes Report</title>
         <style>
-          body { font-family: Arial, sans-serif; margin: 40px; }
+          body { font-family: 'Inter', sans-serif; margin: 40px; }
           h1 { text-align: center; color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 10px; }
           .date { text-align: center; color: #666; margin-bottom: 30px; font-size: 14px; }
           table { width: 100%; border-collapse: collapse; margin-top: 20px; }
@@ -583,8 +583,8 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
     `;
 
     // Convert HTML to Word document
-    const blob = new Blob([htmlContent], { 
-      type: 'application/msword;charset=utf-8' 
+    const blob = new Blob([htmlContent], {
+      type: 'application/msword;charset=utf-8'
     });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -615,10 +615,10 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
         created_at: new Date().toISOString(),
         is_summary: true
       };
-      
+
       // Add summary to meetings
       onUpdateMeeting(summaryMeeting.id, summaryMeeting);
-      
+
       // Reset form
       setSummaryTitle('');
       setMeetingSummary('');
@@ -629,10 +629,10 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
   // Render input based on column type (for inline editing)
   const renderInlineInput = (column, value, onChange) => {
     const commonClasses = "w-full px-2 py-1 text-xs sm:text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500";
-    
+
     if (column.type === 'select') {
       let options = [];
-      switch(column.id) {
+      switch (column.id) {
         case 'criticality':
           options = CRITICALITY_OPTIONS;
           break;
@@ -651,7 +651,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
         default:
           options = [{ value: 'option1', label: 'Option 1' }, { value: 'option2', label: 'Option 2' }];
       }
-      
+
       return (
         <select
           value={value || ''}
@@ -738,10 +738,10 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
   // Render input for full row edit mode
   const renderRowEditInput = (column, value, onChange) => {
     const commonClasses = "w-full px-2 py-1 text-xs sm:text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500";
-    
+
     if (column.type === 'select') {
       let options = [];
-      switch(column.id) {
+      switch (column.id) {
         case 'criticality':
           options = CRITICALITY_OPTIONS;
           break;
@@ -760,7 +760,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
         default:
           options = [{ value: 'option1', label: 'Option 1' }, { value: 'option2', label: 'Option 2' }];
       }
-      
+
       return (
         <select
           value={value || ''}
@@ -819,14 +819,14 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
   // Render cell content
   const renderCellContent = (meeting, column) => {
     const value = meeting[column.id] || '';
-    
+
     // Handle action columns (View, Edit, Delete)
     if (column.type === 'action') {
       if (column.id === 'view_action') {
         return (
           <div className="flex space-x-1">
-            <button 
-              onClick={() => {/* Add view functionality */}}
+            <button
+              onClick={() => {/* Add view functionality */ }}
               className="p-1 text-blue-600 hover:text-blue-800 bg-blue-50 rounded border border-blue-200"
               title="View details"
             >
@@ -838,7 +838,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
       if (column.id === 'edit_action') {
         return (
           <div className="flex space-x-1">
-            <button 
+            <button
               onClick={() => startEditing(meeting)}
               className="p-1 text-green-600 hover:text-green-800 bg-green-50 rounded border border-green-200"
               title="Edit entire row"
@@ -851,7 +851,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
       if (column.id === 'delete_action') {
         return (
           <div className="flex space-x-1">
-            <button 
+            <button
               onClick={() => showDeleteConfirmation(meeting.id, meeting.project_name)}
               className="p-1 text-red-600 hover:text-red-800 bg-red-50 rounded border border-red-200"
               title="Delete row"
@@ -862,14 +862,14 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
         );
       }
     }
-    
+
     // INLINE EDITING MODE - Shows input in the same cell
     if (editingCell.id === meeting.id && editingCell.column === column.id && column.editable) {
       return (
         <div className="relative">
           {renderInlineInput(column, editForm[column.id], handleInlineEditChange)}
           <div className="absolute -right-8 top-0 flex space-x-1">
-            <button 
+            <button
               onClick={() => {
                 if (column.id === 'sno') {
                   handleSnoEdit(meeting.id, editForm[column.id]);
@@ -877,14 +877,14 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
                   saveCellEdit();
                 }
               }}
-              className="p-1 text-green-600 hover:text-green-800 bg-white rounded shadow"
+              className="p-1 text-green-600 hover:text-green-800 bg-white dark:bg-gray-900 rounded shadow"
               title="Save (Enter)"
             >
               <Icons.Check className="h-3 w-3" />
             </button>
-            <button 
+            <button
               onClick={cancelCellEdit}
-              className="p-1 text-red-600 hover:text-red-800 bg-white rounded shadow"
+              className="p-1 text-red-600 hover:text-red-800 bg-white dark:bg-gray-900 rounded shadow"
               title="Cancel (Esc)"
             >
               <Icons.X className="h-3 w-3" />
@@ -912,7 +912,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
     } else if (column.id === 'function') {
       const functionInfo = getFunctionInfo(value);
       return (
-        <span className="text-xs sm:text-sm font-medium text-gray-700">
+        <span className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300">
           {functionInfo?.label || value}
         </span>
       );
@@ -920,8 +920,8 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
       const remainderInfo = getRemainderInfo(value);
       return (
         <div className="flex items-center space-x-1">
-          <Icons.Bell className="h-3 w-3 text-gray-500" />
-          <span className="text-xs sm:text-sm text-gray-700">
+          <Icons.Bell className="h-3 w-3 text-gray-500 dark:text-gray-500" />
+          <span className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
             {remainderInfo?.label || value}
           </span>
         </div>
@@ -945,7 +945,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
       const date = new Date(value);
       const today = new Date();
       const isOverdue = date < today && meeting.status !== 'completed';
-      
+
       return (
         <div className={`text-xs sm:text-sm ${isOverdue ? 'text-red-600 font-medium' : 'text-gray-700'}`}>
           {date.toLocaleDateString()}
@@ -954,7 +954,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
       );
     } else if (column.id === 'project_name') {
       return (
-        <div className="text-xs sm:text-sm font-semibold text-gray-800 truncate">
+        <div className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-300 truncate">
           {value || '-'}
         </div>
       );
@@ -966,15 +966,15 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
       );
     } else if (column.id === 'Discussion Point') {
       return (
-        <div className="text-xs sm:text-sm text-gray-700 line-clamp-2">
+        <div className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
           {value || '-'}
         </div>
       );
     }
-    
+
     // Default text display
     return (
-      <div className="text-xs sm:text-sm text-gray-700 truncate">
+      <div className="text-xs sm:text-sm text-gray-700 dark:text-gray-300 truncate">
         {value || '-'}
       </div>
     );
@@ -997,16 +997,16 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
             placeholder="Column name"
           />
           <div className="absolute -right-8 top-0 flex space-x-1">
-            <button 
+            <button
               onClick={saveHeaderEdit}
-              className="p-1 text-green-600 hover:text-green-800 bg-white rounded shadow"
+              className="p-1 text-green-600 hover:text-green-800 bg-white dark:bg-gray-900 rounded shadow"
               title="Save (Enter)"
             >
               <Icons.Check className="h-3 w-3" />
             </button>
-            <button 
+            <button
               onClick={cancelHeaderEdit}
-              className="p-1 text-red-600 hover:text-red-800 bg-white rounded shadow"
+              className="p-1 text-red-600 hover:text-red-800 bg-white dark:bg-gray-900 rounded shadow"
               title="Cancel (Esc)"
             >
               <Icons.X className="h-3 w-3" />
@@ -1019,8 +1019,8 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
     // NORMAL HEADER VIEW - SIMPLIFIED WITHOUT SYMBOLS
     return (
       <div className="flex items-center justify-between">
-        <span 
-          className="cursor-pointer hover:text-blue-600 transition-colors font-medium text-gray-700" 
+        <span
+          className="cursor-pointer hover:text-blue-600 transition-colors font-medium text-gray-700 dark:text-gray-300"
           onDoubleClick={() => startHeaderEditing(column.id, column.label)}
           title="Double click to edit column name"
         >
@@ -1028,16 +1028,16 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
         </span>
         <div className="flex items-center space-x-1">
           {column.sortable && (
-            <button 
+            <button
               onClick={() => handleSort(column.id)}
-              className="text-gray-400 hover:text-gray-600"
+              className="text-gray-400 hover:text-gray-600 dark:text-gray-400"
               title="Sort"
             >
               {getSortIcon(column.id)}
             </button>
           )}
           {column.deletable && column.type !== 'action' && (
-            <button 
+            <button
               onClick={() => handleDeleteColumn(column.id)}
               className="text-gray-400 hover:text-red-600"
               title="Delete column"
@@ -1055,15 +1055,15 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
       {/* Delete Meeting Prompt Modal */}
       {showDeletePrompt && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded p-3 sm:p-4 max-w-sm w-full mx-3">
+          <div className="bg-white dark:bg-gray-900 rounded p-3 sm:p-4 max-w-sm w-full mx-3">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-900">Confirm Delete</h3>
-              <button onClick={cancelDelete} className="text-gray-400 hover:text-gray-600">
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 Delete</h3>
+              <button onClick={cancelDelete} className="text-gray-400 hover:text-gray-600 dark:text-gray-400">
                 <Icons.X className="h-4 w-4" />
               </button>
             </div>
             <div className="mb-3">
-              <p className="text-xs text-gray-600">
+              <p className="text-xs text-gray-600 dark:text-gray-400"
                 Are you sure you want to delete meeting point for <span className="font-medium">{showDeletePrompt.projectName}</span>?
               </p>
               <p className="text-xs text-red-600 mt-1">This action cannot be undone.</p>
@@ -1071,7 +1071,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
             <div className="flex justify-end space-x-2">
               <button
                 onClick={cancelDelete}
-                className="px-3 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-50"
+                className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 Cancel
               </button>
@@ -1089,22 +1089,22 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
       {/* Add Column Form Modal */}
       {showAddColumnForm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded p-3 sm:p-4 max-w-sm w-full mx-3">
+          <div className="bg-white dark:bg-gray-900 rounded p-3 sm:p-4 max-w-sm w-full mx-3">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-900">Add New Column</h3>
-              <button 
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 New Column</h3>
+              <button
                 onClick={() => {
                   setShowAddColumnForm(false);
                   setNewColumnName('');
-                }} 
-                className="text-gray-400 hover:text-gray-600"
+                }}
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-400"
               >
                 <Icons.X className="h-4 w-4" />
               </button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-gray-700 mb-1">
+                <label className="block text-xs text-gray-700 dark:text-gray-300 mb-1">
                   Column Name
                 </label>
                 <input
@@ -1113,18 +1113,18 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
                   value={newColumnName}
                   onChange={(e) => setNewColumnName(e.target.value)}
                   onKeyDown={handleNewColumnKeyDown}
-                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter column name"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-700 mb-1">
+                <label className="block text-xs text-gray-700 dark:text-gray-300 mb-1">
                   Data Type
                 </label>
                 <select
                   value={newColumnType}
                   onChange={(e) => setNewColumnType(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                 >
                   {COLUMN_TYPES.map(type => (
                     <option key={type.value} value={type.value}>
@@ -1139,7 +1139,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
                     setShowAddColumnForm(false);
                     setNewColumnName('');
                   }}
-                  className="px-3 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-50"
+                  className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   Cancel
                 </button>
@@ -1158,23 +1158,23 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
       {/* Add Meeting Summary Modal */}
       {showAddSummary && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded p-3 sm:p-4 max-w-sm w-full mx-3">
+          <div className="bg-white dark:bg-gray-900 rounded p-3 sm:p-4 max-w-sm w-full mx-3">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-900">Add Meeting Summary</h3>
-              <button 
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 Meeting Summary</h3>
+              <button
                 onClick={() => {
                   setShowAddSummary(false);
                   setSummaryTitle('');
                   setMeetingSummary('');
-                }} 
-                className="text-gray-400 hover:text-gray-600"
+                }}
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-400"
               >
                 <Icons.X className="h-4 w-4" />
               </button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-gray-700 mb-1">
+                <label className="block text-xs text-gray-700 dark:text-gray-300 mb-1">
                   Summary Title
                 </label>
                 <input
@@ -1182,18 +1182,18 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
                   type="text"
                   value={summaryTitle}
                   onChange={(e) => setSummaryTitle(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter summary title"
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-700 mb-1">
+                <label className="block text-xs text-gray-700 dark:text-gray-300 mb-1">
                   Meeting Summary
                 </label>
                 <textarea
                   value={meetingSummary}
                   onChange={(e) => setMeetingSummary(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-y min-h-[100px]"
+                  className="w-full px-3 py-2 text-xs border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 resize-y min-h-[100px]"
                   placeholder="Enter detailed meeting summary..."
                   rows="4"
                 />
@@ -1205,7 +1205,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
                     setSummaryTitle('');
                     setMeetingSummary('');
                   }}
-                  className="px-3 py-1.5 text-xs border border-gray-300 rounded hover:bg-gray-50"
+                  className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
                 >
                   Cancel
                 </button>
@@ -1225,12 +1225,12 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
       {/* Export Menu Modal */}
       {showExportMenu && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded p-3 sm:p-4 max-w-sm w-full mx-3">
+          <div className="bg-white dark:bg-gray-900 rounded p-3 sm:p-4 max-w-sm w-full mx-3">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-medium text-gray-900">Export Options</h3>
-              <button 
-                onClick={() => setShowExportMenu(false)} 
-                className="text-gray-400 hover:text-gray-600"
+              <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 Options</h3>
+              <button
+                onClick={() => setShowExportMenu(false)}
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-400"
               >
                 <Icons.X className="h-4 w-4" />
               </button>
@@ -1241,64 +1241,64 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
                   exportToCSV();
                   setShowExportMenu(false);
                 }}
-                className="w-full flex items-center justify-between p-3 text-left bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-between p-3 text-left bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <Icons.FileText className="h-4 w-4 text-green-600" />
                   <div>
                     <span className="text-xs font-medium">CSV Format</span>
-                    <p className="text-xs text-gray-500">Comma separated values</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">Comma separated values</p>
                   </div>
                 </div>
                 <Icons.Download className="h-4 w-4 text-gray-400" />
               </button>
-              
+
               <button
                 onClick={() => {
                   exportToExcel();
                   setShowExportMenu(false);
                 }}
-                className="w-full flex items-center justify-between p-3 text-left bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-between p-3 text-left bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <Icons.FileSpreadsheet className="h-4 w-4 text-green-700" />
                   <div>
                     <span className="text-xs font-medium">Excel Format</span>
-                    <p className="text-xs text-gray-500">Microsoft Excel (.xlsx)</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">Microsoft Excel (.xlsx)</p>
                   </div>
                 </div>
                 <Icons.Download className="h-4 w-4 text-gray-400" />
               </button>
-              
+
               <button
                 onClick={() => {
                   exportToPDF();
                   setShowExportMenu(false);
                 }}
-                className="w-full flex items-center justify-between p-3 text-left bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-between p-3 text-left bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <Icons.File className="h-4 w-4 text-red-600" />
                   <div>
                     <span className="text-xs font-medium">PDF Format</span>
-                    <p className="text-xs text-gray-500">Portable Document Format</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">Portable Document Format</p>
                   </div>
                 </div>
                 <Icons.Download className="h-4 w-4 text-gray-400" />
               </button>
-              
+
               <button
                 onClick={() => {
                   exportToWord();
                   setShowExportMenu(false);
                 }}
-                className="w-full flex items-center justify-between p-3 text-left bg-white border border-gray-300 rounded hover:bg-gray-50 transition-colors"
+                className="w-full flex items-center justify-between p-3 text-left bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <Icons.FileText className="h-4 w-4 text-blue-600" />
                   <div>
                     <span className="text-xs font-medium">Word Format</span>
-                    <p className="text-xs text-gray-500">Microsoft Word (.doc)</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">Microsoft Word (.doc)</p>
                   </div>
                 </div>
                 <Icons.Download className="h-4 w-4 text-gray-400" />
@@ -1309,7 +1309,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
       )}
 
       {/* Table Container with Toolbar - REMOVED Meeting Statistics Dashboard */}
-      <div className="bg-white border border-gray-300 rounded p-3 sm:p-4">
+      <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded p-3 sm:p-4">
         {/* Toolbar - UPDATED WITH EXPORT MENU */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0 mb-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
@@ -1321,10 +1321,10 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
                 placeholder="Search meetings..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm border border-gray-300 rounded"
+                className="w-full pl-9 pr-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded"
               />
             </div>
-            
+
             {/* Add Column Button */}
             <button
               onClick={() => setShowAddColumnForm(true)}
@@ -1334,7 +1334,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
               <span>Add Column</span>
             </button>
           </div>
-          
+
           <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
             {/* Export Button with Dropdown */}
             <div className="relative">
@@ -1351,17 +1351,17 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
         </div>
 
         {/* Table */}
-        <div className="overflow-x-auto border border-gray-200 rounded">
+        <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded">
           <table className="w-full text-xs sm:text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-300">
+              <tr className="bg-gray-50 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-600">
                 {/* Render columns in original order */}
                 {columns
                   .filter(col => col.visible)
                   .map((column) => (
-                    <th 
+                    <th
                       key={column.id}
-                      className="text-left py-2 px-2 sm:px-3 font-medium text-gray-700 min-w-[100px]"
+                      className="text-left py-2 px-2 sm:px-3 font-medium text-gray-700 dark:text-gray-300 min-w-[100px]"
                     >
                       {renderColumnHeader(column)}
                     </th>
@@ -1371,9 +1371,9 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
             <tbody>
               {/* Existing meetings */}
               {sortedMeetings.map((meeting) => (
-                <tr 
-                  key={meeting.id} 
-                  className={`border-b border-gray-200 hover:bg-gray-50 ${meeting.is_summary ? 'bg-purple-50' : ''}`}
+                <tr
+                  key={meeting.id}
+                  className={`border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 ${meeting.is_summary ? 'bg-purple-50' : ''}`}
                 >
                   {/* FULL ROW EDIT MODE */}
                   {editingId === meeting.id ? (
@@ -1385,7 +1385,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
                             {column.editable ? (
                               renderRowEditInput(column, editForm[column.id], handleEditFormChange)
                             ) : (
-                              <div className="text-xs sm:text-sm text-gray-700">
+                              <div className="text-xs sm:text-sm text-gray-700 dark:text-gray-300">
                                 {renderCellContent(meeting, column)}
                               </div>
                             )}
@@ -1398,8 +1398,8 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
                       {columns
                         .filter(col => col.visible)
                         .map((column) => (
-                          <td 
-                            key={column.id} 
+                          <td
+                            key={column.id}
                             className="py-2 px-2 sm:px-3"
                             onDoubleClick={() => {
                               if (column.editable && column.type !== 'action') {
@@ -1418,47 +1418,47 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
             </tbody>
           </table>
         </div>
-        
+
         {/* Empty State */}
         {sortedMeetings.length === 0 && (
           <div className="text-center py-8">
             <Icons.FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-            <h3 className="text-sm font-medium text-gray-900 mb-1">No meeting points found</h3>
-            <p className="text-xs text-gray-500">
+            <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">No meeting points found</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-500">
               {searchTerm ? 'Try changing your search terms' : 'Start by adding meeting points using speech-to-text'}
             </p>
           </div>
         )}
-        
+
         {/* Pagination/Summary */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0 mt-3 pt-3 border-t border-gray-300">
-          <div className="text-[10px] sm:text-xs text-gray-600">
-            Showing {sortedMeetings.length} of {meetings.length} meeting points • 
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-0 mt-3 pt-3 border-t border-gray-300 dark:border-gray-600">
+          <div className="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400"
+            Showing {sortedMeetings.length} of {meetings.length} meeting points •
             {columns.filter(c => c.visible).length} columns visible
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-gray-500">Export as:</span>
-            <button 
+            <span className="text-[10px] text-gray-500 dark:text-gray-500">Export as:</span>
+            <button
               onClick={exportToCSV}
-              className="text-[10px] px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
+              className="text-[10px] px-2 py-1 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               CSV
             </button>
-            <button 
+            <button
               onClick={exportToExcel}
-              className="text-[10px] px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
+              className="text-[10px] px-2 py-1 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               Excel
             </button>
-            <button 
+            <button
               onClick={exportToPDF}
-              className="text-[10px] px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
+              className="text-[10px] px-2 py-1 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               PDF
             </button>
-            <button 
+            <button
               onClick={exportToWord}
-              className="text-[10px] px-2 py-1 border border-gray-300 rounded hover:bg-gray-50"
+              className="text-[10px] px-2 py-1 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
             >
               Word
             </button>

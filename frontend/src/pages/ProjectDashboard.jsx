@@ -56,8 +56,8 @@ const PROJECT_STAGES = [
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white px-4 py-3 border border-gray-200 rounded-lg shadow-lg max-w-xs">
-        <p className="font-medium text-gray-900 mb-2 border-b pb-1">{label}</p>
+      <div className="bg-white dark:bg-gray-900 px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-w-xs">
+        <p className="font-medium text-gray-900 dark:text-gray-100 mb-2 border-b pb-1">{label}</p>
         {payload.map((entry, index) => {
           const valueColor = entry.color || entry.fill || '#2563eb';
           const value = entry.value;
@@ -103,29 +103,29 @@ const StageConfigModal = ({ stage, isOpen, onClose, departmentColumns, onSave, c
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-2xl w-full">
         <div className="p-8">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-semibold text-gray-900">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100"
               Configure {stage.name} Chart
             </h3>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
-              <X className="h-5 w-5 text-gray-500" />
+              <X className="h-5 w-5 text-gray-500 dark:text-gray-500" />
             </button>
           </div>
 
           <div className="space-y-6">
             <div>
-              <label className="text-base font-medium text-gray-700 mb-2 block">
+              <label className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2 block">
                 X-Axis (Categories)
               </label>
               <select
                 value={xAxis}
                 onChange={(e) => setXAxis(e.target.value)}
-                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-900"
               >
                 <option value="">Select column</option>
                 {departmentColumns.map(col => (
@@ -135,13 +135,13 @@ const StageConfigModal = ({ stage, isOpen, onClose, departmentColumns, onSave, c
             </div>
 
             <div>
-              <label className="text-base font-medium text-gray-700 mb-2 block">
+              <label className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2 block">
                 Y-Axis (Values)
               </label>
               <select
                 value={yAxis}
                 onChange={(e) => setYAxis(e.target.value)}
-                className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+                className="w-full px-4 py-3 text-base border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-900"
               >
                 <option value="">Select column</option>
                 {departmentColumns.map(col => (
@@ -154,7 +154,7 @@ const StageConfigModal = ({ stage, isOpen, onClose, departmentColumns, onSave, c
           <div className="flex justify-end space-x-3 mt-8">
             <button
               onClick={onClose}
-              className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-base"
+              className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-base"
             >
               Cancel
             </button>
@@ -193,26 +193,26 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl w-[1000px] max-w-6xl">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl w-[1000px] max-w-6xl">
         <div className="p-8">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-semibold text-gray-900">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100"
               {stage?.name || 'Chart'} - Full Screen View
             </h3>
             <button
               onClick={handleClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
-              <Minimize2 className="h-5 w-5 text-gray-500" />
+              <Minimize2 className="h-5 w-5 text-gray-500 dark:text-gray-500" />
             </button>
           </div>
           {/* Rest of the component remains the same */}
           <div className="mb-6 flex items-center space-x-3">
-            <span className="text-base text-gray-600">Chart Type:</span>
+            <span className="text-base text-gray-600 dark:text-gray-400 Type:</span>
             <button
               onClick={() => handleChartTypeChange('bar')}
               className={`px-4 py-2 rounded-lg text-base flex items-center ${
-                localChartType === 'bar' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                localChartType === 'bar' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 hover:bg-gray-200'
               }`}
             >
               <BarChart2 className="h-4 w-4 mr-2" />
@@ -221,7 +221,7 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
             <button
               onClick={() => handleChartTypeChange('pie')}
               className={`px-4 py-2 rounded-lg text-base flex items-center ${
-                localChartType === 'pie' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                localChartType === 'pie' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 hover:bg-gray-200'
               }`}
             >
               <PieChart className="h-4 w-4 mr-2" />
@@ -230,7 +230,7 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
             <button
               onClick={() => handleChartTypeChange('line')}
               className={`px-4 py-2 rounded-lg text-base flex items-center ${
-                localChartType === 'line' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                localChartType === 'line' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 hover:bg-gray-200'
               }`}
             >
               <TrendingUp className="h-4 w-4 mr-2" />
@@ -239,7 +239,7 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
             <button
               onClick={() => handleChartTypeChange('area')}
               className={`px-4 py-2 rounded-lg text-base flex items-center ${
-                localChartType === 'area' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                localChartType === 'area' ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 hover:bg-gray-200'
               }`}
             >
               <AreaIcon className="h-4 w-4 mr-2" />
@@ -359,8 +359,8 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
                 )}
               </ResponsiveContainer>
             ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
-                <p className="text-gray-500">No data available</p>
+              <div className="w-full h-full flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-lg border border-dashed border-gray-300 dark:border-gray-600">
+                <p className="text-gray-500 dark:text-gray-500">No data available</p>
               </div>
             )}
           </div>
@@ -373,7 +373,7 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
 const MiniChart = ({ chartData, statusDistribution, chartType = 'bar' }) => {
   if (!chartData || chartData.length === 0) {
     return (
-      <div className="h-24 flex items-center justify-center bg-gray-50 rounded border border-gray-200">
+      <div className="h-24 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700"
         <BarChart2 className="h-8 w-8 text-gray-300" />
       </div>
     );
@@ -486,48 +486,48 @@ const DashboardConfigModal = ({ isOpen, onClose, onApply, selectedProject }) => 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-2xl w-full">
         <div className="p-8">
           <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-semibold text-gray-900">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100"
               Stimulate Dashboard
             </h3>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
-              <X className="h-5 w-5 text-gray-500" />
+              <X className="h-5 w-5 text-gray-500 dark:text-gray-500" />
             </button>
           </div>
 
-          <p className="text-base text-gray-600 mb-6">
+          <p className="text-base text-gray-600 dark:text-gray-400 mb-6">
             Configure what to display for {selectedProject?.name}
           </p>
 
           <div className="space-y-6">
             {/* Main checkboxes */}
             <div className="space-y-3">
-              <label className="flex items-center p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
+              <label className="flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer">
                 <input
                   type="checkbox"
                   checked={showMilestones}
                   onChange={(e) => setShowMilestones(e.target.checked)}
-                  className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  className="h-5 w-5 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
                 />
-                <span className="ml-3 text-base font-medium text-gray-700">Milestones</span>
+                <span className="ml-3 text-base font-medium text-gray-700 dark:text-gray-300">Milestones</span>
               </label>
 
-              <label className="flex items-center p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
+              <label className="flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer">
                 <input
                   type="checkbox"
                   checked={showCriticalIssues}
                   onChange={(e) => setShowCriticalIssues(e.target.checked)}
-                  className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  className="h-5 w-5 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
                 />
-                <span className="ml-3 text-base font-medium text-gray-700">Critical Issues</span>
+                <span className="ml-3 text-base font-medium text-gray-700 dark:text-gray-300">Critical Issues</span>
               </label>
 
-              <label className="flex items-center p-3 hover:bg-gray-50 rounded-lg cursor-pointer">
+              <label className="flex items-center p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg cursor-pointer">
                 <input
                   type="checkbox"
                   checked={showMetrics}
@@ -537,17 +537,17 @@ const DashboardConfigModal = ({ isOpen, onClose, onApply, selectedProject }) => 
                       setSelectedMetrics([]);
                     }
                   }}
-                  className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                  className="h-5 w-5 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
                 />
-                <span className="ml-3 text-base font-medium text-gray-700">Metrics (Visuals)</span>
+                <span className="ml-3 text-base font-medium text-gray-700 dark:text-gray-300">Metrics (Visuals)</span>
               </label>
             </div>
 
             {/* Metrics sub-checkboxes */}
             {showMetrics && (
-              <div className="ml-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <div className="ml-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+                  <span className="text-sm font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">
                     Select Metrics
                   </span>
                   <button
@@ -560,14 +560,14 @@ const DashboardConfigModal = ({ isOpen, onClose, onApply, selectedProject }) => 
                 <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
                   {PROJECT_STAGES.map((stage) => {
                     return (
-                      <label key={stage.id} className="flex items-center p-2 hover:bg-white rounded cursor-pointer">
+                      <label key={stage.id} className="flex items-center p-2 hover:bg-white dark:bg-gray-950 rounded cursor-pointer">
                         <input
                           type="checkbox"
                           checked={selectedMetrics.includes(stage.id)}
                           onChange={() => handleMetricToggle(stage.id)}
-                          className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                          className="h-4 w-4 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500"
                         />
-                        <span className="ml-2 text-sm text-gray-700">{stage.name}</span>
+                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">{stage.name}</span>
                       </label>
                     );
                   })}
@@ -579,7 +579,7 @@ const DashboardConfigModal = ({ isOpen, onClose, onApply, selectedProject }) => 
           <div className="flex justify-end space-x-3 mt-8">
             <button
               onClick={onClose}
-              className="px-6 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-base"
+              className="px-6 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-base"
             >
               Cancel
             </button>
@@ -605,20 +605,20 @@ const FileHeaderConfigItem = ({ fileModule, fileHeaderConfig, onConfigure }) => 
                      fileModule.fileData?.sheets?.[0]?.data?.slice(0, 5) || [];
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4">
-      <h4 className="font-medium text-gray-900 mb-3">
+    <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+      <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
         {fileModule.displayName || fileModule.name}
       </h4>
       
       {/* Header row count selector */}
       <div className="mb-4">
-        <label className="text-sm font-medium text-gray-700 mb-2 block">
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
           Number of header rows:
         </label>
         <select
           value={localRowCount}
           onChange={(e) => setLocalRowCount(parseInt(e.target.value))}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
+          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm"
         >
           <option value={1}>1 row</option>
           <option value={2}>2 rows</option>
@@ -629,16 +629,16 @@ const FileHeaderConfigItem = ({ fileModule, fileHeaderConfig, onConfigure }) => 
       {/* Header preview */}
       {localRowCount > 1 && (
         <div className="mb-4">
-          <p className="text-sm font-medium text-gray-700 mb-2">
+          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Header rows preview:
           </p>
-          <div className="border border-gray-200 rounded-lg overflow-x-auto">
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <tbody className="divide-y divide-gray-200">
                 {previewRows.slice(0, localRowCount).map((row, rowIndex) => (
-                  <tr key={rowIndex} className="bg-gray-50">
+                  <tr key={rowIndex} className="bg-gray-50 dark:bg-gray-800">
                     {row.map((cell, colIndex) => (
-                      <td key={colIndex} className="px-3 py-2 text-xs text-gray-600 border-r border-gray-200 whitespace-nowrap">
+                      <td key={colIndex} className="px-3 py-2 text-xs text-gray-600 dark:text-gray-400 border-r border-gray-200 dark:border-gray-700 whitespace-nowrap">
                         {cell || '(empty)'}
                       </td>
                     ))}
@@ -1549,20 +1549,20 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-800 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900">Loading Projects...</h3>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 Projects...</h3>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-800">
       {/* Header */}
       {!selectedFile.isSelected && (
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
           <div className="flex items-center justify-between">
             
             {/* Project Selector */}
@@ -1579,7 +1579,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                 <select
                   value={selectedProjectId}
                   onChange={(e) => handleProjectSelect(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white dark:bg-gray-900"
                 >
                   <option value="">Select a project</option>
                   {projectModules.map(project => (
@@ -1600,7 +1600,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
           <div>
             {/* File Viewer (if file selected) */}
             {selectedFile.isSelected && selectedFile.source === 'project-dashboard' && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
                 <div className="p-4 h-[calc(100vh-240px)] overflow-auto">
                   <FileContentViewer
                     fileData={selectedFile.fileData}
@@ -1620,7 +1620,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
             {/* Main Project Container - Only show when no file is selected */}
             {!selectedFile.isSelected && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
                 {/* Project Header */}
                 <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700">
                   <div className="flex items-center justify-between">
@@ -1635,7 +1635,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                       {/* Stimulate Dashboard Button - Updated to match Send Report button UI */}
                       <button
                         onClick={() => setShowConfigModal(true)}
-                        className="px-4 py-1.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm flex items-center font-medium"
+                        className="px-4 py-1.5 bg-white dark:bg-gray-900 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm flex items-center font-medium"
                       >
                         
                         Stimulate Dashboard
@@ -1644,7 +1644,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                       {/* Send Report Button */}
                       <button
                         onClick={() => setShowEmailModal(true)}
-                        className="px-4 py-1.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm flex items-center font-medium"
+                        className="px-4 py-1.5 bg-white dark:bg-gray-900 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm flex items-center font-medium"
                       >
                         <Send className="h-4 w-4 mr-1" />
                         Send Report
@@ -1658,32 +1658,32 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                   {/* Milestones Section - Updated with new structure */}
                   {dashboardConfig.milestones && (
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                         Major Milestones
                       </h3>
-                      <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                      <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
                         <table className="min-w-full divide-y divide-gray-200">
                           <thead className="bg-blue-50">
                             <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-1/4">Milestone</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider w-1/4">Plan</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider w-1/4">Actual/Outlook</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider w-1/4">Status</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider w-1/4">Milestone</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider w-1/4">Plan</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider w-1/4">Actual/Outlook</th>
+                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider w-1/4">Status</th>
                             </tr>
                           </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
+                          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200">
                             {DUMMY_MILESTONES.map((milestone) => (
-                              <tr key={milestone.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 text-sm text-gray-900 font-medium">{milestone.name}</td>
-                                <td className="px-4 py-3 text-sm text-gray-600 text-center">{milestone.plan}</td>
-                                <td className="px-4 py-3 text-sm text-gray-600 text-center">{milestone.actual}</td>
+                              <tr key={milestone.id} className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 font-medium">{milestone.name}</td>
+                                <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 text-center">{milestone.plan}</td>
+                                <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 text-center">{milestone.actual}</td>
                                 <td className="px-4 py-3 text-center">
                                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
                                     ${milestone.status === 'Completed' ? 'bg-green-100 text-green-800' : 
                                       milestone.status === 'Ahead' ? 'bg-blue-100 text-blue-800' :
                                       milestone.status === 'At Risk' ? 'bg-orange-100 text-orange-800' :
                                       milestone.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-gray-100 text-gray-800'}`}>
+                                      'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'}`}>
                                     {milestone.status}
                                   </span>
                                 </td>
@@ -1698,24 +1698,24 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                   {/* Critical Issues Section */}
                   {dashboardConfig.criticalIssues && (
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                         Critical Issues
                       </h3>
-                      <div className="overflow-x-auto border border-gray-200 rounded-lg">
+                      <div className="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
                         <table className="min-w-full divide-y divide-gray-200">
                           <thead className="bg-blue-50">
                             <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Issue</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Severity</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Status</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Assignee</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Due Date</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Issue</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Severity</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Assignee</th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wider">Due Date</th>
                             </tr>
                           </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
+                          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200">
                             {DUMMY_ISSUES.map((issue) => (
-                              <tr key={issue.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 text-sm text-gray-900">{issue.title}</td>
+                              <tr key={issue.id} className="hover:bg-gray-50 dark:hover:bg-gray-800"
+                                <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100"
                                 <td className="px-4 py-3">
                                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
                                     ${issue.severity === 'Critical' ? 'bg-red-100 text-red-800' : 
@@ -1727,12 +1727,12 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                 <td className="px-4 py-3">
                                   <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
                                     ${issue.status === 'In Progress' ? 'bg-blue-100 text-blue-800' : 
-                                      'bg-gray-100 text-gray-800'}`}>
+                                      'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200'}`}>
                                     {issue.status}
                                   </span>
                                 </td>
-                                <td className="px-4 py-3 text-sm text-gray-600">{issue.assignee}</td>
-                                <td className="px-4 py-3 text-sm text-gray-600">{issue.dueDate}</td>
+                                <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400"
+                                <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-400"
                               </tr>
                             ))}
                           </tbody>
@@ -1744,7 +1744,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                   {/* Project Stages with Embedded Charts - Only show selected metrics */}
                   {dashboardConfig.metrics && dashboardConfig.selectedMetrics.length > 0 && departmentColumns.length > 0 && (
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                         Project Metrics
                       </h3>
                       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1770,30 +1770,30 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                               className={`border rounded-xl overflow-hidden ${colorClasses[stage.color]}`}
                             >
                               {/* Stage Header */}
-                              <div className="p-3 border-b border-gray-200 bg-white bg-opacity-50">
+                              <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 bg-opacity-50">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center">
-                                    <h4 className="font-medium text-gray-900">{stage.name}</h4>
+                                    <h4 className="font-medium text-gray-900 dark:text-gray-100"
                                   </div>
                                   <div className="flex items-center space-x-1">
                                     <button
                                       onClick={() => handleFullScreen(stage)}
-                                      className="p-1.5 bg-white rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                                      className="p-1.5 bg-white dark:bg-gray-900 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
                                       title="Full screen view"
                                     >
-                                      <Maximize2 className="h-4 w-4 text-gray-600" />
+                                      <Maximize2 className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                                     </button>
                                     <button
                                       onClick={() => setConfiguringStage(stage)}
-                                      className="p-1.5 bg-white rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                                      className="p-1.5 bg-white dark:bg-gray-900 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-gray-200 dark:border-gray-700"
                                       title="Configure chart"
                                     >
-                                      <Settings2 className="h-4 w-4 text-gray-600" />
+                                      <Settings2 className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                                     </button>
                                   </div>
                                 </div>
                                 {hasConfig && (
-                                  <p className="text-xs text-gray-500 mt-1 truncate">
+                                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 truncate">
                                     {stageConfig.xAxis} vs {stageConfig.yAxis}
                                   </p>
                                 )}
@@ -1809,12 +1809,12 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                       chartType={chartType}
                                     />
                                   ) : (
-                                    <div className="h-24 flex items-center justify-center bg-white bg-opacity-50 rounded border border-gray-200">
+                                    <div className="h-24 flex items-center justify-center bg-white dark:bg-gray-900 bg-opacity-50 rounded border border-gray-200 dark:border-gray-700"
                                       <p className="text-xs text-gray-400">No data available</p>
                                     </div>
                                   )
                                 ) : (
-                                  <div className="h-24 flex items-center justify-center bg-white bg-opacity-50 rounded border border-gray-200">
+                                  <div className="h-24 flex items-center justify-center bg-white dark:bg-gray-900 bg-opacity-50 rounded border border-gray-200 dark:border-gray-700"
                                     <button
                                       onClick={() => setConfiguringStage(stage)}
                                       className="text-xs text-blue-600 hover:text-blue-800 flex items-center"
@@ -1830,12 +1830,12 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                               {hasConfig && chartData.length > 0 && (
                                 <div className="px-3 pb-3">
                                   <div className="flex justify-between text-xs">
-                                    <span className="text-gray-500">Categories:</span>
-                                    <span className="font-medium text-gray-900">{chartData.length}</span>
+                                    <span className="text-gray-500 dark:text-gray-500">Categories:</span>
+                                    <span className="font-medium text-gray-900 dark:text-gray-100"
                                   </div>
                                   <div className="flex justify-between text-xs">
-                                    <span className="text-gray-500">Groups:</span>
-                                    <span className="font-medium text-gray-900">{distribution.length}</span>
+                                    <span className="text-gray-500 dark:text-gray-500">Groups:</span>
+                                    <span className="font-medium text-gray-900 dark:text-gray-100"
                                   </div>
                                 </div>
                               )}
@@ -1852,10 +1852,10 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
         ) : (
           // Empty State
           !selectedFile.isSelected && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-12 text-center">
               <Layout className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Project Selected</h3>
-              <p className="text-gray-500 mb-6">Choose a project from the dropdown above to start analyzing data</p>
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Project Selected</h3>
+              <p className="text-gray-500 dark:text-gray-500 mb-6">Choose a project from the dropdown above to start analyzing data</p>
               {projectModules.length === 0 && (
                 <button
                   onClick={() => navigate('/dashboard', { state: { module: 'upload-trackers' } })}
@@ -1908,17 +1908,17 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       {/* Header Configuration Modal */}
       {showHeaderConfig && departmentFiles.length > 0 && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-8">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100"
                   Configure File Headers
                 </h3>
                 <button
                   onClick={() => setShowHeaderConfig(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 >
-                  <X className="h-5 w-5 text-gray-500" />
+                  <X className="h-5 w-5 text-gray-500 dark:text-gray-500" />
                 </button>
               </div>
 
@@ -1948,51 +1948,51 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       {/* Email Modal - Made bigger */}
       {showEmailModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-8">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100"
                   Send Report
                 </h3>
                 <button
                   onClick={() => setShowEmailModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 >
-                  <X className="h-5 w-5 text-gray-500" />
+                  <X className="h-5 w-5 text-gray-500 dark:text-gray-500" />
                 </button>
               </div>
 
               {/* Recipients */}
               <div className="mb-6">
-                <label className="text-base font-medium text-gray-700 mb-3 block">
+                <label className="text-base font-medium text-gray-700 dark:text-gray-300 mb-3 block">
                   Recipients ({departmentEmployees.length} available)
                 </label>
-                <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
-                  <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+                <div className="border border-gray-300 dark:border-gray-600 rounded-lg max-h-60 overflow-y-auto">
+                  <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
                     <button
                       onClick={selectAllEmployees}
                       className="text-base text-blue-600 hover:text-blue-800"
                     >
                       {selectedEmployees.length === departmentEmployees.length ? 'Deselect All' : 'Select All'}
                     </button>
-                    <span className="text-base text-gray-600">
+                    <span className="text-base text-gray-600 dark:text-gray-400"
                       {selectedEmployees.length} selected
                     </span>
                   </div>
                   {departmentEmployees.map((employee) => (
                     <label
                       key={employee.id}
-                      className="flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
+                      className="flex items-center px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer border-b border-gray-100 dark:border-gray-800 last:border-0"
                     >
                       <input
                         type="checkbox"
                         checked={selectedEmployees.includes(employee.id)}
                         onChange={() => toggleEmployeeSelection(employee.id)}
-                        className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mr-4"
+                        className="h-5 w-5 text-blue-600 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 mr-4"
                       />
                       <div className="flex-1">
-                        <p className="text-base font-medium text-gray-700">{employee.name}</p>
-                        <p className="text-sm text-gray-500">{employee.email}</p>
+                        <p className="text-base font-medium text-gray-700 dark:text-gray-300">{employee.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-500">{employee.email}</p>
                       </div>
                     </label>
                   ))}
@@ -2001,7 +2001,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
               {/* Subject */}
               <div className="mb-6">
-                <label className="text-base font-medium text-gray-700 mb-3 block">
+                <label className="text-base font-medium text-gray-700 dark:text-gray-300 mb-3 block">
                   Subject
                 </label>
                 <input
@@ -2009,13 +2009,13 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                   value={emailSubject}
                   onChange={(e) => setEmailSubject(e.target.value)}
                   placeholder={`${selectedProject?.name} Report`}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
                 />
               </div>
 
               {/* Message */}
               <div className="mb-6">
-                <label className="text-base font-medium text-gray-700 mb-3 block">
+                <label className="text-base font-medium text-gray-700 dark:text-gray-300 mb-3 block">
                   Message
                 </label>
                 <textarea
@@ -2023,7 +2023,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                   onChange={(e) => setEmailBody(e.target.value)}
                   placeholder="Add a message..."
                   rows="5"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base resize-none"
                 />
               </div>
 
@@ -2044,7 +2044,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
               <div className="flex justify-end space-x-4">
                 <button
                   onClick={() => setShowEmailModal(false)}
-                  className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-base"
+                  className="px-6 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors text-base"
                 >
                   Cancel
                 </button>

@@ -16,23 +16,23 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, message, type = '
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+      <div className="bg-white dark:bg-gray-900 rounded-lg p-6 max-w-md w-full mx-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="font-medium text-gray-900">Confirm Delete</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <h3 className="font-medium text-gray-900 dark:text-gray-100 Delete</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-400">
             <X className="h-5 w-5" />
           </button>
         </div>
         
         <div className="mb-6">
-          <p className="text-gray-600">{message}</p>
+          <p className="text-gray-600 dark:text-gray-400"
           <p className="text-sm text-red-600 mt-2">This action cannot be undone.</p>
         </div>
         
         <div className="flex justify-end space-x-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             Cancel
           </button>
@@ -946,29 +946,29 @@ const FileContentViewer = ({
     .frozen-row {
       position: sticky !important;
       z-index: 20;
-      background: #f0f9ff !important;
+      background: var(--frozen-row-bg)!important;
       border-bottom: 2px solid #0284c7;
     }
 
     .frozen-column {
       position: sticky !important;
       z-index: 15;
-      background: #f0f9ff !important;
+      background: var(--frozen-row-bg)!important;
       border-right: 2px solid #0284c7;
     }
 
     .frozen-row .frozen-column {
       z-index: 25;
-      background: #e0f2fe !important;
+      background: var(--frozen-both-bg)!important;
     }
 
     th.frozen-column {
       z-index: 35;
-      background: linear-gradient(135deg, #e0f2fe, #dbeafe) !important;
+      background: var(--frozen-th-bg)!important;
     }
 
     .freeze-indicator {
-      background: #e0f2fe;
+      background: var(--frozen-both-bg);
       color: #0369a1;
       border: 1px solid #0284c7;
     }
@@ -987,7 +987,7 @@ const FileContentViewer = ({
       position: relative;
       border: 1px solid #e5e7eb;
       border-radius: 0.375rem;
-      background: white;
+      background: var(--bg-surface);
       min-height: 0;
     }
 
@@ -1001,7 +1001,7 @@ const FileContentViewer = ({
       position: sticky;
       top: 0;
       z-index: 30;
-      background: white;
+      background: var(--bg-surface);
     }
 
     th {
@@ -1025,12 +1025,12 @@ const FileContentViewer = ({
     tr.frozen-row td {
       position: sticky !important;
       z-index: 20;
-      background: #f0f9ff !important;
+      background: var(--frozen-row-bg)!important;
     }
 
     tr.frozen-row td.frozen-column {
       z-index: 25;
-      background: #e0f2fe !important;
+      background: var(--frozen-both-bg)!important;
     }
 
     tbody tr.frozen-row {
@@ -1051,12 +1051,12 @@ const FileContentViewer = ({
   // ==========================================================================
   if (isLoading) {
     return (
-      <div className="h-full flex flex-col bg-gray-50 overflow-visible">
+      <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-800 overflow-visible">
         <div className="file-viewer-container p-2">
-          <div className="bg-white border border-gray-200 rounded shadow-sm p-8 text-center">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded shadow-sm p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Loading File Data...</h3>
-            <p className="text-gray-600">Please wait while we load your file content.</p>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Loading File Data...</h3>
+            <p className="text-gray-600 dark:text-gray-400 wait while we load your file content.</p>
           </div>
         </div>
       </div>
@@ -1065,12 +1065,12 @@ const FileContentViewer = ({
 
   if (!fileData) {
     return (
-      <div className="h-full flex flex-col bg-gray-50 overflow-visible">
+      <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-800 overflow-visible">
         <div className="file-viewer-container p-2">
-          <div className="bg-white border border-gray-200 rounded shadow-sm p-8 text-center">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded shadow-sm p-8 text-center">
             <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">File Data Not Found</h3>
-            <p className="text-gray-600">The file data could not be loaded. Please try re-uploading the file.</p>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">File Data Not Found</h3>
+            <p className="text-gray-600 dark:text-gray-400 file data could not be loaded. Please try re-uploading the file.</p>
             {onBack && (
               <button
                 onClick={onBack}
@@ -1087,16 +1087,16 @@ const FileContentViewer = ({
 
   if (editedHeaders.length === 0 && editedRows.length === 0 && !isLoading) {
     return (
-      <div className="h-full flex flex-col bg-gray-50 overflow-visible">
+      <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-800 overflow-visible">
         <div className="file-viewer-container p-2">
-          <div className="bg-white border border-gray-200 rounded shadow-sm p-8 text-center">
+          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded shadow-sm p-8 text-center">
             <FileSpreadsheet className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Available</h3>
-            <p className="text-gray-600">The uploaded file appears to be empty or could not be parsed.</p>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">No Data Available</h3>
+            <p className="text-gray-600 dark:text-gray-400 uploaded file appears to be empty or could not be parsed.</p>
             {onBack && (
               <button
                 onClick={onBack}
-                className="mt-4 px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                className="mt-4 px-4 py-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200"
               >
                 Back to Uploads
               </button>
@@ -1108,7 +1108,7 @@ const FileContentViewer = ({
   }
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 overflow-visible">
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-800 overflow-visible">
       <style>{tooltipStyles}</style>
 
       {/* Notification */}
@@ -1122,7 +1122,7 @@ const FileContentViewer = ({
             <span className="text-sm font-medium">{notification.message}</span>
             <button 
               onClick={() => setNotification({ show: false, message: '', type: '' })} 
-              className="ml-4 text-gray-500 hover:text-gray-700"
+              className="ml-4 text-gray-500 dark:text-gray-500 hover:text-gray-700"
             >
               <X className="h-4 w-4" />
             </button>
@@ -1144,21 +1144,21 @@ const FileContentViewer = ({
       {/* Bulk Delete Prompt */}
       {!viewOnly && showBulkDeletePrompt.show && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <h3 className="font-medium text-gray-900 text-sm sm:text-base">Confirm Bulk Delete</h3>
-              <button onClick={() => setShowBulkDeletePrompt({ show: false, count: 0 })} className="p-1 text-gray-400 hover:text-gray-600">
+              <h3 className="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base">Confirm Bulk Delete</h3>
+              <button onClick={() => setShowBulkDeletePrompt({ show: false, count: 0 })} className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-400">
                 <X className="h-4 w-4 sm:h-5 sm:w-5"/>
               </button>
             </div>
             <div className="mb-4">
-              <p className="text-xs sm:text-sm text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400"
                 Are you sure you want to delete {showBulkDeletePrompt.count} selected row{showBulkDeletePrompt.count > 1 ? 's' : ''}?
               </p>
               <p className="text-xs text-red-600 mt-1">This action cannot be undone.</p>
             </div>
             <div className="flex justify-end space-x-2">
-              <button onClick={() => setShowBulkDeletePrompt({ show: false, count: 0 })} className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
+              <button onClick={() => setShowBulkDeletePrompt({ show: false, count: 0 })} className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
               <button onClick={confirmBulkDelete} className="px-3 py-1.5 text-xs sm:text-sm bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
             </div>
           </div>
@@ -1168,20 +1168,20 @@ const FileContentViewer = ({
       {/* Export Confirmation Prompt */}
       {!viewOnly && context === 'project' && showExportConfirmPrompt?.show && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <h3 className="font-medium text-gray-900 text-sm sm:text-base">Confirm Export</h3>
-              <button onClick={() => setShowExportConfirmPrompt(null)} className="p-1 text-gray-400 hover:text-gray-600">
+              <h3 className="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base">Confirm Export</h3>
+              <button onClick={() => setShowExportConfirmPrompt(null)} className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-400">
                 <X className="h-4 w-4 sm:h-5 sm:w-5"/>
               </button>
             </div>
             <div className="mb-4">
-              <p className="text-xs sm:text-sm text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400"
                 Export {showExportConfirmPrompt.count} row{showExportConfirmPrompt.count > 1 ? 's' : ''} as {showExportConfirmPrompt.format.toUpperCase()}?
               </p>
             </div>
             <div className="flex justify-end space-x-2">
-              <button onClick={() => setShowExportConfirmPrompt(null)} className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
+              <button onClick={() => setShowExportConfirmPrompt(null)} className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
               <button onClick={() => {
                 handleExport(showExportConfirmPrompt.format);
                 setShowExportConfirmPrompt(null);
@@ -1194,16 +1194,16 @@ const FileContentViewer = ({
       {/* Add Column Modal */}
       {!viewOnly && showAddColumnModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full mx-4">
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-4 sm:p-6 max-w-md w-full mx-4">
             <div className="flex items-center justify-between mb-4">
               <div></div>
-              <button onClick={() => setShowAddColumnModal(false)} className="p-1 text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowAddColumnModal(false)} className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-400">
                 <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
           
             <div className="mb-4 p-3 rounded">
-              <h3 className="font-medium text-gray-900 text-sm sm:text-base -mt-5 mb-2">
+              <h3 className="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base -mt-5 mb-2">
                 <span className="bg-gray-200 px-2 py-0.5 rounded flex items-center gap-1">
                   Add New Column
                 </span>
@@ -1215,7 +1215,7 @@ const FileContentViewer = ({
                   placeholder="Enter column name"
                   value={newColumnName}
                   onChange={(e) => setNewColumnName(e.target.value)}
-                  className="flex-grow px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black"
+                  className="flex-grow px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
                 />
                 <button
                   onClick={handleAddColumn}
@@ -1227,14 +1227,14 @@ const FileContentViewer = ({
             </div>            
             
             <div className="mb-4">
-              <h4 className="text-xs sm:text-sm font-medium text-gray-900 mb-2">Manage Columns</h4>
+              <h4 className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Manage Columns</h4>
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {editedHeaders.map((header, index) => {
                   const isFixedColumn = ['project', 'department', 'employeeName', 'fileName'].includes(header.toLowerCase().replace(/\s+/g, ''));
                   const isEditingCol = editingColumnIndex === index;
                 
                   return (
-                    <div key={index} className="flex items-center justify-between p-2 border border-gray-200 rounded">
+                    <div key={index} className="flex items-center justify-between p-2 border border-gray-200 dark:border-gray-700 rounded">
                       <div className="flex items-center space-x-2">
                         {isEditingCol ? (
                           <div className="flex items-center space-x-2">
@@ -1242,7 +1242,7 @@ const FileContentViewer = ({
                               type="text"
                               value={tempColumnName}
                               onChange={(e) => setTempColumnName(e.target.value)}
-                              className="px-2 py-1 text-xs sm:text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black"
+                              className="px-2 py-1 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
                               autoFocus
                             />
                             <button
@@ -1264,7 +1264,7 @@ const FileContentViewer = ({
                           <>
                             <span className="font-medium text-xs sm:text-sm">{header}</span>
                             {isFixedColumn && (
-                              <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                              <span className="text-xs text-gray-500 dark:text-gray-500 bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
                                 Fixed
                               </span>
                             )}
@@ -1298,10 +1298,10 @@ const FileContentViewer = ({
               </div>
             </div>
           
-            <div className="flex justify-end space-x-2 mt-4 pt-4 border-t border-gray-200">
+            <div className="flex justify-end space-x-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700"
               <button 
                 onClick={() => setShowAddColumnModal(false)} 
-                className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50"
+                className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 Close
               </button>
@@ -1313,14 +1313,14 @@ const FileContentViewer = ({
       {/* Add Row Modal */}
       {!viewOnly && showAddRowModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-4 sm:p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-gray-900 text-sm sm:text-base">
+              <h3 className="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base">
                 <span className="bg-gray-200 px-2 py-0.5 rounded">
                   Add New Row
                 </span>
               </h3>
-              <button onClick={() => setShowAddRowModal(false)} className="p-1 text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowAddRowModal(false)} className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-400">
                 <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
@@ -1328,7 +1328,7 @@ const FileContentViewer = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               {editedHeaders.map((header, index) => (
                 <div key={index} className="col-span-1">
-                  <label className="block text-xs font-medium text-gray-700 mb-1">{header}</label>
+                  <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{header}</label>
                   <input
                     type="text"
                     value={newRowData[header] || ''}
@@ -1336,7 +1336,7 @@ const FileContentViewer = ({
                       ...prev,
                       [header]: e.target.value
                     }))}
-                    className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black"
+                    className="w-full px-3 py-2 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
                     placeholder={`Enter ${header.toLowerCase()}`}
                   />
                 </div>
@@ -1344,8 +1344,8 @@ const FileContentViewer = ({
             </div>
             
             <div className="flex justify-end space-x-2">
-              <button onClick={() => setShowAddRowModal(false)} className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
-              <button onClick={handleAddRow} className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">Add</button>
+              <button onClick={() => setShowAddRowModal(false)} className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
+              <button onClick={handleAddRow} className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
             </div>
           </div>
         </div>
@@ -1354,27 +1354,27 @@ const FileContentViewer = ({
       {/* Freeze Column Modal */}
       {!viewOnly && showFreezeColumnModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full mx-4">
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-4 sm:p-6 max-w-md w-full mx-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-gray-900 text-sm sm:text-base">
+              <h3 className="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base">
                 <span className="bg-gray-200 px-2 py-0.5 rounded">
                   Freeze Columns
                 </span>
               </h3>
               <button
                 onClick={() => setShowFreezeColumnModal(false)}
-                className="p-1 text-gray-400 hover:text-gray-600"
+                className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-400"
               >
                 <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
 
             <div className="mb-4">
-              <p className="text-xs text-gray-600 mb-3">Select columns to freeze (they will remain visible while scrolling horizontally)</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">Select columns to freeze (they will remain visible while scrolling horizontally)</p>
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {/* Checkbox column is always first */}
                 {!viewOnly && (
-                  <div className="flex items-center p-2 border border-gray-200 rounded bg-gray-50">
+                  <div className="flex items-center p-2 border border-gray-200 dark:border-gray-700 rounded bg-gray-50 dark:bg-gray-800">
                     <input
                       type="checkbox"
                       id="freeze-checkbox"
@@ -1386,9 +1386,9 @@ const FileContentViewer = ({
                           setFrozenColumns(frozenColumns.filter(idx => idx !== 0));
                         }
                       }}
-                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
+                      className="h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 mr-3"
                     />
-                    <label htmlFor="freeze-checkbox" className="text-sm text-gray-700 cursor-pointer flex-1 font-medium">
+                    <label htmlFor="freeze-checkbox" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer flex-1 font-medium">
                       Checkbox Column
                     </label>
                     {frozenColumns.includes(0) && (
@@ -1400,7 +1400,7 @@ const FileContentViewer = ({
                 {editedHeaders.map((header, index) => {
                   const actualColumnIndex = viewOnly ? index : index + 1;
                   return (
-                    <div key={index} className="flex items-center p-2 border border-gray-200 rounded">
+                    <div key={index} className="flex items-center p-2 border border-gray-200 dark:border-gray-700 rounded">
                       <input
                         type="checkbox"
                         id={`freeze-${index}`}
@@ -1412,9 +1412,9 @@ const FileContentViewer = ({
                             setFrozenColumns(frozenColumns.filter(idx => idx !== actualColumnIndex));
                           }
                         }}
-                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
+                        className="h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 mr-3"
                       />
-                      <label htmlFor={`freeze-${index}`} className="text-sm text-gray-700 cursor-pointer flex-1">
+                      <label htmlFor={`freeze-${index}`} className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer flex-1">
                         {header}
                       </label>
                       {frozenColumns.includes(actualColumnIndex) && (
@@ -1429,7 +1429,7 @@ const FileContentViewer = ({
             <div className="flex justify-end space-x-2">
               <button
                 onClick={() => setShowFreezeColumnModal(false)}
-                className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 Cancel
               </button>
@@ -1449,30 +1449,30 @@ const FileContentViewer = ({
       {/* Freeze Row Modal */}
       {!viewOnly && showFreezeRowModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full mx-4">
+          <div className="bg-white dark:bg-gray-900 rounded-lg p-4 sm:p-6 max-w-md w-full mx-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-medium text-gray-900 text-sm sm:text-base">
+              <h3 className="font-medium text-gray-900 dark:text-gray-100 text-sm sm:text-base">
                 <span className="bg-gray-200 px-2 py-0.5 rounded">
                   Freeze Rows
                 </span>
               </h3>
               <button
                 onClick={() => setShowFreezeRowModal(false)}
-                className="p-1 text-gray-400 hover:text-gray-600"
+                className="p-1 text-gray-400 hover:text-gray-600 dark:text-gray-400"
               >
                 <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
 
             <div className="mb-4">
-              <p className="text-xs text-gray-600 mb-3">Select rows to freeze (they will remain visible while scrolling vertically)</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">Select rows to freeze (they will remain visible while scrolling vertically)</p>
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {paginatedRows.map((item, index) => {
                   const rowIndex = item.originalIndex;
                   const firstCellValue = item.data[0] || `Row ${rowIndex + 1}`;
                   
                   return (
-                    <div key={rowIndex} className="flex items-center p-2 border border-gray-200 rounded">
+                    <div key={rowIndex} className="flex items-center p-2 border border-gray-200 dark:border-gray-700 rounded">
                       <input
                         type="checkbox"
                         id={`freeze-row-${rowIndex}`}
@@ -1484,9 +1484,9 @@ const FileContentViewer = ({
                             setFrozenRows(frozenRows.filter(idx => idx !== rowIndex));
                           }
                         }}
-                        className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
+                        className="h-4 w-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500 mr-3"
                       />
-                      <label htmlFor={`freeze-row-${rowIndex}`} className="text-sm text-gray-700 cursor-pointer flex-1 truncate">
+                      <label htmlFor={`freeze-row-${rowIndex}`} className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer flex-1 truncate">
                         Row {rowIndex + 1}: {String(firstCellValue).substring(0, 30)}
                         {String(firstCellValue).length > 30 ? '...' : ''}
                       </label>
@@ -1502,7 +1502,7 @@ const FileContentViewer = ({
             <div className="flex justify-end space-x-2">
               <button
                 onClick={() => setShowFreezeRowModal(false)}
-                className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 Cancel
               </button>
@@ -1521,10 +1521,10 @@ const FileContentViewer = ({
 
       {/* MAIN CONTENT CONTAINER */}
       <div className="file-viewer-container p-2" style={{ overflow: 'visible' }}>
-        <div className="bg-white border border-gray-200 rounded shadow-sm flex flex-col h-full overflow-visible">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded shadow-sm flex flex-col h-full overflow-visible">
           
           {/* TOOLBAR SECTION */}
-          <div className="p-4 border-b border-gray-200 flex-shrink-0">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               
               {/* LEFT SIDE */}
@@ -1536,7 +1536,7 @@ const FileContentViewer = ({
                     placeholder="Search..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full sm:w-48 h-10 pl-9 pr-3 text-xs sm:text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black"
+                    className="w-full sm:w-48 h-10 pl-9 pr-3 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
                   />
                 </div>
               </div>
@@ -1553,12 +1553,12 @@ const FileContentViewer = ({
                       placeholder="Filter..."
                       value={columnFilter}
                       onChange={(e) => setColumnFilter(e.target.value)}
-                      className="h-10 pl-9 pr-3 text-xs sm:text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black w-full sm:w-48"
+                      className="h-10 pl-9 pr-3 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-black w-full sm:w-48"
                     />
                     {columnFilter && (
                       <button
                         onClick={() => setColumnFilter('')}
-                        className="p-1 absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        className="p-1 absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-400"
                       >
                         <X className="h-3 w-3 sm:h-4 sm:w-4" />
                       </button>
@@ -1570,7 +1570,7 @@ const FileContentViewer = ({
                 {!viewOnly && (
                   <button
                     onClick={() => setShowAddColumnModal(true)}
-                    className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 tooltip"
+                    className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 tooltip"
                     data-tooltip="Add column"
                   >
                     <Plus className="h-4 w-4" />
@@ -1584,11 +1584,11 @@ const FileContentViewer = ({
                     className={`flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border rounded whitespace-nowrap tooltip ${
                       frozenColumns.length > 0 
                         ? 'bg-blue-50 text-blue-700 border-blue-300' 
-                        : 'border-gray-300 hover:bg-gray-50 text-gray-700'
+                        : 'border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700'
                     }`}
                     data-tooltip={frozenColumns.length > 0 ? "Unfreeze columns" : "Freeze columns"}
                   >
-                    <Snowflake className={`h-4 w-4 ${frozenColumns.length > 0 ? 'text-blue-600' : 'text-gray-600'}`} />
+                    <Snowflake className={`h-4 w-4 ${frozenColumns.length > 0 ? 'text-blue-600' : 'text-gray-600 dark:text-gray-400'}`} />
                     {frozenColumns.length > 0 && <span className="ml-1 text-xs">{frozenColumns.length}</span>}
                   </button>
                 )}
@@ -1598,7 +1598,7 @@ const FileContentViewer = ({
                   <div className="relative">
                     <button
                       onClick={() => setShowExportDropdown(!showExportDropdown)}
-                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 tooltip"
+                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 tooltip"
                       data-tooltip="Export data"
                     >
                       <Download className="h-4 w-4" />
@@ -1611,28 +1611,28 @@ const FileContentViewer = ({
                           className="fixed inset-0 z-40" 
                           onClick={() => setShowExportDropdown(false)}
                         />
-                        <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-300 rounded shadow-lg z-50">
+                        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded shadow-lg z-50">
                           <button
                             onClick={() => handleExportClick('excel')}
-                            className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                            className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                           >
                             Export as Excel
                           </button>
                           <button
                             onClick={() => handleExportClick('csv')}
-                            className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                            className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                           >
                             Export as CSV
                           </button>
                           <button
                             onClick={() => handleExportClick('json')}
-                            className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                            className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                           >
                             Export as JSON
                           </button>
                           <button
                             onClick={() => handleExportClick('pdf')}
-                            className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                            className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                           >
                             Export as PDF
                           </button>
@@ -1646,7 +1646,7 @@ const FileContentViewer = ({
                 {!viewOnly && (
                   <button
                     onClick={handleRefresh}
-                    className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 tooltip"
+                    className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 tooltip"
                     data-tooltip="Refresh data"
                   >
                     <RefreshCw className="h-4 w-4" />
@@ -1657,7 +1657,7 @@ const FileContentViewer = ({
                 {onBack && (
                   <button
                     onClick={onBack}
-                    className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 tooltip"
+                    className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 tooltip"
                     data-tooltip="Go back"
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -1671,7 +1671,7 @@ const FileContentViewer = ({
           <div className="table-container">
             <table className="min-w-full text-base border-collapse">
               <thead>
-                <tr className="border-b border-gray-200">
+                <tr className="border-b border-gray-200 dark:border-gray-700"
                   {/* Checkbox column */}
                   {!viewOnly && (
                     <th 
@@ -1686,7 +1686,7 @@ const FileContentViewer = ({
                       <div className="flex items-center justify-center">
                         <button
                           onClick={toggleSelectAll}
-                          className="p-1 text-gray-700 hover:text-gray-900"
+                          className="p-1 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:text-white"
                         >
                           {selectAll ? (
                             <CheckSquare className="h-4 w-4" />
@@ -1734,7 +1734,7 @@ const FileContentViewer = ({
                     return (
                       <tr 
                         key={rowIndex} 
-                        className={`border-b border-gray-200 hover:bg-gray-50 transition-colors ${
+                        className={`border-b border-gray-200 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
                           !viewOnly && isSelected ? 'bg-blue-50' : ''
                         } ${
                           !viewOnly && isEditingThisRow ? 'bg-yellow-50' : ''
@@ -1761,7 +1761,7 @@ const FileContentViewer = ({
                                 type="checkbox"
                                 checked={isSelected}
                                 onChange={() => toggleRowSelection(rowIndex)}
-                                className="h-4 w-4 text-gray-600 border-gray-300 rounded focus:ring-gray-500"
+                                className="h-4 w-4 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 rounded focus:ring-gray-500"
                               />
                             </div>
                           </td>
@@ -1784,7 +1784,7 @@ const FileContentViewer = ({
                                   type="text"
                                   value={cell || ''}
                                   onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
-                                  className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black"
+                                  className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
                                 />
                               ) : (
                                 <span className="block truncate max-w-xs text-base" title={cell}>
@@ -1799,11 +1799,11 @@ const FileContentViewer = ({
                   })
                 ) : (
                   <tr>
-                    <td colSpan={viewOnly ? editedHeaders.length : editedHeaders.length + 1} className="text-center py-8 text-gray-500">
+                    <td colSpan={viewOnly ? editedHeaders.length : editedHeaders.length + 1} className="text-center py-8 text-gray-500 dark:text-gray-500">
                       <div className="flex flex-col items-center justify-center">
                         <FileSpreadsheet className="h-12 w-12 text-gray-300 mb-3" />
-                        <p className="text-base font-medium text-gray-900">No data found</p>
-                        <p className="text-sm text-gray-500">This file appears to be empty</p>
+                        <p className="text-base font-medium text-gray-900 dark:text-gray-100 data found</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-500">This file appears to be empty</p>
                       </div>
                     </td>
                   </tr>
@@ -1813,7 +1813,7 @@ const FileContentViewer = ({
           </div>
 
           {/* FOOTER SECTION */}
-          <div className="px-4 py-3 border-t border-gray-200 text-xs text-gray-900 flex flex-col sm:flex-row items-center justify-between gap-2 bg-white flex-shrink-0">
+          <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-900 dark:text-gray-100 flex flex-col sm:flex-row items-center justify-between gap-2 bg-white dark:bg-gray-900 flex-shrink-0">
             {/* LEFT SIDE */}
             <div className="flex items-center gap-2">
               {/* Add Row Button */}
@@ -1821,7 +1821,7 @@ const FileContentViewer = ({
                 <div className="flex gap-1">
                   <button
                     onClick={() => setShowAddRowModal(true)}
-                    className="flex items-center gap-1 h-10 px-3 text-xs border border-gray-300 rounded hover:bg-gray-50 tooltip"
+                    className="flex items-center gap-1 h-10 px-3 text-xs border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 tooltip"
                     data-tooltip="Add row"
                   >
                     <Plus className="h-4 w-4" />
@@ -1831,11 +1831,11 @@ const FileContentViewer = ({
                     className={`flex items-center gap-1 h-10 px-3 text-xs border rounded tooltip ${
                       frozenRows.length > 0 
                         ? 'bg-blue-50 text-blue-700 border-blue-300' 
-                        : 'border-gray-300 hover:bg-gray-50 text-gray-700'
+                        : 'border-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700'
                     }`}
                     data-tooltip={frozenRows.length > 0 ? "Unfreeze rows" : "Select rows to freeze"}
                   >
-                    <Snowflake className={`h-4 w-4 ${frozenRows.length > 0 ? 'text-blue-600' : 'text-gray-600'}`} />
+                    <Snowflake className={`h-4 w-4 ${frozenRows.length > 0 ? 'text-blue-600' : 'text-gray-600 dark:text-gray-400'}`} />
                     {frozenRows.length > 0 && <span className="ml-1 text-xs">{frozenRows.length}</span>}
                   </button>
                 </div>
@@ -1847,7 +1847,7 @@ const FileContentViewer = ({
                   {!isEditing ? (
                     <button
                       onClick={handleEditRow}
-                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50"
+                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
                       title={selectedRows.length === 1 ? "Edit selected row" : "Edit selected rows"}
                     >
                       <Edit className="h-4 w-4" />
@@ -1857,14 +1857,14 @@ const FileContentViewer = ({
                     <>
                       <button
                         onClick={handleSaveChanges}
-                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 tooltip"
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 tooltip"
                         data-tooltip="Save changes"
                       >
                         <Check className="h-4 w-4" />
                       </button>
                       <button
                         onClick={handleCancelEdit}
-                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 tooltip"
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-800 tooltip"
                         data-tooltip="Cancel edit"
                       >
                         <X className="h-4 w-4" />
@@ -1875,7 +1875,7 @@ const FileContentViewer = ({
                   {!isEditing && (
                     <button
                       onClick={handleBulkDelete}
-                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 dark:border-gray-600 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
                       title={selectedRows.length === 1 ? "Delete selected row" : "Delete selected rows"}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -1891,11 +1891,11 @@ const FileContentViewer = ({
               {/* Page Size Selector */}
               {!viewOnly && totalPages > 1 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Show:</span>
+                  <span className="text-gray-600 dark:text-gray-400"
                   <select
                     value={pageSize}
                     onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                    className="px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-500"
+                    className="px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-gray-500"
                   >
                     {pageSizeOptions.map(size => (
                       <option key={size} value={size}>{size}</option>
@@ -1913,7 +1913,7 @@ const FileContentViewer = ({
                     className={`p-1 rounded ${
                       currentPage === 1 
                         ? 'text-gray-400 cursor-not-allowed' 
-                        : 'text-gray-700 hover:bg-gray-100'
+                        : 'text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -1926,7 +1926,7 @@ const FileContentViewer = ({
                       className={`px-2 py-1 text-xs rounded ${
                         currentPage === pageNum
                           ? 'bg-gradient-to-r from-rose-400 to-amber-400 text-white'
-                          : 'text-gray-700 hover:bg-gray-100'
+                          : 'text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
                       }`}
                     >
                       {pageNum}
@@ -1939,7 +1939,7 @@ const FileContentViewer = ({
                     className={`p-1 rounded ${
                       currentPage === totalPages 
                         ? 'text-gray-400 cursor-not-allowed' 
-                        : 'text-gray-700 hover:bg-gray-100'
+                        : 'text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}
                   >
                     <ChevronRight className="h-4 w-4" />
@@ -1947,7 +1947,7 @@ const FileContentViewer = ({
                 </div>
               )}
 
-              <span className="text-gray-600 text-sm">
+              <span className="text-gray-600 dark:text-gray-400 text-sm">
                 {viewOnly ? 'Viewing' : 'Showing'} {paginatedRows.length} of {sortedRows.length} rows
                 {!viewOnly && context === 'project' && columnFilter && ` (Filtered)`}
               </span>
@@ -1962,7 +1962,7 @@ const FileContentViewer = ({
                   Editing row {editingRowIndex + 1}
                 </span>
               )}
-              <span className="text-gray-600 text-sm">
+              <span className="text-gray-600 dark:text-gray-400 text-sm">
                 ({editedHeaders.length} columns)
               </span>
               {!viewOnly && (frozenRows.length > 0 || frozenColumns.length > 0) && (

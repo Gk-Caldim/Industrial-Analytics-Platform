@@ -45,7 +45,7 @@ export const STATUS_OPTIONS = [
   { 
     value: 'on-hold', 
     label: 'On Hold', 
-    color: 'bg-gray-100 text-gray-800 border-gray-300',
+    color: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-300',
     icon: 'PauseCircle'
   }
 ];
@@ -86,7 +86,7 @@ export const APPROVAL_OPTIONS = [
   { value: 'rejected', label: 'Rejected', color: 'bg-red-50 text-red-700' },
   { value: 'pending-approval', label: 'Pending Approval', color: 'bg-yellow-50 text-yellow-700' },
   { value: 'under-review', label: 'Under Review', color: 'bg-blue-50 text-blue-700' },
-  { value: 'not-applicable', label: 'Not Applicable', color: 'bg-gray-50 text-gray-700' }
+  { value: 'not-applicable', label: 'Not Applicable', color: 'bg-gray-50 dark:bg-gray-900 text-gray-700' }
 ];
 
 // Column Data Types

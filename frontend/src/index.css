@@ -3,10 +3,7 @@
 @tailwind utilities;
 
 body {
-  background-image: url('https://png.pngtree.com/png-clipart/20221006/original/pngtree-red-gradient-line-combination-geometric-distortion-elements-free-psd-png-image_8658889.png');
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-attachment: fixed;
+  background-color: #f8fafc;
+  /* slate-50 */
   min-height: 100vh;
 }

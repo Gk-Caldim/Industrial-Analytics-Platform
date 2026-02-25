@@ -109,8 +109,8 @@ const MOMModule = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-gray-200 border-t-black rounded-full animate-spin mx-auto"></div>
-          <p className="mt-3 text-sm text-gray-600">Loading meeting data...</p>
+          <div className="w-12 h-12 border-4 border-gray-200 dark:border-gray-700 border-t-black rounded-full animate-spin mx-auto"></div>
+          <p className="mt-3 text-sm text-gray-600 dark:text-gray-400 meeting data...</p>
         </div>
       </div>
     );
@@ -121,11 +121,11 @@ const MOMModule = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
         <div>
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900 flex items-center">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 flex items-center">
             <Icons.Mic className="h-4 w-4 sm:h-5 sm:w-5 mr-2" />
             Minutes of Meeting
           </h2>
-          <p className="text-xs sm:text-sm text-gray-600 mt-0.5 sm:mt-1">Convert speech to structured meeting minutes</p>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-0.5 sm:mt-1">Convert speech to structured meeting minutes</p>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -148,43 +148,43 @@ const MOMModule = () => {
 
       {/* Compact Stats - UPDATED with Attendees */}
       <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
-        <div className="bg-white border border-gray-300 rounded p-3 sm:p-4 flex items-center">
-          <div className="bg-gray-100 p-1.5 sm:p-2 rounded mr-2 sm:mr-3">
-            <Icons.FileText className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600" />
+        <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded p-3 sm:p-4 flex items-center">
+          <div className="bg-gray-100 dark:bg-gray-800 p-1.5 sm:p-2 rounded mr-2 sm:mr-3">
+            <Icons.FileText className="h-3 w-3 sm:h-4 sm:w-4 text-gray-600 dark:text-gray-400" />
           </div>
           <div>
-            <p className="text-[10px] sm:text-xs text-gray-500">Total Points</p>
-            <p className="text-sm sm:text-base font-bold text-gray-900">{meetings.length}</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-500">Total Points</p>
+            <p className="text-sm sm:text-base font-bold text-gray-900 dark:text-gray-100"
           </div>
         </div>
-        <div className="bg-white border border-gray-300 rounded p-3 sm:p-4 flex items-center">
+        <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded p-3 sm:p-4 flex items-center">
           <div className="bg-green-100 p-1.5 sm:p-2 rounded mr-2 sm:mr-3">
             <Icons.Users className="h-3 w-3 sm:h-4 sm:w-4 text-green-600" />
           </div>
           <div>
-            <p className="text-[10px] sm:text-xs text-gray-500"> Attendees</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-500"> Attendees</p>
             <p className="text-sm sm:text-base font-bold text-green-600">
               {countUniqueAttendees()}
             </p>
           </div>
         </div>
-        <div className="bg-white border border-gray-300 rounded p-3 sm:p-4 flex items-center">
+        <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded p-3 sm:p-4 flex items-center">
           <div className="bg-red-100 p-1.5 sm:p-2 rounded mr-2 sm:mr-3">
             <Icons.AlertCircle className="h-3 w-3 sm:h-4 sm:w-4 text-red-600" />
           </div>
           <div>
-            <p className="text-[10px] sm:text-xs text-gray-500">High Priority</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-500">High Priority</p>
             <p className="text-sm sm:text-base font-bold text-red-600">
               {meetings.filter(m => m.criticality === '1').length}
             </p>
           </div>
         </div>
-        <div className="bg-white border border-gray-300 rounded p-3 sm:p-4 flex items-center">
+        <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded p-3 sm:p-4 flex items-center">
           <div className="bg-yellow-100 p-1.5 sm:p-2 rounded mr-2 sm:mr-3">
             <Icons.Clock className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-600" />
           </div>
           <div>
-            <p className="text-[10px] sm:text-xs text-gray-500">Pending Actions</p>
+            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-500">Pending Actions</p>
             <p className="text-sm sm:text-base font-bold text-yellow-600">
               {meetings.filter(m => m.status === 'pending').length}
             </p>
@@ -193,7 +193,7 @@ const MOMModule = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="bg-white border border-gray-300 rounded">
+      <div className="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded">
         <div className="flex overflow-x-auto">
           {tabs.map(tab => (
             <button
@@ -201,8 +201,8 @@ const MOMModule = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center space-x-1 px-4 py-2 text-xs sm:text-sm transition-colors flex-shrink-0 border-b-2 ${
                 activeTab === tab.id
-                  ? 'text-black border-black bg-gray-50'
-                  : 'text-gray-600 hover:text-gray-900 border-transparent hover:bg-gray-50'
+                  ? 'text-black dark:text-gray-100 border-black dark:border-gray-700 bg-gray-50 dark:bg-gray-900'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:text-white border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'
               }`}
             >
               {tab.icon}
