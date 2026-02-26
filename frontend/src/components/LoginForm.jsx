@@ -61,15 +61,15 @@ const LoginForm = () => {
     <div className="w-full">
       {/* Header */}
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-extrabold text-white mb-2 tracking-tight">Sign In</h2>
-        <p className="text-gray-400 text-sm">Welcome back! Please enter your details.</p>
+        <h2 className="text-3xl font-extrabold text-slate-800 mb-2 tracking-tight">Sign In</h2>
+        <p className="text-slate-500 text-sm">Welcome back! Please enter your details.</p>
       </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Email */}
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
+          <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
             Email Address
           </label>
           <input
@@ -78,14 +78,14 @@ const LoginForm = () => {
             value={formData.email}
             onChange={handleChange}
             required
-            className="w-full px-4 py-3 bg-gray-900 border border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-300 text-white placeholder-gray-600 shadow-inner"
+            className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm"
             placeholder="name@company.in"
           />
         </div>
 
         {/* Password */}
         <div>
-          <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
+          <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">
             Password
           </label>
           <div className="relative">
@@ -95,13 +95,13 @@ const LoginForm = () => {
               value={formData.password}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 bg-gray-900 border border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-300 text-white tracking-wider pr-14 placeholder-gray-600 shadow-inner"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-300 text-slate-800 tracking-wider pr-14 placeholder-slate-400 shadow-sm"
               placeholder="**********"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-red-500 transition-colors"
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-red-500 transition-colors"
               aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? (
@@ -131,7 +131,7 @@ const LoginForm = () => {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="peer sr-only"
               />
-              <div className="h-4 w-4 bg-gray-900 border border-gray-700 rounded transition-all peer-checked:bg-red-600 peer-checked:border-red-600 group-hover:border-red-500"></div>
+              <div className="h-4 w-4 bg-white border border-slate-300 rounded transition-all peer-checked:bg-red-600 peer-checked:border-red-600 group-hover:border-red-500"></div>
               <svg
                 className="absolute left-0 top-0 h-4 w-4 text-white opacity-0 peer-checked:opacity-100 pointer-events-none p-0.5"
                 viewBox="0 0 20 20"
@@ -140,7 +140,7 @@ const LoginForm = () => {
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
             </div>
-            <span className="text-sm font-medium text-gray-400 group-hover:text-gray-300 transition-colors">Remember Me</span>
+            <span className="text-sm font-medium text-slate-500 group-hover:text-slate-700 transition-colors">Remember Me</span>
           </label>
           <button
             type="button"
@@ -152,8 +152,8 @@ const LoginForm = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="p-3 bg-red-950/40 border border-red-900/50 rounded-xl backdrop-blur-sm animate-fade-in-down">
-            <p className="text-sm font-medium text-red-400 text-center">{error}</p>
+          <div className="p-3 bg-red-50 border border-red-200 rounded-xl animate-fade-in-down">
+            <p className="text-sm font-medium text-red-600 text-center">{error}</p>
           </div>
         )}
 
@@ -178,9 +178,9 @@ const LoginForm = () => {
       </form>
 
       {/* Footer with Company Information */}
-      <div className="mt-10 pt-6 border-t border-gray-800">
+      <div className="mt-10 pt-6 border-t border-slate-200">
         <div className="text-center">
-          <p className="text-gray-500 font-medium text-xs mb-1">
+          <p className="text-slate-400 font-medium text-xs mb-1">
             © {new Date().getFullYear()} Caldim Engineering Pvt. Ltd.
           </p>
         </div>

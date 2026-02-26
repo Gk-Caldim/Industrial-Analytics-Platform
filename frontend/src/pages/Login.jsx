@@ -4,17 +4,17 @@ import LoginForm from '../components/LoginForm';
 const Login = () => {
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-black text-white relative overflow-hidden">
+    <div className="min-h-screen w-full flex flex-col bg-white text-slate-900 relative overflow-hidden">
       {/* Subtle background glow for full page */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-red-900/20 blur-[120px]"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-900/20 blur-[120px]"></div>
-        <div className="absolute top-[40%] right-[10%] w-[30%] h-[30%] rounded-full bg-purple-900/10 blur-[120px]"></div>
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-red-200/40 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-200/40 blur-[120px]"></div>
+        <div className="absolute top-[40%] right-[10%] w-[30%] h-[30%] rounded-full bg-purple-200/30 blur-[120px]"></div>
       </div>
 
       {/* Tech Circuitry Full Page SVG Background */}
-      <div className="absolute inset-0 w-full h-full opacity-[0.3] pointer-events-none z-0 overflow-hidden">
-        <svg viewBox="0 0 2000 1000" className="w-full h-full object-cover text-white" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <div className="absolute inset-0 w-full h-full opacity-[0.15] pointer-events-none z-0 overflow-hidden">
+        <svg viewBox="0 0 2000 1000" className="w-full h-full object-cover text-slate-400" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
           {/* Subtle dots background */}
           <pattern id="dots" width="40" height="40" patternUnits="userSpaceOnUse">
             <circle cx="2" cy="2" r="1.5" fill="currentColor" opacity="0.3" />
@@ -74,12 +74,12 @@ const Login = () => {
           {/* Creative Agency Hero */}
           <div className="text-center lg:text-left flex-1 max-w-3xl">
             <h1 className="text-6xl lg:text-8xl font-black tracking-tighter mb-8 leading-[1.05]">
-              <span className="text-white block mb-2">Welcome</span>
-              <span className="text-white block mb-2">to the</span>
+              <span className="text-slate-800 block mb-2">Welcome</span>
+              <span className="text-slate-800 block mb-2">to the</span>
               <span className="aurora-text block">Future of</span>
               <span className="aurora-text block">Industry 4.0</span>
             </h1>
-            <p className="text-gray-400 text-lg lg:text-xl leading-relaxed mt-8 max-w-xl mx-auto lg:mx-0 font-medium">
+            <p className="text-slate-500 text-lg lg:text-xl leading-relaxed mt-8 max-w-xl mx-auto lg:mx-0 font-medium">
               Empowering your manufacturing with intelligent analytics, real-time insights, and next-generation connectivity.
             </p>
           </div>
@@ -87,8 +87,8 @@ const Login = () => {
           {/* Login Form Container */}
           <div className="w-full max-w-md relative group z-10 pt-10 lg:pt-0">
 
-            <div className="absolute -inset-0.5 bg-gradient-to-br from-red-600/30 via-transparent to-purple-600/30 rounded-[2rem] blur-md opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 z-10 pointer-events-none"></div>
-            <div className="relative w-full bg-gray-950/80 p-8 sm:p-10 rounded-3xl border border-gray-800/60 backdrop-blur-2xl shadow-2xl z-20">
+            <div className="absolute -inset-0.5 bg-gradient-to-br from-red-400/20 via-transparent to-purple-400/20 rounded-[2rem] blur-md opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 z-10 pointer-events-none"></div>
+            <div className="relative w-full bg-white p-8 sm:p-10 rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 z-20">
               <LoginForm />
             </div>
           </div>
@@ -105,10 +105,10 @@ const Login = () => {
         .aurora-text {
           background: linear-gradient(
             -45deg,
-            #ff3366, #ff9933, #33ccff, #9933ff, #ff3366
+            #dc2626, #ea580c, #0891b2, #7c3aed, #dc2626
           );
           background-size: 300% auto;
-          color: #fff;
+          color: #1e293b;
           background-clip: text;
           text-fill-color: transparent;
           -webkit-background-clip: text;

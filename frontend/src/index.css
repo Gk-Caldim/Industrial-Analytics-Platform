@@ -5,9 +5,18 @@
 @tailwind utilities;
 
 :root {
-  --glass-sidebar-opacity: 0.2;
+  /* ── Sidebar Glassmorphism Controls ── */
+  --glass-sidebar-opacity: 0.32;
+  /* Background white opacity (0 = fully transparent, 1 = solid white) */
   --glass-sidebar-bg: rgba(255, 255, 255, var(--glass-sidebar-opacity));
-  --glass-sidebar-blur: blur(16px);
+  --glass-sidebar-blur: 20px;
+  /* Blur intensity in px */
+  --glass-sidebar-saturate: 1.8;
+  /* Color saturation through glass (1 = normal, >1 = vibrant) */
+  --glass-sidebar-border-opacity: 0.3;
+  /* Border opacity */
+  --glass-sidebar-shadow-opacity: 0.07;
+  /* Shadow opacity */
 
   --glass-header-opacity: 0.6;
   --glass-header-bg: rgba(255, 255, 255, var(--glass-header-opacity));
@@ -136,11 +145,12 @@
   /* CENTRALIZED SIDEBAR STYLES                                                 */
   /* ========================================================================== */
   .app-sidebar {
-    @apply text-slate-700 z-30 flex flex-col border-r border-white/40 transition-all duration-300 ease-in-out;
+    @apply text-slate-700 z-30 flex flex-col transition-all duration-300 ease-in-out;
     background-color: var(--glass-sidebar-bg);
-    backdrop-filter: var(--glass-sidebar-blur);
-    -webkit-backdrop-filter: var(--glass-sidebar-blur);
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    backdrop-filter: blur(var(--glass-sidebar-blur)) saturate(var(--glass-sidebar-saturate));
+    -webkit-backdrop-filter: blur(var(--glass-sidebar-blur)) saturate(var(--glass-sidebar-saturate));
+    border-right: 1px solid rgba(255, 255, 255, var(--glass-sidebar-border-opacity));
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, var(--glass-sidebar-shadow-opacity));
   }
 
   .sidebar-scroll {

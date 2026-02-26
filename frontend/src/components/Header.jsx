@@ -84,7 +84,7 @@ const Header = ({
 
                         {profileMenuOpen && (
                             <div
-                                className="fixed z-[9999] w-72 bg-transparent rounded-xl shadow-lg border border-gray-200 py-2"
+                                className="fixed z-[9999] w-72 bg-white rounded-xl shadow-lg border border-gray-200 py-2"
                                 style={{
                                     position: 'fixed',
                                     top: `${profileMenuPosition.top}px`,

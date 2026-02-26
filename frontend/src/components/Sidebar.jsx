@@ -380,29 +380,6 @@ const Sidebar = ({
             onMouseEnter={() => setSidebarHovered(true)}
             onMouseLeave={() => setSidebarHovered(false)}
         >
-            {/* Logo Section */}
-            <div className="relative px-4 py-5 z-10 flex border-b border-white/40 mb-2">
-                {!sidebarCollapsed ? (
-                    <div className="flex justify-center items-center w-full">
-                        <div className="relative">
-                            <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full"></div>
-                            <img
-                                src="/caldimlogo.png"
-                                className="h-14 w-auto object-contain relative drop-shadow-sm filter brightness-0 invert opacity-90"
-                                alt="Company Logo"
-                                style={{ filter: "brightness(0) invert(1) drop-shadow(0 2px 4px rgba(0,0,0,0.5))" }}
-                            />
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex justify-center py-2 w-full">
-                        <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-600 to-sky-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                            <span className="text-white font-bold text-sm tracking-widest">CD</span>
-                        </div>
-                    </div>
-                )}
-            </div>
-
             {/* Collapse Toggle Button */}
             {sidebarHovered && (
                 <button

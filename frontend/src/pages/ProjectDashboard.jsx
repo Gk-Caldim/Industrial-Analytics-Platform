@@ -1583,45 +1583,61 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1e40af 100%)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900">Loading Projects...</h3>
+          <div className="relative mx-auto mb-6" style={{ width: 64, height: 64 }}>
+            <div className="absolute inset-0 rounded-full border-4 border-blue-900"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-t-blue-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+            <div className="absolute inset-2 rounded-full" style={{ background: 'rgba(59,130,246,0.15)' }}></div>
+          </div>
+          <h3 className="text-lg font-semibold text-white tracking-wide">Loading Projects</h3>
+          <p className="text-blue-300 text-sm mt-1">Fetching your workspace data…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+    <div className="min-h-screen" style={{ background: '#f0f4f8' }}>
+      {/* Top Bar */}
       {!selectedFile.isSelected && (
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="bg-white px-6 py-3" style={{ borderBottom: '1px solid #e2e8f0' }}>
           <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: '#eef2ff' }}>
+                <BarChart2 className="h-4 w-4 text-indigo-500" />
+              </div>
+              <span className="text-slate-700 font-semibold text-sm">Industrial Analytics Platform</span>
+              <span className="text-slate-400 text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>Project Dashboard</span>
+            </div>
 
             {/* Project Selector */}
-            <div className="w-96">
+            <div className="flex items-center gap-3">
               {projectModules.length === 0 ? (
                 <button
                   onClick={() => navigate('/dashboard', { state: { module: 'upload-trackers' } })}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center justify-center"
+                  className="px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm flex items-center font-medium hover:bg-indigo-600 transition-colors"
                 >
                   <File className="h-4 w-4 mr-2" />
                   Upload Trackers
                 </button>
               ) : (
-                <select
-                  value={selectedProjectId}
-                  onChange={(e) => handleProjectSelect(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-                >
-                  <option value="">Select a project</option>
-                  {projectModules.map(project => (
-                    <option key={project.id} value={project.id}>
-                      {project.name} ({project.submodules?.length || 0} files)
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={selectedProjectId}
+                    onChange={(e) => handleProjectSelect(e.target.value)}
+                    className="appearance-none pl-4 pr-10 py-2 text-sm font-medium text-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 cursor-pointer bg-white"
+                    style={{ border: '1px solid #d1d5db', minWidth: '280px' }}
+                  >
+                    <option value="">— Select a project —</option>
+                    {projectModules.map(project => (
+                      <option key={project.id} value={project.id}>
+                        {project.name} ({project.submodules?.length || 0} files)
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
               )}
             </div>
           </div>
@@ -1629,7 +1645,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       )}
 
       {/* Main Content */}
-      <div className="p-6">
+      <div className="p-6" style={{ minHeight: 'calc(100vh - 56px)' }}>
         {selectedProject ? (
           <div>
             {/* File Viewer (if file selected) */}
@@ -1654,74 +1670,109 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
             {/* Main Project Container - Only show when no file is selected */}
             {!selectedFile.isSelected && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0' }}>
                 {/* Project Header */}
-                <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700">
+                <div className="px-7 py-5" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-
-                      <h2 className="text-xl font-semibold text-white">{selectedProject.name}</h2>
-
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center justify-center w-11 h-11 rounded-xl" style={{ background: '#eef2ff', border: '1px solid #e0e7ff' }}>
+                        <Folder className="h-5 w-5 text-indigo-500" />
+                      </div>
+                      <div>
+                        <p className="text-slate-400 text-xs font-medium uppercase tracking-widest mb-0.5">Active Project</p>
+                        <h2 className="text-xl font-bold text-slate-800 leading-tight">{selectedProject.name}</h2>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <span className="flex items-center gap-1 text-xs text-slate-400">
+                            <Database className="h-3 w-3" />
+                            {departmentFiles.length} Trackers
+                          </span>
+                          <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                          <span className="flex items-center gap-1 text-xs text-slate-400">
+                            <Users className="h-3 w-3" />
+                            {departmentColumns.length} Data Fields
+                          </span>
+                          <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                          <span className="flex items-center gap-1 text-xs text-emerald-500">
+                            <Activity className="h-3 w-3" />
+                            Active
+                          </span>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Controls inside header */}
-                    <div className="flex items-center space-x-3">
-                      {/* Stimulate Dashboard Button - Updated to match Send Report button UI */}
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() => setShowConfigModal(true)}
-                        className="px-4 py-1.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm flex items-center font-medium"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 transition-colors"
+                        style={{ border: '1px solid #d1d5db' }}
                       >
-
+                        <Sliders className="h-4 w-4 text-slate-400" />
                         Stimulate Dashboard
                       </button>
-
-                      {/* Send Report Button */}
                       <button
                         onClick={() => setShowEmailModal(true)}
-                        className="px-4 py-1.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm flex items-center font-medium"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 transition-colors"
                       >
-                        <Send className="h-4 w-4 mr-1" />
+                        <Send className="h-4 w-4" />
                         Send Report
                       </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Content Area - Conditionally rendered based on dashboard config */}
-                <div className="p-6 space-y-8">
-                  {/* Milestones Section - Horizontal Timeline (stages as columns) */}
+                {/* Content Area */}
+                <div className="p-7 space-y-8" style={{ background: '#f8fafc' }}>
+
+                  {/* ── MILESTONES SECTION ── */}
                   {dashboardConfig.milestones && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                        <span className="inline-block w-3 h-3 rounded-sm bg-blue-800"></span>
-                        Major Milestones – Timelines
-                      </h3>
-                      <div className="overflow-x-auto border border-gray-300 rounded-lg shadow-sm">
-                        <table className="min-w-full border-collapse text-xs" style={{ tableLayout: 'fixed', minWidth: '900px' }}>
+                    <div className="rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 16px rgba(15,23,42,0.08)', border: '1px solid #e2e8f0' }}>
+                      {/* Card Header */}
+                      <div className="flex items-center justify-between px-6 py-4" style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: '#e0e7ff' }}>
+                            <Calendar className="h-4 w-4 text-indigo-500" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-slate-700 tracking-wide">Major Milestones</h3>
+                            <p className="text-slate-400 text-xs">Project Timeline Overview</p>
+                          </div>
+                        </div>
+                        {/* Legend inline */}
+                        <div className="flex items-center gap-4">
+                          {[
+                            { color: '#86efac', label: 'Completed' },
+                            { color: '#fde68a', label: 'Delayed' },
+                            { color: '#fca5a5', label: 'At Risk' },
+                          ].map(l => (
+                            <span key={l.label} className="flex items-center gap-1.5 text-xs text-slate-500">
+                              <span className="inline-block w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: l.color }}></span>
+                              {l.label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Table */}
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full border-collapse" style={{ tableLayout: 'fixed', minWidth: '960px' }}>
                           <colgroup>
-                            <col style={{ width: '130px' }} />
-                            {MILESTONE_STAGES.map(s => <col key={s.id} style={{ width: '90px' }} />)}
+                            <col style={{ width: '148px' }} />
+                            {MILESTONE_STAGES.map(s => <col key={s.id} style={{ width: '88px' }} />)}
                           </colgroup>
                           <thead>
-                            {/* Title row spanning all columns */}
-                            <tr>
+                            <tr style={{ background: '#e8edf3' }}>
                               <th
-                                colSpan={MILESTONE_STAGES.length + 1}
-                                className="text-center text-sm font-bold text-white py-2 px-3"
-                                style={{ background: '#1e3a5f' }}
+                                className="py-2.5 px-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider"
+                                style={{ borderRight: '1px solid #d5dce6' }}
                               >
-                                Timelines
-                              </th>
-                            </tr>
-                            {/* Stage header row */}
-                            <tr style={{ background: '#1e3a5f' }}>
-                              <th className="py-2 px-3 text-left text-xs font-semibold text-white border-r border-blue-700 whitespace-nowrap">
-                                Major Milestones
+                                Phase
                               </th>
                               {MILESTONE_STAGES.map(stage => (
                                 <th
                                   key={stage.id}
-                                  className="py-2 px-2 text-center text-xs font-semibold text-white border-r border-blue-700 whitespace-normal leading-tight"
+                                  className="py-2.5 px-2 text-center text-xs font-semibold text-slate-600 leading-tight"
+                                  style={{ borderRight: '1px solid #d5dce6' }}
                                 >
                                   {stage.label}
                                 </th>
@@ -1730,38 +1781,56 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                           </thead>
                           <tbody>
                             {/* Plan row */}
-                            <tr className="bg-gray-50 border-b border-gray-200">
-                              <td className="py-2 px-3 text-xs font-semibold text-gray-800 border-r border-gray-200 whitespace-nowrap">
+                            <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
+                              <td
+                                className="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap"
+                                style={{ borderRight: '1px solid #e2e8f0' }}
+                              >
                                 Plan
                               </td>
                               {MILESTONE_STAGES.map(stage => (
                                 <td
                                   key={stage.id}
-                                  className="py-2 px-2 text-center text-xs text-gray-700 border-r border-gray-200"
+                                  className="py-3 px-2 text-center text-xs text-slate-600 font-medium"
+                                  style={{ borderRight: '1px solid #e2e8f0' }}
                                 >
-                                  {MILESTONE_PLAN[stage.id] || ''}
+                                  {MILESTONE_PLAN[stage.id] || <span className="text-slate-300">—</span>}
                                 </td>
                               ))}
                             </tr>
                             {/* Actual / Outlook row */}
-                            <tr className="bg-white">
-                              <td className="py-2 px-3 text-xs font-semibold text-gray-800 border-r border-gray-200 whitespace-nowrap">
+                            <tr style={{ background: '#fff' }}>
+                              <td
+                                className="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap"
+                                style={{ borderRight: '1px solid #e2e8f0' }}
+                              >
                                 Actual / Outlook
                               </td>
                               {MILESTONE_STAGES.map(stage => {
                                 const cell = MILESTONE_ACTUAL[stage.id];
-                                const bgColor =
-                                  cell?.status === 'done' ? '#bbf7d0' : // green-200
-                                    cell?.status === 'delayed' ? '#fef08a' : // yellow-200
-                                      cell?.status === 'at-risk' ? '#fca5a5' : // red-300
-                                        'transparent';
+                                const cfg = {
+                                  done: { bg: '#dcfce7', border: '#86efac', text: '#166534' },
+                                  delayed: { bg: '#fef9c3', border: '#fde047', text: '#854d0e' },
+                                  'at-risk': { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
+                                }[cell?.status] || { bg: 'transparent', border: '#e2e8f0', text: '#64748b' };
                                 return (
                                   <td
                                     key={stage.id}
-                                    className="py-2 px-2 text-center text-xs font-medium border-r border-gray-200"
-                                    style={{ background: bgColor }}
+                                    className="py-3 px-1.5 text-center text-xs font-semibold"
+                                    style={{ borderRight: '1px solid #e2e8f0' }}
                                   >
-                                    {cell?.value || ''}
+                                    {cell?.value ? (
+                                      <span
+                                        className="inline-flex items-center justify-center w-full px-1.5 py-1 rounded-md text-xs font-semibold leading-tight"
+                                        style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.text }}
+                                      >
+                                        {cell.value === '✔' ? (
+                                          <CheckCircle className="h-3.5 w-3.5" />
+                                        ) : cell.value}
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-300">—</span>
+                                    )}
                                   </td>
                                 );
                               })}
@@ -1769,56 +1838,114 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                           </tbody>
                         </table>
                       </div>
-                      {/* Legend */}
-                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
-                        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#bbf7d0' }}></span> Completed</span>
-                        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#fef08a' }}></span> Delayed</span>
-                        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#fca5a5' }}></span> At Risk</span>
-                      </div>
                     </div>
                   )}
 
-                  {/* Critical Issues Section */}
+                  {/* ── CRITICAL ISSUES SECTION ── */}
                   {dashboardConfig.criticalIssues && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                        <span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#1e3a5f' }}></span>
-                        Top Critical Issues
-                      </h3>
-                      <div className="overflow-x-auto border border-gray-300 rounded-lg shadow-sm">
-                        <table className="min-w-full border-collapse text-xs">
+                    <div className="rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 16px rgba(15,23,42,0.08)', border: '1px solid #e2e8f0' }}>
+                      {/* Card Header */}
+                      <div className="flex items-center justify-between px-6 py-4" style={{ background: '#fef2f2', borderBottom: '1px solid #fecdd3' }}>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: '#fee2e2' }}>
+                            <AlertTriangle className="h-4 w-4 text-red-400" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-slate-700 tracking-wide">Top Critical Issues</h3>
+                            <p className="text-slate-400 text-xs">{DUMMY_ISSUES.length} active issues requiring attention</p>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }}>
+                          {DUMMY_ISSUES.filter(i => i.status === 'Open').length} Open
+                        </span>
+                      </div>
+
+                      {/* Table */}
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full border-collapse">
                           <thead>
-                            <tr style={{ background: '#1e3a5f' }}>
-                              <th className="py-2 px-3 text-center text-xs font-semibold text-white border-r border-blue-700 w-10 whitespace-nowrap">S.No</th>
-                              <th className="py-2 px-3 text-left text-xs font-semibold text-white border-r border-blue-700 whitespace-nowrap">Issue</th>
-                              <th className="py-2 px-3 text-center text-xs font-semibold text-white border-r border-blue-700 whitespace-nowrap">Resp</th>
-                              <th className="py-2 px-3 text-center text-xs font-semibold text-white border-r border-blue-700 whitespace-nowrap">Support Required</th>
-                              <th className="py-2 px-3 text-center text-xs font-semibold text-white border-r border-blue-700 whitespace-nowrap">From Whom</th>
-                              <th className="py-2 px-3 text-center text-xs font-semibold text-white whitespace-nowrap">Status</th>
+                            <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-14" style={{ borderRight: '1px solid #e5e7eb' }}>S.No</th>
+                              <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" style={{ borderRight: '1px solid #e5e7eb' }}>Issue Description</th>
+                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-28" style={{ borderRight: '1px solid #e5e7eb' }}>Responsible</th>
+                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-40" style={{ borderRight: '1px solid #e5e7eb' }}>Support Required</th>
+                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-36" style={{ borderRight: '1px solid #e5e7eb' }}>From Whom</th>
+                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-28">Status</th>
                             </tr>
                           </thead>
                           <tbody>
                             {DUMMY_ISSUES.map((issue, idx) => (
                               <tr
                                 key={issue.id}
-                                className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
-                                style={{ verticalAlign: 'top' }}
+                                style={{
+                                  verticalAlign: 'top',
+                                  background: idx % 2 === 0 ? '#ffffff' : '#fffbfb',
+                                  borderBottom: '1px solid #fee2e2',
+                                  transition: 'background 0.15s'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#fff5f5'}
+                                onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? '#ffffff' : '#fffbfb'}
                               >
-                                <td className="py-2 px-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-200">{issue.id}</td>
-                                <td className="py-2 px-3 text-xs text-gray-800 border-r border-gray-200 whitespace-pre-line leading-relaxed" style={{ maxWidth: '420px' }}>
+                                {/* S.No badge */}
+                                <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
+                                  <span
+                                    className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white"
+                                    style={{ background: 'linear-gradient(135deg,#dc2626,#b91c1c)', boxShadow: '0 2px 6px rgba(220,38,38,0.35)' }}
+                                  >
+                                    {issue.id}
+                                  </span>
+                                </td>
+
+                                {/* Issue text */}
+                                <td
+                                  className="py-4 px-4 text-sm text-slate-700 leading-relaxed whitespace-pre-line"
+                                  style={{ borderRight: '1px solid #fee2e2', maxWidth: '440px' }}
+                                >
                                   {issue.issue}
                                 </td>
-                                <td className="py-2 px-3 text-center text-xs text-gray-700 border-r border-gray-200">{issue.resp}</td>
-                                <td className="py-2 px-3 text-center text-xs text-gray-700 border-r border-gray-200">{issue.supportRequired}</td>
-                                <td className="py-2 px-3 text-center text-xs text-gray-700 border-r border-gray-200">{issue.fromWhom}</td>
-                                <td className="py-2 px-3 text-center">
-                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${issue.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                                      issue.status === 'Open' ? 'bg-yellow-100 text-yellow-800' :
-                                        issue.status === 'Resolved' ? 'bg-green-100 text-green-800' :
-                                          'bg-gray-100 text-gray-800'
-                                    }`}>
-                                    {issue.status}
+
+                                {/* Resp */}
+                                <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
+                                  <span className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-slate-600 px-2.5 py-1 rounded-full" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>
+                                    <User className="h-3 w-3 text-slate-400" />
+                                    {issue.resp}
                                   </span>
+                                </td>
+
+                                {/* Support Required */}
+                                <td className="py-4 px-4 text-center text-xs text-slate-600 font-medium" style={{ borderRight: '1px solid #fee2e2' }}>
+                                  {issue.supportRequired}
+                                </td>
+
+                                {/* From Whom */}
+                                <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
+                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 px-2.5 py-1 rounded-full" style={{ background: '#eef2ff', border: '1px solid #c7d2fe' }}>
+                                    <Users className="h-3 w-3" />
+                                    {issue.fromWhom}
+                                  </span>
+                                </td>
+
+                                {/* Status */}
+                                <td className="py-4 px-4 text-center">
+                                  {(() => {
+                                    const s = issue.status;
+                                    const cfg = s === 'In Progress'
+                                      ? { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af', dot: '#3b82f6' }
+                                      : s === 'Open'
+                                        ? { bg: '#fef9c3', border: '#fde047', text: '#854d0e', dot: '#eab308' }
+                                        : s === 'Resolved'
+                                          ? { bg: '#dcfce7', border: '#86efac', text: '#166534', dot: '#22c55e' }
+                                          : { bg: '#f1f5f9', border: '#e2e8f0', text: '#64748b', dot: '#94a3b8' };
+                                    return (
+                                      <span
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+                                        style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.text }}
+                                      >
+                                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }}></span>
+                                        {s}
+                                      </span>
+                                    );
+                                  })()}
                                 </td>
                               </tr>
                             ))}
@@ -1939,224 +2066,250 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
         ) : (
           // Empty State
           !selectedFile.isSelected && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
-              <Layout className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Project Selected</h3>
-              <p className="text-gray-500 mb-6">Choose a project from the dropdown above to start analyzing data</p>
-              {projectModules.length === 0 && (
-                <button
-                  onClick={() => navigate('/dashboard', { state: { module: 'upload-trackers' } })}
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <File className="h-4 w-4 mr-2" />
-                  Upload Trackers
-                </button>
-              )}
+            <div
+              className="rounded-2xl p-16 text-center"
+              style={{ background: 'linear-gradient(135deg,#ffffff 0%,#f0f4ff 100%)', border: '1px solid #e0e7ff', boxShadow: '0 4px 24px rgba(15,23,42,0.06)' }}
+            >
+              <div
+                className="mx-auto mb-6 flex items-center justify-center w-20 h-20 rounded-2xl"
+                style={{ background: 'linear-gradient(135deg,#e0e7ff,#c7d2fe)', boxShadow: '0 4px 16px rgba(99,102,241,0.2)' }}
+              >
+                <Layout className="h-9 w-9 text-indigo-500" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">No Project Selected</h3>
+              <p className="text-slate-500 mb-8 max-w-sm mx-auto">Select a project from the dropdown above to view your analytics dashboard and project timelines.</p>
+              <div className="flex items-center justify-center gap-3">
+                {projectModules.length === 0 ? (
+                  <button
+                    onClick={() => navigate('/dashboard', { state: { module: 'upload-trackers' } })}
+                    className="inline-flex items-center px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+                    style={{ background: 'linear-gradient(135deg,#4f46e5,#6366f1)', boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }}
+                  >
+                    <File className="h-4 w-4 mr-2" />
+                    Upload Trackers
+                  </button>
+                ) : (
+                  <p className="text-xs text-slate-400 flex items-center gap-1.5">
+                    <ChevronRight className="h-4 w-4" />
+                    Use the project selector above to get started
+                  </p>
+                )}
+              </div>
             </div>
           )
         )}
       </div>
 
       {/* Dashboard Configuration Modal */}
-      {showConfigModal && (
-        <DashboardConfigModal
-          isOpen={showConfigModal}
-          onClose={() => setShowConfigModal(false)}
-          onApply={handleDashboardConfigApply}
-          selectedProject={selectedProject}
-        />
-      )}
+      {
+        showConfigModal && (
+          <DashboardConfigModal
+            isOpen={showConfigModal}
+            onClose={() => setShowConfigModal(false)}
+            onApply={handleDashboardConfigApply}
+            selectedProject={selectedProject}
+          />
+        )
+      }
 
       {/* Stage Configuration Modal */}
-      {configuringStage && (
-        <StageConfigModal
-          stage={configuringStage}
-          isOpen={true}
-          onClose={() => setConfiguringStage(null)}
-          departmentColumns={departmentColumns}
-          onSave={handleStageConfig}
-          currentConfig={stageConfigs[configuringStage.id]}
-        />
-      )}
+      {
+        configuringStage && (
+          <StageConfigModal
+            stage={configuringStage}
+            isOpen={true}
+            onClose={() => setConfiguringStage(null)}
+            departmentColumns={departmentColumns}
+            onSave={handleStageConfig}
+            currentConfig={stageConfigs[configuringStage.id]}
+          />
+        )
+      }
 
       {/* Full Screen Chart Modal */}
-      {fullScreenStage && (
-        <FullScreenChartModal
-          stage={fullScreenStage}
-          isOpen={true}
-          onClose={() => setFullScreenStage(null)}
-          chartData={stageChartData[fullScreenStage.id] || []}
-          distribution={stageDistribution[fullScreenStage.id] || []}
-          chartType={stageChartTypes[fullScreenStage.id] || 'bar'}
-          onChartTypeChange={handleChartTypeChange}
-        />
-      )}
+      {
+        fullScreenStage && (
+          <FullScreenChartModal
+            stage={fullScreenStage}
+            isOpen={true}
+            onClose={() => setFullScreenStage(null)}
+            chartData={stageChartData[fullScreenStage.id] || []}
+            distribution={stageDistribution[fullScreenStage.id] || []}
+            chartType={stageChartTypes[fullScreenStage.id] || 'bar'}
+            onChartTypeChange={handleChartTypeChange}
+          />
+        )
+      }
 
       {/* Header Configuration Modal */}
-      {showHeaderConfig && departmentFiles.length > 0 && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-8">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  Configure File Headers
-                </h3>
-                <button
-                  onClick={() => setShowHeaderConfig(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="h-5 w-5 text-gray-500" />
-                </button>
-              </div>
+      {
+        showHeaderConfig && departmentFiles.length > 0 && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    Configure File Headers
+                  </h3>
+                  <button
+                    onClick={() => setShowHeaderConfig(false)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
 
-              <div className="space-y-6">
-                {departmentFiles.map((fileModule) => {
-                  const fileHeaderConfig = fileModule.fileData?.headerConfig || {
-                    rowCount: 1
-                  };
+                <div className="space-y-6">
+                  {departmentFiles.map((fileModule) => {
+                    const fileHeaderConfig = fileModule.fileData?.headerConfig || {
+                      rowCount: 1
+                    };
 
-                  return (
-                    <FileHeaderConfigItem
-                      key={fileModule.id}
-                      fileModule={fileModule}
-                      fileHeaderConfig={fileHeaderConfig}
-                      onConfigure={(fileId, rowCount, selectedHeaders) =>
-                        configureFileHeaders(fileModule, rowCount, selectedHeaders)
-                      }
-                    />
-                  );
-                })}
+                    return (
+                      <FileHeaderConfigItem
+                        key={fileModule.id}
+                        fileModule={fileModule}
+                        fileHeaderConfig={fileHeaderConfig}
+                        onConfigure={(fileId, rowCount, selectedHeaders) =>
+                          configureFileHeaders(fileModule, rowCount, selectedHeaders)
+                        }
+                      />
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Email Modal - Made bigger */}
-      {showEmailModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-8">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  Send Report
-                </h3>
-                <button
-                  onClick={() => setShowEmailModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="h-5 w-5 text-gray-500" />
-                </button>
-              </div>
-
-              {/* Recipients */}
-              <div className="mb-6">
-                <label className="text-base font-medium text-gray-700 mb-3 block">
-                  Recipients ({departmentEmployees.length} available)
-                </label>
-                <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
-                  <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-                    <button
-                      onClick={selectAllEmployees}
-                      className="text-base text-blue-600 hover:text-blue-800"
-                    >
-                      {selectedEmployees.length === departmentEmployees.length ? 'Deselect All' : 'Select All'}
-                    </button>
-                    <span className="text-base text-gray-600">
-                      {selectedEmployees.length} selected
-                    </span>
-                  </div>
-                  {departmentEmployees.map((employee) => (
-                    <label
-                      key={employee.id}
-                      className="flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedEmployees.includes(employee.id)}
-                        onChange={() => toggleEmployeeSelection(employee.id)}
-                        className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mr-4"
-                      />
-                      <div className="flex-1">
-                        <p className="text-base font-medium text-gray-700">{employee.name}</p>
-                        <p className="text-sm text-gray-500">{employee.email}</p>
-                      </div>
-                    </label>
-                  ))}
+      {
+        showEmailModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    Send Report
+                  </h3>
+                  <button
+                    onClick={() => setShowEmailModal(false)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
                 </div>
-              </div>
 
-              {/* Subject */}
-              <div className="mb-6">
-                <label className="text-base font-medium text-gray-700 mb-3 block">
-                  Subject
-                </label>
-                <input
-                  type="text"
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                  placeholder={`${selectedProject?.name} Report`}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
-                />
-              </div>
+                {/* Recipients */}
+                <div className="mb-6">
+                  <label className="text-base font-medium text-gray-700 mb-3 block">
+                    Recipients ({departmentEmployees.length} available)
+                  </label>
+                  <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
+                    <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+                      <button
+                        onClick={selectAllEmployees}
+                        className="text-base text-blue-600 hover:text-blue-800"
+                      >
+                        {selectedEmployees.length === departmentEmployees.length ? 'Deselect All' : 'Select All'}
+                      </button>
+                      <span className="text-base text-gray-600">
+                        {selectedEmployees.length} selected
+                      </span>
+                    </div>
+                    {departmentEmployees.map((employee) => (
+                      <label
+                        key={employee.id}
+                        className="flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedEmployees.includes(employee.id)}
+                          onChange={() => toggleEmployeeSelection(employee.id)}
+                          className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mr-4"
+                        />
+                        <div className="flex-1">
+                          <p className="text-base font-medium text-gray-700">{employee.name}</p>
+                          <p className="text-sm text-gray-500">{employee.email}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
 
-              {/* Message */}
-              <div className="mb-6">
-                <label className="text-base font-medium text-gray-700 mb-3 block">
-                  Message
-                </label>
-                <textarea
-                  value={emailBody}
-                  onChange={(e) => setEmailBody(e.target.value)}
-                  placeholder="Add a message..."
-                  rows="5"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base resize-none"
-                />
-              </div>
+                {/* Subject */}
+                <div className="mb-6">
+                  <label className="text-base font-medium text-gray-700 mb-3 block">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                    placeholder={`${selectedProject?.name} Report`}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                  />
+                </div>
 
-              {/* Status */}
-              {emailStatus && (
-                <div className={`mb-6 p-4 rounded-lg text-base ${emailStatus.includes('success')
+                {/* Message */}
+                <div className="mb-6">
+                  <label className="text-base font-medium text-gray-700 mb-3 block">
+                    Message
+                  </label>
+                  <textarea
+                    value={emailBody}
+                    onChange={(e) => setEmailBody(e.target.value)}
+                    placeholder="Add a message..."
+                    rows="5"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base resize-none"
+                  />
+                </div>
+
+                {/* Status */}
+                {emailStatus && (
+                  <div className={`mb-6 p-4 rounded-lg text-base ${emailStatus.includes('success')
                     ? 'bg-green-50 text-green-700 border border-green-200'
                     : emailStatus.includes('Failed')
                       ? 'bg-red-50 text-red-700 border border-red-200'
                       : 'bg-blue-50 text-blue-700 border border-blue-200'
-                  }`}>
-                  {emailStatus}
-                </div>
-              )}
+                    }`}>
+                    {emailStatus}
+                  </div>
+                )}
 
-              {/* Actions */}
-              <div className="flex justify-end space-x-4">
-                <button
-                  onClick={() => setShowEmailModal(false)}
-                  className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-base"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSendEmail}
-                  disabled={emailSending || selectedEmployees.length === 0}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base flex items-center"
-                >
-                  {emailSending ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-3"></div>
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-5 w-5 mr-2" />
-                      Send to {selectedEmployees.length} recipient(s)
-                    </>
-                  )}
-                </button>
+                {/* Actions */}
+                <div className="flex justify-end space-x-4">
+                  <button
+                    onClick={() => setShowEmailModal(false)}
+                    className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-base"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSendEmail}
+                    disabled={emailSending || selectedEmployees.length === 0}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base flex items-center"
+                  >
+                    {emailSending ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-3"></div>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-5 w-5 mr-2" />
+                        Send to {selectedEmployees.length} recipient(s)
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 
