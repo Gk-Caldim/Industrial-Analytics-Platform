@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  File, User, ChevronRight, 
+import {
+  File, User, ChevronRight,
   AlertCircle, X, Eye, ChevronDown, ChevronUp,
   BarChart2, PieChart, TrendingUp, Mail, Send,
   CheckSquare, Filter, Download, RefreshCw, Folder,
@@ -23,23 +23,61 @@ import {
 
 import FileContentViewer from './Trackers/FileContentViewer';
 
-// Dummy data for milestones - Updated structure with Plan and Actual/Outlook
-const DUMMY_MILESTONES = [
-  { id: 1, name: 'Requirements Gathering', plan: '2024-03-15', actual: '2024-03-14', outlook: 'Completed', status: 'Completed' },
-  { id: 2, name: 'Design Phase', plan: '2024-04-01', actual: '2024-03-28', outlook: '2024-04-05', status: 'Ahead' },
-  { id: 3, name: 'Development Sprint 1', plan: '2024-04-30', actual: 'In Progress', outlook: '2024-05-05', status: 'At Risk' },
-  { id: 4, name: 'QA Testing', plan: '2024-05-15', actual: 'Not Started', outlook: '2024-05-20', status: 'Pending' },
-  { id: 5, name: 'User Acceptance Testing', plan: '2024-05-30', actual: 'Not Started', outlook: '2024-06-05', status: 'Pending' },
-  { id: 6, name: 'Production Release', plan: '2024-06-15', actual: 'Not Started', outlook: '2024-06-20', status: 'Planned' },
+// Milestone stages (columns in the timeline)
+const MILESTONE_STAGES = [
+  { id: 'l0drg', label: 'L0 Drg' },
+  { id: 'l1drg', label: 'L1 Drg' },
+  { id: 'qsvob', label: 'QS/VOB' },
+  { id: 'tko', label: 'Exclusive TKO' },
+  { id: 'gen2build', label: 'Gen2 Build' },
+  { id: 'gen2val', label: 'Gen2 Validation' },
+  { id: 'gen2cbuild', label: 'Gen2C Build' },
+  { id: 'reval', label: 'Revalidation & Seeding Build' },
+  { id: 'pp1', label: 'PP1' },
+  { id: 'pp2', label: 'PP2' },
+  { id: 'sop', label: 'SOP' },
+  { id: 'sovp', label: 'SOVP' },
 ];
+
+// Plan row & Actual/Outlook row – keyed by stage id
+const MILESTONE_PLAN = {
+  l0drg: "Apr'22", l1drg: "Sep'22", qsvob: "Sep'22–Nov'22", tko: "Jun'22–Mar'23",
+  gen2build: "Apr'23–Jun'23", gen2val: "May'23–Feb'24", gen2cbuild: "Sep'23",
+  reval: "Oct'24–Nov'24", pp1: "Mar'25", pp2: "Apr'25", sop: "Jul'25", sovp: "Aug'25"
+};
+const MILESTONE_ACTUAL = {
+  l0drg: { value: "✔", status: 'done' },
+  l1drg: { value: "✔", status: 'done' },
+  qsvob: { value: "✔", status: 'done' },
+  tko: { value: "✔", status: 'done' },
+  gen2build: { value: "Jun'23", status: 'delayed' },
+  gen2val: { value: "Jun'23–Feb'24", status: 'done' },
+  gen2cbuild: { value: "Sep'23", status: 'done' },
+  reval: { value: "Oct'24–Nov'24", status: 'pending' },
+  pp1: { value: "Mar'25", status: 'pending' },
+  pp2: { value: "May'25", status: 'at-risk' },
+  sop: { value: '', status: 'pending' },
+  sovp: { value: '', status: 'pending' },
+};
 
 // Dummy data for critical issues
 const DUMMY_ISSUES = [
-  { id: 1, title: 'Database connection timeout', severity: 'High', status: 'In Progress', assignee: 'John Doe', dueDate: '2024-03-20' },
-  { id: 2, title: 'API rate limiting exceeded', severity: 'Critical', status: 'Open', assignee: 'Jane Smith', dueDate: '2024-03-18' },
-  { id: 3, title: 'Memory leak in production', severity: 'Critical', status: 'In Progress', assignee: 'Mike Johnson', dueDate: '2024-03-19' },
-  { id: 4, title: 'UI rendering issue on mobile', severity: 'Medium', status: 'Open', assignee: 'Sarah Wilson', dueDate: '2024-03-25' },
-  { id: 5, title: 'Security vulnerability in auth', severity: 'Critical', status: 'Open', assignee: 'Security Team', dueDate: '2024-03-17' },
+  {
+    id: 1,
+    issue: 'Automatic Sealant dispenser installation pending at Nagpur main line. Machine received at plant, but installation delayed due to current production priorities at main line. However machine is established in 1 bar line.',
+    resp: 'CME',
+    supportRequired: 'Installation as per plan',
+    fromWhom: 'Mangesh',
+    status: 'Open',
+  },
+  {
+    id: 2,
+    issue: 'ORC Parts Development Progress\n1. Conrod Bolt – Assembled conrod required for fatigue testing. 8 samples each from bolt suppliers to be sent to both conrod suppliers (Shashank)\n2. Crank case (3DI & 4DI) – No progress in semi finish investment approval. Impact on Implementation. (Shashank)\n3. Thrust Bearing (KSPG) – KSPG has shared updated proposal. Feedback awaited from Design (Deepak)\n4. PIX Belt – Validation failed on 3 cyl at 453 hrs. Supplier feedback to be verified at tractor & to be further discussed with supplier for closure. 4 cyl validation completed (2×800 hrs). Supplier final DVP to be signed off\n5. CONTI Belt – Development with EPDM material to be started. Communication to CDMM to be initiated (Twisha)\n6. VHC Cover – Feasibility closure & SOR sign off delayed. Impact on validation & Implementation (Deepak)',
+    resp: 'Mentioned in each line',
+    supportRequired: 'Expediting Development',
+    fromWhom: 'Dr. Ramesh Tarun & Milind',
+    status: 'In Progress',
+  },
 ];
 
 // Project stages configuration with embedded charts
@@ -61,7 +99,7 @@ const CustomTooltip = ({ active, payload, label }) => {
         {payload.map((entry, index) => {
           const valueColor = entry.color || entry.fill || '#2563eb';
           const value = entry.value;
-          
+
           // Format value based on type
           let formattedValue = value;
           if (typeof value === 'number') {
@@ -71,7 +109,7 @@ const CustomTooltip = ({ active, payload, label }) => {
               formattedValue = value.toFixed(2);
             }
           }
-          
+
           return (
             <div key={index} className="flex items-center justify-between text-sm mb-1">
               <span style={{ color: valueColor }} className="font-medium">
@@ -211,36 +249,32 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
             <span className="text-base text-gray-600">Chart Type:</span>
             <button
               onClick={() => handleChartTypeChange('bar')}
-              className={`px-4 py-2 rounded-lg text-base flex items-center ${
-                localChartType === 'bar' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg text-base flex items-center ${localChartType === 'bar' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               <BarChart2 className="h-4 w-4 mr-2" />
               Bar
             </button>
             <button
               onClick={() => handleChartTypeChange('pie')}
-              className={`px-4 py-2 rounded-lg text-base flex items-center ${
-                localChartType === 'pie' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg text-base flex items-center ${localChartType === 'pie' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               <PieChart className="h-4 w-4 mr-2" />
               Pie
             </button>
             <button
               onClick={() => handleChartTypeChange('line')}
-              className={`px-4 py-2 rounded-lg text-base flex items-center ${
-                localChartType === 'line' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg text-base flex items-center ${localChartType === 'line' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               <TrendingUp className="h-4 w-4 mr-2" />
               Line
             </button>
             <button
               onClick={() => handleChartTypeChange('area')}
-              className={`px-4 py-2 rounded-lg text-base flex items-center ${
-                localChartType === 'area' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg text-base flex items-center ${localChartType === 'area' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               <AreaIcon className="h-4 w-4 mr-2" />
               Area
@@ -254,24 +288,24 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
                 {localChartType === 'bar' && (
                   <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45} 
-                      textAnchor="end" 
-                      height={80} 
+                    <XAxis
+                      dataKey="name"
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
                       interval={0}
                       tick={{ fontSize: 12 }}
                     />
                     <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend 
+                    <Legend
                       wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
                       layout="horizontal"
                       verticalAlign="bottom"
                       align="center"
                     />
                     {distribution.map((item, index) => (
-                      <Bar 
+                      <Bar
                         key={item.name}
                         dataKey={item.name}
                         stackId={item.name !== 'value' && item.name !== 'sum' && item.name !== 'average' ? "a" : undefined}
@@ -305,11 +339,11 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
                 {localChartType === 'line' && (
                   <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45} 
-                      textAnchor="end" 
-                      height={80} 
+                    <XAxis
+                      dataKey="name"
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
                       interval={0}
                       tick={{ fontSize: 12 }}
                     />
@@ -317,7 +351,7 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
                     {distribution.map((item) => (
-                      <Line 
+                      <Line
                         key={item.name}
                         type="monotone"
                         dataKey={item.name}
@@ -332,11 +366,11 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
                 {localChartType === 'area' && (
                   <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45} 
-                      textAnchor="end" 
-                      height={80} 
+                    <XAxis
+                      dataKey="name"
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
                       interval={0}
                       tick={{ fontSize: 12 }}
                     />
@@ -344,7 +378,7 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
                     {distribution.map((item) => (
-                      <Area 
+                      <Area
                         key={item.name}
                         type="monotone"
                         dataKey={item.name}
@@ -403,28 +437,28 @@ const MiniChart = ({ chartData, statusDistribution, chartType = 'bar' }) => {
           </RePieChart>
         ) : chartType === 'line' ? (
           <LineChart data={miniData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-            <Line 
-              type="monotone" 
-              dataKey={statusDistribution[0]?.name || 'value'} 
-              stroke={statusDistribution[0]?.color || '#2563eb'} 
+            <Line
+              type="monotone"
+              dataKey={statusDistribution[0]?.name || 'value'}
+              stroke={statusDistribution[0]?.color || '#2563eb'}
               strokeWidth={2}
               dot={false}
             />
           </LineChart>
         ) : chartType === 'area' ? (
           <AreaChart data={miniData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-            <Area 
-              type="monotone" 
-              dataKey={statusDistribution[0]?.name || 'value'} 
-              stroke={statusDistribution[0]?.color || '#2563eb'} 
-              fill={statusDistribution[0]?.color || '#2563eb'} 
+            <Area
+              type="monotone"
+              dataKey={statusDistribution[0]?.name || 'value'}
+              stroke={statusDistribution[0]?.color || '#2563eb'}
+              fill={statusDistribution[0]?.color || '#2563eb'}
               fillOpacity={0.3}
             />
           </AreaChart>
         ) : (
           <BarChart data={miniData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
             {statusDistribution.map((item) => (
-              <Bar 
+              <Bar
                 key={item.name}
                 dataKey={item.name}
                 stackId="a"
@@ -459,8 +493,8 @@ const DashboardConfigModal = ({ isOpen, onClose, onApply, selectedProject }) => 
   if (!isOpen) return null;
 
   const handleMetricToggle = (stageId) => {
-    setSelectedMetrics(prev => 
-      prev.includes(stageId) 
+    setSelectedMetrics(prev =>
+      prev.includes(stageId)
         ? prev.filter(id => id !== stageId)
         : [...prev, stageId]
     );
@@ -601,15 +635,15 @@ const FileHeaderConfigItem = ({ fileModule, fileHeaderConfig, onConfigure }) => 
   const [localRowCount, setLocalRowCount] = useState(fileHeaderConfig.rowCount);
 
   // Preview first few rows
-  const previewRows = fileModule.fileData?.data?.slice(0, 5) || 
-                     fileModule.fileData?.sheets?.[0]?.data?.slice(0, 5) || [];
+  const previewRows = fileModule.fileData?.data?.slice(0, 5) ||
+    fileModule.fileData?.sheets?.[0]?.data?.slice(0, 5) || [];
 
   return (
     <div className="border border-gray-200 rounded-lg p-4">
       <h4 className="font-medium text-gray-900 mb-3">
         {fileModule.displayName || fileModule.name}
       </h4>
-      
+
       {/* Header row count selector */}
       <div className="mb-4">
         <label className="text-sm font-medium text-gray-700 mb-2 block">
@@ -718,7 +752,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
   // Chart colors
   const PIE_COLORS = [
-    '#2563eb', '#10b981', '#f59e0b', '#ef4444', 
+    '#2563eb', '#10b981', '#f59e0b', '#ef4444',
     '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6',
     '#f97316', '#6366f1', '#d946ef', '#0ea5e9',
     '#84cc16', '#a855f7', '#ec4899', '#64748b'
@@ -727,13 +761,13 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
   // Function to generate a color based on string value
   const getColorForValue = (value, index) => {
     if (!value) return PIE_COLORS[index % PIE_COLORS.length];
-    
+
     let hash = 0;
     for (let i = 0; i < value.length; i++) {
       hash = ((hash << 5) - hash) + value.charCodeAt(i);
       hash = hash & hash;
     }
-    
+
     const colorIndex = Math.abs(hash) % PIE_COLORS.length;
     return PIE_COLORS[colorIndex];
   };
@@ -741,11 +775,11 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
   // Function to check if a column contains numeric values
   const isNumericColumn = (values) => {
     if (!values || values.length === 0) return false;
-    
+
     let numericCount = 0;
     for (const val of values) {
       if (val === null || val === undefined || val === '') continue;
-      
+
       if (typeof val === 'number') {
         numericCount++;
       } else if (typeof val === 'string') {
@@ -755,7 +789,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
         }
       }
     }
-    
+
     return numericCount > values.length * 0.3;
   };
 
@@ -787,7 +821,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       if (sheet.data && Array.isArray(sheet.data)) {
         const dataRows = sheet.data.slice(headerRowCount);
         const headers = extractHeadersFromFileData(fileData);
-        
+
         dataRows.forEach(row => {
           if (Array.isArray(row)) {
             const rowObj = {};
@@ -816,20 +850,20 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
     if (fileData.data && Array.isArray(fileData.data)) {
       if (fileData.headerConfig) {
         const { rowCount } = fileData.headerConfig;
-        
+
         if (rowCount > 1) {
           const headerRows = fileData.data.slice(0, rowCount);
-          
+
           for (let colIndex = 0; colIndex < (headerRows[0]?.length || 0); colIndex++) {
             let combinedHeader = '';
-            
+
             for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
               const cellValue = headerRows[rowIndex]?.[colIndex] || '';
               if (cellValue) {
                 combinedHeader += (combinedHeader ? ' - ' : '') + cellValue;
               }
             }
-            
+
             headers.push(combinedHeader || `Column ${colIndex + 1}`);
           }
         } else {
@@ -867,20 +901,20 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       if (sheet.data && sheet.data.length > 0) {
         if (sheet.headerConfig) {
           const { rowCount } = sheet.headerConfig;
-          
+
           if (rowCount > 1) {
             const headerRows = sheet.data.slice(0, rowCount);
-            
+
             for (let colIndex = 0; colIndex < (headerRows[0]?.length || 0); colIndex++) {
               let combinedHeader = '';
-              
+
               for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                 const cellValue = headerRows[rowIndex]?.[colIndex] || '';
                 if (cellValue) {
                   combinedHeader += (combinedHeader ? ' - ' : '') + cellValue;
                 }
               }
-              
+
               headers.push(combinedHeader || `Column ${colIndex + 1}`);
             }
           } else {
@@ -908,13 +942,13 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
   // Function to extract all rows from department files
   const extractAllRows = () => {
     let allRows = [];
-    
+
     departmentFiles.forEach((file) => {
       const fileHeaderCount = file.fileData?.headerConfig?.rowCount || 1;
       const dataRows = extractDataRowsFromFile(file.fileData, fileHeaderCount);
       allRows = [...allRows, ...dataRows];
     });
-    
+
     return allRows;
   };
 
@@ -940,13 +974,13 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
       if (isYAxisNumeric) {
         const aggregatedData = {};
-        
+
         allRows.forEach(row => {
           const xValue = row[xAxis];
           let yValue = row[yAxis];
-          
+
           if (xValue === undefined || xValue === null) return;
-          
+
           let numericValue = 0;
           if (yValue !== undefined && yValue !== null && yValue !== '') {
             if (typeof yValue === 'number') {
@@ -959,9 +993,9 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
               }
             }
           }
-          
+
           const key = String(xValue);
-          
+
           if (!aggregatedData[key]) {
             aggregatedData[key] = {
               name: String(xValue).substring(0, 30) + (String(xValue).length > 30 ? '...' : ''),
@@ -971,7 +1005,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
               sum: 0
             };
           }
-          
+
           aggregatedData[key].sum += numericValue;
           aggregatedData[key].count += 1;
           aggregatedData[key].value = aggregatedData[key].sum;
@@ -994,20 +1028,20 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
             fullName: xValue,
             total: 0
           };
-          
+
           uniqueYValues.forEach(yValue => {
             item[yValue] = 0;
           });
-          
+
           return item;
         });
 
         allRows.forEach(row => {
           const xValue = row[xAxis];
           const yValue = row[yAxis];
-          
+
           if (xValue === undefined || xValue === null) return;
-          
+
           if (yValue === undefined || yValue === null || yValue === '') {
             const xIndex = uniqueXValues.findIndex(x => String(x) === String(xValue));
             if (xIndex !== -1) {
@@ -1015,7 +1049,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
             }
             return;
           }
-          
+
           const xIndex = uniqueXValues.findIndex(x => String(x) === String(xValue));
           if (xIndex !== -1) {
             const yKey = String(yValue);
@@ -1037,10 +1071,10 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
   // Generate distribution data
   const generateDistribution = (chartData, xAxis, yAxis, allRows) => {
     if (!chartData || chartData.length === 0) return [];
-    
+
     const yValues = allRows.map(row => row[yAxis]).filter(v => v !== undefined && v !== null && v !== '');
     const isYAxisNumeric = isNumericColumn(yValues);
-    
+
     if (isYAxisNumeric) {
       return chartData.map((item, index) => ({
         name: item.fullName || item.name,
@@ -1050,7 +1084,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       }));
     } else {
       const distribution = {};
-      
+
       chartData.forEach(item => {
         Object.keys(item).forEach(key => {
           if (key !== 'name' && key !== 'fullName' && key !== 'total' && typeof item[key] === 'number') {
@@ -1061,7 +1095,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
           }
         });
       });
-      
+
       return Object.entries(distribution)
         .map(([name, value], index) => ({
           name,
@@ -1102,23 +1136,23 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
           });
         }
       });
-      
+
       setDepartmentFiles(files);
-      
+
       // Extract columns from all files
       const columns = extractColumnsFromFiles(files);
       setDepartmentColumns(columns);
-      
+
       // Extract employees from all files
       const employees = extractEmployeesFromFiles(files);
       setDepartmentEmployees(employees);
-      
+
       // Reset stage configs when changing project
       setStageConfigs({});
       setStageChartData({});
       setStageDistribution({});
       setStageChartTypes({});
-      
+
       // Reset dashboard config to all hidden
       setDashboardConfig({
         milestones: false,
@@ -1162,12 +1196,12 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       const allRows = extractAllRows();
       const data = generateEnhancedChartData(departmentFiles, xAxis, yAxis);
       const distribution = generateDistribution(data, xAxis, yAxis, allRows);
-      
+
       setStageChartData({
         ...stageChartData,
         [stageId]: data
       });
-      
+
       setStageDistribution({
         ...stageDistribution,
         [stageId]: distribution
@@ -1197,7 +1231,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       projectModuleId: null,
       source: null
     });
-    
+
     setSelectedProjectId('');
     setSelectedProject(null);
     setDepartmentFiles([]);
@@ -1208,7 +1242,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
     setStageDistribution({});
     setStageChartTypes({});
     setSelectedEmployees([]);
-    
+
     // Reset dashboard config to all hidden
     setDashboardConfig({
       milestones: false,
@@ -1256,7 +1290,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
   // Configure file headers
   const configureFileHeaders = (fileModule, rowCount, selectedHeaders) => {
-    const updatedFileData = { 
+    const updatedFileData = {
       ...fileModule.fileData,
       headerConfig: {
         rowCount
@@ -1271,7 +1305,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
     setUploadedFilesData(newFilesData);
     localStorage.setItem('uploaded_files_data', JSON.stringify(newFilesData));
 
-    const updatedFiles = departmentFiles.map(f => 
+    const updatedFiles = departmentFiles.map(f =>
       f.trackerId === fileModule.trackerId ? { ...f, fileData: updatedFileData } : f
     );
     setDepartmentFiles(updatedFiles);
@@ -1329,8 +1363,8 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
   };
 
   const toggleEmployeeSelection = (employeeId) => {
-    setSelectedEmployees(prev => 
-      prev.includes(employeeId) 
+    setSelectedEmployees(prev =>
+      prev.includes(employeeId)
         ? prev.filter(id => id !== employeeId)
         : [...prev, employeeId]
     );
@@ -1350,7 +1384,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       const savedModules = localStorage.getItem('project_dashboard_modules');
       const allModules = savedModules ? JSON.parse(savedModules) : [];
 
-      const projectModules = allModules.filter(m => 
+      const projectModules = allModules.filter(m =>
         m.type === 'project' && m.context === 'project-dashboard'
       );
 
@@ -1450,13 +1484,13 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
     if (!trackerInfo || !fileData) return;
 
-      setSelectedFile({
-        isSelected: true,
-        fileData: fileData,
-        trackerInfo: trackerInfo,
-        projectModuleId: projectModule.moduleId,
-        source: 'project-dashboard'
-      });
+    setSelectedFile({
+      isSelected: true,
+      fileData: fileData,
+      trackerInfo: trackerInfo,
+      projectModuleId: projectModule.moduleId,
+      source: 'project-dashboard'
+    });
   };
 
   // ==========================================================================
@@ -1470,7 +1504,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       projectModuleId: null,
       source: null
     });
-    
+
     // Reset everything to go to empty state
     setSelectedProjectId('');
     setSelectedProject(null);
@@ -1482,14 +1516,14 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
     setStageDistribution({});
     setStageChartTypes({});
     setSelectedEmployees([]);
-    
+
     setDashboardConfig({
       milestones: false,
       criticalIssues: false,
       metrics: false,
       selectedMetrics: []
     });
-    
+
     // Notify Dashboard to clear selection and stay in project dashboard
     window.dispatchEvent(new CustomEvent('closeProjectDashboardFile', { detail: { from: 'projectDashboard' } }));
   };
@@ -1537,7 +1571,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
         });
       }
       setDepartmentFiles(files);
-      
+
       const columns = extractColumnsFromFiles(files);
       setDepartmentColumns(columns);
     }
@@ -1564,7 +1598,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       {!selectedFile.isSelected && (
         <div className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
-            
+
             {/* Project Selector */}
             <div className="w-96">
               {projectModules.length === 0 ? (
@@ -1625,11 +1659,11 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                 <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">
-                      
+
                       <h2 className="text-xl font-semibold text-white">{selectedProject.name}</h2>
-                      
+
                     </div>
-                    
+
                     {/* Controls inside header */}
                     <div className="flex items-center space-x-3">
                       {/* Stimulate Dashboard Button - Updated to match Send Report button UI */}
@@ -1637,7 +1671,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                         onClick={() => setShowConfigModal(true)}
                         className="px-4 py-1.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm flex items-center font-medium"
                       >
-                        
+
                         Stimulate Dashboard
                       </button>
 
@@ -1655,42 +1689,91 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
                 {/* Content Area - Conditionally rendered based on dashboard config */}
                 <div className="p-6 space-y-8">
-                  {/* Milestones Section - Updated with new structure */}
+                  {/* Milestones Section - Horizontal Timeline (stages as columns) */}
                   {dashboardConfig.milestones && (
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                        Major Milestones
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <span className="inline-block w-3 h-3 rounded-sm bg-blue-800"></span>
+                        Major Milestones – Timelines
                       </h3>
-                      <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-blue-50">
+                      <div className="overflow-x-auto border border-gray-300 rounded-lg shadow-sm">
+                        <table className="min-w-full border-collapse text-xs" style={{ tableLayout: 'fixed', minWidth: '900px' }}>
+                          <colgroup>
+                            <col style={{ width: '130px' }} />
+                            {MILESTONE_STAGES.map(s => <col key={s.id} style={{ width: '90px' }} />)}
+                          </colgroup>
+                          <thead>
+                            {/* Title row spanning all columns */}
                             <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-1/4">Milestone</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider w-1/4">Plan</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider w-1/4">Actual/Outlook</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider w-1/4">Status</th>
+                              <th
+                                colSpan={MILESTONE_STAGES.length + 1}
+                                className="text-center text-sm font-bold text-white py-2 px-3"
+                                style={{ background: '#1e3a5f' }}
+                              >
+                                Timelines
+                              </th>
+                            </tr>
+                            {/* Stage header row */}
+                            <tr style={{ background: '#1e3a5f' }}>
+                              <th className="py-2 px-3 text-left text-xs font-semibold text-white border-r border-blue-700 whitespace-nowrap">
+                                Major Milestones
+                              </th>
+                              {MILESTONE_STAGES.map(stage => (
+                                <th
+                                  key={stage.id}
+                                  className="py-2 px-2 text-center text-xs font-semibold text-white border-r border-blue-700 whitespace-normal leading-tight"
+                                >
+                                  {stage.label}
+                                </th>
+                              ))}
                             </tr>
                           </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {DUMMY_MILESTONES.map((milestone) => (
-                              <tr key={milestone.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 text-sm text-gray-900 font-medium">{milestone.name}</td>
-                                <td className="px-4 py-3 text-sm text-gray-600 text-center">{milestone.plan}</td>
-                                <td className="px-4 py-3 text-sm text-gray-600 text-center">{milestone.actual}</td>
-                                <td className="px-4 py-3 text-center">
-                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                    ${milestone.status === 'Completed' ? 'bg-green-100 text-green-800' : 
-                                      milestone.status === 'Ahead' ? 'bg-blue-100 text-blue-800' :
-                                      milestone.status === 'At Risk' ? 'bg-orange-100 text-orange-800' :
-                                      milestone.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-gray-100 text-gray-800'}`}>
-                                    {milestone.status}
-                                  </span>
+                          <tbody>
+                            {/* Plan row */}
+                            <tr className="bg-gray-50 border-b border-gray-200">
+                              <td className="py-2 px-3 text-xs font-semibold text-gray-800 border-r border-gray-200 whitespace-nowrap">
+                                Plan
+                              </td>
+                              {MILESTONE_STAGES.map(stage => (
+                                <td
+                                  key={stage.id}
+                                  className="py-2 px-2 text-center text-xs text-gray-700 border-r border-gray-200"
+                                >
+                                  {MILESTONE_PLAN[stage.id] || ''}
                                 </td>
-                              </tr>
-                            ))}
+                              ))}
+                            </tr>
+                            {/* Actual / Outlook row */}
+                            <tr className="bg-white">
+                              <td className="py-2 px-3 text-xs font-semibold text-gray-800 border-r border-gray-200 whitespace-nowrap">
+                                Actual / Outlook
+                              </td>
+                              {MILESTONE_STAGES.map(stage => {
+                                const cell = MILESTONE_ACTUAL[stage.id];
+                                const bgColor =
+                                  cell?.status === 'done' ? '#bbf7d0' : // green-200
+                                    cell?.status === 'delayed' ? '#fef08a' : // yellow-200
+                                      cell?.status === 'at-risk' ? '#fca5a5' : // red-300
+                                        'transparent';
+                                return (
+                                  <td
+                                    key={stage.id}
+                                    className="py-2 px-2 text-center text-xs font-medium border-r border-gray-200"
+                                    style={{ background: bgColor }}
+                                  >
+                                    {cell?.value || ''}
+                                  </td>
+                                );
+                              })}
+                            </tr>
                           </tbody>
                         </table>
+                      </div>
+                      {/* Legend */}
+                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#bbf7d0' }}></span> Completed</span>
+                        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#fef08a' }}></span> Delayed</span>
+                        <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#fca5a5' }}></span> At Risk</span>
                       </div>
                     </div>
                   )}
@@ -1698,41 +1781,45 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                   {/* Critical Issues Section */}
                   {dashboardConfig.criticalIssues && (
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                        Critical Issues
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <span className="inline-block w-3 h-3 rounded-sm" style={{ background: '#1e3a5f' }}></span>
+                        Top Critical Issues
                       </h3>
-                      <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-blue-50">
-                            <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Issue</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Severity</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Status</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Assignee</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Due Date</th>
+                      <div className="overflow-x-auto border border-gray-300 rounded-lg shadow-sm">
+                        <table className="min-w-full border-collapse text-xs">
+                          <thead>
+                            <tr style={{ background: '#1e3a5f' }}>
+                              <th className="py-2 px-3 text-center text-xs font-semibold text-white border-r border-blue-700 w-10 whitespace-nowrap">S.No</th>
+                              <th className="py-2 px-3 text-left text-xs font-semibold text-white border-r border-blue-700 whitespace-nowrap">Issue</th>
+                              <th className="py-2 px-3 text-center text-xs font-semibold text-white border-r border-blue-700 whitespace-nowrap">Resp</th>
+                              <th className="py-2 px-3 text-center text-xs font-semibold text-white border-r border-blue-700 whitespace-nowrap">Support Required</th>
+                              <th className="py-2 px-3 text-center text-xs font-semibold text-white border-r border-blue-700 whitespace-nowrap">From Whom</th>
+                              <th className="py-2 px-3 text-center text-xs font-semibold text-white whitespace-nowrap">Status</th>
                             </tr>
                           </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {DUMMY_ISSUES.map((issue) => (
-                              <tr key={issue.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 text-sm text-gray-900">{issue.title}</td>
-                                <td className="px-4 py-3">
-                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                    ${issue.severity === 'Critical' ? 'bg-red-100 text-red-800' : 
-                                      issue.severity === 'High' ? 'bg-orange-100 text-orange-800' :
-                                      'bg-yellow-100 text-yellow-800'}`}>
-                                    {issue.severity}
-                                  </span>
+                          <tbody>
+                            {DUMMY_ISSUES.map((issue, idx) => (
+                              <tr
+                                key={issue.id}
+                                className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}
+                                style={{ verticalAlign: 'top' }}
+                              >
+                                <td className="py-2 px-3 text-center text-xs font-semibold text-gray-700 border-r border-gray-200">{issue.id}</td>
+                                <td className="py-2 px-3 text-xs text-gray-800 border-r border-gray-200 whitespace-pre-line leading-relaxed" style={{ maxWidth: '420px' }}>
+                                  {issue.issue}
                                 </td>
-                                <td className="px-4 py-3">
-                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                    ${issue.status === 'In Progress' ? 'bg-blue-100 text-blue-800' : 
-                                      'bg-gray-100 text-gray-800'}`}>
+                                <td className="py-2 px-3 text-center text-xs text-gray-700 border-r border-gray-200">{issue.resp}</td>
+                                <td className="py-2 px-3 text-center text-xs text-gray-700 border-r border-gray-200">{issue.supportRequired}</td>
+                                <td className="py-2 px-3 text-center text-xs text-gray-700 border-r border-gray-200">{issue.fromWhom}</td>
+                                <td className="py-2 px-3 text-center">
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${issue.status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
+                                      issue.status === 'Open' ? 'bg-yellow-100 text-yellow-800' :
+                                        issue.status === 'Resolved' ? 'bg-green-100 text-green-800' :
+                                          'bg-gray-100 text-gray-800'
+                                    }`}>
                                     {issue.status}
                                   </span>
                                 </td>
-                                <td className="px-4 py-3 text-sm text-gray-600">{issue.assignee}</td>
-                                <td className="px-4 py-3 text-sm text-gray-600">{issue.dueDate}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -1754,7 +1841,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                           const distribution = stageDistribution[stage.id] || [];
                           const chartType = stageChartTypes[stage.id] || 'bar';
                           const hasConfig = stageConfig.xAxis && stageConfig.yAxis;
-                          
+
                           const colorClasses = {
                             blue: 'border-blue-200 bg-blue-50',
                             purple: 'border-purple-200 bg-purple-50',
@@ -1763,9 +1850,9 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                             red: 'border-red-200 bg-red-50',
                             teal: 'border-teal-200 bg-teal-50',
                           };
-                          
+
                           return (
-                            <div 
+                            <div
                               key={stage.id}
                               className={`border rounded-xl overflow-hidden ${colorClasses[stage.color]}`}
                             >
@@ -1798,13 +1885,13 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                   </p>
                                 )}
                               </div>
-                              
+
                               {/* Chart Area */}
                               <div className="p-3">
                                 {hasConfig ? (
                                   chartData.length > 0 ? (
-                                    <MiniChart 
-                                      chartData={chartData} 
+                                    <MiniChart
+                                      chartData={chartData}
                                       statusDistribution={distribution}
                                       chartType={chartType}
                                     />
@@ -1825,7 +1912,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                   </div>
                                 )}
                               </div>
-                              
+
                               {/* Stats Footer */}
                               {hasConfig && chartData.length > 0 && (
                                 <div className="px-3 pb-3">
@@ -1924,16 +2011,16 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
               <div className="space-y-6">
                 {departmentFiles.map((fileModule) => {
-                  const fileHeaderConfig = fileModule.fileData?.headerConfig || { 
+                  const fileHeaderConfig = fileModule.fileData?.headerConfig || {
                     rowCount: 1
                   };
-                  
+
                   return (
                     <FileHeaderConfigItem
                       key={fileModule.id}
                       fileModule={fileModule}
                       fileHeaderConfig={fileHeaderConfig}
-                      onConfigure={(fileId, rowCount, selectedHeaders) => 
+                      onConfigure={(fileId, rowCount, selectedHeaders) =>
                         configureFileHeaders(fileModule, rowCount, selectedHeaders)
                       }
                     />
@@ -2029,13 +2116,12 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
               {/* Status */}
               {emailStatus && (
-                <div className={`mb-6 p-4 rounded-lg text-base ${
-                  emailStatus.includes('success') 
+                <div className={`mb-6 p-4 rounded-lg text-base ${emailStatus.includes('success')
                     ? 'bg-green-50 text-green-700 border border-green-200'
                     : emailStatus.includes('Failed')
-                    ? 'bg-red-50 text-red-700 border border-red-200'
-                    : 'bg-blue-50 text-blue-700 border border-blue-200'
-                }`}>
+                      ? 'bg-red-50 text-red-700 border border-red-200'
+                      : 'bg-blue-50 text-blue-700 border border-blue-200'
+                  }`}>
                   {emailStatus}
                 </div>
               )}
