@@ -8,10 +8,107 @@
   body {
     @apply font-inter antialiased;
     min-height: 100vh;
-    background-color: #f8fafc; /* default light background for the rest of the app */
+    background-color: #f8fafc;
+    /* default light background for the rest of the app */
   }
-  
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-outfit tracking-tight;
+  }
+}
+
+/* Centralized Master Table Styles */
+@layer components {
+  .master-table-tooltip {
+    @apply relative;
+  }
+
+  .master-table-tooltip:hover:after {
+    content: attr(data-tooltip);
+    @apply absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-[11px] whitespace-nowrap rounded z-[10000] shadow-sm pointer-events-none;
+  }
+
+  .master-table-container {
+    @apply flex flex-col h-full bg-white flex-1 overflow-hidden relative;
+  }
+
+  .master-table-inner {
+    @apply flex-1 overflow-auto relative;
+  }
+
+  .master-table {
+    @apply min-w-full text-sm border-collapse;
+    border-collapse: separate;
+    border-spacing: 0;
+    width: 100%;
+  }
+
+  .master-table thead,
+  .master-table th {
+    @apply sticky top-0 z-30;
+  }
+
+  .master-table th {
+    @apply bg-slate-50 text-slate-600 font-semibold text-xs uppercase tracking-wider border-b border-r border-slate-200 py-3 px-8 text-left whitespace-nowrap whitespace-nowrap;
+  }
+
+  .master-table td {
+    @apply border-b border-r border-slate-200 py-3 px-8 whitespace-nowrap min-w-[160px] text-base;
+  }
+
+  .master-table th:last-child,
+  .master-table td:last-child {
+    @apply border-r-0;
+  }
+
+  .master-table tbody tr {
+    @apply transition-colors;
+  }
+
+  .master-table tbody tr:hover td {
+    @apply bg-slate-50;
+  }
+
+  /* Freeze styles */
+  .master-table .frozen-row {
+    @apply !sticky !bg-sky-50 border-b-2 border-sky-600;
+    z-index: 20 !important;
+  }
+
+  .master-table .frozen-column {
+    @apply !sticky !bg-sky-50 border-r-2 border-sky-600;
+    z-index: 15 !important;
+  }
+
+  .master-table .frozen-row .frozen-column {
+    @apply !bg-sky-100;
+    z-index: 25 !important;
+  }
+
+  .master-table th.frozen-column {
+    background: linear-gradient(135deg, #e0f2fe, #dbeafe) !important;
+    z-index: 35 !important;
+  }
+
+  .master-table-freeze-indicator {
+    @apply bg-sky-100 text-sky-700 border border-sky-600;
+  }
+
+  /* Fix for multiple frozen rows */
+  .master-table tbody tr.frozen-row {
+    @apply sticky;
+  }
+
+  .master-table tbody tr.frozen-row:first-of-type td {
+    @apply border-t-2 border-sky-600;
+  }
+
+  .master-table tbody tr.frozen-row:last-of-type td {
+    @apply border-b-2 border-sky-600;
   }
 }

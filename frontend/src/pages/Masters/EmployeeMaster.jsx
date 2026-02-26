@@ -643,138 +643,7 @@ const EmployeeMaster = () => {
   const visibleColumns = columns.filter(col => col.visible);
 
   return (
-    <div className="flex flex-col h-full bg-white flex-1 overflow-hidden relative">
-      {/* Custom tooltip styles - smaller and more compact */}
-      <style>{`
-        /* Tooltip styles */
-        .tooltip {
-          position: relative;
-        }
-
-        .tooltip:hover:after {
-          content: attr(data-tooltip);
-          position: absolute;
-          bottom: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          margin-bottom: 4px;
-          padding: 4px 8px;
-          background-color: #1f2937;
-          color: white;
-          font-size: 11px;
-          white-space: nowrap;
-          border-radius: 4px;
-          z-index: 10000;
-          pointer-events: none;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          line-height: 1.2;
-          font-weight: normal;
-        }
-
-        /* Freeze styles - subtle blue background to indicate frozen state */
-        .frozen-row {
-          position: sticky !important;
-          z-index: 20;
-          background: #f0f9ff !important;
-          border-bottom: 2px solid #0284c7;
-        }
-
-        .frozen-column {
-          position: sticky !important;
-          z-index: 15;
-          background: #f0f9ff !important;
-          border-right: 2px solid #0284c7;
-        }
-
-        .frozen-row .frozen-column {
-          z-index: 25;
-          background: #e0f2fe !important;
-        }
-
-        th.frozen-column {
-          z-index: 35;
-          background: linear-gradient(135deg, #e0f2fe, #dbeafe) !important;
-        }
-
-        .freeze-indicator {
-          background: #e0f2fe;
-          color: #0369a1;
-          border: 1px solid #0284c7;
-        }
-
-        table {
-          border-collapse: separate;
-          border-spacing: 0;
-          width: 100%;
-        }
-
-        thead {
-          position: sticky;
-          top: 0;
-          z-index: 30;
-        }
-
-        th {
-          position: sticky;
-          top: 0;
-          background: #f8fafc;
-          color: #475569;
-          font-weight: 600;
-          font-size: 0.75rem;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          z-index: 30;
-          border-bottom: 1px solid #e2e8f0;
-          border-right: 1px solid #e2e8f0;
-        }
-
-        td {
-          border-bottom: 1px solid #e2e8f0;
-          border-right: 1px solid #e2e8f0;
-        }
-
-        th:last-child, td:last-child {
-          border-right: none;
-        }
-
-        tbody tr:hover td {
-          background-color: #f8fafc;
-        }
-
-        /* Ensure proper stacking of frozen elements */
-        .frozen-column {
-          z-index: 15;
-        }
-
-        th.frozen-column {
-          z-index: 35;
-        }
-
-        tr.frozen-row td {
-          position: sticky !important;
-          z-index: 20;
-          background: #f0f9ff !important;
-        }
-
-        tr.frozen-row td.frozen-column {
-          z-index: 25;
-          background: #e0f2fe !important;
-        }
-
-        /* Fix for multiple frozen rows */
-        tbody tr.frozen-row {
-          position: sticky;
-        }
-
-        tbody tr.frozen-row:first-of-type td {
-          border-top: 2px solid #0284c7;
-        }
-
-        tbody tr.frozen-row:last-of-type td {
-          border-bottom: 2px solid #0284c7;
-        }
-      `}</style>
-
+    <div className="master-table-container">
       <>
         {/* Notification Banner */}
         {notification.show && (
@@ -1443,7 +1312,7 @@ const EmployeeMaster = () => {
                       {/* Add Column Button */}
                       <button
                         onClick={() => setShowColumnModal(true)}
-                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 whitespace-nowrap tooltip"
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 whitespace-nowrap master-table-tooltip"
                         data-tooltip="Add column"
                       >
                         <Plus className="h-4 w-4" />
@@ -1452,7 +1321,7 @@ const EmployeeMaster = () => {
                       {/* Freeze Column Button */}
                       <button
                         onClick={toggleFreezeColumn}
-                        className={`flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border rounded whitespace-nowrap tooltip ${frozenColumns.length > 0
+                        className={`flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border rounded whitespace-nowrap master-table-tooltip ${frozenColumns.length > 0
                           ? 'bg-blue-50 text-blue-700 border-blue-300'
                           : 'border-gray-300 hover:bg-gray-50 text-gray-700'
                           }`}
@@ -1466,7 +1335,7 @@ const EmployeeMaster = () => {
                       <div className="relative">
                         <button
                           onClick={() => setShowExportDropdown(!showExportDropdown)}
-                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 tooltip"
+                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 master-table-tooltip"
                           data-tooltip="Export data"
                         >
                           <Download className="h-4 w-4" />
@@ -1512,7 +1381,7 @@ const EmployeeMaster = () => {
                       {/* Refresh Button */}
                       <button
                         onClick={handleRefresh}
-                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 whitespace-nowrap tooltip"
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 whitespace-nowrap master-table-tooltip"
                         data-tooltip="Refresh data"
                         disabled={loading}
                       >
@@ -1644,14 +1513,14 @@ const EmployeeMaster = () => {
                     <div className="flex gap-1">
                       <button
                         onClick={handleAddEmployeeClick}
-                        className="flex items-center gap-1 h-10 px-3 text-xs border border-gray-300 rounded hover:bg-gray-50 tooltip"
+                        className="flex items-center gap-1 h-10 px-3 text-xs border border-gray-300 rounded hover:bg-gray-50 master-table-tooltip"
                         data-tooltip="Add employee"
                       >
                         <Plus className="h-4 w-4" />
                       </button>
                       <button
                         onClick={toggleFreezeRow}
-                        className={`flex items-center gap-1 h-10 px-3 text-xs border rounded tooltip ${frozenRows.length > 0
+                        className={`flex items-center gap-1 h-10 px-3 text-xs border rounded master-table-tooltip ${frozenRows.length > 0
                           ? 'bg-blue-50 text-blue-700 border-blue-300'
                           : 'border-gray-300 hover:bg-gray-50 text-gray-700'
                           }`}
@@ -1755,7 +1624,7 @@ const EmployeeMaster = () => {
                       ({visibleColumns.length} of {columns.length} columns visible)
                     </span>
                     {(frozenRows.length > 0 || frozenColumns.length > 0) && (
-                      <span className="px-2 py-1 freeze-indicator rounded text-xs flex items-center gap-1">
+                      <span className="px-2 py-1 master-table-freeze-indicator rounded text-xs flex items-center gap-1">
                         <Snowflake className="h-3 w-3" />
                         {frozenRows.length > 0 && frozenColumns.length > 0 ? `${frozenRows.length} row(s) & ${frozenColumns.length} col(s) frozen` :
                           frozenRows.length > 0 ? `${frozenRows.length} row(s) frozen` : `${frozenColumns.length} col(s) frozen`}
