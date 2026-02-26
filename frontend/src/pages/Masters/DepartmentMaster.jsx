@@ -735,13 +735,13 @@ const DepartmentMaster = () => {
 
   // Render Input Fields
   const renderInput = (col, value, onChange, error, isModal = false) => {
-    const inputClass = `w-full px-3 py-2 text-sm border ${error ? 'border-red-500' : 'border-gray-300'} rounded focus:outline-none focus:ring-1 focus:ring-black`;
+    const inputClass = `w-full px-3 py-2 text-sm border ${error ? 'border-red-500' : 'border-slate-300 dark:border-slate-600'} rounded focus:outline-none focus:ring-1 focus:ring-black`;
 
     const statusOptions = ['Active', 'Inactive', 'Merged', 'Restructuring'];
 
     if (col.id === 'status' || col.type === 'select') return (
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
+        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
         <select
           value={value || 'Active'}
           onChange={e => onChange(col.id, e.target.value)}
@@ -756,7 +756,7 @@ const DepartmentMaster = () => {
     );
     if (col.type === 'number') return (
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
+        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
         <input
           type="number"
           value={value || ''}
@@ -771,7 +771,7 @@ const DepartmentMaster = () => {
     );
     if (col.type === 'email') return (
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
+        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
         <input
           type="email"
           value={value || ''}
@@ -784,7 +784,7 @@ const DepartmentMaster = () => {
     );
     return (
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
+        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
         <input
           type="text"
           value={value || ''}
@@ -894,7 +894,7 @@ const DepartmentMaster = () => {
   const renderCellContent = (column, value, dept) => {
     if (column.id === 'status') {
       return (
-        <span className={`px-2 py-1 rounded-full text-sm whitespace-nowrap ${statusColors[value] || 'bg-gray-100 text-gray-800'
+        <span className={`px-2 py-1 rounded-full text-sm whitespace-nowrap ${statusColors[value] || 'bg-slate-100 dark:bg-slate-800 text-gray-800'
           }`}>
           {value || '-'}
         </span>
@@ -921,7 +921,7 @@ const DepartmentMaster = () => {
               <span className="text-sm font-medium">{notification.message}</span>
               <button
                 onClick={() => setNotification({ show: false, message: '', type: '' })}
-                className="ml-4 text-gray-500 hover:text-gray-700"
+                className="ml-4 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:text-slate-300"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -932,19 +932,19 @@ const DepartmentMaster = () => {
         {/* Delete Department Prompt */}
         {showDeletePrompt && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
               <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h3 className="font-medium text-gray-900 text-sm sm:text-base">Confirm Delete</h3>
-                <button onClick={cancelDelete} className="p-1 text-gray-400 hover:text-gray-600">
+                <h3 className="font-medium text-slate-900 dark:text-slate-100 text-sm sm:text-base">Confirm Delete</h3>
+                <button onClick={cancelDelete} className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400">
                   <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
               <div className="mb-4">
-                <p className="text-xs sm:text-sm text-gray-600">Delete department <span className="font-medium">{showDeletePrompt.name}</span>?</p>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">Delete department <span className="font-medium">{showDeletePrompt.name}</span>?</p>
                 <p className="text-xs text-red-600 mt-1">This action cannot be undone.</p>
               </div>
               <div className="flex justify-end space-x-2">
-                <button onClick={cancelDelete} className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
+                <button onClick={cancelDelete} className="px-3 py-1.5 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80">Cancel</button>
                 <button onClick={confirmDeleteDept} className="px-3 py-1.5 text-xs sm:text-sm bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
               </div>
             </div>
@@ -954,14 +954,14 @@ const DepartmentMaster = () => {
         {/* Delete Column Prompt */}
         {showDeleteColumnPrompt && (
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-[60]">
-            <div className="bg-white rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
               <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h3 className="font-medium text-gray-900 text-sm sm:text-base">
+                <h3 className="font-medium text-slate-900 dark:text-slate-100 text-sm sm:text-base">
                   {showDeleteColumnPrompt.title}
                 </h3>
                 <button
                   onClick={() => setShowDeleteColumnPrompt(null)}
-                  className="p-1 text-gray-400 hover:text-gray-600"
+                  className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400"
                 >
                   <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
@@ -969,12 +969,12 @@ const DepartmentMaster = () => {
 
               <div className="mb-4">
                 {showDeleteColumnPrompt.type === 'warning' ? (
-                  <p className="text-xs sm:text-sm text-gray-600">
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                     {showDeleteColumnPrompt.message}
                   </p>
                 ) : (
                   <>
-                    <p className="text-xs sm:text-sm text-gray-600">
+                    <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                       Are you sure you want to delete column
                       <span className="font-medium">
                         {" "}{showDeleteColumnPrompt.columnLabel}
@@ -990,7 +990,7 @@ const DepartmentMaster = () => {
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={() => setShowDeleteColumnPrompt(null)}
-                  className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50"
+                  className="px-3 py-1.5 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80"
                 >
                   {showDeleteColumnPrompt.type === 'warning' ? 'OK' : 'Cancel'}
                 </button>
@@ -1011,21 +1011,21 @@ const DepartmentMaster = () => {
         {/* Bulk Delete Prompt */}
         {showBulkDeletePrompt.show && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
               <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h3 className="font-medium text-gray-900 text-sm sm:text-base">Confirm Bulk Delete</h3>
-                <button onClick={() => setShowBulkDeletePrompt({ show: false, count: 0 })} className="p-1 text-gray-400 hover:text-gray-600">
+                <h3 className="font-medium text-slate-900 dark:text-slate-100 text-sm sm:text-base">Confirm Bulk Delete</h3>
+                <button onClick={() => setShowBulkDeletePrompt({ show: false, count: 0 })} className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400">
                   <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
               <div className="mb-4">
-                <p className="text-xs sm:text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                   Are you sure you want to delete {showBulkDeletePrompt.count} selected department{showBulkDeletePrompt.count > 1 ? 's' : ''}?
                 </p>
                 <p className="text-xs text-red-600 mt-1">This action cannot be undone.</p>
               </div>
               <div className="flex justify-end space-x-2">
-                <button onClick={() => setShowBulkDeletePrompt({ show: false, count: 0 })} className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
+                <button onClick={() => setShowBulkDeletePrompt({ show: false, count: 0 })} className="px-3 py-1.5 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80">Cancel</button>
                 <button onClick={confirmBulkDelete} className="px-3 py-1.5 text-xs sm:text-sm bg-red-600 text-white rounded hover:bg-red-700">Delete</button>
               </div>
             </div>
@@ -1035,20 +1035,20 @@ const DepartmentMaster = () => {
         {/* Bulk Edit Prompt */}
         {showBulkEditPrompt.show && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
               <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h3 className="font-medium text-gray-900 text-sm sm:text-base">Confirm Bulk Edit</h3>
-                <button onClick={() => setShowBulkEditPrompt({ show: false, count: 0 })} className="p-1 text-gray-400 hover:text-gray-600">
+                <h3 className="font-medium text-slate-900 dark:text-slate-100 text-sm sm:text-base">Confirm Bulk Edit</h3>
+                <button onClick={() => setShowBulkEditPrompt({ show: false, count: 0 })} className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400">
                   <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
               <div className="mb-4">
-                <p className="text-xs sm:text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                   Are you sure you want to edit {showBulkEditPrompt.count} selected department{showBulkEditPrompt.count > 1 ? 's' : ''}?
                 </p>
               </div>
               <div className="flex justify-end space-x-2">
-                <button onClick={() => setShowBulkEditPrompt({ show: false, count: 0 })} className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
+                <button onClick={() => setShowBulkEditPrompt({ show: false, count: 0 })} className="px-3 py-1.5 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80">Cancel</button>
                 <button onClick={confirmBulkEdit} className="px-3 py-1.5 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Edit</button>
               </div>
             </div>
@@ -1058,20 +1058,20 @@ const DepartmentMaster = () => {
         {/* Add Column Prompt */}
         {showColumnAddPrompt.show && (
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-[60]">
-            <div className="bg-white rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
               <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h3 className="font-medium text-gray-900 text-sm sm:text-base">Add New Column</h3>
-                <button onClick={() => setShowColumnAddPrompt({ show: false, columnName: '' })} className="p-1 text-gray-400 hover:text-gray-600">
+                <h3 className="font-medium text-slate-900 dark:text-slate-100 text-sm sm:text-base">Add New Column</h3>
+                <button onClick={() => setShowColumnAddPrompt({ show: false, columnName: '' })} className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400">
                   <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
               <div className="mb-4">
-                <p className="text-xs sm:text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                   Are you sure you want to add column "<span className="font-medium">{showColumnAddPrompt.columnName}</span>"?
                 </p>
               </div>
               <div className="flex justify-end space-x-2">
-                <button onClick={() => setShowColumnAddPrompt({ show: false, columnName: '' })} className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
+                <button onClick={() => setShowColumnAddPrompt({ show: false, columnName: '' })} className="px-3 py-1.5 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80">Cancel</button>
                 <button onClick={confirmAddColumn} className="px-3 py-1.5 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700">Add Column</button>
               </div>
             </div>
@@ -1081,20 +1081,20 @@ const DepartmentMaster = () => {
         {/* Export Confirmation Prompt */}
         {showExportConfirmPrompt?.show && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
               <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h3 className="font-medium text-gray-900 text-sm sm:text-base">Confirm Export</h3>
-                <button onClick={() => setShowExportConfirmPrompt(null)} className="p-1 text-gray-400 hover:text-gray-600">
+                <h3 className="font-medium text-slate-900 dark:text-slate-100 text-sm sm:text-base">Confirm Export</h3>
+                <button onClick={() => setShowExportConfirmPrompt(null)} className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400">
                   <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
               <div className="mb-4">
-                <p className="text-xs sm:text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                   Export {showExportConfirmPrompt.count} department{showExportConfirmPrompt.count > 1 ? 's' : ''} as {showExportConfirmPrompt.format.toUpperCase()}?
                 </p>
               </div>
               <div className="flex justify-end space-x-2">
-                <button onClick={() => setShowExportConfirmPrompt(null)} className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
+                <button onClick={() => setShowExportConfirmPrompt(null)} className="px-3 py-1.5 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80">Cancel</button>
                 <button onClick={() => {
                   handleExport(showExportConfirmPrompt.format);
                   setShowExportConfirmPrompt(null);
@@ -1107,29 +1107,29 @@ const DepartmentMaster = () => {
         {/* Freeze Column Modal */}
         {showFreezeColumnModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full mx-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 sm:p-6 max-w-md w-full mx-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium text-gray-900 text-sm sm:text-base">
-                  <span className="bg-gray-200 px-2 py-0.5 rounded">
+                <h3 className="font-medium text-slate-900 dark:text-slate-100 text-sm sm:text-base">
+                  <span className="bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded">
                     Freeze Columns
                   </span>
                 </h3>
                 <button
                   onClick={() => setShowFreezeColumnModal(false)}
-                  className="p-1 text-gray-400 hover:text-gray-600"
+                  className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400"
                 >
                   <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
 
               <div className="mb-4">
-                <p className="text-xs text-gray-600 mb-3">Select columns to freeze (they will remain visible while scrolling horizontally)</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">Select columns to freeze (they will remain visible while scrolling horizontally)</p>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
 
                   {visibleColumns.map((column) => {
                     const actualColumnIndex = columns.findIndex(col => col.id === column.id);
                     return (
-                      <div key={column.id} className="flex items-center p-2 border border-gray-200 rounded">
+                      <div key={column.id} className="flex items-center p-2 border border-slate-200 dark:border-slate-700 rounded">
                         <input
                           type="checkbox"
                           id={`freeze-${column.id}`}
@@ -1141,9 +1141,9 @@ const DepartmentMaster = () => {
                               setTempFrozenColumns(tempFrozenColumns.filter(idx => idx !== actualColumnIndex));
                             }
                           }}
-                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
+                          className="h-4 w-4 text-blue-600 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500 mr-3"
                         />
-                        <label htmlFor={`freeze-${column.id}`} className="text-sm text-gray-700 cursor-pointer flex-1">
+                        <label htmlFor={`freeze-${column.id}`} className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer flex-1">
                           {column.label}
                         </label>
                         {tempFrozenColumns.includes(actualColumnIndex) && (
@@ -1158,7 +1158,7 @@ const DepartmentMaster = () => {
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={() => setShowFreezeColumnModal(false)}
-                  className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                  className="px-4 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80"
                 >
                   Cancel
                 </button>
@@ -1176,28 +1176,28 @@ const DepartmentMaster = () => {
         {/* Freeze Row Modal */}
         {showFreezeRowModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full mx-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 sm:p-6 max-w-md w-full mx-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium text-gray-900 text-sm sm:text-base">
-                  <span className="bg-gray-200 px-2 py-0.5 rounded">
+                <h3 className="font-medium text-slate-900 dark:text-slate-100 text-sm sm:text-base">
+                  <span className="bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded">
                     Freeze Rows
                   </span>
                 </h3>
                 <button
                   onClick={() => setShowFreezeRowModal(false)}
-                  className="p-1 text-gray-400 hover:text-gray-600"
+                  className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400"
                 >
                   <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
 
               <div className="mb-4">
-                <p className="text-xs text-gray-600 mb-3">Select rows to freeze (they will remain visible while scrolling vertically)</p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">Select rows to freeze (they will remain visible while scrolling vertically)</p>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {paginatedDepartments.map((dept, index) => {
                     const actualRowIndex = (currentPage - 1) * pageSize + index;
                     return (
-                      <div key={dept.id} className="flex items-center p-2 border border-gray-200 rounded">
+                      <div key={dept.id} className="flex items-center p-2 border border-slate-200 dark:border-slate-700 rounded">
                         <input
                           type="checkbox"
                           id={`freeze-row-${dept.id}`}
@@ -1209,9 +1209,9 @@ const DepartmentMaster = () => {
                               setTempFrozenRows(tempFrozenRows.filter(idx => idx !== actualRowIndex));
                             }
                           }}
-                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mr-3"
+                          className="h-4 w-4 text-blue-600 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500 mr-3"
                         />
-                        <label htmlFor={`freeze-row-${dept.id}`} className="text-sm text-gray-700 cursor-pointer flex-1">
+                        <label htmlFor={`freeze-row-${dept.id}`} className="text-sm text-slate-700 dark:text-slate-300 cursor-pointer flex-1">
                           Row {actualRowIndex + 1}: {dept.name} ({dept.id})
                         </label>
                         {tempFrozenRows.includes(actualRowIndex) && (
@@ -1226,7 +1226,7 @@ const DepartmentMaster = () => {
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={() => setShowFreezeRowModal(false)}
-                  className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                  className="px-4 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80"
                 >
                   Cancel
                 </button>
@@ -1244,17 +1244,17 @@ const DepartmentMaster = () => {
         {/* Column Management Modal */}
         {showColumnModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-4 sm:p-6 max-w-md w-full mx-4">
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 sm:p-6 max-w-md w-full mx-4">
               <div className="flex items-center justify-between mb-4">
                 <div></div>
-                <button onClick={() => setShowColumnModal(false)} className="p-1 text-gray-400 hover:text-gray-600">
+                <button onClick={() => setShowColumnModal(false)} className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400">
                   <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
 
               <div className="mb-4 p-3 rounded">
-                <h3 className="font-medium text-gray-900 text-sm sm:text-base -mt-5 mb-2">
-                  <span className="bg-gray-200 px-2 py-0.5 rounded">
+                <h3 className="font-medium text-slate-900 dark:text-slate-100 text-sm sm:text-base -mt-5 mb-2">
+                  <span className="bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded">
                     Add New Custom Column
                   </span>
                 </h3>
@@ -1265,12 +1265,12 @@ const DepartmentMaster = () => {
                     placeholder="Column name (e.g., Phone Number)"
                     value={newColumnName}
                     onChange={(e) => setNewColumnName(e.target.value)}
-                    className="flex-grow px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded"
+                    className="flex-grow px-3 py-2 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded"
                   />
                   <select
                     value={newColumnType}
                     onChange={(e) => setNewColumnType(e.target.value)}
-                    className="px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded"
+                    className="px-3 py-2 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded"
                   >
                     <option value="text">Text</option>
                     <option value="number">Number</option>
@@ -1287,14 +1287,14 @@ const DepartmentMaster = () => {
               </div>
 
               <div className="mb-4">
-                <h4 className="text-xs sm:text-sm font-medium text-gray-900 mb-2">Available Columns</h4>
+                <h4 className="text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Available Columns</h4>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {columns.map((column) => {
                     const isFixedColumn = ['id', 'name', 'head', 'employees', 'budget', 'location', 'status', 'email'].includes(column.id);
                     const isEditing = editingColumn === column.id;
 
                     return (
-                      <div key={column.id} className="flex items-center justify-between p-2 border border-gray-200 rounded">
+                      <div key={column.id} className="flex items-center justify-between p-2 border border-slate-200 dark:border-slate-700 rounded">
                         <div className="flex items-center space-x-2">
                           {isEditing ? (
                             <div className="flex items-center space-x-2">
@@ -1302,7 +1302,7 @@ const DepartmentMaster = () => {
                                 type="text"
                                 value={tempColumnName}
                                 onChange={(e) => setTempColumnName(e.target.value)}
-                                className="px-2 py-1 text-xs sm:text-sm border border-gray-300 rounded"
+                                className="px-2 py-1 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded"
                               />
                               <button
                                 onClick={() => saveEditColumn(column.id)}
@@ -1330,7 +1330,7 @@ const DepartmentMaster = () => {
                           {/* View/Hide button */}
                           <button
                             onClick={() => toggleColumnVisibility(column.id)}
-                            className={`p-1 ${column.visible ? 'text-blue-600 hover:text-blue-800' : 'text-gray-400 hover:text-gray-600'}`}
+                            className={`p-1 ${column.visible ? 'text-blue-600 hover:text-blue-800' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400'}`}
                             title={column.visible ? "Hide column" : "Show column"}
                           >
                             {column.visible ? <Eye className="h-3 w-3 sm:h-4 sm:w-4" /> : <EyeOff className="h-3 w-3 sm:h-4 sm:w-4" />}
@@ -1368,16 +1368,16 @@ const DepartmentMaster = () => {
         {/* Add Department Modal */}
         {showAddDeptModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-4 sm:p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 sm:p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium text-gray-900 text-sm sm:text-base">
-                  <span className="bg-gray-200 px-2 py-0.5 rounded">
+                <h3 className="font-medium text-slate-900 dark:text-slate-100 text-sm sm:text-base">
+                  <span className="bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded">
                     Add New Department
                   </span>
                 </h3>
                 <button
                   onClick={cancelNewDept}
-                  className="p-1 text-gray-400 hover:text-gray-600"
+                  className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400"
                 >
                   <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
@@ -1385,7 +1385,7 @@ const DepartmentMaster = () => {
 
               {/* Basic Information Section */}
               <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">Department Information</h4>
+                <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Department Information</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {columns.map((col) => (
                     <div key={col.id}>
@@ -1398,7 +1398,7 @@ const DepartmentMaster = () => {
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={cancelNewDept}
-                  className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                  className="px-4 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80"
                 >
                   Cancel
                 </button>
@@ -1416,16 +1416,16 @@ const DepartmentMaster = () => {
         {/* Edit Department Modal */}
         {editingId && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg p-4 sm:p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="bg-white dark:bg-slate-800 rounded-lg p-4 sm:p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-medium text-gray-900 text-sm sm:text-base">
-                  <span className="bg-gray-200 px-2 py-0.5 rounded">
+                <h3 className="font-medium text-slate-900 dark:text-slate-100 text-sm sm:text-base">
+                  <span className="bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded">
                     Edit Department
                   </span>
                 </h3>
                 <button
                   onClick={cancelEdit}
-                  className="p-1 text-gray-400 hover:text-gray-600"
+                  className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:text-slate-400"
                 >
                   <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
@@ -1433,15 +1433,15 @@ const DepartmentMaster = () => {
 
               {/* Basic Information Section */}
               <div className="mb-6">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">Department Information</h4>
+                <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Department Information</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">ID</label>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">ID</label>
                     <input
                       type="text"
                       value={editForm.id || ''}
                       disabled
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded bg-gray-50"
+                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-800/80"
                     />
                   </div>
                   {columns.filter(col => col.id !== 'id').map((col) => (
@@ -1455,7 +1455,7 @@ const DepartmentMaster = () => {
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={cancelEdit}
-                  className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50"
+                  className="px-4 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80"
                 >
                   Cancel
                 </button>
@@ -1471,12 +1471,12 @@ const DepartmentMaster = () => {
         )}
 
         {/* MAIN CONTENT CONTAINER */}
-        <div className="flex flex-col flex-1 min-h-0 bg-gray-50/50 p-4 sm:p-6">
-          <div className="flex flex-col flex-1 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-h-0">
+        <div className="flex flex-col flex-1 min-h-0 bg-slate-50/50 dark:bg-slate-900/50 p-4 sm:p-6">
+          <div className="flex flex-col flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden min-h-0">
 
             {/* Loading / Error State */}
             {loading && (
-              <div className="p-8 text-center text-gray-500">
+              <div className="p-8 text-center text-slate-500 dark:text-slate-400">
                 Loading data...
               </div>
             )}
@@ -1490,20 +1490,20 @@ const DepartmentMaster = () => {
             {!loading && !error && (
               <>
                 {/* TOOLBAR SECTION */}
-                <div className="p-4 border-b border-gray-200 flex-shrink-0">
+                <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 
                     {/* LEFT SIDE - Search only */}
                     <div className="flex flex-1 flex-col sm:flex-row gap-2 sm:gap-2 items-start sm:items-center">
                       {/* Search */}
                       <div className="relative w-full sm:w-auto">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
                         <input
                           type="text"
                           placeholder="Search..."
                           value={searchTerm}
                           onChange={e => setSearchTerm(e.target.value)}
-                          className="w-full sm:w-48 h-10 pl-9 pr-3 text-xs sm:text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black"
+                          className="w-full sm:w-48 h-10 pl-9 pr-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
                         />
                       </div>
                     </div>
@@ -1514,7 +1514,7 @@ const DepartmentMaster = () => {
                       {/* Add Column Button */}
                       <button
                         onClick={() => setShowColumnModal(true)}
-                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 whitespace-nowrap master-table-tooltip"
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 whitespace-nowrap master-table-tooltip"
                         data-tooltip="Add column"
                       >
                         <Plus className="h-4 w-4" />
@@ -1525,11 +1525,11 @@ const DepartmentMaster = () => {
                         onClick={toggleFreezeColumn}
                         className={`flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border rounded whitespace-nowrap master-table-tooltip ${frozenColumns.length > 0
                           ? 'bg-blue-50 text-blue-700 border-blue-300'
-                          : 'border-gray-300 hover:bg-gray-50 text-gray-700'
+                          : 'border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'
                           }`}
                         data-tooltip={frozenColumns.length > 0 ? "Unfreeze columns" : "Freeze columns"}
                       >
-                        <Snowflake className={`h-4 w-4 ${frozenColumns.length > 0 ? 'text-blue-600' : 'text-gray-600'}`} />
+                        <Snowflake className={`h-4 w-4 ${frozenColumns.length > 0 ? 'text-blue-600' : 'text-slate-600 dark:text-slate-400'}`} />
                         {frozenColumns.length > 0 && <span className="ml-1 text-xs">{frozenColumns.length}</span>}
                       </button>
 
@@ -1537,7 +1537,7 @@ const DepartmentMaster = () => {
                       <div className="relative">
                         <button
                           onClick={() => setShowExportDropdown(!showExportDropdown)}
-                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 master-table-tooltip"
+                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 master-table-tooltip"
                           data-tooltip="Export data"
                         >
                           <Download className="h-4 w-4" />
@@ -1550,28 +1550,28 @@ const DepartmentMaster = () => {
                               className="fixed inset-0 z-40"
                               onClick={() => setShowExportDropdown(false)}
                             />
-                            <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-300 rounded shadow-lg z-50">
+                            <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded shadow-lg z-50">
                               <button
                                 onClick={() => handleExportClick('excel')}
-                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800"
                               >
                                 Export as Excel
                               </button>
                               <button
                                 onClick={() => handleExportClick('csv')}
-                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800"
                               >
                                 Export as CSV
                               </button>
                               <button
                                 onClick={() => handleExportClick('json')}
-                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800"
                               >
                                 Export as JSON
                               </button>
                               <button
                                 onClick={() => handleExportClick('pdf')}
-                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800"
                               >
                                 Export as PDF
                               </button>
@@ -1583,7 +1583,7 @@ const DepartmentMaster = () => {
                       {/* Refresh Button */}
                       <button
                         onClick={handleRefresh}
-                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 whitespace-nowrap master-table-tooltip"
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 whitespace-nowrap master-table-tooltip"
                         data-tooltip="Refresh data"
                         disabled={loading}
                       >
@@ -1597,7 +1597,7 @@ const DepartmentMaster = () => {
                 <div className="flex-1 overflow-auto relative">
                   <table className="min-w-full text-sm border-collapse">
                     <thead>
-                      <tr className="border-b border-gray-200">
+                      <tr className="border-b border-slate-200 dark:border-slate-700">
                         {/* Checkbox column */}
                         <th
                           className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap w-8 ${isColumnFrozen(0) ? 'frozen-column' : ''
@@ -1610,7 +1610,7 @@ const DepartmentMaster = () => {
                           <div className="flex items-center justify-center">
                             <button
                               onClick={toggleSelectAll}
-                              className="p-1 text-gray-700 hover:text-gray-900"
+                              className="p-1 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100"
                             >
                               {selectAll ? (
                                 <CheckSquare className="h-4 w-4" />
@@ -1676,7 +1676,7 @@ const DepartmentMaster = () => {
                                   type="checkbox"
                                   checked={selectedDepartments.includes(dept.id)}
                                   onChange={() => toggleDepartmentSelection(dept.id)}
-                                  className="h-4 w-4 text-gray-600 border-gray-300 rounded focus:ring-gray-500"
+                                  className="h-4 w-4 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 rounded focus:ring-gray-500"
                                 />
                               </div>
                             </td>
@@ -1721,7 +1721,7 @@ const DepartmentMaster = () => {
                       {/* Empty state */}
                       {paginatedDepartments.length === 0 && (
                         <tr>
-                          <td colSpan={visibleColumns.length + 2} className="text-center py-8 text-gray-500">
+                          <td colSpan={visibleColumns.length + 2} className="text-center py-8 text-slate-500 dark:text-slate-400">
                             No departments found
                           </td>
                         </tr>
@@ -1731,13 +1731,13 @@ const DepartmentMaster = () => {
                 </div>
 
                 {/* FOOTER SECTION */}
-                <div className="px-4 py-3 border-t border-gray-200 text-xs text-gray-900 flex flex-col sm:flex-row items-center justify-between gap-2 bg-white flex-shrink-0">
+                <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 bg-white dark:bg-slate-800 flex-shrink-0">
                   {/* LEFT SIDE - Add Department and Action Buttons */}
                   <div className="flex items-center gap-2">
                     <div className="flex gap-1">
                       <button
                         onClick={handleAddDeptClick}
-                        className="flex items-center gap-1 h-10 px-3 text-xs border border-gray-300 rounded hover:bg-gray-50 master-table-tooltip"
+                        className="flex items-center gap-1 h-10 px-3 text-xs border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 master-table-tooltip"
                         data-tooltip="Add department"
                       >
                         <Plus className="h-4 w-4" />
@@ -1746,11 +1746,11 @@ const DepartmentMaster = () => {
                         onClick={toggleFreezeRow}
                         className={`flex items-center gap-1 h-10 px-3 text-xs border rounded master-table-tooltip ${frozenRows.length > 0
                           ? 'bg-blue-50 text-blue-700 border-blue-300'
-                          : 'border-gray-300 hover:bg-gray-50 text-gray-700'
+                          : 'border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'
                           }`}
                         data-tooltip={frozenRows.length > 0 ? "Unfreeze rows" : "Select rows to freeze"}
                       >
-                        <Snowflake className={`h-4 w-4 ${frozenRows.length > 0 ? 'text-blue-600' : 'text-gray-600'}`} />
+                        <Snowflake className={`h-4 w-4 ${frozenRows.length > 0 ? 'text-blue-600' : 'text-slate-600 dark:text-slate-400'}`} />
                         {frozenRows.length > 0 && <span className="ml-1 text-xs">{frozenRows.length}</span>}
                       </button>
                     </div>
@@ -1760,7 +1760,7 @@ const DepartmentMaster = () => {
                       <div className="flex items-center gap-1 ml-1">
                         <button
                           onClick={handleBulkEdit}
-                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50"
+                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80"
                           title="Edit selected department"
                         >
                           <Edit className="h-4 w-4" />
@@ -1769,7 +1769,7 @@ const DepartmentMaster = () => {
 
                         <button
                           onClick={handleBulkDelete}
-                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
                           title={selectedDepartments.length === 1 ? "Delete selected department" : "Delete selected departments"}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -1783,11 +1783,11 @@ const DepartmentMaster = () => {
                   <div className="flex items-center gap-4">
                     {/* Page Size Selector */}
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-600">Show:</span>
+                      <span className="text-slate-600 dark:text-slate-400">Show:</span>
                       <select
                         value={pageSize}
                         onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                        className="px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-500"
+                        className="px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-gray-500"
                       >
                         {pageSizeOptions.map(size => (
                           <option key={size} value={size}>{size}</option>
@@ -1802,8 +1802,8 @@ const DepartmentMaster = () => {
                           onClick={() => handlePageChange(currentPage - 1)}
                           disabled={currentPage === 1}
                           className={`p-1 rounded ${currentPage === 1
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-gray-700 hover:bg-gray-100'
+                            ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800'
                             }`}
                         >
                           <ChevronLeft className="h-4 w-4" />
@@ -1815,7 +1815,7 @@ const DepartmentMaster = () => {
                             onClick={() => handlePageChange(pageNum)}
                             className={`px-2 py-1 text-xs rounded ${currentPage === pageNum
                               ? 'bg-blue-600 text-white'
-                              : 'text-gray-700 hover:bg-gray-100'
+                              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800'
                               }`}
                           >
                             {pageNum}
@@ -1826,8 +1826,8 @@ const DepartmentMaster = () => {
                           onClick={() => handlePageChange(currentPage + 1)}
                           disabled={currentPage === totalPages}
                           className={`p-1 rounded ${currentPage === totalPages
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-gray-700 hover:bg-gray-100'
+                            ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800'
                             }`}
                         >
                           <ChevronRight className="h-4 w-4" />
@@ -1835,7 +1835,7 @@ const DepartmentMaster = () => {
                       </div>
                     )}
 
-                    <span className="text-gray-600">
+                    <span className="text-slate-600 dark:text-slate-400">
                       Showing {paginatedDepartments.length} of {sortedDepartments.length} departments
                     </span>
 
@@ -1844,7 +1844,7 @@ const DepartmentMaster = () => {
                         {selectedDepartments.length} selected
                       </span>
                     )}
-                    <span className="text-gray-600">
+                    <span className="text-slate-600 dark:text-slate-400">
                       ({visibleColumns.length} of {columns.length} columns visible)
                     </span>
                     {(frozenRows.length > 0 || frozenColumns.length > 0) && (

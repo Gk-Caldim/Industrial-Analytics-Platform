@@ -9,7 +9,6 @@
     @apply font-inter antialiased;
     min-height: 100vh;
     background-color: #f8fafc;
-    /* default light background for the rest of the app */
   }
 
   h1,
@@ -30,11 +29,22 @@
 
   .master-table-tooltip:hover:after {
     content: attr(data-tooltip);
-    @apply absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-[11px] whitespace-nowrap rounded z-[10000] shadow-sm pointer-events-none;
+    @apply absolute px-2 py-1 bg-gray-900 text-white text-[11px] whitespace-nowrap rounded shadow-sm pointer-events-none;
+    z-index: 10000;
+    /* Default direction: popup downwards (safely away from top border) */
+    top: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* Footer specific behavior: pop upwards to prevent clipping on the bottom border */
+  .border-t .master-table-tooltip:hover:after {
+    top: auto;
+    bottom: calc(100% + 6px);
   }
 
   .master-table-container {
-    @apply flex flex-col h-full bg-white flex-1 overflow-hidden relative;
+    @apply flex flex-col h-full bg-white flex-1 overflow-hidden relative shadow-sm border border-slate-200 rounded-xl;
   }
 
   .master-table-inner {
@@ -54,11 +64,11 @@
   }
 
   .master-table th {
-    @apply bg-slate-50 text-slate-600 font-semibold text-xs uppercase tracking-wider border-b border-r border-slate-200 py-3 px-8 text-left whitespace-nowrap whitespace-nowrap;
+    @apply bg-slate-50 text-slate-600 font-semibold text-xs uppercase tracking-wider border-b border-r border-slate-200 py-3 px-8 text-left whitespace-nowrap;
   }
 
   .master-table td {
-    @apply border-b border-r border-slate-200 py-3 px-8 whitespace-nowrap min-w-[160px] text-base;
+    @apply border-b border-r border-slate-200 py-3 px-8 whitespace-nowrap min-w-[160px] text-base text-slate-700;
   }
 
   .master-table th:last-child,
