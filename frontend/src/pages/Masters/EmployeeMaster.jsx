@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, Copy, ArrowUp, ArrowDown } from 'lucide-react';
 import axios from 'axios';
 
 const EmployeeMaster = () => {
@@ -40,6 +40,16 @@ const EmployeeMaster = () => {
 
   // Sorting state
   const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'ascending' });
+
+  // Column Dropdown state
+  const [activeDropdownColumn, setActiveDropdownColumn] = useState(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setActiveDropdownColumn(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   // State for Add Employee modal
   const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
@@ -504,6 +514,33 @@ const EmployeeMaster = () => {
       col.id === columnId ? { ...col, visible: !col.visible } : col
     );
     setColumns(updatedColumns);
+  };
+
+  // Dropdown Menu specific handlers
+  const handleSortFromMenu = (key, direction) => {
+    setSortConfig({ key, direction });
+    setCurrentPage(1);
+    setActiveDropdownColumn(null);
+  };
+
+  const handleCopyColumnName = (label) => {
+    navigator.clipboard.writeText(label);
+    showNotification('Column name copied');
+    setActiveDropdownColumn(null);
+  };
+
+  const handleFreezeColumnMenu = (colIndex) => {
+    let newFrozen = [...frozenColumns];
+    if (newFrozen.includes(colIndex)) {
+      newFrozen = newFrozen.filter(idx => idx !== colIndex);
+      showNotification('Column unfrozen');
+    } else {
+      newFrozen = [...new Set([...newFrozen, colIndex])].sort((a, b) => a - b);
+      showNotification('Column frozen');
+    }
+    setFrozenColumns(newFrozen);
+    setTempFrozenColumns(newFrozen);
+    setActiveDropdownColumn(null);
   };
 
   // Export functions
@@ -1308,6 +1345,16 @@ const EmployeeMaster = () => {
                   {/* RIGHT SIDE */}
                   <div className="flex gap-2 mt-2 sm:mt-0">
 
+                    {/* Add Employee Button */}
+                    <button
+                      onClick={handleAddEmployeeClick}
+                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
+                      data-tooltip="Add employee"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span className="hidden sm:inline">Add Employee</span>
+                    </button>
+
                     {/* Add Column Button */}
                     <button
                       onClick={() => setShowColumnModal(true)}
@@ -1315,19 +1362,7 @@ const EmployeeMaster = () => {
                       data-tooltip="Add column"
                     >
                       <Plus className="h-4 w-4" />
-                    </button>
-
-                    {/* Freeze Column Button */}
-                    <button
-                      onClick={toggleFreezeColumn}
-                      className={`flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border rounded whitespace-nowrap master-table-tooltip ${frozenColumns.length > 0
-                        ? 'bg-blue-50 text-blue-700 border-blue-300'
-                        : 'border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'
-                        }`}
-                      data-tooltip={frozenColumns.length > 0 ? "Unfreeze columns" : "Freeze columns"}
-                    >
-                      <Snowflake className={`h-4 w-4 ${frozenColumns.length > 0 ? 'text-blue-600' : 'text-slate-600 dark:text-slate-400'}`} />
-                      {frozenColumns.length > 0 && <span className="ml-1 text-xs">{frozenColumns.length}</span>}
+                      <span className="hidden sm:inline">Add Column</span>
                     </button>
 
                     {/* Export Button with Dropdown */}
@@ -1422,18 +1457,130 @@ const EmployeeMaster = () => {
                         return (
                           <th
                             key={col.id}
-                            className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
+                            className={`text-left py-3 px-8 font-medium whitespace-nowrap group ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
                               }`}
-                            onClick={() => col.sortable && handleSort(col.id)}
                             style={{
                               left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
                               zIndex: isColumnFrozen(actualColumnIndex) ? 35 : 30
                             }}
                           >
-                            <div className="flex items-center space-x-1">
-                              <span className="font-semibold">{col.label}</span>
-                              {col.required && <span className="text-red-300">*</span>}
-                              {col.sortable && getSortIcon(col.id)}
+                            <div className="flex items-center justify-between space-x-2">
+                              {/* Left side, label and required star */}
+                              <div className="flex items-center space-x-1 cursor-pointer flex-1" onClick={() => col.sortable && handleSort(col.id)}>
+                                <span className="font-semibold text-xs uppercase tracking-wider">{col.label}</span>
+                                {col.required && <span className="text-red-300">*</span>}
+                              </div>
+
+                              {/* Right side, sort icon and dropdown */}
+                              <div className="flex items-center space-x-1 relative">
+                                {col.sortable && getSortIcon(col.id)}
+
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveDropdownColumn(activeDropdownColumn === col.id ? null : col.id);
+                                  }}
+                                  className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 ${activeDropdownColumn === col.id ? 'opacity-100 bg-slate-200 dark:bg-slate-600 text-slate-700' : ''}`}
+                                >
+                                  <ChevronDown className="h-4 w-4" />
+                                </button>
+
+                                {/* Dropdown Menu */}
+                                {activeDropdownColumn === col.id && (
+                                  <div
+                                    className="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-50 py-1 normal-case tracking-normal"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {col.sortable && (
+                                      <>
+                                        <button
+                                          onClick={() => handleSortFromMenu(col.id, 'ascending')}
+                                          className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                        >
+                                          <ArrowUp className="h-3.5 w-3.5 text-slate-400" />
+                                          Sort Ascending
+                                        </button>
+                                        <button
+                                          onClick={() => handleSortFromMenu(col.id, 'descending')}
+                                          className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                        >
+                                          <ArrowDown className="h-3.5 w-3.5 text-slate-400" />
+                                          Sort Descending
+                                        </button>
+                                        <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
+                                      </>
+                                    )}
+                                    <button
+                                      onClick={() => handleCopyColumnName(col.label)}
+                                      className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                    >
+                                      <Copy className="h-3.5 w-3.5 text-slate-400" />
+                                      Copy name
+                                    </button>
+
+                                    <button
+                                      onClick={() => {
+                                        startEditColumn(col.id, col.label);
+                                        setShowColumnModal(true);
+                                        setActiveDropdownColumn(null);
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                    >
+                                      <Edit className="h-3.5 w-3.5 text-slate-400" />
+                                      Edit column
+                                    </button>
+
+                                    <button
+                                      onClick={() => handleFreezeColumnMenu(actualColumnIndex)}
+                                      className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                    >
+                                      {isColumnFrozen(actualColumnIndex) ? (
+                                        <>
+                                          <Snowflake className="h-3.5 w-3.5 text-blue-500" />
+                                          <span className="text-blue-600">Unfreeze column</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Snowflake className="h-3.5 w-3.5 text-slate-400" />
+                                          Freeze column
+                                        </>
+                                      )}
+                                    </button>
+
+                                    <button
+                                      onClick={() => {
+                                        toggleFreezeRow();
+                                        setActiveDropdownColumn(null);
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                    >
+                                      {frozenRows.length > 0 ? (
+                                        <>
+                                          <Snowflake className="h-3.5 w-3.5 text-blue-500" />
+                                          <span className="text-blue-600">Unfreeze row(s)</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Snowflake className="h-3.5 w-3.5 text-slate-400" />
+                                          Freeze row(s)
+                                        </>
+                                      )}
+                                    </button>
+
+                                    <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
+                                    <button
+                                      onClick={() => {
+                                        handleDeleteColumn(col.id);
+                                        setActiveDropdownColumn(null);
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 text-red-600 dark:text-red-400"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                      Delete column
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </th>
                         );
