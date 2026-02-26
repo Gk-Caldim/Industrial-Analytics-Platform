@@ -1594,7 +1594,7 @@ const DepartmentMaster = () => {
             {/* TABLE SECTION - SCROLLABLE */}
             <div className="flex-1 overflow-auto relative">
               <table className="min-w-full text-sm border-collapse">
-                <thead>
+                <thead className="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
                   <tr className="border-b border-slate-200 dark:border-slate-700">
                     {/* Checkbox column */}
                     <th
