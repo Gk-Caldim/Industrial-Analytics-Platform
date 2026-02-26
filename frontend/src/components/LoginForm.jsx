@@ -179,11 +179,7 @@ const LoginForm = () => {
 
       {/* Footer with Company Information */}
       <div className="mt-10 pt-6 border-t border-slate-200">
-        <div className="text-center">
-          <p className="text-slate-400 font-medium text-xs mb-1">
-            © {new Date().getFullYear()} Caldim Engineering Pvt. Ltd.
-          </p>
-        </div>
+        
       </div>
     </div>
   );
