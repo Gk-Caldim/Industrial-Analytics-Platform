@@ -58,19 +58,18 @@ const LoginForm = () => {
   };
 
   return (
-    <div className="w-full font-inter">
+    <div className="w-full">
       {/* Header */}
-      <div className="text-left mb-8">
-        <h1 className="text-3xl font-black font-outfit text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300 mb-2 tracking-tight">CALDIM</h1>
-        <h2 className="text-2xl font-semibold font-outfit text-white mb-2">Welcome Back</h2>
-        <p className="text-sm text-gray-400 font-light">Please enter your details to sign in.</p>
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-extrabold text-white mb-2 tracking-tight">Sign In</h2>
+        <p className="text-gray-400 text-sm">Welcome back! Please enter your details.</p>
       </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Email */}
         <div>
-          <label className="block text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-widest font-outfit">
+          <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
             Email Address
           </label>
           <input
@@ -79,14 +78,14 @@ const LoginForm = () => {
             value={formData.email}
             onChange={handleChange}
             required
-            className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 text-white placeholder-gray-500 backdrop-blur-sm text-sm"
-            placeholder="name@caldim.in"
+            className="w-full px-4 py-3 bg-gray-900 border border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-300 text-white placeholder-gray-600 shadow-inner"
+            placeholder="sujitha@caldim.in"
           />
         </div>
 
         {/* Password */}
         <div>
-          <label className="block text-[11px] font-semibold text-gray-400 mb-1.5 uppercase tracking-widest font-outfit">
+          <label className="block text-xs font-semibold text-gray-400 mb-1.5 uppercase tracking-wider">
             Password
           </label>
           <div className="relative">
@@ -96,22 +95,35 @@ const LoginForm = () => {
               value={formData.password}
               onChange={handleChange}
               required
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-300 tracking-wider pr-12 text-white placeholder-gray-500 backdrop-blur-sm text-sm"
-              placeholder="••••••••••"
+              className="w-full px-4 py-3 bg-gray-900 border border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-300 text-white tracking-wider pr-14 placeholder-gray-600 shadow-inner"
+              placeholder="**********"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white transition text-xs font-semibold tracking-wider font-outfit"
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-red-500 transition-colors"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
-              {showPassword ? 'HIDE' : 'SHOW'}
+              {showPassword ? (
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+                  <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                  <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                  <line x1="2" y1="2" x2="22" y2="22" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
 
         {/* Remember Me & Forgot Password */}
-        <div className="flex items-center justify-between pt-2">
-          <label className="flex items-center space-x-3 cursor-pointer group">
+        <div className="flex items-center justify-between pt-1">
+          <label className="flex items-center space-x-2.5 cursor-pointer group">
             <div className="relative flex items-center">
               <input
                 type="checkbox"
@@ -119,17 +131,20 @@ const LoginForm = () => {
                 onChange={(e) => setRememberMe(e.target.checked)}
                 className="peer sr-only"
               />
-              <div className="h-4 w-4 rounded border border-white/20 bg-white/5 peer-checked:bg-blue-500 peer-checked:border-blue-500 transition-all flex items-center justify-center">
-                <svg className={`w-2.5 h-2.5 text-white transition-opacity ${rememberMe ? 'opacity-100' : 'opacity-0'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
+              <div className="h-4 w-4 bg-gray-900 border border-gray-700 rounded transition-all peer-checked:bg-red-600 peer-checked:border-red-600 group-hover:border-red-500"></div>
+              <svg
+                className="absolute left-0 top-0 h-4 w-4 text-white opacity-0 peer-checked:opacity-100 pointer-events-none p-0.5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
             </div>
-            <span className="text-[13px] text-gray-400 group-hover:text-gray-300 transition-colors">Remember Me</span>
+            <span className="text-sm font-medium text-gray-400 group-hover:text-gray-300 transition-colors">Remember Me</span>
           </label>
           <button
             type="button"
-            className="text-[13px] text-blue-400 hover:text-blue-300 font-medium transition-colors"
+            className="text-sm text-red-500 hover:text-red-400 font-semibold transition-colors"
           >
             Forgot Password?
           </button>
@@ -137,8 +152,8 @@ const LoginForm = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl backdrop-blur-sm animate-pulse">
-            <p className="text-sm text-red-400 text-center font-medium">{error}</p>
+          <div className="p-3 bg-red-950/40 border border-red-900/50 rounded-xl backdrop-blur-sm animate-fade-in-down">
+            <p className="text-sm font-medium text-red-400 text-center">{error}</p>
           </div>
         )}
 
@@ -146,7 +161,7 @@ const LoginForm = () => {
         <button
           type="submit"
           disabled={loading}
-          className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3.5 px-4 rounded-xl hover:from-blue-500 hover:to-indigo-500 focus:ring-4 focus:ring-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-bold text-sm tracking-wide mt-6 shadow-[0_0_20px_rgba(37,99,235,0.2)] hover:shadow-[0_0_30px_rgba(37,99,235,0.4)] font-outfit"
+          className="w-full bg-red-600 hover:bg-red-500 text-white py-3.5 px-4 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-bold mt-6 shadow-[0_0_20px_rgba(220,38,38,0.3)] hover:shadow-[0_0_25px_rgba(220,38,38,0.5)] active:scale-[0.98] uppercase tracking-wide"
         >
           {loading ? (
             <span className="flex items-center justify-center">
@@ -157,24 +172,17 @@ const LoginForm = () => {
               Authenticating...
             </span>
           ) : (
-            'SIGN IN'
+            'Sign In'
           )}
         </button>
       </form>
 
       {/* Footer with Company Information */}
-      <div className="mt-10 pt-8 border-t border-white/5">
-        <div className="text-center flex flex-col items-center">
-          <p className="text-gray-500 text-[11px] mb-2 font-inter">
-            © {new Date().getFullYear()} Caldim Engineering Pvt. Ltd. All rights reserved.
+      <div className="mt-10 pt-6 border-t border-gray-800">
+        <div className="text-center">
+          <p className="text-gray-500 font-medium text-xs mb-1">
+            © {new Date().getFullYear()} Caldim Engineering Pvt. Ltd.
           </p>
-          <div className="flex items-center space-x-2 text-[11px] font-medium text-gray-600 font-inter">
-            <span>Secure System v2.0</span>
-            <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
-            <a href="#" className="hover:text-gray-400 transition-colors">Privacy Policy</a>
-            <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
-            <a href="#" className="hover:text-gray-400 transition-colors">Terms</a>
-          </div>
         </div>
       </div>
     </div>

@@ -2,128 +2,118 @@ import React from 'react';
 import LoginForm from '../components/LoginForm';
 
 const Login = () => {
+
   return (
-    <div className="min-h-screen bg-[#020617] flex w-full relative overflow-hidden font-inter">
+    <div className="min-h-screen w-full flex flex-col bg-black text-white relative overflow-hidden">
+      {/* Subtle background glow for full page */}
+      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-red-900/20 blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-900/20 blur-[120px]"></div>
+        <div className="absolute top-[40%] right-[10%] w-[30%] h-[30%] rounded-full bg-purple-900/10 blur-[120px]"></div>
+      </div>
 
-      {/* Unified Aurora glowing background blobs for the entire page */}
-      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 w-64 lg:w-[500px] h-64 lg:h-[500px] bg-cyan-600 rounded-full mix-blend-screen filter blur-[100px] lg:blur-[150px] opacity-20 animate-blob z-0 pointer-events-none"></div>
-      <div className="absolute top-1/2 right-1/4 translate-x-1/2 w-64 lg:w-[500px] h-64 lg:h-[500px] bg-blue-600 rounded-full mix-blend-screen filter blur-[100px] lg:blur-[150px] opacity-20 animate-blob animation-delay-2000 z-0 pointer-events-none"></div>
-      <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-64 lg:w-[500px] h-64 lg:h-[500px] bg-indigo-600 rounded-full mix-blend-screen filter blur-[100px] lg:blur-[150px] opacity-20 animate-blob animation-delay-4000 z-0 pointer-events-none"></div>
+      {/* Tech Circuitry Full Page SVG Background */}
+      <div className="absolute inset-0 w-full h-full opacity-[0.3] pointer-events-none z-0 overflow-hidden">
+        <svg viewBox="0 0 2000 1000" className="w-full h-full object-cover text-white" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
+          {/* Subtle dots background */}
+          <pattern id="dots" width="40" height="40" patternUnits="userSpaceOnUse">
+            <circle cx="2" cy="2" r="1.5" fill="currentColor" opacity="0.3" />
+            <circle cx="22" cy="22" r="1.5" fill="currentColor" opacity="0.1" />
+          </pattern>
+          <rect width="2000" height="1000" fill="url(#dots)" />
 
-      {/* Background Analytics SVG with Opacity 0.2 across entire page */}
-      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none flex items-center justify-center">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 1440 800"
-          className="w-full h-full object-cover"
-          preserveAspectRatio="xMidYMid slice"
-        >
-          <g stroke="rgba(255, 255, 255, 0.15)" strokeWidth="1" fill="none">
-            {/* Grid Pattern */}
-            {Array.from({ length: 20 }).map((_, i) => (
-              <line key={`h-${i}`} x1="0" y1={i * 40} x2="1440" y2={i * 40} />
-            ))}
-            {Array.from({ length: 36 }).map((_, i) => (
-              <line key={`v-${i}`} x1={i * 40} y1="0" x2={i * 40} y2="800" />
-            ))}
+          {/* Circuitry / PCB-like Tracks */}
+          <path d="M 0 900 L 200 900 L 300 800 L 600 800 L 700 700 L 1200 700 L 1300 600 L 1800 600 L 1900 500 L 2000 500" stroke="currentColor" strokeWidth="2" opacity="0.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M 50 1000 L 50 900 L 150 800 L 150 400 L 250 300 L 550 300 L 650 200 L 1050 200 L 1150 100" stroke="currentColor" strokeWidth="1" strokeDasharray="5 5" opacity="0.5" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M 400 1000 L 400 850 L 550 700 L 550 550 L 650 450 L 950 450 L 1050 350 L 1350 350 L 1450 250 L 1850 250" stroke="currentColor" strokeWidth="3" opacity="0.4" strokeLinecap="round" strokeLinejoin="round" />
+
+          {/* Connection Nodes */}
+          <circle cx="300" cy="800" r="6" fill="currentColor" />
+          <circle cx="700" cy="700" r="6" fill="currentColor" />
+          <circle cx="1300" cy="600" r="8" fill="transparent" stroke="currentColor" strokeWidth="2" />
+          <circle cx="1900" cy="500" r="6" fill="currentColor" />
+
+          <circle cx="150" cy="400" r="4" fill="currentColor" opacity="0.8" />
+          <circle cx="250" cy="300" r="4" fill="currentColor" opacity="0.8" />
+          <circle cx="650" cy="200" r="4" fill="currentColor" opacity="0.8" />
+          <circle cx="1150" cy="100" r="7" fill="transparent" stroke="currentColor" strokeWidth="2" opacity="0.8" />
+
+          <circle cx="550" cy="700" r="5" fill="currentColor" opacity="0.6" />
+          <circle cx="650" cy="450" r="5" fill="currentColor" opacity="0.6" />
+          <circle cx="1050" cy="350" r="9" fill="transparent" stroke="currentColor" strokeWidth="2" opacity="0.6" />
+          <circle cx="1450" cy="250" r="5" fill="currentColor" opacity="0.6" />
+
+          {/* Abstract Data Rings */}
+          <g transform="translate(1600, 300)" opacity="0.5">
+            <circle cx="0" cy="0" r="150" stroke="currentColor" strokeWidth="1" strokeDasharray="10 10" />
+            <circle cx="0" cy="0" r="100" stroke="currentColor" strokeWidth="2" />
+            <circle cx="0" cy="0" r="80" stroke="currentColor" strokeWidth="1" strokeDasharray="4 8" />
+            <circle cx="0" cy="0" r="40" stroke="currentColor" strokeWidth="4" opacity="0.3" />
+            <path d="M -150 0 L 150 0 M 0 -150 L 0 150" stroke="currentColor" strokeWidth="1" opacity="0.3" />
+            {/* Radar / scan wedge abstract */}
+            <path d="M 0 0 L 70 -70 A 100 100 0 0 1 100 0 Z" fill="currentColor" opacity="0.1" />
           </g>
 
-          {/* Analytics Lines */}
-          <path fill="none" stroke="#0ea5e9" strokeWidth="3" opacity="0.8" d="M0,600 C200,550 400,700 600,450 C800,200 1000,500 1200,300 C1300,200 1400,250 1440,150" />
-          <path fill="none" stroke="#38bdf8" strokeWidth="2" opacity="0.6" d="M0,650 C200,600 400,750 600,500 C800,250 1000,550 1200,350 C1300,250 1400,300 1440,200" />
-          <path fill="none" stroke="#7dd3fc" strokeWidth="1" opacity="0.4" d="M0,700 C200,650 400,800 600,550 C800,300 1000,600 1200,400 C1300,300 1400,350 1440,250" />
+          <g transform="translate(400, 750)" opacity="0.3">
+            <circle cx="0" cy="0" r="120" stroke="currentColor" strokeWidth="1" />
+            <circle cx="0" cy="0" r="90" stroke="currentColor" strokeWidth="2" strokeDasharray="20 10" />
+            <circle cx="0" cy="0" r="60" stroke="currentColor" strokeWidth="1" />
+            <path d="M -80 -80 L 80 80 M -80 80 L 80 -80" stroke="currentColor" strokeWidth="1" strokeDasharray="5 5" />
+          </g>
 
-          {/* Data Nodes */}
-          {[
-            [200, 550], [400, 700], [600, 450], [800, 200], [1000, 500], [1200, 300]
-          ].map(([x, y], i) => (
-            <g key={`node-${i}`}>
-              <circle cx={x} cy={y} r="8" fill="#0ea5e9" opacity="0.8" />
-              <circle cx={x} cy={y} r="16" fill="rgba(14, 165, 233, 0.3)" />
-            </g>
-          ))}
+          {/* Polygons / Hex arrays */}
+          <path d="M 900 650 L 930 630 L 960 650 L 960 680 L 930 700 L 900 680 Z" stroke="currentColor" strokeWidth="1" fill="none" opacity="0.6" />
+          <path d="M 960 650 L 990 630 L 1020 650 L 1020 680 L 990 700 L 960 680 Z" stroke="currentColor" strokeWidth="1" fill="currentColor" opacity="0.1" />
+          <path d="M 930 600 L 960 580 L 990 600 L 990 630 L 960 650 L 930 630 Z" stroke="currentColor" strokeWidth="1" fill="none" opacity="0.6" />
 
-          {/* Bar Charts Background */}
-          {Array.from({ length: 15 }).map((_, i) => (
-            <rect key={`bar-${i}`} x={100 + i * 80} y={800 - (Math.random() * 300 + 100)} width="40" height={400} fill="url(#bar-gradient)" opacity="0.4" />
-          ))}
-
-          <defs>
-            <linearGradient id="bar-gradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.8" />
-              <stop offset="100%" stopColor="#38bdf8" stopOpacity="0" />
-            </linearGradient>
-            <linearGradient id="aurora-glow" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#0ea5e9" />
-              <stop offset="50%" stopColor="#38bdf8" />
-              <stop offset="100%" stopColor="#7dd3fc" />
-            </linearGradient>
-          </defs>
         </svg>
       </div>
 
-      <div className="relative z-10 w-full flex flex-col lg:flex-row min-h-screen">
-
-        {/* Left Side: Agency Hero Content */}
-        <div className="w-full lg:w-1/2 flex flex-col justify-center order-2 lg:order-1 px-8 lg:px-16 xl:px-24 pb-12 lg:pb-0 pt-0">
-          <div className="relative z-10 w-full text-center lg:text-left">
-            <h2 className="font-outfit text-gray-400 uppercase tracking-[0.25em] text-xs lg:text-sm font-semibold mb-6 flex items-center justify-center lg:justify-start">
-              <span className="hidden lg:block w-12 h-[2px] bg-blue-500 mr-4"></span>
-              CALDIM Engineering Team
-            </h2>
-            <h1 className="font-outfit text-4xl sm:text-5xl lg:text-5xl xl:text-7xl font-black mb-8 leading-[1.1] tracking-tight text-white">
-              Industrial
-              <br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400 inline-block drop-shadow-[0_0_15px_rgba(56,189,248,0.2)]">
-                Analytics
-              </span>
-              <br className="hidden sm:block" />
-              <span className="text-gray-400 sm:ml-2 lg:ml-0 font-light">
-                Platform
-              </span>
+      <div className="flex-1 flex flex-col justify-center p-8 lg:p-16 xl:p-24 relative z-10 w-full max-w-screen-2xl mx-auto">
+        <div className="flex flex-col lg:flex-row items-center justify-center gap-16 lg:gap-32 w-full">
+          {/* Creative Agency Hero */}
+          <div className="text-center lg:text-left flex-1 max-w-3xl">
+            <h1 className="text-6xl lg:text-8xl font-black tracking-tighter mb-8 leading-[1.05]">
+              <span className="text-white block mb-2">Welcome</span>
+              <span className="text-white block mb-2">to the</span>
+              <span className="aurora-text block">Future of</span>
+              <span className="aurora-text block">Industry 4.0</span>
             </h1>
-            <p className="font-inter text-gray-400 text-base sm:text-lg lg:text-xl leading-relaxed mb-12 font-normal max-w-xl mx-auto lg:mx-0">
-              Centralized telemetry aggregation and diagnostic metrics for heavy machinery. Access live throughput data and historical performance records securely.
+            <p className="text-gray-400 text-lg lg:text-xl leading-relaxed mt-8 max-w-xl mx-auto lg:mx-0 font-medium">
+              Empowering your manufacturing with intelligent analytics, real-time insights, and next-generation connectivity.
             </p>
+          </div>
 
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-xs font-semibold text-gray-300 bg-[#0f172a]/60 w-fit mx-auto lg:mx-0 px-6 py-3 rounded-xl border border-white/5 backdrop-blur-md uppercase tracking-wider">
-              <div className="flex items-center whitespace-nowrap">
-                <div className="w-2.5 h-2.5 bg-cyan-400 rounded-full mr-2.5 shadow-[0_0_10px_rgba(34,211,238,0.8)] animate-pulse"></div>
-                Network Active
-              </div>
-              <span className="text-gray-700 hidden sm:inline">|</span>
-              <div className="flex items-center text-gray-400 whitespace-nowrap">
-                <svg className="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                SSL Encrypted
-              </div>
+          {/* Login Form Container */}
+          <div className="w-full max-w-md relative group z-10 pt-10 lg:pt-0">
+
+            <div className="absolute -inset-0.5 bg-gradient-to-br from-red-600/30 via-transparent to-purple-600/30 rounded-[2rem] blur-md opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 z-10 pointer-events-none"></div>
+            <div className="relative w-full bg-gray-950/80 p-8 sm:p-10 rounded-3xl border border-gray-800/60 backdrop-blur-2xl shadow-2xl z-20">
+              <LoginForm />
             </div>
           </div>
         </div>
-
-        {/* Right Side: Login Form Layout block without separate background mechanics */}
-        <div className="w-full lg:w-1/2 flex flex-col justify-center items-center relative order-1 lg:order-2 px-6 sm:px-12 py-16 lg:py-0 z-20">
-          <div className="w-full max-w-md bg-[#0f172a]/60 p-8 sm:p-10 rounded-[2rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] border border-white/5 backdrop-blur-xl">
-            <LoginForm />
-          </div>
-        </div>
-
       </div>
 
+      {/* Add CSS animation for aurora text */}
       <style>{`
-        @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
+        @keyframes aurora {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
         }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-        .animation-delay-4000 {
-          animation-delay: 4s;
+        .aurora-text {
+          background: linear-gradient(
+            -45deg,
+            #ff3366, #ff9933, #33ccff, #9933ff, #ff3366
+          );
+          background-size: 300% auto;
+          color: #fff;
+          background-clip: text;
+          text-fill-color: transparent;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: aurora 6s ease infinite;
         }
       `}</style>
     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Plus, Search, Edit, Trash2, X, Check, 
+import {
+  Plus, Search, Edit, Trash2, X, Check,
   ChevronUp, ChevronDown, Filter, Download,
   Eye, EyeOff, Lock, User, ChevronDown as ChevronDownIcon,
   CheckSquare, Square, Shield, Snowflake, ChevronLeft, ChevronRight, RefreshCw
@@ -30,21 +30,21 @@ const EmployeeAccess = () => {
   const [showDeletePrompt, setShowDeletePrompt] = useState(null);
   const [showColumnModal, setShowColumnModal] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const pageSizeOptions = [5, 10, 25, 50, 100];
-  
+
   // Load columns from localStorage
   const [columns, setColumns] = useState(() => {
     const savedColumns = localStorage.getItem('access_columns_v2');
     return savedColumns ? JSON.parse(savedColumns) : initialColumns;
   });
-  
+
   const [editingColumn, setEditingColumn] = useState(null);
   const [tempColumnName, setTempColumnName] = useState('');
-  
+
   // Sorting state
   const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'ascending' });
 
@@ -54,17 +54,17 @@ const EmployeeAccess = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState('');
   const [employeeSearch, setEmployeeSearch] = useState('');
-  
+
   // Password visibility states
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showEditNewPassword, setShowEditNewPassword] = useState(false);
   const [showEditConfirmPassword, setShowEditConfirmPassword] = useState(false);
-  
+
   // New state for checkboxes
   const [selectedAccessRules, setSelectedAccessRules] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
-  
+
   // New state for action prompts
   const [showBulkDeletePrompt, setShowBulkDeletePrompt] = useState(false);
   const [showBulkEditPrompt, setShowBulkEditPrompt] = useState(false);
@@ -73,7 +73,7 @@ const EmployeeAccess = () => {
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [showDeleteColumnPrompt, setShowDeleteColumnPrompt] = useState(null);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
-  
+
   // Freeze states - Updated to support multiple frozen rows and columns
   const [frozenRows, setFrozenRows] = useState([]);
   const [frozenColumns, setFrozenColumns] = useState([]);
@@ -82,10 +82,10 @@ const EmployeeAccess = () => {
   // Temporary states for modal selections
   const [tempFrozenRows, setTempFrozenRows] = useState([]);
   const [tempFrozenColumns, setTempFrozenColumns] = useState([]);
-  
+
   const modulesList = ['Dashboard', 'Employee Master', 'Project Master', 'Settings'];
   const accessLevels = ['Admin', 'Manager', 'User', 'Viewer'];
-  
+
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
   // Show notification
@@ -178,7 +178,7 @@ const EmployeeAccess = () => {
         hasAccess: true,
         ...Object.keys(rule).reduce((acc, key) => {
           if (!['id', 'employee_id', 'access_level', 'status', 'modules', 'employee', 'name', 'email', 'employee_name', 'employee_email', 'employee_code'].includes(key)) {
-             acc[key] = rule[key];
+            acc[key] = rule[key];
           }
           return acc;
         }, {})
@@ -221,12 +221,12 @@ const EmployeeAccess = () => {
       showNotification('Please select at least one access rule to edit', 'error');
       return;
     }
-    
+
     if (selectedAccessRules.length > 1) {
       showNotification('Only one row can be edited at a time', 'error');
       return;
     }
-    
+
     setShowBulkEditPrompt({
       show: true,
       count: selectedAccessRules.length
@@ -249,7 +249,7 @@ const EmployeeAccess = () => {
       showNotification('Please select at least one access rule to delete', 'error');
       return;
     }
-    
+
     setShowBulkDeletePrompt({
       show: true,
       count: selectedAccessRules.length
@@ -282,7 +282,7 @@ const EmployeeAccess = () => {
 
   const saveEditColumn = (columnId) => {
     if (tempColumnName.trim()) {
-      setColumns(columns.map(col => 
+      setColumns(columns.map(col =>
         col.id === columnId ? { ...col, label: tempColumnName } : col
       ));
       setEditingColumn(null);
@@ -299,7 +299,7 @@ const EmployeeAccess = () => {
   const handleDeleteColumn = (columnId) => {
     const column = columns.find(col => col.id === columnId);
     const isFixedColumn = ['id', 'name', 'email', 'role', 'department', 'status'].includes(columnId);
-   
+
     if (isFixedColumn) {
       setShowDeleteColumnPrompt({
         id: columnId,
@@ -310,7 +310,7 @@ const EmployeeAccess = () => {
       });
       return;
     }
-   
+
     setShowDeleteColumnPrompt({
       id: columnId,
       title: 'Delete Column',
@@ -321,7 +321,7 @@ const EmployeeAccess = () => {
 
   const confirmDeleteColumn = () => {
     if (!showDeleteColumnPrompt) return;
-   
+
     const columnId = showDeleteColumnPrompt.id;
     setColumns(columns.filter(col => col.id !== columnId));
     setShowDeleteColumnPrompt(null);
@@ -349,10 +349,10 @@ const EmployeeAccess = () => {
 
   // Filter access rules
   const filteredRules = mergedData.filter(rule => {
-    const matchesSearch = Object.values(rule).some(value => 
+    const matchesSearch = Object.values(rule).some(value =>
       String(value).toLowerCase().includes(searchTerm.toLowerCase())
     );
-    
+
     return matchesSearch;
   });
 
@@ -363,7 +363,7 @@ const EmployeeAccess = () => {
     return [...filteredRules].sort((a, b) => {
       const aVal = a[sortConfig.key] || '';
       const bVal = b[sortConfig.key] || '';
-      
+
       if (aVal < bVal) return sortConfig.direction === 'ascending' ? -1 : 1;
       if (aVal > bVal) return sortConfig.direction === 'ascending' ? 1 : -1;
       return 0;
@@ -373,7 +373,7 @@ const EmployeeAccess = () => {
   // Pagination logic
   const totalItems = sortedRules.length;
   const totalPages = Math.ceil(totalItems / pageSize);
-  
+
   const paginatedRules = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
@@ -399,7 +399,7 @@ const EmployeeAccess = () => {
   const getPageNumbers = () => {
     const pageNumbers = [];
     const maxVisiblePages = 5;
-    
+
     if (totalPages <= maxVisiblePages) {
       for (let i = 1; i <= totalPages; i++) {
         pageNumbers.push(i);
@@ -407,16 +407,16 @@ const EmployeeAccess = () => {
     } else {
       let startPage = Math.max(1, currentPage - 2);
       let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-      
+
       if (endPage - startPage < maxVisiblePages - 1) {
         startPage = Math.max(1, endPage - maxVisiblePages + 1);
       }
-      
+
       for (let i = startPage; i <= endPage; i++) {
         pageNumbers.push(i);
       }
     }
-    
+
     return pageNumbers;
   };
 
@@ -473,7 +473,7 @@ const EmployeeAccess = () => {
         modules: newRule.permissions || [],
         password: newPassword
       };
-      
+
       await axios.post(`${API_BASE_URL}/employee-access/`, payload);
       await fetchAccessRules();
       setShowAddEmployeeModal(false);
@@ -505,9 +505,9 @@ const EmployeeAccess = () => {
   const togglePermission = (module) => {
     const currentPermissions = newRule.permissions || [];
     if (currentPermissions.includes(module)) {
-      setNewRule({...newRule, permissions: currentPermissions.filter(m => m !== module)});
+      setNewRule({ ...newRule, permissions: currentPermissions.filter(m => m !== module) });
     } else {
-      setNewRule({...newRule, permissions: [...currentPermissions, module]});
+      setNewRule({ ...newRule, permissions: [...currentPermissions, module] });
     }
   };
 
@@ -515,9 +515,9 @@ const EmployeeAccess = () => {
   const toggleEditPermission = (module) => {
     const currentPermissions = editForm.permissions || [];
     if (currentPermissions.includes(module)) {
-      setEditForm({...editForm, permissions: currentPermissions.filter(m => m !== module)});
+      setEditForm({ ...editForm, permissions: currentPermissions.filter(m => m !== module) });
     } else {
-      setEditForm({...editForm, permissions: [...currentPermissions, module]});
+      setEditForm({ ...editForm, permissions: [...currentPermissions, module] });
     }
   };
 
@@ -552,7 +552,7 @@ const EmployeeAccess = () => {
 
   // Start editing rule
   const startEditing = (rule) => {
-    setEditForm({ 
+    setEditForm({
       ...rule,
       id: rule.id,
       accessRuleId: rule.accessRuleId
@@ -568,7 +568,7 @@ const EmployeeAccess = () => {
       showNotification('Passwords do not match', 'error');
       return;
     }
-    
+
     try {
       const payload = {
         employee_id: editForm.employeeId,
@@ -582,7 +582,7 @@ const EmployeeAccess = () => {
       if (newPassword) {
         payload.password = newPassword;
       }
-      
+
       await axios.put(`${API_BASE_URL}/employee-access/${editForm.accessRuleId}`, payload);
       await fetchAccessRules();
       setEditingId(null);
@@ -609,12 +609,12 @@ const EmployeeAccess = () => {
 
   // Handle new rule input change
   const handleNewRuleChange = (field, value) => {
-    setNewRule({...newRule, [field]: value});
+    setNewRule({ ...newRule, [field]: value });
   };
 
   // Handle edit form change
   const handleEditFormChange = (field, value) => {
-    setEditForm({...editForm, [field]: value});
+    setEditForm({ ...editForm, [field]: value });
   };
 
   // Add new column
@@ -623,7 +623,7 @@ const EmployeeAccess = () => {
       showNotification('Please enter a column name', 'error');
       return;
     }
-    
+
     setShowColumnAddPrompt({
       show: true,
       columnName: newColumnName
@@ -633,12 +633,12 @@ const EmployeeAccess = () => {
   const confirmAddColumn = () => {
     if (newColumnName.trim()) {
       const newColumnId = newColumnName.toLowerCase().replace(/\s+/g, '_');
-      
+
       if (columns.find(col => col.id === newColumnId)) {
         showNotification('Column with this name already exists', 'error');
         return;
       }
-      
+
       const newColumn = {
         id: newColumnId,
         label: newColumnName,
@@ -648,7 +648,7 @@ const EmployeeAccess = () => {
         deletable: true,
         required: false
       };
-      
+
       setColumns([...columns, newColumn]);
       setNewColumnName('');
       setShowColumnAddPrompt({ show: false, columnName: '' });
@@ -671,7 +671,7 @@ const EmployeeAccess = () => {
       showNotification('No data to export', 'error');
       return;
     }
-    
+
     setShowExportConfirmPrompt({
       show: true,
       format: format,
@@ -694,7 +694,7 @@ const EmployeeAccess = () => {
         return selectedAccessRules.includes(rule.accessRuleId) ? actualRowIndex : null;
       })
       .filter(index => index !== null);
-    
+
     // Combine with existing frozen rows for initial selection
     setTempFrozenRows([...new Set([...frozenRows, ...selectedRowIndices])].sort((a, b) => a - b));
     setShowFreezeRowModal(true);
@@ -702,10 +702,10 @@ const EmployeeAccess = () => {
 
   const toggleFreezeColumn = () => {
     // Get column indices of visible columns
-    const visibleColumnIndices = visibleColumns.map(col => 
+    const visibleColumnIndices = visibleColumns.map(col =>
       columns.findIndex(c => c.id === col.id)
     );
-    
+
     // Start with existing frozen columns
     setTempFrozenColumns([...frozenColumns]);
     setShowFreezeColumnModal(true);
@@ -714,7 +714,7 @@ const EmployeeAccess = () => {
   const handleFreezeRows = () => {
     setFrozenRows(tempFrozenRows);
     setShowFreezeRowModal(false);
-    
+
     if (tempFrozenRows.length > 0) {
       showNotification(`${tempFrozenRows.length} row(s) frozen`);
     } else {
@@ -725,7 +725,7 @@ const EmployeeAccess = () => {
   const handleFreezeColumns = () => {
     setFrozenColumns(tempFrozenColumns);
     setShowFreezeColumnModal(false);
-    
+
     if (tempFrozenColumns.length > 0) {
       showNotification(`${tempFrozenColumns.length} column(s) frozen`);
     } else {
@@ -744,14 +744,14 @@ const EmployeeAccess = () => {
   // Get the left position for frozen columns
   const getFrozenColumnLeft = (colIndex) => {
     if (!isColumnFrozen(colIndex)) return 'auto';
-    
+
     const checkboxWidth = 64;
-    
+
     const sortedFrozenColumns = [...frozenColumns].sort((a, b) => a - b);
     const positionIndex = sortedFrozenColumns.indexOf(colIndex);
-    
+
     if (positionIndex === -1) return 'auto';
-    
+
     let leftOffset = 0;
     for (let i = 0; i < positionIndex; i++) {
       const prevColIndex = sortedFrozenColumns[i];
@@ -761,27 +761,27 @@ const EmployeeAccess = () => {
         leftOffset += 160;
       }
     }
-    
+
     return `${leftOffset}px`;
   };
 
   // Get the top position for frozen rows
   const getFrozenRowTop = (rowIndex) => {
     if (!isRowFrozen(rowIndex)) return 'auto';
-    
+
     const headerHeight = 42;
     const rowHeight = 53;
-    
+
     const sortedFrozenRows = [...frozenRows].sort((a, b) => a - b);
     const positionIndex = sortedFrozenRows.indexOf(rowIndex);
-    
+
     if (positionIndex === -1) return 'auto';
-    
+
     let topOffset = headerHeight;
     for (let i = 0; i < positionIndex; i++) {
       topOffset += rowHeight;
     }
-    
+
     return `${topOffset}px`;
   };
 
@@ -790,12 +790,11 @@ const EmployeeAccess = () => {
     if (column.id === 'role') {
       const displayValue = rule.hasAccess ? (value || 'User') : 'No Access';
       return (
-        <span className={`px-2 py-1 rounded-full text-sm whitespace-nowrap ${
-          displayValue === 'Admin' ? 'bg-red-100 text-red-800' :
+        <span className={`px-2 py-1 rounded-full text-sm whitespace-nowrap ${displayValue === 'Admin' ? 'bg-red-100 text-red-800' :
           displayValue === 'Manager' ? 'bg-blue-100 text-blue-800' :
-          displayValue === 'User' ? 'bg-green-100 text-green-800' :
-          'bg-gray-100 text-gray-800'
-        }`}>
+            displayValue === 'User' ? 'bg-green-100 text-green-800' :
+              'bg-gray-100 text-gray-800'
+          }`}>
           {displayValue}
         </span>
       );
@@ -803,20 +802,19 @@ const EmployeeAccess = () => {
     if (column.id === 'status') {
       const isActive = value === 'Active';
       return (
-        <span className={`px-2 py-1 rounded-full text-sm whitespace-nowrap ${
-          isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-        }`}>
+        <span className={`px-2 py-1 rounded-full text-sm whitespace-nowrap ${isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+          }`}>
           {value || 'Inactive'}
         </span>
       );
     }
     return value || '-';
   };
-  
+
   const visibleColumns = columns.filter(col => col.visible);
 
   return (
-    <div className="h-full flex flex-col bg-gray-50 overflow-visible">
+    <div className="flex flex-col h-full bg-white flex-1 overflow-hidden relative">
       {/* Custom tooltip styles - smaller and more compact */}
       <style>{`
         /* Tooltip styles */
@@ -875,24 +873,6 @@ const EmployeeAccess = () => {
           border: 1px solid #0284c7;
         }
 
-        /* Table container styles for proper scrolling */
-        .employee-access-container {
-          height: 100%;
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-        }
-
-        .table-container {
-          flex: 1;
-          overflow: auto;
-          position: relative;
-          border: 1px solid #e5e7eb;
-          border-radius: 0.375rem;
-          background: white;
-          min-height: 0;
-        }
-
         table {
           border-collapse: separate;
           border-spacing: 0;
@@ -903,17 +883,33 @@ const EmployeeAccess = () => {
           position: sticky;
           top: 0;
           z-index: 30;
-          background: white;
         }
 
         th {
           position: sticky;
           top: 0;
-          background: linear-gradient(135deg, #f0f5ff, #f0f8ff, #e6f0fa, #e0eaff);
-          color: #1f2937;
-          font-weight: 500;
+          background: #f8fafc;
+          color: #475569;
+          font-weight: 600;
+          font-size: 0.75rem;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
           z-index: 30;
-          border-bottom: 1px solid #e5e7eb;
+          border-bottom: 1px solid #e2e8f0;
+          border-right: 1px solid #e2e8f0;
+        }
+
+        td {
+          border-bottom: 1px solid #e2e8f0;
+          border-right: 1px solid #e2e8f0;
+        }
+
+        th:last-child, td:last-child {
+          border-right: none;
+        }
+
+        tbody tr:hover td {
+          background-color: #f8fafc;
         }
 
         /* Ensure proper stacking of frozen elements */
@@ -950,18 +946,17 @@ const EmployeeAccess = () => {
         }
       `}</style>
 
-      <div className="employee-access-container p-2" style={{ overflow: 'visible' }}>
+      <>
         {/* Notification Banner */}
         {notification.show && (
-          <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${
-            notification.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 
-            notification.type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' : 
-            'bg-blue-100 text-blue-800 border border-blue-200'
-          }`}>
+          <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${notification.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' :
+            notification.type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
+              'bg-blue-100 text-blue-800 border border-blue-200'
+            }`}>
             <div className="flex items-center">
               <span className="text-sm font-medium">{notification.message}</span>
-              <button 
-                onClick={() => setNotification({ show: false, message: '', type: '' })} 
+              <button
+                onClick={() => setNotification({ show: false, message: '', type: '' })}
                 className="ml-4 text-gray-500 hover:text-gray-700"
               >
                 <X className="h-4 w-4" />
@@ -977,7 +972,7 @@ const EmployeeAccess = () => {
               <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <h3 className="font-medium text-gray-900 text-sm sm:text-base">Confirm Delete</h3>
                 <button onClick={cancelDelete} className="p-1 text-gray-400 hover:text-gray-600">
-                  <X className="h-4 w-4 sm:h-5 sm:w-5"/>
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
               <div className="mb-4">
@@ -1004,7 +999,7 @@ const EmployeeAccess = () => {
                   onClick={() => setShowDeleteColumnPrompt(null)}
                   className="p-1 text-gray-400 hover:text-gray-600"
                 >
-                  <X className="h-4 w-4 sm:h-5 sm:w-5"/>
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
 
@@ -1056,7 +1051,7 @@ const EmployeeAccess = () => {
               <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <h3 className="font-medium text-gray-900 text-sm sm:text-base">Confirm Bulk Delete</h3>
                 <button onClick={() => setShowBulkDeletePrompt({ show: false, count: 0 })} className="p-1 text-gray-400 hover:text-gray-600">
-                  <X className="h-4 w-4 sm:h-5 sm:w-5"/>
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
               <div className="mb-4">
@@ -1080,7 +1075,7 @@ const EmployeeAccess = () => {
               <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <h3 className="font-medium text-gray-900 text-sm sm:text-base">Confirm Bulk Edit</h3>
                 <button onClick={() => setShowBulkEditPrompt({ show: false, count: 0 })} className="p-1 text-gray-400 hover:text-gray-600">
-                  <X className="h-4 w-4 sm:h-5 sm:w-5"/>
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
               <div className="mb-4">
@@ -1103,7 +1098,7 @@ const EmployeeAccess = () => {
               <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <h3 className="font-medium text-gray-900 text-sm sm:text-base">Add New Column</h3>
                 <button onClick={() => setShowColumnAddPrompt({ show: false, columnName: '' })} className="p-1 text-gray-400 hover:text-gray-600">
-                  <X className="h-4 w-4 sm:h-5 sm:w-5"/>
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
               <div className="mb-4">
@@ -1126,7 +1121,7 @@ const EmployeeAccess = () => {
               <div className="flex items-center justify-between mb-3 sm:mb-4">
                 <h3 className="font-medium text-gray-900 text-sm sm:text-base">Confirm Export</h3>
                 <button onClick={() => setShowExportConfirmPrompt(null)} className="p-1 text-gray-400 hover:text-gray-600">
-                  <X className="h-4 w-4 sm:h-5 sm:w-5"/>
+                  <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
               <div className="mb-4">
@@ -1166,7 +1161,7 @@ const EmployeeAccess = () => {
               <div className="mb-4">
                 <p className="text-xs text-gray-600 mb-3">Select columns to freeze (they will remain visible while scrolling horizontally)</p>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                  
+
                   {visibleColumns.map((column) => {
                     const actualColumnIndex = columns.findIndex(col => col.id === column.id);
                     return (
@@ -1292,7 +1287,7 @@ const EmployeeAccess = () => {
                   <X className="h-4 w-4 sm:h-5 sm:w-5" />
                 </button>
               </div>
-             
+
               <div className="mb-4 p-3 rounded">
                 <h3 className="font-medium text-gray-900 text-sm sm:text-base -mt-5 mb-2">
                   <span className="bg-gray-200 px-2 py-0.5 rounded">
@@ -1315,15 +1310,15 @@ const EmployeeAccess = () => {
                     Add Column
                   </button>
                 </div>
-              </div>            
-              
+              </div>
+
               <div className="mb-4">
                 <h4 className="text-xs sm:text-sm font-medium text-gray-900 mb-2">Available Columns</h4>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {columns.map((column) => {
                     const isFixedColumn = ['id', 'name', 'email', 'role', 'department', 'status'].includes(column.id);
                     const isEditing = editingColumn === column.id;
-                   
+
                     return (
                       <div key={column.id} className="flex items-center justify-between p-2 border border-gray-200 rounded">
                         <div className="flex items-center space-x-2">
@@ -1356,7 +1351,7 @@ const EmployeeAccess = () => {
                             </>
                           )}
                         </div>
-                       
+
                         <div className="flex items-center space-x-2">
                           {/* View/Hide button */}
                           <button
@@ -1377,7 +1372,7 @@ const EmployeeAccess = () => {
                               <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                             </button>
                           )}
-                         
+
                           {/* Delete button */}
                           <button
                             onClick={() => handleDeleteColumn(column.id)}
@@ -1429,31 +1424,31 @@ const EmployeeAccess = () => {
                     />
                     <ChevronDownIcon className="h-4 w-4 text-gray-400" />
                   </div>
-                  
+
                   {/* Employee dropdown */}
-                  {employeeSearch && allEmployees.filter(emp => 
+                  {employeeSearch && allEmployees.filter(emp =>
                     !accessRules.some(rule => rule.employee_id === emp.id)
                   ).length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-60 overflow-y-auto">
-                      {allEmployees
-                        .filter(emp => 
-                          !accessRules.some(rule => rule.employee_id === emp.id) &&
-                          (emp.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
-                           emp.email.toLowerCase().includes(employeeSearch.toLowerCase()))
-                        )
-                        .map(employee => (
-                        <div
-                          key={employee.id}
-                          className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
-                          onClick={() => handleEmployeeSelect(employee.id)}
-                        >
-                          <div className="font-medium text-sm">{employee.name}</div>
-                          <div className="text-xs text-gray-600">{employee.email} • {employee.department}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded shadow-lg max-h-60 overflow-y-auto">
+                        {allEmployees
+                          .filter(emp =>
+                            !accessRules.some(rule => rule.employee_id === emp.id) &&
+                            (emp.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+                              emp.email.toLowerCase().includes(employeeSearch.toLowerCase()))
+                          )
+                          .map(employee => (
+                            <div
+                              key={employee.id}
+                              className="px-3 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                              onClick={() => handleEmployeeSelect(employee.id)}
+                            >
+                              <div className="font-medium text-sm">{employee.name}</div>
+                              <div className="text-xs text-gray-600">{employee.email} • {employee.department}</div>
+                            </div>
+                          ))}
+                      </div>
+                    )}
+
                   {/* Or select from dropdown */}
                   <div className="mt-3">
                     <label className="block text-xs font-medium text-gray-700 mb-1">Or select from list:</label>
@@ -1466,13 +1461,13 @@ const EmployeeAccess = () => {
                       {allEmployees
                         .filter(emp => !accessRules.some(rule => rule.employee_id === emp.id))
                         .map(employee => (
-                        <option key={employee.id} value={employee.id}>
-                          {employee.name} ({employee.email}) - {employee.department}
-                        </option>
-                      ))}
+                          <option key={employee.id} value={employee.id}>
+                            {employee.name} ({employee.email}) - {employee.department}
+                          </option>
+                        ))}
                     </select>
                   </div>
-                  
+
                   {selectedEmployee && (
                     <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
                       Selected: {allEmployees.find(e => e.id === parseInt(selectedEmployee))?.name}
@@ -1585,18 +1580,16 @@ const EmployeeAccess = () => {
                       <button
                         type="button"
                         onClick={() => togglePermission(module)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          (newRule.permissions || []).includes(module)
-                            ? 'bg-blue-600'
-                            : 'bg-gray-300'
-                        }`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${(newRule.permissions || []).includes(module)
+                          ? 'bg-blue-600'
+                          : 'bg-gray-300'
+                          }`}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            (newRule.permissions || []).includes(module)
-                              ? 'translate-x-6'
-                              : 'translate-x-1'
-                          }`}
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(newRule.permissions || []).includes(module)
+                            ? 'translate-x-6'
+                            : 'translate-x-1'
+                            }`}
                         />
                       </button>
                       <span className="text-xs text-gray-500 mt-1">
@@ -1606,7 +1599,7 @@ const EmployeeAccess = () => {
                   ))}
                 </div>
               </div>
-             
+
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={cancelNewEmployee}
@@ -1745,18 +1738,16 @@ const EmployeeAccess = () => {
                       <button
                         type="button"
                         onClick={() => toggleEditPermission(module)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          (editForm.permissions || []).includes(module)
-                            ? 'bg-blue-600'
-                            : 'bg-gray-300'
-                        }`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${(editForm.permissions || []).includes(module)
+                          ? 'bg-blue-600'
+                          : 'bg-gray-300'
+                          }`}
                       >
                         <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            (editForm.permissions || []).includes(module)
-                              ? 'translate-x-6'
-                              : 'translate-x-1'
-                          }`}
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${(editForm.permissions || []).includes(module)
+                            ? 'translate-x-6'
+                            : 'translate-x-1'
+                            }`}
                         />
                       </button>
                       <span className="text-xs text-gray-500 mt-1">
@@ -1766,7 +1757,7 @@ const EmployeeAccess = () => {
                   ))}
                 </div>
               </div>
-             
+
               <div className="flex justify-end space-x-2">
                 <button
                   onClick={cancelEdit}
@@ -1786,382 +1777,374 @@ const EmployeeAccess = () => {
         )}
 
         {/* MAIN CONTENT CONTAINER */}
-        <div className="bg-white border border-gray-200 rounded shadow-sm flex flex-col h-full overflow-visible">
-         
-          {/* Loading / Error State */}
-          {loading && (
+        <div className="flex flex-col flex-1 min-h-0 bg-gray-50/50 p-4 sm:p-6">
+          <div className="flex flex-col flex-1 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden min-h-0">
+
+            {/* Loading / Error State */}
+            {loading && (
               <div className="p-8 text-center text-gray-500">
-                  Loading data...
+                Loading data...
               </div>
-          )}
-          
-          {error && (
+            )}
+
+            {error && (
               <div className="p-8 text-center text-red-500">
-                  {error}
+                {error}
               </div>
-          )}
+            )}
 
-          {!loading && !error && (
+            {!loading && !error && (
               <>
-          {/* TOOLBAR SECTION */}
-          <div className="p-4 border-b border-gray-200 flex-shrink-0">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-             
-              {/* LEFT SIDE */}
-              <div className="flex flex-1 flex-col sm:flex-row gap-2 sm:gap-2 items-start sm:items-center">
-                {/* Search */}
-                <div className="relative w-full sm:w-auto">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full sm:w-48 h-10 pl-9 pr-3 text-xs sm:text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black"
-                  />
-                </div>
-              </div>
+                {/* TOOLBAR SECTION */}
+                <div className="p-4 border-b border-gray-200 flex-shrink-0">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 
-              {/* RIGHT SIDE */}
-              <div className="flex gap-2 mt-2 sm:mt-0">
-
-                {/* Add Column Button */}
-                <button
-                  onClick={() => setShowColumnModal(true)}
-                  className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 whitespace-nowrap tooltip"
-                  data-tooltip="Add column"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-
-                {/* Freeze Column Button */}
-                <button
-                  onClick={toggleFreezeColumn}
-                  className={`flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border rounded whitespace-nowrap tooltip ${
-                    frozenColumns.length > 0 
-                      ? 'bg-blue-50 text-blue-700 border-blue-300' 
-                      : 'border-gray-300 hover:bg-gray-50 text-gray-700'
-                  }`}
-                  data-tooltip={frozenColumns.length > 0 ? "Unfreeze columns" : "Freeze columns"}
-                >
-                  <Snowflake className={`h-4 w-4 ${frozenColumns.length > 0 ? 'text-blue-600' : 'text-gray-600'}`} />
-                  {frozenColumns.length > 0 && <span className="ml-1 text-xs">{frozenColumns.length}</span>}
-                </button>
-
-                {/* Export Button with Dropdown */}
-                <div className="relative">
-                  <button
-                    onClick={() => setShowExportDropdown(!showExportDropdown)}
-                    className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 tooltip"
-                    data-tooltip="Export data"
-                  >
-                    <Download className="h-4 w-4" />
-                  </button>
-                 
-                  {/* Export Dropdown */}
-                  {showExportDropdown && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setShowExportDropdown(false)}
-                      />
-                      <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-300 rounded shadow-lg z-50">
-                        <button
-                          onClick={() => handleExportClick('excel')}
-                          className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          Export as Excel
-                        </button>
-                        <button
-                          onClick={() => handleExportClick('csv')}
-                          className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          Export as CSV
-                        </button>
-                        <button
-                          onClick={() => handleExportClick('json')}
-                          className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          Export as JSON
-                        </button>
-                        <button
-                          onClick={() => handleExportClick('pdf')}
-                          className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          Export as PDF
-                        </button>
+                    {/* LEFT SIDE */}
+                    <div className="flex flex-1 flex-col sm:flex-row gap-2 sm:gap-2 items-start sm:items-center">
+                      {/* Search */}
+                      <div className="relative w-full sm:w-auto">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Search..."
+                          value={searchTerm}
+                          onChange={e => setSearchTerm(e.target.value)}
+                          className="w-full sm:w-48 h-10 pl-9 pr-3 text-xs sm:text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black"
+                        />
                       </div>
-                    </>
-                  )}
-                </div>
+                    </div>
 
-                {/* Refresh Button */}
-                <button
-                  onClick={handleRefresh}
-                  className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 whitespace-nowrap tooltip"
-                  data-tooltip="Refresh data"
-                  disabled={loading}
-                >
-                  <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                </button>
-              </div>
-            </div>
-          </div>
+                    {/* RIGHT SIDE */}
+                    <div className="flex gap-2 mt-2 sm:mt-0">
 
-          {/* TABLE SECTION - SCROLLABLE */}
-          <div className="table-container">
-            <table className="min-w-full text-base border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  {/* Checkbox column */}
-                  <th 
-                    className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap w-8 ${
-                      isColumnFrozen(0) ? 'frozen-column' : ''
-                    }`}
-                    style={{
-                      left: isColumnFrozen(0) ? '0' : 'auto',
-                      zIndex: isColumnFrozen(0) ? 35 : 30
-                    }}
-                  >
-                    <div className="flex items-center justify-center">
+                      {/* Add Column Button */}
                       <button
-                        onClick={toggleSelectAll}
-                        className="p-1 text-gray-700 hover:text-gray-900"
+                        onClick={() => setShowColumnModal(true)}
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 whitespace-nowrap tooltip"
+                        data-tooltip="Add column"
                       >
-                        {selectAll ? (
-                          <CheckSquare className="h-4 w-4" />
-                        ) : (
-                          <Square className="h-4 w-4" />
+                        <Plus className="h-4 w-4" />
+                      </button>
+
+                      {/* Freeze Column Button */}
+                      <button
+                        onClick={toggleFreezeColumn}
+                        className={`flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border rounded whitespace-nowrap tooltip ${frozenColumns.length > 0
+                          ? 'bg-blue-50 text-blue-700 border-blue-300'
+                          : 'border-gray-300 hover:bg-gray-50 text-gray-700'
+                          }`}
+                        data-tooltip={frozenColumns.length > 0 ? "Unfreeze columns" : "Freeze columns"}
+                      >
+                        <Snowflake className={`h-4 w-4 ${frozenColumns.length > 0 ? 'text-blue-600' : 'text-gray-600'}`} />
+                        {frozenColumns.length > 0 && <span className="ml-1 text-xs">{frozenColumns.length}</span>}
+                      </button>
+
+                      {/* Export Button with Dropdown */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowExportDropdown(!showExportDropdown)}
+                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 tooltip"
+                          data-tooltip="Export data"
+                        >
+                          <Download className="h-4 w-4" />
+                        </button>
+
+                        {/* Export Dropdown */}
+                        {showExportDropdown && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-40"
+                              onClick={() => setShowExportDropdown(false)}
+                            />
+                            <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-300 rounded shadow-lg z-50">
+                              <button
+                                onClick={() => handleExportClick('excel')}
+                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                              >
+                                Export as Excel
+                              </button>
+                              <button
+                                onClick={() => handleExportClick('csv')}
+                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                              >
+                                Export as CSV
+                              </button>
+                              <button
+                                onClick={() => handleExportClick('json')}
+                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                              >
+                                Export as JSON
+                              </button>
+                              <button
+                                onClick={() => handleExportClick('pdf')}
+                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                              >
+                                Export as PDF
+                              </button>
+                            </div>
+                          </>
                         )}
+                      </div>
+
+                      {/* Refresh Button */}
+                      <button
+                        onClick={handleRefresh}
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 whitespace-nowrap tooltip"
+                        data-tooltip="Refresh data"
+                        disabled={loading}
+                      >
+                        <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
                       </button>
                     </div>
-                  </th>
-                  {visibleColumns.map((col) => {
-                    const actualColumnIndex = columns.findIndex(c => c.id === col.id);
-                    return (
-                      <th
-                        key={col.id}
-                        className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap ${
-                          isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
-                        }`}
-                        onClick={() => col.sortable && handleSort(col.id)}
-                        style={{
-                          left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
-                          zIndex: isColumnFrozen(actualColumnIndex) ? 35 : 30
-                        }}
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span className="text-base">{col.label}</span>
-                          {col.required && <span className="text-red-300">*</span>}
-                          {col.sortable && getSortIcon(col.id)}
-                        </div>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
+                  </div>
+                </div>
 
-              <tbody>
-                {paginatedRules.map((rule, rowIndex) => {
-                  const actualRowIndex = (currentPage - 1) * pageSize + rowIndex;
-                  const isRowCurrentlyFrozen = isRowFrozen(actualRowIndex);
-                  
-                  return (
-                    <tr
-                      key={rule.accessRuleId}
-                      className={`border-b border-gray-200 hover:bg-gray-50 transition-colors ${
-                        isRowCurrentlyFrozen ? 'frozen-row' : ''
-                      }`}
-                      style={{
-                        top: isRowCurrentlyFrozen ? getFrozenRowTop(actualRowIndex) : 'auto'
-                      }}
-                    >
-                      {/* Checkbox cell */}
-                      <td 
-                        className={`py-3 px-8 whitespace-nowrap w-4 ${
-                          isColumnFrozen(0) ? 'frozen-column' : ''
-                        }`}
-                        style={{
-                          left: isColumnFrozen(0) ? '0' : 'auto',
-                          zIndex: isColumnFrozen(0) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto'
-                        }}
-                      >
-                        <div className="flex items-center justify-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedAccessRules.includes(rule.accessRuleId)}
-                            onChange={() => toggleAccessRuleSelection(rule.accessRuleId)}
-                            className="h-4 w-4 text-gray-600 border-gray-300 rounded focus:ring-gray-500"
-                          />
-                        </div>
-                      </td>
-                      {visibleColumns.map((col) => {
-                        const actualColumnIndex = columns.findIndex(c => c.id === col.id);
-                        return (
-                          <td 
-                            key={col.id} 
-                            className={`py-3 px-8 whitespace-nowrap min-w-[160px] text-base ${
-                              isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
+                {/* TABLE SECTION - SCROLLABLE */}
+                <div className="flex-1 overflow-auto relative">
+                  <table className="min-w-full text-sm border-collapse">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        {/* Checkbox column */}
+                        <th
+                          className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap w-8 ${isColumnFrozen(0) ? 'frozen-column' : ''
                             }`}
+                          style={{
+                            left: isColumnFrozen(0) ? '0' : 'auto',
+                            zIndex: isColumnFrozen(0) ? 35 : 30
+                          }}
+                        >
+                          <div className="flex items-center justify-center">
+                            <button
+                              onClick={toggleSelectAll}
+                              className="p-1 text-gray-700 hover:text-gray-900"
+                            >
+                              {selectAll ? (
+                                <CheckSquare className="h-4 w-4" />
+                              ) : (
+                                <Square className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
+                        </th>
+                        {visibleColumns.map((col) => {
+                          const actualColumnIndex = columns.findIndex(c => c.id === col.id);
+                          return (
+                            <th
+                              key={col.id}
+                              className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
+                                }`}
+                              onClick={() => col.sortable && handleSort(col.id)}
+                              style={{
+                                left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
+                                zIndex: isColumnFrozen(actualColumnIndex) ? 35 : 30
+                              }}
+                            >
+                              <div className="flex items-center space-x-1">
+                                <span className="font-semibold">{col.label}</span>
+                                {col.required && <span className="text-red-300">*</span>}
+                                {col.sortable && getSortIcon(col.id)}
+                              </div>
+                            </th>
+                          );
+                        })}
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {paginatedRules.map((rule, rowIndex) => {
+                        const actualRowIndex = (currentPage - 1) * pageSize + rowIndex;
+                        const isRowCurrentlyFrozen = isRowFrozen(actualRowIndex);
+
+                        return (
+                          <tr
+                            key={rule.accessRuleId}
+                            className={`transition-colors ${isRowCurrentlyFrozen ? 'frozen-row' : ''
+                              }`}
                             style={{
-                              left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
-                              zIndex: isColumnFrozen(actualColumnIndex) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto'
+                              top: isRowCurrentlyFrozen ? getFrozenRowTop(actualRowIndex) : 'auto'
                             }}
                           >
-                            {renderCellContent(col, rule[col.id], rule)}
-                          </td>
+                            {/* Checkbox cell */}
+                            <td
+                              className={`py-3 px-8 whitespace-nowrap w-4 ${isColumnFrozen(0) ? 'frozen-column' : ''
+                                }`}
+                              style={{
+                                left: isColumnFrozen(0) ? '0' : 'auto',
+                                zIndex: isColumnFrozen(0) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto'
+                              }}
+                            >
+                              <div className="flex items-center justify-center">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedAccessRules.includes(rule.accessRuleId)}
+                                  onChange={() => toggleAccessRuleSelection(rule.accessRuleId)}
+                                  className="h-4 w-4 text-gray-600 border-gray-300 rounded focus:ring-gray-500"
+                                />
+                              </div>
+                            </td>
+                            {visibleColumns.map((col) => {
+                              const actualColumnIndex = columns.findIndex(c => c.id === col.id);
+                              return (
+                                <td
+                                  key={col.id}
+                                  className={`py-3 px-8 whitespace-nowrap min-w-[160px] text-base ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
+                                    }`}
+                                  style={{
+                                    left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
+                                    zIndex: isColumnFrozen(actualColumnIndex) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto'
+                                  }}
+                                >
+                                  {renderCellContent(col, rule[col.id], rule)}
+                                </td>
+                              );
+                            })}
+                          </tr>
                         );
                       })}
-                    </tr>
-                  );
-                })}
-                
-                {/* Empty state */}
-                {paginatedRules.length === 0 && (
-                  <tr>
-                    <td colSpan={visibleColumns.length + 1} className="text-center py-8 text-gray-500">
-                      No access rules found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
 
-          {/* FOOTER SECTION */}
-          <div className="px-4 py-3 border-t border-gray-200 text-xs text-gray-900 flex flex-col sm:flex-row items-center justify-between gap-2 bg-white flex-shrink-0">
-            {/* LEFT SIDE - Add Employee and Action Buttons */}
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1">
-                <button
-                  onClick={handleAddEmployeeClick}
-                  className="flex items-center gap-1 h-10 px-3 text-xs border border-gray-300 rounded hover:bg-gray-50 tooltip"
-                  data-tooltip="Add access"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={toggleFreezeRow}
-                  className={`flex items-center gap-1 h-10 px-3 text-xs border rounded tooltip ${
-                    frozenRows.length > 0 
-                      ? 'bg-blue-50 text-blue-700 border-blue-300' 
-                      : 'border-gray-300 hover:bg-gray-50 text-gray-700'
-                  }`}
-                  data-tooltip={frozenRows.length > 0 ? "Unfreeze rows" : "Select rows to freeze"}
-                >
-                  <Snowflake className={`h-4 w-4 ${frozenRows.length > 0 ? 'text-blue-600' : 'text-gray-600'}`} />
-                  {frozenRows.length > 0 && <span className="ml-1 text-xs">{frozenRows.length}</span>}
-                </button>
-              </div>
-              
-              {/* Edit and Delete buttons - only show when rules are selected */}
-              {selectedAccessRules.length > 0 ? (
-                <div className="flex items-center gap-1 ml-1">
-                  <button
-                    onClick={handleBulkEdit}
-                    className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50"
-                    title="Edit selected access rule"
-                  >
-                    <Edit className="h-4 w-4" />
-                    {selectedAccessRules.length > 1 && <span>Edit ({selectedAccessRules.length})</span>}
-                  </button>
-                  
-                  <button
-                    onClick={handleBulkDelete}
-                    className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                    title={selectedAccessRules.length === 1 ? "Delete selected access rule" : "Delete selected access rules"}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    {selectedAccessRules.length > 1 && <span>Delete ({selectedAccessRules.length})</span>}
-                  </button>
+                      {/* Empty state */}
+                      {paginatedRules.length === 0 && (
+                        <tr>
+                          <td colSpan={visibleColumns.length + 1} className="text-center py-8 text-gray-500">
+                            No access rules found
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
-              ) : null}
-            </div>
-            
-            {/* RIGHT SIDE - Info, Pagination, and Column Count */}
-            <div className="flex items-center gap-4">
-              {/* Page Size Selector */}
-              <div className="flex items-center gap-2">
-                <span className="text-gray-600">Show:</span>
-                <select
-                  value={pageSize}
-                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                  className="px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-500"
-                >
-                  {pageSizeOptions.map(size => (
-                    <option key={size} value={size}>{size}</option>
-                  ))}
-                </select>
-              </div>
 
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className={`p-1 rounded ${
-                      currentPage === 1 
-                        ? 'text-gray-400 cursor-not-allowed' 
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                  
-                  {getPageNumbers().map(pageNum => (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`px-2 py-1 text-xs rounded ${
-                        currentPage === pageNum
-                          ? 'bg-blue-600 text-white'
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
-                  
-                  <button
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className={`p-1 rounded ${
-                      currentPage === totalPages 
-                        ? 'text-gray-400 cursor-not-allowed' 
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
+                {/* FOOTER SECTION */}
+                <div className="px-4 py-3 border-t border-gray-200 text-xs text-gray-900 flex flex-col sm:flex-row items-center justify-between gap-2 bg-white flex-shrink-0">
+                  {/* LEFT SIDE - Add Employee and Action Buttons */}
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <button
+                        onClick={handleAddEmployeeClick}
+                        className="flex items-center gap-1 h-10 px-3 text-xs border border-gray-300 rounded hover:bg-gray-50 tooltip"
+                        data-tooltip="Add access"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={toggleFreezeRow}
+                        className={`flex items-center gap-1 h-10 px-3 text-xs border rounded tooltip ${frozenRows.length > 0
+                          ? 'bg-blue-50 text-blue-700 border-blue-300'
+                          : 'border-gray-300 hover:bg-gray-50 text-gray-700'
+                          }`}
+                        data-tooltip={frozenRows.length > 0 ? "Unfreeze rows" : "Select rows to freeze"}
+                      >
+                        <Snowflake className={`h-4 w-4 ${frozenRows.length > 0 ? 'text-blue-600' : 'text-gray-600'}`} />
+                        {frozenRows.length > 0 && <span className="ml-1 text-xs">{frozenRows.length}</span>}
+                      </button>
+                    </div>
+
+                    {/* Edit and Delete buttons - only show when rules are selected */}
+                    {selectedAccessRules.length > 0 ? (
+                      <div className="flex items-center gap-1 ml-1">
+                        <button
+                          onClick={handleBulkEdit}
+                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50"
+                          title="Edit selected access rule"
+                        >
+                          <Edit className="h-4 w-4" />
+                          {selectedAccessRules.length > 1 && <span>Edit ({selectedAccessRules.length})</span>}
+                        </button>
+
+                        <button
+                          onClick={handleBulkDelete}
+                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                          title={selectedAccessRules.length === 1 ? "Delete selected access rule" : "Delete selected access rules"}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          {selectedAccessRules.length > 1 && <span>Delete ({selectedAccessRules.length})</span>}
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  {/* RIGHT SIDE - Info, Pagination, and Column Count */}
+                  <div className="flex items-center gap-4">
+                    {/* Page Size Selector */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-600">Show:</span>
+                      <select
+                        value={pageSize}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                        className="px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-500"
+                      >
+                        {pageSizeOptions.map(size => (
+                          <option key={size} value={size}>{size}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className={`p-1 rounded ${currentPage === 1
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </button>
+
+                        {getPageNumbers().map(pageNum => (
+                          <button
+                            key={pageNum}
+                            onClick={() => handlePageChange(pageNum)}
+                            className={`px-2 py-1 text-xs rounded ${currentPage === pageNum
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-700 hover:bg-gray-100'
+                              }`}
+                          >
+                            {pageNum}
+                          </button>
+                        ))}
+
+                        <button
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className={`p-1 rounded ${currentPage === totalPages
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-gray-700 hover:bg-gray-100'
+                            }`}
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+
+                    <span className="text-gray-600">
+                      Showing {paginatedRules.length} of {sortedRules.length} access rules
+                    </span>
+
+                    {selectedAccessRules.length > 0 && (
+                      <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                        {selectedAccessRules.length} selected
+                      </span>
+                    )}
+                    <span className="text-gray-600">
+                      ({visibleColumns.length} of {columns.length} columns visible)
+                    </span>
+                    {(frozenRows.length > 0 || frozenColumns.length > 0) && (
+                      <span className="px-2 py-1 freeze-indicator rounded text-xs flex items-center gap-1">
+                        <Snowflake className="h-3 w-3" />
+                        {frozenRows.length > 0 && frozenColumns.length > 0 ? `${frozenRows.length} row(s) & ${frozenColumns.length} col(s) frozen` :
+                          frozenRows.length > 0 ? `${frozenRows.length} row(s) frozen` : `${frozenColumns.length} col(s) frozen`}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              )}
-
-              <span className="text-gray-600">
-                Showing {paginatedRules.length} of {sortedRules.length} access rules
-              </span>
-              
-              {selectedAccessRules.length > 0 && (
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                  {selectedAccessRules.length} selected
-                </span>
-              )}
-              <span className="text-gray-600">
-                ({visibleColumns.length} of {columns.length} columns visible)
-              </span>
-              {(frozenRows.length > 0 || frozenColumns.length > 0) && (
-                <span className="px-2 py-1 freeze-indicator rounded text-xs flex items-center gap-1">
-                  <Snowflake className="h-3 w-3" />
-                  {frozenRows.length > 0 && frozenColumns.length > 0 ? `${frozenRows.length} row(s) & ${frozenColumns.length} col(s) frozen` : 
-                   frozenRows.length > 0 ? `${frozenRows.length} row(s) frozen` : `${frozenColumns.length} col(s) frozen`}
-                </span>
-              )}
-            </div>
+              </>
+            )}
           </div>
-          </>
-          )}
         </div>
-      </div>
+      </>
     </div>
   );
 };
