@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   File, User, ChevronRight,
@@ -2102,19 +2103,20 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
       {/* Dashboard Configuration Modal */}
       {
-        showConfigModal && (
+        showConfigModal && createPortal(
           <DashboardConfigModal
             isOpen={showConfigModal}
             onClose={() => setShowConfigModal(false)}
             onApply={handleDashboardConfigApply}
             selectedProject={selectedProject}
-          />
+          />,
+          document.body
         )
       }
 
       {/* Stage Configuration Modal */}
       {
-        configuringStage && (
+        configuringStage && createPortal(
           <StageConfigModal
             stage={configuringStage}
             isOpen={true}
@@ -2122,13 +2124,14 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
             departmentColumns={departmentColumns}
             onSave={handleStageConfig}
             currentConfig={stageConfigs[configuringStage.id]}
-          />
+          />,
+          document.body
         )
       }
 
       {/* Full Screen Chart Modal */}
       {
-        fullScreenStage && (
+        fullScreenStage && createPortal(
           <FullScreenChartModal
             stage={fullScreenStage}
             isOpen={true}
@@ -2137,13 +2140,14 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
             distribution={stageDistribution[fullScreenStage.id] || []}
             chartType={stageChartTypes[fullScreenStage.id] || 'bar'}
             onChartTypeChange={handleChartTypeChange}
-          />
+          />,
+          document.body
         )
       }
 
       {/* Header Configuration Modal */}
       {
-        showHeaderConfig && departmentFiles.length > 0 && (
+        showHeaderConfig && departmentFiles.length > 0 && createPortal(
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-8">
@@ -2179,13 +2183,14 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                 </div>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )
       }
 
       {/* Email Modal - Made bigger */}
       {
-        showEmailModal && (
+        showEmailModal && createPortal(
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-8">
@@ -2306,7 +2311,8 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                 </div>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )
       }
     </div >
