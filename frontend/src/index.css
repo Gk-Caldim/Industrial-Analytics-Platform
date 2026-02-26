@@ -230,4 +230,98 @@
   .header-profile-btn {
     @apply w-11 h-11 rounded-full flex items-center justify-center text-white font-semibold text-base shadow-md hover:shadow-lg hover:ring-4 hover:ring-indigo-50 bg-gradient-to-br from-indigo-600 to-sky-600 transition-all cursor-pointer;
   }
+
+  /* ========================================================================== */
+  /* PAGE TRANSITION ANIMATION                                                   */
+  /* ========================================================================== */
+
+  .page-transition-overlay {
+    @apply absolute inset-0 flex items-center justify-center z-50;
+    background: rgba(248, 250, 252, 0.65);
+    backdrop-filter: blur(2px);
+    animation: overlayFadeIn 0.15s ease-out forwards;
+  }
+
+  .page-transition-loader {
+    @apply flex flex-col items-center justify-center gap-4;
+    animation: loaderPulse 0.8s ease-in-out infinite alternate;
+  }
+
+  .page-transition-spinner {
+    @apply relative;
+    width: 44px;
+    height: 44px;
+  }
+
+  .spinner-ring {
+    @apply absolute inset-0 rounded-full;
+    border: 2.5px solid transparent;
+    border-top-color: #6366f1;
+    animation: spinnerRotate 0.75s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  }
+
+  .spinner-ring-2 {
+    @apply absolute rounded-full;
+    inset: 4px;
+    border: 2.5px solid transparent;
+    border-top-color: #818cf8;
+    animation: spinnerRotate 1s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite reverse;
+  }
+
+  .spinner-ring-3 {
+    @apply absolute rounded-full;
+    inset: 8px;
+    border: 2px solid transparent;
+    border-top-color: #c7d2fe;
+    animation: spinnerRotate 0.6s linear infinite;
+  }
+
+  /* Page content fade transitions */
+  .page-content-wrapper {
+    @apply h-full w-full;
+    transition: opacity 0.18s ease-out, transform 0.18s ease-out;
+  }
+
+  .page-content-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .page-content-hidden {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* Keyframes must be outside @layer for Tailwind compatibility */
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes loaderPulse {
+  from {
+    transform: scale(0.96);
+    opacity: 0.7;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes spinnerRotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }

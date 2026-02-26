@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import ReactDOM from 'react-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -140,6 +140,11 @@ const Dashboard = () => {
 
   const [sidebarHovered, setSidebarHovered] = useState(false);
   const [hoveredModule, setHoveredModule] = useState(null);
+
+  // Page transition state
+  const [isPageTransitioning, setIsPageTransitioning] = useState(false);
+  const [contentVisible, setContentVisible] = useState(true);
+  const transitionTimeoutRef = useRef(null);
 
   const sidebarRef = useRef(null);
 
@@ -482,41 +487,56 @@ const Dashboard = () => {
   // HANDLE MODULE CLICK - UPDATED to match Masters behavior
   // ==========================================================================
   const handleModuleClick = (moduleId) => {
-    setActiveModule(moduleId);
+    // If clicking the same module, do nothing
+    if (moduleId === activeModule) return;
 
-    // ==========================================================================
-    // FIXED: Only clear the selected file for the module we're leaving
-    // ==========================================================================
-    if (moduleId !== 'project-dashboard') {
-      // Clear project file selection when leaving project dashboard
-      setSelectedProjectFileId(null);
+    // Start page transition - fade out current content
+    setContentVisible(false);
+    setIsPageTransitioning(true);
+
+    // Clear any pending transition
+    if (transitionTimeoutRef.current) {
+      clearTimeout(transitionTimeoutRef.current);
     }
 
-    if (moduleId !== 'upload-trackers') {
-      // Clear upload file selection when leaving upload trackers
-      setSelectedUploadFileId(null);
-    }
+    // After fade-out completes, swap the module and fade in
+    transitionTimeoutRef.current = setTimeout(() => {
+      setActiveModule(moduleId);
 
-    // For main modules with submodules, handle expansion differently
-    if (moduleId === 'project-dashboard') {
-      // Only expand if it has content and is currently closed
-      // Don't toggle - just ensure it's expanded when clicked
-      if (projectDashboardModules.length > 0 && !expandedModules['project-dashboard']) {
-        setExpandedModules(prev => ({ ...prev, 'project-dashboard': true }));
+      // ==========================================================================
+      // FIXED: Only clear the selected file for the module we're leaving
+      // ==========================================================================
+      if (moduleId !== 'project-dashboard') {
+        setSelectedProjectFileId(null);
       }
-      // If it's already expanded, keep it expanded (don't collapse)
-    } else if (moduleId === 'masters-main') {
-      // Masters - toggle expansion (has submodules) - KEEP ORIGINAL BEHAVIOR
-      setExpandedModules(prev => ({
-        ...prev,
-        'masters': !prev['masters']
-      }));
-    } else if (moduleId === 'upload-trackers') {
-      // Upload Trackers - match Project Dashboard behavior
-      if (uploadTrackerModules.length > 0 && !expandedModules['upload-trackers']) {
-        setExpandedModules(prev => ({ ...prev, 'upload-trackers': true }));
+      if (moduleId !== 'upload-trackers') {
+        setSelectedUploadFileId(null);
       }
-    }
+
+      // For main modules with submodules, handle expansion differently
+      if (moduleId === 'project-dashboard') {
+        if (projectDashboardModules.length > 0 && !expandedModules['project-dashboard']) {
+          setExpandedModules(prev => ({ ...prev, 'project-dashboard': true }));
+        }
+      } else if (moduleId === 'masters-main') {
+        setExpandedModules(prev => ({
+          ...prev,
+          'masters': !prev['masters']
+        }));
+      } else if (moduleId === 'upload-trackers') {
+        if (uploadTrackerModules.length > 0 && !expandedModules['upload-trackers']) {
+          setExpandedModules(prev => ({ ...prev, 'upload-trackers': true }));
+        }
+      }
+
+      // Fade in the new content after a brief moment
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          setIsPageTransitioning(false);
+          setContentVisible(true);
+        }, 60);
+      });
+    }, 200);
   };
 
   // ==========================================================================
@@ -974,7 +994,7 @@ const Dashboard = () => {
       `}</style>
 
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar 
+        <Sidebar
           activeModule={activeModule}
           hoveredModule={hoveredModule}
           setHoveredModule={setHoveredModule}
@@ -995,7 +1015,7 @@ const Dashboard = () => {
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-transparent">
-          <Header 
+          <Header
             title={getHeaderTitle()}
             user={user}
             logout={logout}
@@ -1007,8 +1027,22 @@ const Dashboard = () => {
           {/* Main Content */}
           <main className="flex-1 min-h-0 overflow-hidden bg-transparent">
             <div className={activeModule === 'project-dashboard' ? 'pl-6 pr-0.5 py-6 h-full' : 'p-6 h-full'}>
-              <div className="bg-transparent rounded-lg h-full overflow-auto">
-                {getActiveComponent()}
+              <div className="bg-transparent rounded-lg h-full overflow-auto relative">
+                {/* Page Transition Loading Overlay */}
+                {isPageTransitioning && (
+                  <div className="page-transition-overlay">
+                    <div className="page-transition-loader">
+                      <div className="page-transition-spinner">
+                        <div className="spinner-ring"></div>
+                        <div className="spinner-ring spinner-ring-2"></div>
+                        <div className="spinner-ring spinner-ring-3"></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div className={`page-content-wrapper ${contentVisible ? 'page-content-visible' : 'page-content-hidden'}`}>
+                  {getActiveComponent()}
+                </div>
               </div>
             </div>
           </main>
