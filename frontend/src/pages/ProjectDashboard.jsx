@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  File, User, ChevronRight, 
+import {
+  File, User, ChevronRight,
   AlertCircle, X, Eye, ChevronDown, ChevronUp,
   BarChart2, PieChart, TrendingUp, Mail, Send,
   CheckSquare, Filter, Download, RefreshCw, Folder,
@@ -23,23 +23,61 @@ import {
 
 import FileContentViewer from './Trackers/FileContentViewer';
 
-// Dummy data for milestones - Updated structure with Plan and Actual/Outlook
-const DUMMY_MILESTONES = [
-  { id: 1, name: 'Requirements Gathering', plan: '2024-03-15', actual: '2024-03-14', outlook: 'Completed', status: 'Completed' },
-  { id: 2, name: 'Design Phase', plan: '2024-04-01', actual: '2024-03-28', outlook: '2024-04-05', status: 'Ahead' },
-  { id: 3, name: 'Development Sprint 1', plan: '2024-04-30', actual: 'In Progress', outlook: '2024-05-05', status: 'At Risk' },
-  { id: 4, name: 'QA Testing', plan: '2024-05-15', actual: 'Not Started', outlook: '2024-05-20', status: 'Pending' },
-  { id: 5, name: 'User Acceptance Testing', plan: '2024-05-30', actual: 'Not Started', outlook: '2024-06-05', status: 'Pending' },
-  { id: 6, name: 'Production Release', plan: '2024-06-15', actual: 'Not Started', outlook: '2024-06-20', status: 'Planned' },
+// Milestone stages (columns in the timeline)
+const MILESTONE_STAGES = [
+  { id: 'l0drg', label: 'L0 Drg' },
+  { id: 'l1drg', label: 'L1 Drg' },
+  { id: 'qsvob', label: 'QS/VOB' },
+  { id: 'tko', label: 'Exclusive TKO' },
+  { id: 'gen2build', label: 'Gen2 Build' },
+  { id: 'gen2val', label: 'Gen2 Validation' },
+  { id: 'gen2cbuild', label: 'Gen2C Build' },
+  { id: 'reval', label: 'Revalidation & Seeding Build' },
+  { id: 'pp1', label: 'PP1' },
+  { id: 'pp2', label: 'PP2' },
+  { id: 'sop', label: 'SOP' },
+  { id: 'sovp', label: 'SOVP' },
 ];
+
+// Plan row & Actual/Outlook row – keyed by stage id
+const MILESTONE_PLAN = {
+  l0drg: "Apr'22", l1drg: "Sep'22", qsvob: "Sep'22–Nov'22", tko: "Jun'22–Mar'23",
+  gen2build: "Apr'23–Jun'23", gen2val: "May'23–Feb'24", gen2cbuild: "Sep'23",
+  reval: "Oct'24–Nov'24", pp1: "Mar'25", pp2: "Apr'25", sop: "Jul'25", sovp: "Aug'25"
+};
+const MILESTONE_ACTUAL = {
+  l0drg: { value: "✔", status: 'done' },
+  l1drg: { value: "✔", status: 'done' },
+  qsvob: { value: "✔", status: 'done' },
+  tko: { value: "✔", status: 'done' },
+  gen2build: { value: "Jun'23", status: 'delayed' },
+  gen2val: { value: "Jun'23–Feb'24", status: 'done' },
+  gen2cbuild: { value: "Sep'23", status: 'done' },
+  reval: { value: "Oct'24–Nov'24", status: 'pending' },
+  pp1: { value: "Mar'25", status: 'pending' },
+  pp2: { value: "May'25", status: 'at-risk' },
+  sop: { value: '', status: 'pending' },
+  sovp: { value: '', status: 'pending' },
+};
 
 // Dummy data for critical issues
 const DUMMY_ISSUES = [
-  { id: 1, title: 'Database connection timeout', severity: 'High', status: 'In Progress', assignee: 'John Doe', dueDate: '2024-03-20' },
-  { id: 2, title: 'API rate limiting exceeded', severity: 'Critical', status: 'Open', assignee: 'Jane Smith', dueDate: '2024-03-18' },
-  { id: 3, title: 'Memory leak in production', severity: 'Critical', status: 'In Progress', assignee: 'Mike Johnson', dueDate: '2024-03-19' },
-  { id: 4, title: 'UI rendering issue on mobile', severity: 'Medium', status: 'Open', assignee: 'Sarah Wilson', dueDate: '2024-03-25' },
-  { id: 5, title: 'Security vulnerability in auth', severity: 'Critical', status: 'Open', assignee: 'Security Team', dueDate: '2024-03-17' },
+  {
+    id: 1,
+    issue: 'Automatic Sealant dispenser installation pending at Nagpur main line. Machine received at plant, but installation delayed due to current production priorities at main line. However machine is established in 1 bar line.',
+    resp: 'CME',
+    supportRequired: 'Installation as per plan',
+    fromWhom: 'Mangesh',
+    status: 'Open',
+  },
+  {
+    id: 2,
+    issue: 'ORC Parts Development Progress\n1. Conrod Bolt – Assembled conrod required for fatigue testing. 8 samples each from bolt suppliers to be sent to both conrod suppliers (Shashank)\n2. Crank case (3DI & 4DI) – No progress in semi finish investment approval. Impact on Implementation. (Shashank)\n3. Thrust Bearing (KSPG) – KSPG has shared updated proposal. Feedback awaited from Design (Deepak)\n4. PIX Belt – Validation failed on 3 cyl at 453 hrs. Supplier feedback to be verified at tractor & to be further discussed with supplier for closure. 4 cyl validation completed (2×800 hrs). Supplier final DVP to be signed off\n5. CONTI Belt – Development with EPDM material to be started. Communication to CDMM to be initiated (Twisha)\n6. VHC Cover – Feasibility closure & SOR sign off delayed. Impact on validation & Implementation (Deepak)',
+    resp: 'Mentioned in each line',
+    supportRequired: 'Expediting Development',
+    fromWhom: 'Dr. Ramesh Tarun & Milind',
+    status: 'In Progress',
+  },
 ];
 
 // Project stages configuration with embedded charts
@@ -61,7 +99,7 @@ const CustomTooltip = ({ active, payload, label }) => {
         {payload.map((entry, index) => {
           const valueColor = entry.color || entry.fill || '#2563eb';
           const value = entry.value;
-          
+
           // Format value based on type
           let formattedValue = value;
           if (typeof value === 'number') {
@@ -71,7 +109,7 @@ const CustomTooltip = ({ active, payload, label }) => {
               formattedValue = value.toFixed(2);
             }
           }
-          
+
           return (
             <div key={index} className="flex items-center justify-between text-sm mb-1">
               <span style={{ color: valueColor }} className="font-medium">
@@ -211,36 +249,32 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
             <span className="text-base text-gray-600">Chart Type:</span>
             <button
               onClick={() => handleChartTypeChange('bar')}
-              className={`px-4 py-2 rounded-lg text-base flex items-center ${
-                localChartType === 'bar' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg text-base flex items-center ${localChartType === 'bar' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               <BarChart2 className="h-4 w-4 mr-2" />
               Bar
             </button>
             <button
               onClick={() => handleChartTypeChange('pie')}
-              className={`px-4 py-2 rounded-lg text-base flex items-center ${
-                localChartType === 'pie' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg text-base flex items-center ${localChartType === 'pie' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               <PieChart className="h-4 w-4 mr-2" />
               Pie
             </button>
             <button
               onClick={() => handleChartTypeChange('line')}
-              className={`px-4 py-2 rounded-lg text-base flex items-center ${
-                localChartType === 'line' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg text-base flex items-center ${localChartType === 'line' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               <TrendingUp className="h-4 w-4 mr-2" />
               Line
             </button>
             <button
               onClick={() => handleChartTypeChange('area')}
-              className={`px-4 py-2 rounded-lg text-base flex items-center ${
-                localChartType === 'area' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg text-base flex items-center ${localChartType === 'area' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
             >
               <AreaIcon className="h-4 w-4 mr-2" />
               Area
@@ -254,24 +288,24 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
                 {localChartType === 'bar' && (
                   <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45} 
-                      textAnchor="end" 
-                      height={80} 
+                    <XAxis
+                      dataKey="name"
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
                       interval={0}
                       tick={{ fontSize: 12 }}
                     />
                     <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend 
+                    <Legend
                       wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
                       layout="horizontal"
                       verticalAlign="bottom"
                       align="center"
                     />
                     {distribution.map((item, index) => (
-                      <Bar 
+                      <Bar
                         key={item.name}
                         dataKey={item.name}
                         stackId={item.name !== 'value' && item.name !== 'sum' && item.name !== 'average' ? "a" : undefined}
@@ -305,11 +339,11 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
                 {localChartType === 'line' && (
                   <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45} 
-                      textAnchor="end" 
-                      height={80} 
+                    <XAxis
+                      dataKey="name"
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
                       interval={0}
                       tick={{ fontSize: 12 }}
                     />
@@ -317,7 +351,7 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
                     {distribution.map((item) => (
-                      <Line 
+                      <Line
                         key={item.name}
                         type="monotone"
                         dataKey={item.name}
@@ -332,11 +366,11 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
                 {localChartType === 'area' && (
                   <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis 
-                      dataKey="name" 
-                      angle={-45} 
-                      textAnchor="end" 
-                      height={80} 
+                    <XAxis
+                      dataKey="name"
+                      angle={-45}
+                      textAnchor="end"
+                      height={80}
                       interval={0}
                       tick={{ fontSize: 12 }}
                     />
@@ -344,7 +378,7 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
                     <Tooltip content={<CustomTooltip />} />
                     <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
                     {distribution.map((item) => (
-                      <Area 
+                      <Area
                         key={item.name}
                         type="monotone"
                         dataKey={item.name}
@@ -403,28 +437,28 @@ const MiniChart = ({ chartData, statusDistribution, chartType = 'bar' }) => {
           </RePieChart>
         ) : chartType === 'line' ? (
           <LineChart data={miniData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-            <Line 
-              type="monotone" 
-              dataKey={statusDistribution[0]?.name || 'value'} 
-              stroke={statusDistribution[0]?.color || '#2563eb'} 
+            <Line
+              type="monotone"
+              dataKey={statusDistribution[0]?.name || 'value'}
+              stroke={statusDistribution[0]?.color || '#2563eb'}
               strokeWidth={2}
               dot={false}
             />
           </LineChart>
         ) : chartType === 'area' ? (
           <AreaChart data={miniData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-            <Area 
-              type="monotone" 
-              dataKey={statusDistribution[0]?.name || 'value'} 
-              stroke={statusDistribution[0]?.color || '#2563eb'} 
-              fill={statusDistribution[0]?.color || '#2563eb'} 
+            <Area
+              type="monotone"
+              dataKey={statusDistribution[0]?.name || 'value'}
+              stroke={statusDistribution[0]?.color || '#2563eb'}
+              fill={statusDistribution[0]?.color || '#2563eb'}
               fillOpacity={0.3}
             />
           </AreaChart>
         ) : (
           <BarChart data={miniData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
             {statusDistribution.map((item) => (
-              <Bar 
+              <Bar
                 key={item.name}
                 dataKey={item.name}
                 stackId="a"
@@ -459,8 +493,8 @@ const DashboardConfigModal = ({ isOpen, onClose, onApply, selectedProject }) => 
   if (!isOpen) return null;
 
   const handleMetricToggle = (stageId) => {
-    setSelectedMetrics(prev => 
-      prev.includes(stageId) 
+    setSelectedMetrics(prev =>
+      prev.includes(stageId)
         ? prev.filter(id => id !== stageId)
         : [...prev, stageId]
     );
@@ -601,15 +635,15 @@ const FileHeaderConfigItem = ({ fileModule, fileHeaderConfig, onConfigure }) => 
   const [localRowCount, setLocalRowCount] = useState(fileHeaderConfig.rowCount);
 
   // Preview first few rows
-  const previewRows = fileModule.fileData?.data?.slice(0, 5) || 
-                     fileModule.fileData?.sheets?.[0]?.data?.slice(0, 5) || [];
+  const previewRows = fileModule.fileData?.data?.slice(0, 5) ||
+    fileModule.fileData?.sheets?.[0]?.data?.slice(0, 5) || [];
 
   return (
     <div className="border border-gray-200 rounded-lg p-4">
       <h4 className="font-medium text-gray-900 mb-3">
         {fileModule.displayName || fileModule.name}
       </h4>
-      
+
       {/* Header row count selector */}
       <div className="mb-4">
         <label className="text-sm font-medium text-gray-700 mb-2 block">
@@ -718,7 +752,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
   // Chart colors
   const PIE_COLORS = [
-    '#2563eb', '#10b981', '#f59e0b', '#ef4444', 
+    '#2563eb', '#10b981', '#f59e0b', '#ef4444',
     '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6',
     '#f97316', '#6366f1', '#d946ef', '#0ea5e9',
     '#84cc16', '#a855f7', '#ec4899', '#64748b'
@@ -727,13 +761,13 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
   // Function to generate a color based on string value
   const getColorForValue = (value, index) => {
     if (!value) return PIE_COLORS[index % PIE_COLORS.length];
-    
+
     let hash = 0;
     for (let i = 0; i < value.length; i++) {
       hash = ((hash << 5) - hash) + value.charCodeAt(i);
       hash = hash & hash;
     }
-    
+
     const colorIndex = Math.abs(hash) % PIE_COLORS.length;
     return PIE_COLORS[colorIndex];
   };
@@ -741,11 +775,11 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
   // Function to check if a column contains numeric values
   const isNumericColumn = (values) => {
     if (!values || values.length === 0) return false;
-    
+
     let numericCount = 0;
     for (const val of values) {
       if (val === null || val === undefined || val === '') continue;
-      
+
       if (typeof val === 'number') {
         numericCount++;
       } else if (typeof val === 'string') {
@@ -755,7 +789,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
         }
       }
     }
-    
+
     return numericCount > values.length * 0.3;
   };
 
@@ -787,7 +821,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       if (sheet.data && Array.isArray(sheet.data)) {
         const dataRows = sheet.data.slice(headerRowCount);
         const headers = extractHeadersFromFileData(fileData);
-        
+
         dataRows.forEach(row => {
           if (Array.isArray(row)) {
             const rowObj = {};
@@ -816,20 +850,20 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
     if (fileData.data && Array.isArray(fileData.data)) {
       if (fileData.headerConfig) {
         const { rowCount } = fileData.headerConfig;
-        
+
         if (rowCount > 1) {
           const headerRows = fileData.data.slice(0, rowCount);
-          
+
           for (let colIndex = 0; colIndex < (headerRows[0]?.length || 0); colIndex++) {
             let combinedHeader = '';
-            
+
             for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
               const cellValue = headerRows[rowIndex]?.[colIndex] || '';
               if (cellValue) {
                 combinedHeader += (combinedHeader ? ' - ' : '') + cellValue;
               }
             }
-            
+
             headers.push(combinedHeader || `Column ${colIndex + 1}`);
           }
         } else {
@@ -867,20 +901,20 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       if (sheet.data && sheet.data.length > 0) {
         if (sheet.headerConfig) {
           const { rowCount } = sheet.headerConfig;
-          
+
           if (rowCount > 1) {
             const headerRows = sheet.data.slice(0, rowCount);
-            
+
             for (let colIndex = 0; colIndex < (headerRows[0]?.length || 0); colIndex++) {
               let combinedHeader = '';
-              
+
               for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
                 const cellValue = headerRows[rowIndex]?.[colIndex] || '';
                 if (cellValue) {
                   combinedHeader += (combinedHeader ? ' - ' : '') + cellValue;
                 }
               }
-              
+
               headers.push(combinedHeader || `Column ${colIndex + 1}`);
             }
           } else {
@@ -908,13 +942,13 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
   // Function to extract all rows from department files
   const extractAllRows = () => {
     let allRows = [];
-    
+
     departmentFiles.forEach((file) => {
       const fileHeaderCount = file.fileData?.headerConfig?.rowCount || 1;
       const dataRows = extractDataRowsFromFile(file.fileData, fileHeaderCount);
       allRows = [...allRows, ...dataRows];
     });
-    
+
     return allRows;
   };
 
@@ -940,13 +974,13 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
       if (isYAxisNumeric) {
         const aggregatedData = {};
-        
+
         allRows.forEach(row => {
           const xValue = row[xAxis];
           let yValue = row[yAxis];
-          
+
           if (xValue === undefined || xValue === null) return;
-          
+
           let numericValue = 0;
           if (yValue !== undefined && yValue !== null && yValue !== '') {
             if (typeof yValue === 'number') {
@@ -959,9 +993,9 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
               }
             }
           }
-          
+
           const key = String(xValue);
-          
+
           if (!aggregatedData[key]) {
             aggregatedData[key] = {
               name: String(xValue).substring(0, 30) + (String(xValue).length > 30 ? '...' : ''),
@@ -971,7 +1005,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
               sum: 0
             };
           }
-          
+
           aggregatedData[key].sum += numericValue;
           aggregatedData[key].count += 1;
           aggregatedData[key].value = aggregatedData[key].sum;
@@ -994,20 +1028,20 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
             fullName: xValue,
             total: 0
           };
-          
+
           uniqueYValues.forEach(yValue => {
             item[yValue] = 0;
           });
-          
+
           return item;
         });
 
         allRows.forEach(row => {
           const xValue = row[xAxis];
           const yValue = row[yAxis];
-          
+
           if (xValue === undefined || xValue === null) return;
-          
+
           if (yValue === undefined || yValue === null || yValue === '') {
             const xIndex = uniqueXValues.findIndex(x => String(x) === String(xValue));
             if (xIndex !== -1) {
@@ -1015,7 +1049,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
             }
             return;
           }
-          
+
           const xIndex = uniqueXValues.findIndex(x => String(x) === String(xValue));
           if (xIndex !== -1) {
             const yKey = String(yValue);
@@ -1037,10 +1071,10 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
   // Generate distribution data
   const generateDistribution = (chartData, xAxis, yAxis, allRows) => {
     if (!chartData || chartData.length === 0) return [];
-    
+
     const yValues = allRows.map(row => row[yAxis]).filter(v => v !== undefined && v !== null && v !== '');
     const isYAxisNumeric = isNumericColumn(yValues);
-    
+
     if (isYAxisNumeric) {
       return chartData.map((item, index) => ({
         name: item.fullName || item.name,
@@ -1050,7 +1084,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       }));
     } else {
       const distribution = {};
-      
+
       chartData.forEach(item => {
         Object.keys(item).forEach(key => {
           if (key !== 'name' && key !== 'fullName' && key !== 'total' && typeof item[key] === 'number') {
@@ -1061,7 +1095,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
           }
         });
       });
-      
+
       return Object.entries(distribution)
         .map(([name, value], index) => ({
           name,
@@ -1102,23 +1136,23 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
           });
         }
       });
-      
+
       setDepartmentFiles(files);
-      
+
       // Extract columns from all files
       const columns = extractColumnsFromFiles(files);
       setDepartmentColumns(columns);
-      
+
       // Extract employees from all files
       const employees = extractEmployeesFromFiles(files);
       setDepartmentEmployees(employees);
-      
+
       // Reset stage configs when changing project
       setStageConfigs({});
       setStageChartData({});
       setStageDistribution({});
       setStageChartTypes({});
-      
+
       // Reset dashboard config to all hidden
       setDashboardConfig({
         milestones: false,
@@ -1162,12 +1196,12 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       const allRows = extractAllRows();
       const data = generateEnhancedChartData(departmentFiles, xAxis, yAxis);
       const distribution = generateDistribution(data, xAxis, yAxis, allRows);
-      
+
       setStageChartData({
         ...stageChartData,
         [stageId]: data
       });
-      
+
       setStageDistribution({
         ...stageDistribution,
         [stageId]: distribution
@@ -1197,7 +1231,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       projectModuleId: null,
       source: null
     });
-    
+
     setSelectedProjectId('');
     setSelectedProject(null);
     setDepartmentFiles([]);
@@ -1208,7 +1242,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
     setStageDistribution({});
     setStageChartTypes({});
     setSelectedEmployees([]);
-    
+
     // Reset dashboard config to all hidden
     setDashboardConfig({
       milestones: false,
@@ -1256,7 +1290,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
   // Configure file headers
   const configureFileHeaders = (fileModule, rowCount, selectedHeaders) => {
-    const updatedFileData = { 
+    const updatedFileData = {
       ...fileModule.fileData,
       headerConfig: {
         rowCount
@@ -1271,7 +1305,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
     setUploadedFilesData(newFilesData);
     localStorage.setItem('uploaded_files_data', JSON.stringify(newFilesData));
 
-    const updatedFiles = departmentFiles.map(f => 
+    const updatedFiles = departmentFiles.map(f =>
       f.trackerId === fileModule.trackerId ? { ...f, fileData: updatedFileData } : f
     );
     setDepartmentFiles(updatedFiles);
@@ -1329,8 +1363,8 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
   };
 
   const toggleEmployeeSelection = (employeeId) => {
-    setSelectedEmployees(prev => 
-      prev.includes(employeeId) 
+    setSelectedEmployees(prev =>
+      prev.includes(employeeId)
         ? prev.filter(id => id !== employeeId)
         : [...prev, employeeId]
     );
@@ -1350,7 +1384,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       const savedModules = localStorage.getItem('project_dashboard_modules');
       const allModules = savedModules ? JSON.parse(savedModules) : [];
 
-      const projectModules = allModules.filter(m => 
+      const projectModules = allModules.filter(m =>
         m.type === 'project' && m.context === 'project-dashboard'
       );
 
@@ -1450,13 +1484,13 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
     if (!trackerInfo || !fileData) return;
 
-      setSelectedFile({
-        isSelected: true,
-        fileData: fileData,
-        trackerInfo: trackerInfo,
-        projectModuleId: projectModule.moduleId,
-        source: 'project-dashboard'
-      });
+    setSelectedFile({
+      isSelected: true,
+      fileData: fileData,
+      trackerInfo: trackerInfo,
+      projectModuleId: projectModule.moduleId,
+      source: 'project-dashboard'
+    });
   };
 
   // ==========================================================================
@@ -1470,7 +1504,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       projectModuleId: null,
       source: null
     });
-    
+
     // Reset everything to go to empty state
     setSelectedProjectId('');
     setSelectedProject(null);
@@ -1482,14 +1516,14 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
     setStageDistribution({});
     setStageChartTypes({});
     setSelectedEmployees([]);
-    
+
     setDashboardConfig({
       milestones: false,
       criticalIssues: false,
       metrics: false,
       selectedMetrics: []
     });
-    
+
     // Notify Dashboard to clear selection and stay in project dashboard
     window.dispatchEvent(new CustomEvent('closeProjectDashboardFile', { detail: { from: 'projectDashboard' } }));
   };
@@ -1537,7 +1571,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
         });
       }
       setDepartmentFiles(files);
-      
+
       const columns = extractColumnsFromFiles(files);
       setDepartmentColumns(columns);
     }
@@ -1549,45 +1583,61 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #1e40af 100%)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
-          <h3 className="text-lg font-medium text-gray-900">Loading Projects...</h3>
+          <div className="relative mx-auto mb-6" style={{ width: 64, height: 64 }}>
+            <div className="absolute inset-0 rounded-full border-4 border-blue-900"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-t-blue-400 border-r-transparent border-b-transparent border-l-transparent animate-spin"></div>
+            <div className="absolute inset-2 rounded-full" style={{ background: 'rgba(59,130,246,0.15)' }}></div>
+          </div>
+          <h3 className="text-lg font-semibold text-white tracking-wide">Loading Projects</h3>
+          <p className="text-blue-300 text-sm mt-1">Fetching your workspace data…</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+    <div className="min-h-screen" style={{ background: '#f0f4f8' }}>
+      {/* Top Bar */}
       {!selectedFile.isSelected && (
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="bg-white px-6 py-3" style={{ borderBottom: '1px solid #e2e8f0' }}>
           <div className="flex items-center justify-between">
-            
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: '#eef2ff' }}>
+                <BarChart2 className="h-4 w-4 text-indigo-500" />
+              </div>
+              <span className="text-slate-700 font-semibold text-sm">Industrial Analytics Platform</span>
+              <span className="text-slate-400 text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>Project Dashboard</span>
+            </div>
+
             {/* Project Selector */}
-            <div className="w-96">
+            <div className="flex items-center gap-3">
               {projectModules.length === 0 ? (
                 <button
                   onClick={() => navigate('/dashboard', { state: { module: 'upload-trackers' } })}
-                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm flex items-center justify-center"
+                  className="px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm flex items-center font-medium hover:bg-indigo-600 transition-colors"
                 >
                   <File className="h-4 w-4 mr-2" />
                   Upload Trackers
                 </button>
               ) : (
-                <select
-                  value={selectedProjectId}
-                  onChange={(e) => handleProjectSelect(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-                >
-                  <option value="">Select a project</option>
-                  {projectModules.map(project => (
-                    <option key={project.id} value={project.id}>
-                      {project.name} ({project.submodules?.length || 0} files)
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    value={selectedProjectId}
+                    onChange={(e) => handleProjectSelect(e.target.value)}
+                    className="appearance-none pl-4 pr-10 py-2 text-sm font-medium text-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 cursor-pointer bg-white"
+                    style={{ border: '1px solid #d1d5db', minWidth: '280px' }}
+                  >
+                    <option value="">— Select a project —</option>
+                    {projectModules.map(project => (
+                      <option key={project.id} value={project.id}>
+                        {project.name} ({project.submodules?.length || 0} files)
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+                </div>
               )}
             </div>
           </div>
@@ -1595,7 +1645,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
       )}
 
       {/* Main Content */}
-      <div className="p-6">
+      <div className="p-6" style={{ minHeight: 'calc(100vh - 56px)' }}>
         {selectedProject ? (
           <div>
             {/* File Viewer (if file selected) */}
@@ -1620,119 +1670,283 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
             {/* Main Project Container - Only show when no file is selected */}
             {!selectedFile.isSelected && (
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-2xl overflow-hidden" style={{ boxShadow: '0 1px 6px rgba(0,0,0,0.06)', border: '1px solid #e2e8f0' }}>
                 {/* Project Header */}
-                <div className="px-6 py-4 bg-gradient-to-r from-blue-600 to-blue-700">
+                <div className="px-7 py-5" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center">
-                      
-                      <h2 className="text-xl font-semibold text-white">{selectedProject.name}</h2>
-                      
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center justify-center w-11 h-11 rounded-xl" style={{ background: '#eef2ff', border: '1px solid #e0e7ff' }}>
+                        <Folder className="h-5 w-5 text-indigo-500" />
+                      </div>
+                      <div>
+                        <p className="text-slate-400 text-xs font-medium uppercase tracking-widest mb-0.5">Active Project</p>
+                        <h2 className="text-xl font-bold text-slate-800 leading-tight">{selectedProject.name}</h2>
+                        <div className="flex items-center gap-3 mt-1.5">
+                          <span className="flex items-center gap-1 text-xs text-slate-400">
+                            <Database className="h-3 w-3" />
+                            {departmentFiles.length} Trackers
+                          </span>
+                          <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                          <span className="flex items-center gap-1 text-xs text-slate-400">
+                            <Users className="h-3 w-3" />
+                            {departmentColumns.length} Data Fields
+                          </span>
+                          <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                          <span className="flex items-center gap-1 text-xs text-emerald-500">
+                            <Activity className="h-3 w-3" />
+                            Active
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    
-                    {/* Controls inside header */}
-                    <div className="flex items-center space-x-3">
-                      {/* Stimulate Dashboard Button - Updated to match Send Report button UI */}
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() => setShowConfigModal(true)}
-                        className="px-4 py-1.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm flex items-center font-medium"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-slate-600 bg-white hover:bg-slate-50 transition-colors"
+                        style={{ border: '1px solid #d1d5db' }}
                       >
-                        
+                        <Sliders className="h-4 w-4 text-slate-400" />
                         Stimulate Dashboard
                       </button>
-
-                      {/* Send Report Button */}
                       <button
                         onClick={() => setShowEmailModal(true)}
-                        className="px-4 py-1.5 bg-white text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm flex items-center font-medium"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white bg-indigo-500 hover:bg-indigo-600 transition-colors"
                       >
-                        <Send className="h-4 w-4 mr-1" />
+                        <Send className="h-4 w-4" />
                         Send Report
                       </button>
                     </div>
                   </div>
                 </div>
 
-                {/* Content Area - Conditionally rendered based on dashboard config */}
-                <div className="p-6 space-y-8">
-                  {/* Milestones Section - Updated with new structure */}
+                {/* Content Area */}
+                <div className="p-7 space-y-8" style={{ background: '#f8fafc' }}>
+
+                  {/* ── MILESTONES SECTION ── */}
                   {dashboardConfig.milestones && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                        Major Milestones
-                      </h3>
-                      <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-blue-50">
-                            <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider w-1/4">Milestone</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider w-1/4">Plan</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider w-1/4">Actual/Outlook</th>
-                              <th className="px-4 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider w-1/4">Status</th>
+                    <div className="rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 16px rgba(15,23,42,0.08)', border: '1px solid #e2e8f0' }}>
+                      {/* Card Header */}
+                      <div className="flex items-center justify-between px-6 py-4" style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: '#e0e7ff' }}>
+                            <Calendar className="h-4 w-4 text-indigo-500" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-slate-700 tracking-wide">Major Milestones</h3>
+                            <p className="text-slate-400 text-xs">Project Timeline Overview</p>
+                          </div>
+                        </div>
+                        {/* Legend inline */}
+                        <div className="flex items-center gap-4">
+                          {[
+                            { color: '#86efac', label: 'Completed' },
+                            { color: '#fde68a', label: 'Delayed' },
+                            { color: '#fca5a5', label: 'At Risk' },
+                          ].map(l => (
+                            <span key={l.label} className="flex items-center gap-1.5 text-xs text-slate-500">
+                              <span className="inline-block w-2.5 h-2.5 rounded-sm flex-shrink-0" style={{ background: l.color }}></span>
+                              {l.label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Table */}
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full border-collapse" style={{ tableLayout: 'fixed', minWidth: '960px' }}>
+                          <colgroup>
+                            <col style={{ width: '148px' }} />
+                            {MILESTONE_STAGES.map(s => <col key={s.id} style={{ width: '88px' }} />)}
+                          </colgroup>
+                          <thead>
+                            <tr style={{ background: '#e8edf3' }}>
+                              <th
+                                className="py-2.5 px-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider"
+                                style={{ borderRight: '1px solid #d5dce6' }}
+                              >
+                                Phase
+                              </th>
+                              {MILESTONE_STAGES.map(stage => (
+                                <th
+                                  key={stage.id}
+                                  className="py-2.5 px-2 text-center text-xs font-semibold text-slate-600 leading-tight"
+                                  style={{ borderRight: '1px solid #d5dce6' }}
+                                >
+                                  {stage.label}
+                                </th>
+                              ))}
                             </tr>
                           </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {DUMMY_MILESTONES.map((milestone) => (
-                              <tr key={milestone.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 text-sm text-gray-900 font-medium">{milestone.name}</td>
-                                <td className="px-4 py-3 text-sm text-gray-600 text-center">{milestone.plan}</td>
-                                <td className="px-4 py-3 text-sm text-gray-600 text-center">{milestone.actual}</td>
-                                <td className="px-4 py-3 text-center">
-                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                    ${milestone.status === 'Completed' ? 'bg-green-100 text-green-800' : 
-                                      milestone.status === 'Ahead' ? 'bg-blue-100 text-blue-800' :
-                                      milestone.status === 'At Risk' ? 'bg-orange-100 text-orange-800' :
-                                      milestone.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
-                                      'bg-gray-100 text-gray-800'}`}>
-                                    {milestone.status}
-                                  </span>
+                          <tbody>
+                            {/* Plan row */}
+                            <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
+                              <td
+                                className="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap"
+                                style={{ borderRight: '1px solid #e2e8f0' }}
+                              >
+                                Plan
+                              </td>
+                              {MILESTONE_STAGES.map(stage => (
+                                <td
+                                  key={stage.id}
+                                  className="py-3 px-2 text-center text-xs text-slate-600 font-medium"
+                                  style={{ borderRight: '1px solid #e2e8f0' }}
+                                >
+                                  {MILESTONE_PLAN[stage.id] || <span className="text-slate-300">—</span>}
                                 </td>
-                              </tr>
-                            ))}
+                              ))}
+                            </tr>
+                            {/* Actual / Outlook row */}
+                            <tr style={{ background: '#fff' }}>
+                              <td
+                                className="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap"
+                                style={{ borderRight: '1px solid #e2e8f0' }}
+                              >
+                                Actual / Outlook
+                              </td>
+                              {MILESTONE_STAGES.map(stage => {
+                                const cell = MILESTONE_ACTUAL[stage.id];
+                                const cfg = {
+                                  done: { bg: '#dcfce7', border: '#86efac', text: '#166534' },
+                                  delayed: { bg: '#fef9c3', border: '#fde047', text: '#854d0e' },
+                                  'at-risk': { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
+                                }[cell?.status] || { bg: 'transparent', border: '#e2e8f0', text: '#64748b' };
+                                return (
+                                  <td
+                                    key={stage.id}
+                                    className="py-3 px-1.5 text-center text-xs font-semibold"
+                                    style={{ borderRight: '1px solid #e2e8f0' }}
+                                  >
+                                    {cell?.value ? (
+                                      <span
+                                        className="inline-flex items-center justify-center w-full px-1.5 py-1 rounded-md text-xs font-semibold leading-tight"
+                                        style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.text }}
+                                      >
+                                        {cell.value === '✔' ? (
+                                          <CheckCircle className="h-3.5 w-3.5" />
+                                        ) : cell.value}
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-300">—</span>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                            </tr>
                           </tbody>
                         </table>
                       </div>
                     </div>
                   )}
 
-                  {/* Critical Issues Section */}
+                  {/* ── CRITICAL ISSUES SECTION ── */}
                   {dashboardConfig.criticalIssues && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                        Critical Issues
-                      </h3>
-                      <div className="overflow-x-auto border border-gray-200 rounded-lg">
-                        <table className="min-w-full divide-y divide-gray-200">
-                          <thead className="bg-blue-50">
-                            <tr>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Issue</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Severity</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Status</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Assignee</th>
-                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Due Date</th>
+                    <div className="rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 16px rgba(15,23,42,0.08)', border: '1px solid #e2e8f0' }}>
+                      {/* Card Header */}
+                      <div className="flex items-center justify-between px-6 py-4" style={{ background: '#fef2f2', borderBottom: '1px solid #fecdd3' }}>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: '#fee2e2' }}>
+                            <AlertTriangle className="h-4 w-4 text-red-400" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-slate-700 tracking-wide">Top Critical Issues</h3>
+                            <p className="text-slate-400 text-xs">{DUMMY_ISSUES.length} active issues requiring attention</p>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }}>
+                          {DUMMY_ISSUES.filter(i => i.status === 'Open').length} Open
+                        </span>
+                      </div>
+
+                      {/* Table */}
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full border-collapse">
+                          <thead>
+                            <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-14" style={{ borderRight: '1px solid #e5e7eb' }}>S.No</th>
+                              <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" style={{ borderRight: '1px solid #e5e7eb' }}>Issue Description</th>
+                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-28" style={{ borderRight: '1px solid #e5e7eb' }}>Responsible</th>
+                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-40" style={{ borderRight: '1px solid #e5e7eb' }}>Support Required</th>
+                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-36" style={{ borderRight: '1px solid #e5e7eb' }}>From Whom</th>
+                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-28">Status</th>
                             </tr>
                           </thead>
-                          <tbody className="bg-white divide-y divide-gray-200">
-                            {DUMMY_ISSUES.map((issue) => (
-                              <tr key={issue.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 text-sm text-gray-900">{issue.title}</td>
-                                <td className="px-4 py-3">
-                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                    ${issue.severity === 'Critical' ? 'bg-red-100 text-red-800' : 
-                                      issue.severity === 'High' ? 'bg-orange-100 text-orange-800' :
-                                      'bg-yellow-100 text-yellow-800'}`}>
-                                    {issue.severity}
+                          <tbody>
+                            {DUMMY_ISSUES.map((issue, idx) => (
+                              <tr
+                                key={issue.id}
+                                style={{
+                                  verticalAlign: 'top',
+                                  background: idx % 2 === 0 ? '#ffffff' : '#fffbfb',
+                                  borderBottom: '1px solid #fee2e2',
+                                  transition: 'background 0.15s'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = '#fff5f5'}
+                                onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? '#ffffff' : '#fffbfb'}
+                              >
+                                {/* S.No badge */}
+                                <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
+                                  <span
+                                    className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white"
+                                    style={{ background: 'linear-gradient(135deg,#dc2626,#b91c1c)', boxShadow: '0 2px 6px rgba(220,38,38,0.35)' }}
+                                  >
+                                    {issue.id}
                                   </span>
                                 </td>
-                                <td className="px-4 py-3">
-                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium
-                                    ${issue.status === 'In Progress' ? 'bg-blue-100 text-blue-800' : 
-                                      'bg-gray-100 text-gray-800'}`}>
-                                    {issue.status}
+
+                                {/* Issue text */}
+                                <td
+                                  className="py-4 px-4 text-sm text-slate-700 leading-relaxed whitespace-pre-line"
+                                  style={{ borderRight: '1px solid #fee2e2', maxWidth: '440px' }}
+                                >
+                                  {issue.issue}
+                                </td>
+
+                                {/* Resp */}
+                                <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
+                                  <span className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-slate-600 px-2.5 py-1 rounded-full" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>
+                                    <User className="h-3 w-3 text-slate-400" />
+                                    {issue.resp}
                                   </span>
                                 </td>
-                                <td className="px-4 py-3 text-sm text-gray-600">{issue.assignee}</td>
-                                <td className="px-4 py-3 text-sm text-gray-600">{issue.dueDate}</td>
+
+                                {/* Support Required */}
+                                <td className="py-4 px-4 text-center text-xs text-slate-600 font-medium" style={{ borderRight: '1px solid #fee2e2' }}>
+                                  {issue.supportRequired}
+                                </td>
+
+                                {/* From Whom */}
+                                <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
+                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 px-2.5 py-1 rounded-full" style={{ background: '#eef2ff', border: '1px solid #c7d2fe' }}>
+                                    <Users className="h-3 w-3" />
+                                    {issue.fromWhom}
+                                  </span>
+                                </td>
+
+                                {/* Status */}
+                                <td className="py-4 px-4 text-center">
+                                  {(() => {
+                                    const s = issue.status;
+                                    const cfg = s === 'In Progress'
+                                      ? { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af', dot: '#3b82f6' }
+                                      : s === 'Open'
+                                        ? { bg: '#fef9c3', border: '#fde047', text: '#854d0e', dot: '#eab308' }
+                                        : s === 'Resolved'
+                                          ? { bg: '#dcfce7', border: '#86efac', text: '#166534', dot: '#22c55e' }
+                                          : { bg: '#f1f5f9', border: '#e2e8f0', text: '#64748b', dot: '#94a3b8' };
+                                    return (
+                                      <span
+                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+                                        style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.text }}
+                                      >
+                                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }}></span>
+                                        {s}
+                                      </span>
+                                    );
+                                  })()}
+                                </td>
                               </tr>
                             ))}
                           </tbody>
@@ -1754,7 +1968,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                           const distribution = stageDistribution[stage.id] || [];
                           const chartType = stageChartTypes[stage.id] || 'bar';
                           const hasConfig = stageConfig.xAxis && stageConfig.yAxis;
-                          
+
                           const colorClasses = {
                             blue: 'border-blue-200 bg-blue-50',
                             purple: 'border-purple-200 bg-purple-50',
@@ -1763,9 +1977,9 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                             red: 'border-red-200 bg-red-50',
                             teal: 'border-teal-200 bg-teal-50',
                           };
-                          
+
                           return (
-                            <div 
+                            <div
                               key={stage.id}
                               className={`border rounded-xl overflow-hidden ${colorClasses[stage.color]}`}
                             >
@@ -1798,13 +2012,13 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                   </p>
                                 )}
                               </div>
-                              
+
                               {/* Chart Area */}
                               <div className="p-3">
                                 {hasConfig ? (
                                   chartData.length > 0 ? (
-                                    <MiniChart 
-                                      chartData={chartData} 
+                                    <MiniChart
+                                      chartData={chartData}
                                       statusDistribution={distribution}
                                       chartType={chartType}
                                     />
@@ -1825,7 +2039,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                   </div>
                                 )}
                               </div>
-                              
+
                               {/* Stats Footer */}
                               {hasConfig && chartData.length > 0 && (
                                 <div className="px-3 pb-3">
@@ -1852,225 +2066,250 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
         ) : (
           // Empty State
           !selectedFile.isSelected && (
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-12 text-center">
-              <Layout className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Project Selected</h3>
-              <p className="text-gray-500 mb-6">Choose a project from the dropdown above to start analyzing data</p>
-              {projectModules.length === 0 && (
-                <button
-                  onClick={() => navigate('/dashboard', { state: { module: 'upload-trackers' } })}
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  <File className="h-4 w-4 mr-2" />
-                  Upload Trackers
-                </button>
-              )}
+            <div
+              className="rounded-2xl p-16 text-center"
+              style={{ background: 'linear-gradient(135deg,#ffffff 0%,#f0f4ff 100%)', border: '1px solid #e0e7ff', boxShadow: '0 4px 24px rgba(15,23,42,0.06)' }}
+            >
+              <div
+                className="mx-auto mb-6 flex items-center justify-center w-20 h-20 rounded-2xl"
+                style={{ background: 'linear-gradient(135deg,#e0e7ff,#c7d2fe)', boxShadow: '0 4px 16px rgba(99,102,241,0.2)' }}
+              >
+                <Layout className="h-9 w-9 text-indigo-500" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">No Project Selected</h3>
+              <p className="text-slate-500 mb-8 max-w-sm mx-auto">Select a project from the dropdown above to view your analytics dashboard and project timelines.</p>
+              <div className="flex items-center justify-center gap-3">
+                {projectModules.length === 0 ? (
+                  <button
+                    onClick={() => navigate('/dashboard', { state: { module: 'upload-trackers' } })}
+                    className="inline-flex items-center px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+                    style={{ background: 'linear-gradient(135deg,#4f46e5,#6366f1)', boxShadow: '0 4px 12px rgba(99,102,241,0.4)' }}
+                  >
+                    <File className="h-4 w-4 mr-2" />
+                    Upload Trackers
+                  </button>
+                ) : (
+                  <p className="text-xs text-slate-400 flex items-center gap-1.5">
+                    <ChevronRight className="h-4 w-4" />
+                    Use the project selector above to get started
+                  </p>
+                )}
+              </div>
             </div>
           )
         )}
       </div>
 
       {/* Dashboard Configuration Modal */}
-      {showConfigModal && (
-        <DashboardConfigModal
-          isOpen={showConfigModal}
-          onClose={() => setShowConfigModal(false)}
-          onApply={handleDashboardConfigApply}
-          selectedProject={selectedProject}
-        />
-      )}
+      {
+        showConfigModal && (
+          <DashboardConfigModal
+            isOpen={showConfigModal}
+            onClose={() => setShowConfigModal(false)}
+            onApply={handleDashboardConfigApply}
+            selectedProject={selectedProject}
+          />
+        )
+      }
 
       {/* Stage Configuration Modal */}
-      {configuringStage && (
-        <StageConfigModal
-          stage={configuringStage}
-          isOpen={true}
-          onClose={() => setConfiguringStage(null)}
-          departmentColumns={departmentColumns}
-          onSave={handleStageConfig}
-          currentConfig={stageConfigs[configuringStage.id]}
-        />
-      )}
+      {
+        configuringStage && (
+          <StageConfigModal
+            stage={configuringStage}
+            isOpen={true}
+            onClose={() => setConfiguringStage(null)}
+            departmentColumns={departmentColumns}
+            onSave={handleStageConfig}
+            currentConfig={stageConfigs[configuringStage.id]}
+          />
+        )
+      }
 
       {/* Full Screen Chart Modal */}
-      {fullScreenStage && (
-        <FullScreenChartModal
-          stage={fullScreenStage}
-          isOpen={true}
-          onClose={() => setFullScreenStage(null)}
-          chartData={stageChartData[fullScreenStage.id] || []}
-          distribution={stageDistribution[fullScreenStage.id] || []}
-          chartType={stageChartTypes[fullScreenStage.id] || 'bar'}
-          onChartTypeChange={handleChartTypeChange}
-        />
-      )}
+      {
+        fullScreenStage && (
+          <FullScreenChartModal
+            stage={fullScreenStage}
+            isOpen={true}
+            onClose={() => setFullScreenStage(null)}
+            chartData={stageChartData[fullScreenStage.id] || []}
+            distribution={stageDistribution[fullScreenStage.id] || []}
+            chartType={stageChartTypes[fullScreenStage.id] || 'bar'}
+            onChartTypeChange={handleChartTypeChange}
+          />
+        )
+      }
 
       {/* Header Configuration Modal */}
-      {showHeaderConfig && departmentFiles.length > 0 && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-8">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  Configure File Headers
-                </h3>
-                <button
-                  onClick={() => setShowHeaderConfig(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="h-5 w-5 text-gray-500" />
-                </button>
-              </div>
+      {
+        showHeaderConfig && departmentFiles.length > 0 && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    Configure File Headers
+                  </h3>
+                  <button
+                    onClick={() => setShowHeaderConfig(false)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
 
-              <div className="space-y-6">
-                {departmentFiles.map((fileModule) => {
-                  const fileHeaderConfig = fileModule.fileData?.headerConfig || { 
-                    rowCount: 1
-                  };
-                  
-                  return (
-                    <FileHeaderConfigItem
-                      key={fileModule.id}
-                      fileModule={fileModule}
-                      fileHeaderConfig={fileHeaderConfig}
-                      onConfigure={(fileId, rowCount, selectedHeaders) => 
-                        configureFileHeaders(fileModule, rowCount, selectedHeaders)
-                      }
-                    />
-                  );
-                })}
+                <div className="space-y-6">
+                  {departmentFiles.map((fileModule) => {
+                    const fileHeaderConfig = fileModule.fileData?.headerConfig || {
+                      rowCount: 1
+                    };
+
+                    return (
+                      <FileHeaderConfigItem
+                        key={fileModule.id}
+                        fileModule={fileModule}
+                        fileHeaderConfig={fileHeaderConfig}
+                        onConfigure={(fileId, rowCount, selectedHeaders) =>
+                          configureFileHeaders(fileModule, rowCount, selectedHeaders)
+                        }
+                      />
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Email Modal - Made bigger */}
-      {showEmailModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-8">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  Send Report
-                </h3>
-                <button
-                  onClick={() => setShowEmailModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="h-5 w-5 text-gray-500" />
-                </button>
-              </div>
-
-              {/* Recipients */}
-              <div className="mb-6">
-                <label className="text-base font-medium text-gray-700 mb-3 block">
-                  Recipients ({departmentEmployees.length} available)
-                </label>
-                <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
-                  <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-                    <button
-                      onClick={selectAllEmployees}
-                      className="text-base text-blue-600 hover:text-blue-800"
-                    >
-                      {selectedEmployees.length === departmentEmployees.length ? 'Deselect All' : 'Select All'}
-                    </button>
-                    <span className="text-base text-gray-600">
-                      {selectedEmployees.length} selected
-                    </span>
-                  </div>
-                  {departmentEmployees.map((employee) => (
-                    <label
-                      key={employee.id}
-                      className="flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedEmployees.includes(employee.id)}
-                        onChange={() => toggleEmployeeSelection(employee.id)}
-                        className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mr-4"
-                      />
-                      <div className="flex-1">
-                        <p className="text-base font-medium text-gray-700">{employee.name}</p>
-                        <p className="text-sm text-gray-500">{employee.email}</p>
-                      </div>
-                    </label>
-                  ))}
+      {
+        showEmailModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    Send Report
+                  </h3>
+                  <button
+                    onClick={() => setShowEmailModal(false)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
                 </div>
-              </div>
 
-              {/* Subject */}
-              <div className="mb-6">
-                <label className="text-base font-medium text-gray-700 mb-3 block">
-                  Subject
-                </label>
-                <input
-                  type="text"
-                  value={emailSubject}
-                  onChange={(e) => setEmailSubject(e.target.value)}
-                  placeholder={`${selectedProject?.name} Report`}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
-                />
-              </div>
+                {/* Recipients */}
+                <div className="mb-6">
+                  <label className="text-base font-medium text-gray-700 mb-3 block">
+                    Recipients ({departmentEmployees.length} available)
+                  </label>
+                  <div className="border border-gray-300 rounded-lg max-h-60 overflow-y-auto">
+                    <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+                      <button
+                        onClick={selectAllEmployees}
+                        className="text-base text-blue-600 hover:text-blue-800"
+                      >
+                        {selectedEmployees.length === departmentEmployees.length ? 'Deselect All' : 'Select All'}
+                      </button>
+                      <span className="text-base text-gray-600">
+                        {selectedEmployees.length} selected
+                      </span>
+                    </div>
+                    {departmentEmployees.map((employee) => (
+                      <label
+                        key={employee.id}
+                        className="flex items-center px-4 py-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-0"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedEmployees.includes(employee.id)}
+                          onChange={() => toggleEmployeeSelection(employee.id)}
+                          className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 mr-4"
+                        />
+                        <div className="flex-1">
+                          <p className="text-base font-medium text-gray-700">{employee.name}</p>
+                          <p className="text-sm text-gray-500">{employee.email}</p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
 
-              {/* Message */}
-              <div className="mb-6">
-                <label className="text-base font-medium text-gray-700 mb-3 block">
-                  Message
-                </label>
-                <textarea
-                  value={emailBody}
-                  onChange={(e) => setEmailBody(e.target.value)}
-                  placeholder="Add a message..."
-                  rows="5"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base resize-none"
-                />
-              </div>
+                {/* Subject */}
+                <div className="mb-6">
+                  <label className="text-base font-medium text-gray-700 mb-3 block">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    value={emailSubject}
+                    onChange={(e) => setEmailSubject(e.target.value)}
+                    placeholder={`${selectedProject?.name} Report`}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
+                  />
+                </div>
 
-              {/* Status */}
-              {emailStatus && (
-                <div className={`mb-6 p-4 rounded-lg text-base ${
-                  emailStatus.includes('success') 
+                {/* Message */}
+                <div className="mb-6">
+                  <label className="text-base font-medium text-gray-700 mb-3 block">
+                    Message
+                  </label>
+                  <textarea
+                    value={emailBody}
+                    onChange={(e) => setEmailBody(e.target.value)}
+                    placeholder="Add a message..."
+                    rows="5"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base resize-none"
+                  />
+                </div>
+
+                {/* Status */}
+                {emailStatus && (
+                  <div className={`mb-6 p-4 rounded-lg text-base ${emailStatus.includes('success')
                     ? 'bg-green-50 text-green-700 border border-green-200'
                     : emailStatus.includes('Failed')
-                    ? 'bg-red-50 text-red-700 border border-red-200'
-                    : 'bg-blue-50 text-blue-700 border border-blue-200'
-                }`}>
-                  {emailStatus}
-                </div>
-              )}
+                      ? 'bg-red-50 text-red-700 border border-red-200'
+                      : 'bg-blue-50 text-blue-700 border border-blue-200'
+                    }`}>
+                    {emailStatus}
+                  </div>
+                )}
 
-              {/* Actions */}
-              <div className="flex justify-end space-x-4">
-                <button
-                  onClick={() => setShowEmailModal(false)}
-                  className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-base"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSendEmail}
-                  disabled={emailSending || selectedEmployees.length === 0}
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base flex items-center"
-                >
-                  {emailSending ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-3"></div>
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Send className="h-5 w-5 mr-2" />
-                      Send to {selectedEmployees.length} recipient(s)
-                    </>
-                  )}
-                </button>
+                {/* Actions */}
+                <div className="flex justify-end space-x-4">
+                  <button
+                    onClick={() => setShowEmailModal(false)}
+                    className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-base"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSendEmail}
+                    disabled={emailSending || selectedEmployees.length === 0}
+                    className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-base flex items-center"
+                  >
+                    {emailSending ? (
+                      <>
+                        <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-3"></div>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="h-5 w-5 mr-2" />
+                        Send to {selectedEmployees.length} recipient(s)
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 
