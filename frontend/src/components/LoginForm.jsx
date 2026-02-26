@@ -79,7 +79,7 @@ const LoginForm = () => {
             onChange={handleChange}
             required
             className="w-full px-4 py-3 bg-gray-900 border border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-300 text-white placeholder-gray-600 shadow-inner"
-            placeholder="sujitha@caldim.in"
+            placeholder="name@company.in"
           />
         </div>
 

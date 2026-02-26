@@ -1454,372 +1454,370 @@ const PartMaster = () => {
         )}
 
         {/* MAIN CONTENT CONTAINER */}
-        <div className="flex flex-col flex-1 min-h-0 bg-slate-50/50 dark:bg-slate-900/50 p-4 sm:p-6">
-          <div className="flex flex-col flex-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-sm overflow-hidden min-h-0">
+        <div className="master-table-container dark:bg-slate-800 dark:border-slate-700">
 
-            {/* Loading / Error State */}
-            {loading && (
-              <div className="p-8 text-center text-slate-500 dark:text-slate-400">
-                Loading data...
-              </div>
-            )}
+          {/* Loading / Error State */}
+          {loading && (
+            <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+              Loading data...
+            </div>
+          )}
 
-            {error && (
-              <div className="p-8 text-center text-red-500">
-                {error}
-              </div>
-            )}
+          {error && (
+            <div className="p-8 text-center text-red-500">
+              {error}
+            </div>
+          )}
 
-            {!loading && !error && (
-              <>
-                {/* TOOLBAR SECTION */}
-                <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          {!loading && !error && (
+            <>
+              {/* TOOLBAR SECTION */}
+              <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 
-                    {/* LEFT SIDE - Search only */}
-                    <div className="flex flex-1 flex-col sm:flex-row gap-2 sm:gap-2 items-start sm:items-center">
-                      {/* Search */}
-                      <div className="relative w-full sm:w-auto">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
-                        <input
-                          type="text"
-                          placeholder="Search..."
-                          value={searchTerm}
-                          onChange={e => setSearchTerm(e.target.value)}
-                          className="w-full sm:w-48 h-10 pl-9 pr-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
-                        />
-                      </div>
-                    </div>
-
-                    {/* RIGHT SIDE */}
-                    <div className="flex gap-2 mt-2 sm:mt-0">
-
-                      {/* Add Column Button */}
-                      <button
-                        onClick={() => setShowColumnModal(true)}
-                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 whitespace-nowrap master-table-tooltip"
-                        data-tooltip="Add column"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-
-                      {/* Freeze Column Button */}
-                      <button
-                        onClick={toggleFreezeColumn}
-                        className={`flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border rounded whitespace-nowrap master-table-tooltip ${frozenColumns.length > 0
-                          ? 'bg-blue-50 text-blue-700 border-blue-300'
-                          : 'border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'
-                          }`}
-                        data-tooltip={frozenColumns.length > 0 ? "Unfreeze columns" : "Freeze columns"}
-                      >
-                        <Snowflake className={`h-4 w-4 ${frozenColumns.length > 0 ? 'text-blue-600' : 'text-slate-600 dark:text-slate-400'}`} />
-                        {frozenColumns.length > 0 && <span className="ml-1 text-xs">{frozenColumns.length}</span>}
-                      </button>
-
-                      {/* Export Button with Dropdown */}
-                      <div className="relative">
-                        <button
-                          onClick={() => setShowExportDropdown(!showExportDropdown)}
-                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 master-table-tooltip"
-                          data-tooltip="Export data"
-                        >
-                          <Download className="h-4 w-4" />
-                        </button>
-
-                        {/* Export Dropdown */}
-                        {showExportDropdown && (
-                          <>
-                            <div
-                              className="fixed inset-0 z-40"
-                              onClick={() => setShowExportDropdown(false)}
-                            />
-                            <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded shadow-lg z-50">
-                              <button
-                                onClick={() => handleExportClick('excel')}
-                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800"
-                              >
-                                Export as Excel
-                              </button>
-                              <button
-                                onClick={() => handleExportClick('csv')}
-                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800"
-                              >
-                                Export as CSV
-                              </button>
-                              <button
-                                onClick={() => handleExportClick('json')}
-                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800"
-                              >
-                                Export as JSON
-                              </button>
-                              <button
-                                onClick={() => handleExportClick('pdf')}
-                                className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800"
-                              >
-                                Export as PDF
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-
-                      {/* Refresh Button */}
-                      <button
-                        onClick={handleRefresh}
-                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 whitespace-nowrap master-table-tooltip"
-                        data-tooltip="Refresh data"
-                        disabled={loading}
-                      >
-                        <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                      </button>
+                  {/* LEFT SIDE - Search only */}
+                  <div className="flex flex-1 flex-col sm:flex-row gap-2 sm:gap-2 items-start sm:items-center">
+                    {/* Search */}
+                    <div className="relative w-full sm:w-auto">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500" />
+                      <input
+                        type="text"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full sm:w-48 h-10 pl-9 pr-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
+                      />
                     </div>
                   </div>
-                </div>
 
-                {/* TABLE SECTION - SCROLLABLE */}
-                <div className="flex-1 overflow-auto relative">
-                  <table className="min-w-full text-sm border-collapse">
-                    <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-700">
-                        {/* Checkbox column */}
-                        <th
-                          className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap w-8 ${isColumnFrozen(0) ? 'frozen-column' : ''
-                            }`}
-                          style={{
-                            left: isColumnFrozen(0) ? '0' : 'auto',
-                            zIndex: isColumnFrozen(0) ? 35 : 30
-                          }}
-                        >
-                          <div className="flex items-center justify-center">
+                  {/* RIGHT SIDE */}
+                  <div className="flex gap-2 mt-2 sm:mt-0">
+
+                    {/* Add Column Button */}
+                    <button
+                      onClick={() => setShowColumnModal(true)}
+                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 whitespace-nowrap master-table-tooltip"
+                      data-tooltip="Add column"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+
+                    {/* Freeze Column Button */}
+                    <button
+                      onClick={toggleFreezeColumn}
+                      className={`flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border rounded whitespace-nowrap master-table-tooltip ${frozenColumns.length > 0
+                        ? 'bg-blue-50 text-blue-700 border-blue-300'
+                        : 'border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'
+                        }`}
+                      data-tooltip={frozenColumns.length > 0 ? "Unfreeze columns" : "Freeze columns"}
+                    >
+                      <Snowflake className={`h-4 w-4 ${frozenColumns.length > 0 ? 'text-blue-600' : 'text-slate-600 dark:text-slate-400'}`} />
+                      {frozenColumns.length > 0 && <span className="ml-1 text-xs">{frozenColumns.length}</span>}
+                    </button>
+
+                    {/* Export Button with Dropdown */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowExportDropdown(!showExportDropdown)}
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 master-table-tooltip"
+                        data-tooltip="Export data"
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+
+                      {/* Export Dropdown */}
+                      {showExportDropdown && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setShowExportDropdown(false)}
+                          />
+                          <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded shadow-lg z-50">
                             <button
-                              onClick={toggleSelectAll}
-                              className="p-1 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100"
+                              onClick={() => handleExportClick('excel')}
+                              className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800"
                             >
-                              {selectAll ? (
-                                <CheckSquare className="h-4 w-4" />
-                              ) : (
-                                <Square className="h-4 w-4" />
-                              )}
+                              Export as Excel
+                            </button>
+                            <button
+                              onClick={() => handleExportClick('csv')}
+                              className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800"
+                            >
+                              Export as CSV
+                            </button>
+                            <button
+                              onClick={() => handleExportClick('json')}
+                              className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800"
+                            >
+                              Export as JSON
+                            </button>
+                            <button
+                              onClick={() => handleExportClick('pdf')}
+                              className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800"
+                            >
+                              Export as PDF
                             </button>
                           </div>
-                        </th>
-                        {visibleColumns.map((col) => {
-                          const actualColumnIndex = columns.findIndex(c => c.id === col.id);
-                          return (
-                            <th
-                              key={col.id}
-                              className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
-                                }`}
-                              onClick={() => col.sortable && handleSort(col.id)}
-                              style={{
-                                left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
-                                zIndex: isColumnFrozen(actualColumnIndex) ? 35 : 30
-                              }}
-                            >
-                              <div className="flex items-center space-x-1">
-                                <span className="font-semibold">{col.label}</span>
-                                {col.required && <span className="text-red-300">*</span>}
-                                {col.sortable && getSortIcon(col.id)}
-                              </div>
-                            </th>
-                          );
-                        })}
-                      </tr>
-                    </thead>
+                        </>
+                      )}
+                    </div>
 
-                    <tbody>
-                      {paginatedParts.map((part, rowIndex) => {
-                        const actualRowIndex = (currentPage - 1) * pageSize + rowIndex;
-                        const isRowCurrentlyFrozen = isRowFrozen(actualRowIndex);
+                    {/* Refresh Button */}
+                    <button
+                      onClick={handleRefresh}
+                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 whitespace-nowrap master-table-tooltip"
+                      data-tooltip="Refresh data"
+                      disabled={loading}
+                    >
+                      <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+              </div>
 
+              {/* TABLE SECTION - SCROLLABLE */}
+              <div className="flex-1 overflow-auto relative">
+                <table className="min-w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-700">
+                      {/* Checkbox column */}
+                      <th
+                        className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap w-8 ${isColumnFrozen(0) ? 'frozen-column' : ''
+                          }`}
+                        style={{
+                          left: isColumnFrozen(0) ? '0' : 'auto',
+                          zIndex: isColumnFrozen(0) ? 35 : 30
+                        }}
+                      >
+                        <div className="flex items-center justify-center">
+                          <button
+                            onClick={toggleSelectAll}
+                            className="p-1 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100"
+                          >
+                            {selectAll ? (
+                              <CheckSquare className="h-4 w-4" />
+                            ) : (
+                              <Square className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </th>
+                      {visibleColumns.map((col) => {
+                        const actualColumnIndex = columns.findIndex(c => c.id === col.id);
                         return (
-                          <tr
-                            key={part.id}
-                            className={`transition-colors ${isRowCurrentlyFrozen ? 'frozen-row' : ''
+                          <th
+                            key={col.id}
+                            className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
                               }`}
+                            onClick={() => col.sortable && handleSort(col.id)}
                             style={{
-                              top: isRowCurrentlyFrozen ? getFrozenRowTop(actualRowIndex) : 'auto'
+                              left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
+                              zIndex: isColumnFrozen(actualColumnIndex) ? 35 : 30
                             }}
                           >
-                            {/* Checkbox cell */}
-                            <td
-                              className={`py-3 px-8 whitespace-nowrap w-4 ${isColumnFrozen(0) ? 'frozen-column' : ''
-                                }`}
-                              style={{
-                                left: isColumnFrozen(0) ? '0' : 'auto',
-                                zIndex: isColumnFrozen(0) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto'
-                              }}
-                            >
-                              <div className="flex items-center justify-center">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedParts.includes(part.id)}
-                                  onChange={() => togglePartSelection(part.id)}
-                                  className="h-4 w-4 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 rounded focus:ring-gray-500"
-                                />
-                              </div>
-                            </td>
-                            {visibleColumns.map((col) => {
-                              const actualColumnIndex = columns.findIndex(c => c.id === col.id);
-                              return (
-                                <td
-                                  key={col.id}
-                                  className={`py-3 px-8 whitespace-nowrap min-w-[160px] text-base ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
-                                    }`}
-                                  style={{
-                                    left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
-                                    zIndex: isColumnFrozen(actualColumnIndex) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto'
-                                  }}
-                                >
-                                  {renderCellContent(col, part[col.id])}
-                                </td>
-                              );
-                            })}
-                          </tr>
+                            <div className="flex items-center space-x-1">
+                              <span className="font-semibold">{col.label}</span>
+                              {col.required && <span className="text-red-300">*</span>}
+                              {col.sortable && getSortIcon(col.id)}
+                            </div>
+                          </th>
                         );
                       })}
+                    </tr>
+                  </thead>
 
-                      {/* Empty state */}
-                      {paginatedParts.length === 0 && (
-                        <tr>
-                          <td colSpan={visibleColumns.length + 1} className="text-center py-8 text-slate-500 dark:text-slate-400">
-                            No parts found
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                  <tbody>
+                    {paginatedParts.map((part, rowIndex) => {
+                      const actualRowIndex = (currentPage - 1) * pageSize + rowIndex;
+                      const isRowCurrentlyFrozen = isRowFrozen(actualRowIndex);
 
-                {/* FOOTER SECTION */}
-                <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 bg-white dark:bg-slate-800 flex-shrink-0">
-                  {/* LEFT SIDE - Add Part and Action Buttons */}
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1">
-                      <button
-                        onClick={handleAddPartClick}
-                        className="flex items-center gap-1 h-10 px-3 text-xs border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 master-table-tooltip"
-                        data-tooltip="Add part"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={toggleFreezeRow}
-                        className={`flex items-center gap-1 h-10 px-3 text-xs border rounded master-table-tooltip ${frozenRows.length > 0
-                          ? 'bg-blue-50 text-blue-700 border-blue-300'
-                          : 'border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'
-                          }`}
-                        data-tooltip={frozenRows.length > 0 ? "Unfreeze rows" : "Select rows to freeze"}
-                      >
-                        <Snowflake className={`h-4 w-4 ${frozenRows.length > 0 ? 'text-blue-600' : 'text-slate-600 dark:text-slate-400'}`} />
-                        {frozenRows.length > 0 && <span className="ml-1 text-xs">{frozenRows.length}</span>}
-                      </button>
-                    </div>
-
-                    {/* Edit and Delete buttons - only show when parts are selected */}
-                    {selectedParts.length > 0 ? (
-                      <div className="flex items-center gap-1 ml-1">
-                        <button
-                          onClick={handleBulkEdit}
-                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80"
-                          title="Edit selected part"
-                        >
-                          <Edit className="h-4 w-4" />
-                          {selectedParts.length > 1 && <span>Edit ({selectedParts.length})</span>}
-                        </button>
-
-                        <button
-                          onClick={handleBulkDelete}
-                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                          title={selectedParts.length === 1 ? "Delete selected part" : "Delete selected parts"}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          {selectedParts.length > 1 && <span>Delete ({selectedParts.length})</span>}
-                        </button>
-                      </div>
-                    ) : null}
-                  </div>
-
-                  {/* RIGHT SIDE - Info, Pagination, and Column Count */}
-                  <div className="flex items-center gap-4">
-                    {/* Page Size Selector */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-600 dark:text-slate-400">Show:</span>
-                      <select
-                        value={pageSize}
-                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                        className="px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-gray-500"
-                      >
-                        {pageSizeOptions.map(size => (
-                          <option key={size} value={size}>{size}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Pagination Controls */}
-                    {totalPages > 1 && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          className={`p-1 rounded ${currentPage === 1
-                            ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed'
-                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800'
+                      return (
+                        <tr
+                          key={part.id}
+                          className={`transition-colors ${isRowCurrentlyFrozen ? 'frozen-row' : ''
                             }`}
+                          style={{
+                            top: isRowCurrentlyFrozen ? getFrozenRowTop(actualRowIndex) : 'auto'
+                          }}
                         >
-                          <ChevronLeft className="h-4 w-4" />
-                        </button>
-
-                        {getPageNumbers().map(pageNum => (
-                          <button
-                            key={pageNum}
-                            onClick={() => handlePageChange(pageNum)}
-                            className={`px-2 py-1 text-xs rounded ${currentPage === pageNum
-                              ? 'bg-blue-600 text-white'
-                              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800'
+                          {/* Checkbox cell */}
+                          <td
+                            className={`py-3 px-8 whitespace-nowrap w-4 ${isColumnFrozen(0) ? 'frozen-column' : ''
                               }`}
+                            style={{
+                              left: isColumnFrozen(0) ? '0' : 'auto',
+                              zIndex: isColumnFrozen(0) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto'
+                            }}
                           >
-                            {pageNum}
-                          </button>
-                        ))}
+                            <div className="flex items-center justify-center">
+                              <input
+                                type="checkbox"
+                                checked={selectedParts.includes(part.id)}
+                                onChange={() => togglePartSelection(part.id)}
+                                className="h-4 w-4 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 rounded focus:ring-gray-500"
+                              />
+                            </div>
+                          </td>
+                          {visibleColumns.map((col) => {
+                            const actualColumnIndex = columns.findIndex(c => c.id === col.id);
+                            return (
+                              <td
+                                key={col.id}
+                                className={`py-3 px-8 whitespace-nowrap min-w-[160px] text-base ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
+                                  }`}
+                                style={{
+                                  left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
+                                  zIndex: isColumnFrozen(actualColumnIndex) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto'
+                                }}
+                              >
+                                {renderCellContent(col, part[col.id])}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      );
+                    })}
 
+                    {/* Empty state */}
+                    {paginatedParts.length === 0 && (
+                      <tr>
+                        <td colSpan={visibleColumns.length + 1} className="text-center py-8 text-slate-500 dark:text-slate-400">
+                          No parts found
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* FOOTER SECTION */}
+              <div className="px-4 py-3 border-t border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2 bg-white dark:bg-slate-800 flex-shrink-0">
+                {/* LEFT SIDE - Add Part and Action Buttons */}
+                <div className="flex items-center gap-2">
+                  <div className="flex gap-1">
+                    <button
+                      onClick={handleAddPartClick}
+                      className="flex items-center gap-1 h-10 px-3 text-xs border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 master-table-tooltip"
+                      data-tooltip="Add part"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={toggleFreezeRow}
+                      className={`flex items-center gap-1 h-10 px-3 text-xs border rounded master-table-tooltip ${frozenRows.length > 0
+                        ? 'bg-blue-50 text-blue-700 border-blue-300'
+                        : 'border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'
+                        }`}
+                      data-tooltip={frozenRows.length > 0 ? "Unfreeze rows" : "Select rows to freeze"}
+                    >
+                      <Snowflake className={`h-4 w-4 ${frozenRows.length > 0 ? 'text-blue-600' : 'text-slate-600 dark:text-slate-400'}`} />
+                      {frozenRows.length > 0 && <span className="ml-1 text-xs">{frozenRows.length}</span>}
+                    </button>
+                  </div>
+
+                  {/* Edit and Delete buttons - only show when parts are selected */}
+                  {selectedParts.length > 0 ? (
+                    <div className="flex items-center gap-1 ml-1">
+                      <button
+                        onClick={handleBulkEdit}
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80"
+                        title="Edit selected part"
+                      >
+                        <Edit className="h-4 w-4" />
+                        {selectedParts.length > 1 && <span>Edit ({selectedParts.length})</span>}
+                      </button>
+
+                      <button
+                        onClick={handleBulkDelete}
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                        title={selectedParts.length === 1 ? "Delete selected part" : "Delete selected parts"}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        {selectedParts.length > 1 && <span>Delete ({selectedParts.length})</span>}
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* RIGHT SIDE - Info, Pagination, and Column Count */}
+                <div className="flex items-center gap-4">
+                  {/* Page Size Selector */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-600 dark:text-slate-400">Show:</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                      className="px-2 py-1 text-xs border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-gray-500"
+                    >
+                      {pageSizeOptions.map(size => (
+                        <option key={size} value={size}>{size}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        disabled={currentPage === 1}
+                        className={`p-1 rounded ${currentPage === 1
+                          ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800'
+                          }`}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+
+                      {getPageNumbers().map(pageNum => (
                         <button
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          disabled={currentPage === totalPages}
-                          className={`p-1 rounded ${currentPage === totalPages
-                            ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`px-2 py-1 text-xs rounded ${currentPage === pageNum
+                            ? 'bg-blue-600 text-white'
                             : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800'
                             }`}
                         >
-                          <ChevronRight className="h-4 w-4" />
+                          {pageNum}
                         </button>
-                      </div>
-                    )}
+                      ))}
 
-                    <span className="text-slate-600 dark:text-slate-400">
-                      Showing {paginatedParts.length} of {sortedParts.length} parts
-                    </span>
+                      <button
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        disabled={currentPage === totalPages}
+                        className={`p-1 rounded ${currentPage === totalPages
+                          ? 'text-slate-400 dark:text-slate-500 cursor-not-allowed'
+                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:bg-slate-800'
+                          }`}
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  )}
 
-                    {selectedParts.length > 0 && (
-                      <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                        {selectedParts.length} selected
-                      </span>
-                    )}
-                    <span className="text-slate-600 dark:text-slate-400">
-                      ({visibleColumns.length} of {columns.length} columns visible)
+                  <span className="text-slate-600 dark:text-slate-400">
+                    Showing {paginatedParts.length} of {sortedParts.length} parts
+                  </span>
+
+                  {selectedParts.length > 0 && (
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                      {selectedParts.length} selected
                     </span>
-                    {(frozenRows.length > 0 || frozenColumns.length > 0) && (
-                      <span className="px-2 py-1 master-table-freeze-indicator rounded text-xs flex items-center gap-1">
-                        <Snowflake className="h-3 w-3" />
-                        {frozenRows.length > 0 && frozenColumns.length > 0 ? `${frozenRows.length} row(s) & ${frozenColumns.length} col(s) frozen` :
-                          frozenRows.length > 0 ? `${frozenRows.length} row(s) frozen` : `${frozenColumns.length} col(s) frozen`}
-                      </span>
-                    )}
-                  </div>
+                  )}
+                  <span className="text-slate-600 dark:text-slate-400">
+                    ({visibleColumns.length} of {columns.length} columns visible)
+                  </span>
+                  {(frozenRows.length > 0 || frozenColumns.length > 0) && (
+                    <span className="px-2 py-1 master-table-freeze-indicator rounded text-xs flex items-center gap-1">
+                      <Snowflake className="h-3 w-3" />
+                      {frozenRows.length > 0 && frozenColumns.length > 0 ? `${frozenRows.length} row(s) & ${frozenColumns.length} col(s) frozen` :
+                        frozenRows.length > 0 ? `${frozenRows.length} row(s) frozen` : `${frozenColumns.length} col(s) frozen`}
+                    </span>
+                  )}
                 </div>
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          )}
         </div>
       </>
     </div>
