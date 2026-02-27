@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, Copy, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, Copy, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import axios from 'axios';
 
 const EmployeeMaster = () => {
@@ -66,6 +66,10 @@ const EmployeeMaster = () => {
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [showDeleteColumnPrompt, setShowDeleteColumnPrompt] = useState(null);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+
+  // Filter Dropdown state
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [filterDraft, setFilterDraft] = useState({});
 
   // Freeze states - Updated to support multiple frozen rows and columns
   const [frozenRows, setFrozenRows] = useState([]);
@@ -1346,6 +1350,72 @@ const EmployeeMaster = () => {
                         onChange={e => setSearchTerm(e.target.value)}
                         className="w-full sm:w-48 h-10 pl-9 pr-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
                       />
+                    </div>
+
+                    {/* Filter Button */}
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          if (!showFilterDropdown) {
+                            const draft = {};
+                            columns.forEach(col => { draft[col.id] = col.visible; });
+                            setFilterDraft(draft);
+                          }
+                          setShowFilterDropdown(!showFilterDropdown);
+                        }}
+                        className="flex items-center gap-1.5 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 master-table-tooltip"
+                        data-tooltip="Filter columns"
+                      >
+                        <Filter className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                        <span className="hidden sm:inline text-slate-700 dark:text-slate-300">Filter</span>
+                      </button>
+
+                      {showFilterDropdown && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setShowFilterDropdown(false)}
+                          />
+                          <div className="absolute left-0 mt-1 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 p-3">
+                            <h4 className="text-xs font-semibold uppercase text-slate-500 mb-2">Visible Columns</h4>
+                            <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
+                              {columns.map(col => (
+                                <label key={col.id} className="flex items-center space-x-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 p-1.5 rounded transition-colors group">
+                                  <input
+                                    type="checkbox"
+                                    checked={filterDraft[col.id] !== false}
+                                    onChange={(e) => {
+                                      setFilterDraft({ ...filterDraft, [col.id]: e.target.checked });
+                                    }}
+                                    className="h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                                  />
+                                  <span className="text-[13px] text-slate-700 dark:text-slate-300 select-none group-hover:text-blue-600 dark:group-hover:text-blue-400">{col.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
+                              <button
+                                onClick={() => setShowFilterDropdown(false)}
+                                className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 rounded transition-colors"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setColumns(columns.map(col => ({
+                                    ...col,
+                                    visible: filterDraft[col.id] !== false
+                                  })));
+                                  setShowFilterDropdown(false);
+                                }}
+                                className="px-3 py-1.5 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors shadow-sm"
+                              >
+                                Apply
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
 
