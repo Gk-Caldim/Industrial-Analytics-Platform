@@ -85,6 +85,14 @@ const Dashboard = () => {
     return saved || 'project-dashboard';
   });
 
+  const hasAccess = useCallback((moduleName) => {
+    if (user?.role === 'Admin' || !user?.permissions) return true;
+    if (Array.isArray(user.permissions)) {
+      return user.permissions.includes(moduleName);
+    }
+    return false;
+  }, [user]);
+
   const [currentTime, setCurrentTime] = useState('');
   const [currentDate, setCurrentDate] = useState('');
 
@@ -427,26 +435,37 @@ const Dashboard = () => {
   };
 
   const getActiveComponent = () => {
+    const restrictedView = (
+      <div className="flex items-center justify-center h-full text-slate-500 font-medium">
+        <div className="text-center">
+          <Shield className="h-10 w-10 mx-auto text-slate-300 mb-3" />
+          <p>Access Restricted to this Module</p>
+        </div>
+      </div>
+    );
+
     // Check masters submodules first
     const mastersSubmodule = mastersSubmodules.find(m => m.id === activeModule);
-    if (mastersSubmodule) return mastersSubmodule.component;
+    if (mastersSubmodule) return hasAccess(mastersSubmodule.name) ? mastersSubmodule.component : restrictedView;
 
     // Check masters main module
     const masterModule = mastersModules.find(m => m.id === activeModule);
-    if (masterModule) return masterModule.component;
+    if (masterModule) return mastersSubmodules.some(s => hasAccess(s.name)) ? masterModule.component : restrictedView;
 
     // Check other modules
     const otherModule = otherModules.find(m => m.id === activeModule);
-    if (otherModule) return otherModule.component;
+    if (otherModule) return hasAccess(otherModule.name) ? otherModule.component : restrictedView;
 
     // Check MOM module
-    if (activeModule === 'mom-module') return <MOMModule />;
+    if (activeModule === 'mom-module') return hasAccess('MOM') ? <MOMModule /> : restrictedView;
 
     // Default to Project Dashboard - pass the project-specific selected file ID
-    return <ProjectDashboard
-      selectedFileId={selectedProjectFileId}
-      onClearSelection={() => setSelectedProjectFileId(null)}
-    />;
+    return hasAccess('Dashboard') ? (
+      <ProjectDashboard
+        selectedFileId={selectedProjectFileId}
+        onClearSelection={() => setSelectedProjectFileId(null)}
+      />
+    ) : restrictedView;
   };
 
   const getActiveModuleName = () => {
@@ -1011,6 +1030,7 @@ const Dashboard = () => {
           isFileSelected={isFileSelected}
           handleFileModuleClick={handleFileModuleClick}
           handleProjectFileClick={handleProjectFileClick}
+          hasAccess={hasAccess}
         />
 
         {/* Main Content Area */}

@@ -3,7 +3,8 @@ import {
   Plus, Search, Edit, Trash2, X, Check,
   ChevronUp, ChevronDown, Filter, Download,
   Eye, EyeOff, Lock, User, ChevronDown as ChevronDownIcon,
-  CheckSquare, Square, Shield, Snowflake, ChevronLeft, ChevronRight, RefreshCw
+  CheckSquare, Square, Shield, Snowflake, ChevronLeft, ChevronRight, RefreshCw,
+  ArrowUp, ArrowDown, Copy
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -74,6 +75,13 @@ const EmployeeAccess = () => {
   const [showDeleteColumnPrompt, setShowDeleteColumnPrompt] = useState(null);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
 
+  // Filter Dropdown state
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [filterDraft, setFilterDraft] = useState({});
+
+  // Column header dropdown state
+  const [activeDropdownColumn, setActiveDropdownColumn] = useState(null);
+
   // Freeze states - Updated to support multiple frozen rows and columns
   const [frozenRows, setFrozenRows] = useState([]);
   const [frozenColumns, setFrozenColumns] = useState([]);
@@ -83,7 +91,17 @@ const EmployeeAccess = () => {
   const [tempFrozenRows, setTempFrozenRows] = useState([]);
   const [tempFrozenColumns, setTempFrozenColumns] = useState([]);
 
-  const modulesList = ['Dashboard', 'Employee Master', 'Project Master', 'Settings'];
+  const modulesList = [
+    'Dashboard',
+    'Upload Trackers',
+    'MOM',
+    'Employee Master',
+    'Employee Access',
+    'Project Master',
+    'Part Master',
+    'Department Master',
+    'Settings'
+  ];
   const accessLevels = ['Admin', 'Manager', 'User', 'Viewer'];
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
@@ -429,7 +447,7 @@ const EmployeeAccess = () => {
       name: '',
       email: '',
       role: 'User',
-      permissions: []
+      permissions: [...modulesList]
     });
     setNewPassword('');
     setConfirmPassword('');
@@ -448,7 +466,7 @@ const EmployeeAccess = () => {
         name: selected.name,
         email: selected.email,
         role: selected.role || 'User',
-        permissions: []
+        permissions: [...modulesList]
       });
       setEmployeeSearch('');
     }
@@ -665,6 +683,33 @@ const EmployeeAccess = () => {
     setColumns(updatedColumns);
   };
 
+  // Dropdown Menu specific handlers
+  const handleSortFromMenu = (key, direction) => {
+    setSortConfig({ key, direction });
+    setCurrentPage(1);
+    setActiveDropdownColumn(null);
+  };
+
+  const handleCopyColumnName = (label) => {
+    navigator.clipboard.writeText(label);
+    showNotification('Column name copied');
+    setActiveDropdownColumn(null);
+  };
+
+  const handleFreezeColumnMenu = (colIndex) => {
+    let newFrozen = [...frozenColumns];
+    if (newFrozen.includes(colIndex)) {
+      newFrozen = newFrozen.filter(idx => idx !== colIndex);
+      showNotification('Column unfrozen');
+    } else {
+      newFrozen = [...new Set([...newFrozen, colIndex])].sort((a, b) => a - b);
+      showNotification('Column frozen');
+    }
+    setFrozenColumns(newFrozen);
+    setTempFrozenColumns(newFrozen);
+    setActiveDropdownColumn(null);
+  };
+
   // Export functions
   const handleExportClick = (format) => {
     if (sortedRules.length === 0) {
@@ -789,12 +834,13 @@ const EmployeeAccess = () => {
   const renderCellContent = (column, value, rule) => {
     if (column.id === 'role') {
       const displayValue = rule.hasAccess ? (value || 'User') : 'No Access';
+      const colorMap = {
+        Admin: 'bg-red-100 text-red-700',
+        Manager: 'bg-blue-100 text-blue-700',
+        User: 'bg-emerald-100 text-emerald-700',
+      };
       return (
-        <span className={`px-2 py-1 rounded-full text-sm whitespace-nowrap ${displayValue === 'Admin' ? 'bg-red-100 text-red-800' :
-          displayValue === 'Manager' ? 'bg-blue-100 text-blue-800' :
-            displayValue === 'User' ? 'bg-green-100 text-green-800' :
-              'bg-slate-100 dark:bg-slate-800 text-gray-800'
-          }`}>
+        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${colorMap[displayValue] || 'bg-slate-100 text-slate-600'}`}>
           {displayValue}
         </span>
       );
@@ -802,13 +848,16 @@ const EmployeeAccess = () => {
     if (column.id === 'status') {
       const isActive = value === 'Active';
       return (
-        <span className={`px-2 py-1 rounded-full text-sm whitespace-nowrap ${isActive ? 'bg-green-100 text-green-800' : 'bg-slate-100 dark:bg-slate-800 text-gray-800'
-          }`}>
-          {value || 'Inactive'}
-        </span>
+        <div className="flex items-center gap-2">
+          <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-300'}`}></div>
+          <span className="text-sm font-medium text-slate-700">{value || 'Inactive'}</span>
+        </div>
       );
     }
-    return value || '-';
+    if (column.id === 'id') {
+      return <span className="text-[13px] text-slate-500 font-mono tracking-tight">{value}</span>;
+    }
+    return <span className="text-sm text-slate-700">{value || '-'}</span>;
   };
 
   const visibleColumns = columns.filter(col => col.visible);
@@ -1680,6 +1729,60 @@ const EmployeeAccess = () => {
                         className="w-full sm:w-48 h-10 pl-9 pr-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
                       />
                     </div>
+
+                    {/* Filter Button */}
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          if (!showFilterDropdown) {
+                            const draft = {};
+                            columns.forEach(col => { draft[col.id] = col.visible; });
+                            setFilterDraft(draft);
+                          }
+                          setShowFilterDropdown(!showFilterDropdown);
+                        }}
+                        className="flex items-center gap-1.5 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 master-table-tooltip"
+                        data-tooltip="Filter columns"
+                      >
+                        <Filter className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                        <span className="hidden sm:inline text-slate-700 dark:text-slate-300">Filter</span>
+                      </button>
+
+                      {showFilterDropdown && (
+                        <>
+                          <div className="fixed inset-0 z-40" onClick={() => setShowFilterDropdown(false)} />
+                          <div className="absolute left-0 mt-1 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 p-3">
+                            <h4 className="text-xs font-semibold uppercase text-slate-500 mb-2">Visible Columns</h4>
+                            <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
+                              {columns.map(col => (
+                                <label key={col.id} className="flex items-center space-x-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 p-1.5 rounded transition-colors group">
+                                  <input
+                                    type="checkbox"
+                                    checked={filterDraft[col.id] !== false}
+                                    onChange={(e) => setFilterDraft({ ...filterDraft, [col.id]: e.target.checked })}
+                                    className="h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                                  />
+                                  <span className="text-[13px] text-slate-700 dark:text-slate-300 select-none group-hover:text-blue-600">{col.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
+                              <button
+                                onClick={() => setShowFilterDropdown(false)}
+                                className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded transition-colors"
+                              >Cancel</button>
+                              <button
+                                onClick={() => {
+                                  setColumns(columns.map(col => ({ ...col, visible: filterDraft[col.id] !== false })));
+                                  setShowFilterDropdown(false);
+                                }}
+                                className="px-3 py-1.5 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors shadow-sm"
+                              >Apply</button>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   {/* RIGHT SIDE */}
@@ -1768,29 +1871,21 @@ const EmployeeAccess = () => {
               </div>
 
               {/* TABLE SECTION - SCROLLABLE */}
-              <div className="flex-1 overflow-auto relative">
-                <table className="min-w-full text-sm border-collapse">
+              <div className="flex-1 overflow-auto relative" onClick={() => activeDropdownColumn && setActiveDropdownColumn(null)}>
+                <table className="master-table">
                   <thead className="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
                     <tr className="border-b border-slate-200 dark:border-slate-700">
                       {/* Checkbox column */}
                       <th
-                        className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap w-8 ${isColumnFrozen(0) ? 'frozen-column' : ''
-                          }`}
-                        style={{
-                          left: isColumnFrozen(0) ? '0' : 'auto',
-                          zIndex: isColumnFrozen(0) ? 35 : 30
-                        }}
+                        className={`text-left py-3 px-6 font-medium cursor-pointer w-10 ${isColumnFrozen(0) ? 'frozen-column' : ''}`}
+                        style={{ left: isColumnFrozen(0) ? '0' : 'auto', zIndex: isColumnFrozen(0) ? 35 : 30 }}
                       >
                         <div className="flex items-center justify-center">
                           <button
                             onClick={toggleSelectAll}
-                            className="p-1 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100"
+                            className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:text-slate-100 transition-colors"
                           >
-                            {selectAll ? (
-                              <CheckSquare className="h-4 w-4" />
-                            ) : (
-                              <Square className="h-4 w-4" />
-                            )}
+                            {selectAll ? <CheckSquare className="h-4 w-4 text-blue-600" /> : <Square className="h-4 w-4" />}
                           </button>
                         </div>
                       </th>
@@ -1799,26 +1894,137 @@ const EmployeeAccess = () => {
                         return (
                           <th
                             key={col.id}
-                            className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
-                              }`}
-                            onClick={() => col.sortable && handleSort(col.id)}
+                            className={`text-left py-3 px-8 font-medium whitespace-nowrap group ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''}`}
                             style={{
                               left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
                               zIndex: isColumnFrozen(actualColumnIndex) ? 35 : 30
                             }}
                           >
-                            <div className="flex items-center space-x-1">
-                              <span className="font-semibold">{col.label}</span>
-                              {col.required && <span className="text-red-300">*</span>}
-                              {col.sortable && getSortIcon(col.id)}
+                            <div className="flex items-center justify-between space-x-2">
+                              {/* Left side: label and required star */}
+                              <div className="flex items-center space-x-1.5 cursor-pointer flex-1" onClick={() => col.sortable && handleSort(col.id)}>
+                                <span className="font-medium text-[13px]">{col.label}</span>
+                                {col.required && <span className="text-red-400">*</span>}
+                              </div>
+
+                              {/* Right side: dropdown chevron */}
+                              <div className="flex items-center space-x-1 relative">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveDropdownColumn(activeDropdownColumn === col.id ? null : col.id);
+                                  }}
+                                  className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 ${activeDropdownColumn === col.id ? 'opacity-100 bg-slate-200 dark:bg-slate-600 text-slate-700' : ''}`}
+                                >
+                                  <ChevronDown className="h-4 w-4" />
+                                </button>
+
+                                {/* Dropdown Menu */}
+                                {activeDropdownColumn === col.id && (
+                                  <div
+                                    className="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-50 py-1 normal-case tracking-normal"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {col.sortable && (
+                                      <>
+                                        <button
+                                          onClick={() => handleSortFromMenu(col.id, 'ascending')}
+                                          className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                        >
+                                          <ArrowUp className="h-3.5 w-3.5 text-slate-400" />
+                                          Sort Ascending
+                                        </button>
+                                        <button
+                                          onClick={() => handleSortFromMenu(col.id, 'descending')}
+                                          className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                        >
+                                          <ArrowDown className="h-3.5 w-3.5 text-slate-400" />
+                                          Sort Descending
+                                        </button>
+                                        <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
+                                      </>
+                                    )}
+                                    <button
+                                      onClick={() => handleCopyColumnName(col.label)}
+                                      className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                    >
+                                      <Copy className="h-3.5 w-3.5 text-slate-400" />
+                                      Copy name
+                                    </button>
+
+                                    <button
+                                      onClick={() => {
+                                        startEditColumn(col.id, col.label);
+                                        setShowColumnModal(true);
+                                        setActiveDropdownColumn(null);
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                    >
+                                      <Edit className="h-3.5 w-3.5 text-slate-400" />
+                                      Edit column
+                                    </button>
+
+                                    <button
+                                      onClick={() => handleFreezeColumnMenu(actualColumnIndex)}
+                                      className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                    >
+                                      {isColumnFrozen(actualColumnIndex) ? (
+                                        <>
+                                          <Snowflake className="h-3.5 w-3.5 text-blue-500" />
+                                          <span className="text-blue-600">Unfreeze column</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Snowflake className="h-3.5 w-3.5 text-slate-400" />
+                                          Freeze column
+                                        </>
+                                      )}
+                                    </button>
+
+                                    <button
+                                      onClick={() => {
+                                        toggleFreezeRow();
+                                        setActiveDropdownColumn(null);
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                    >
+                                      {frozenRows.length > 0 ? (
+                                        <>
+                                          <Snowflake className="h-3.5 w-3.5 text-blue-500" />
+                                          <span className="text-blue-600">Unfreeze row(s)</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Snowflake className="h-3.5 w-3.5 text-slate-400" />
+                                          Freeze row(s)
+                                        </>
+                                      )}
+                                    </button>
+
+                                    <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
+                                    <button
+                                      onClick={() => {
+                                        handleDeleteColumn(col.id);
+                                        setActiveDropdownColumn(null);
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 text-red-600 dark:text-red-400"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                      Delete column
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </th>
                         );
                       })}
+                      {/* Empty TH for Actions Row */}
+                      <th className="w-24"></th>
                     </tr>
                   </thead>
 
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100/80">
                     {paginatedRules.map((rule, rowIndex) => {
                       const actualRowIndex = (currentPage - 1) * pageSize + rowIndex;
                       const isRowCurrentlyFrozen = isRowFrozen(actualRowIndex);
@@ -1826,27 +2032,20 @@ const EmployeeAccess = () => {
                       return (
                         <tr
                           key={rule.accessRuleId}
-                          className={`transition-colors ${isRowCurrentlyFrozen ? 'frozen-row' : ''
-                            }`}
-                          style={{
-                            top: isRowCurrentlyFrozen ? getFrozenRowTop(actualRowIndex) : 'auto'
-                          }}
+                          className={`group transition-colors duration-150 ${isRowCurrentlyFrozen ? 'frozen-row' : ''} ${selectedAccessRules.includes(rule.accessRuleId) ? 'row-selected bg-blue-50/40' : 'hover:bg-slate-50/50'}`}
+                          style={{ top: isRowCurrentlyFrozen ? getFrozenRowTop(actualRowIndex) : 'auto' }}
                         >
                           {/* Checkbox cell */}
                           <td
-                            className={`py-3 px-8 whitespace-nowrap w-4 ${isColumnFrozen(0) ? 'frozen-column' : ''
-                              }`}
-                            style={{
-                              left: isColumnFrozen(0) ? '0' : 'auto',
-                              zIndex: isColumnFrozen(0) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto'
-                            }}
+                            className={`py-3 px-6 whitespace-nowrap w-10 ${isColumnFrozen(0) ? 'frozen-column' : ''}`}
+                            style={{ left: isColumnFrozen(0) ? '0' : 'auto', zIndex: isColumnFrozen(0) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto' }}
                           >
-                            <div className="flex items-center justify-center">
+                            <div className={`flex items-center justify-center ${selectedAccessRules.includes(rule.accessRuleId) ? 'opacity-100' : 'master-table-checkbox-cell'}`}>
                               <input
                                 type="checkbox"
                                 checked={selectedAccessRules.includes(rule.accessRuleId)}
                                 onChange={() => toggleAccessRuleSelection(rule.accessRuleId)}
-                                className="h-4 w-4 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 rounded focus:ring-gray-500"
+                                className="h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500 cursor-pointer"
                               />
                             </div>
                           </td>
@@ -1855,17 +2054,32 @@ const EmployeeAccess = () => {
                             return (
                               <td
                                 key={col.id}
-                                className={`py-3 px-8 whitespace-nowrap min-w-[160px] text-base ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
-                                  }`}
-                                style={{
-                                  left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
-                                  zIndex: isColumnFrozen(actualColumnIndex) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto'
-                                }}
+                                className={`py-3 px-6 whitespace-nowrap ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''}`}
+                                style={{ left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto', zIndex: isColumnFrozen(actualColumnIndex) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto' }}
                               >
                                 {renderCellContent(col, rule[col.id], rule)}
                               </td>
                             );
                           })}
+                          {/* Actions Cell */}
+                          <td className="py-3 px-6 text-right whitespace-nowrap w-[100px]">
+                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); startEditing(rule); }}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                                title="Edit"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); showDeleteConfirmation(rule.accessRuleId, rule.name); }}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}

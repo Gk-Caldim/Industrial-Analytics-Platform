@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   File, User, ChevronRight,
@@ -13,71 +14,20 @@ import {
   Calendar, Target, Shield, GitBranch, Users, Award,
   Settings2, Minimize2, Sliders
 } from 'lucide-react';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  PieChart as RePieChart, Pie, Cell,
-  LineChart, Line,
-  AreaChart, Area,
-  ResponsiveContainer
-} from 'recharts';
+import ReactECharts from 'echarts-for-react';
+import axios from 'axios';
 
 import FileContentViewer from './Trackers/FileContentViewer';
 
 // Milestone stages (columns in the timeline)
 const MILESTONE_STAGES = [
-  { id: 'l0drg', label: 'L0 Drg' },
-  { id: 'l1drg', label: 'L1 Drg' },
-  { id: 'qsvob', label: 'QS/VOB' },
-  { id: 'tko', label: 'Exclusive TKO' },
-  { id: 'gen2build', label: 'Gen2 Build' },
-  { id: 'gen2val', label: 'Gen2 Validation' },
-  { id: 'gen2cbuild', label: 'Gen2C Build' },
-  { id: 'reval', label: 'Revalidation & Seeding Build' },
-  { id: 'pp1', label: 'PP1' },
-  { id: 'pp2', label: 'PP2' },
-  { id: 'sop', label: 'SOP' },
-  { id: 'sovp', label: 'SOVP' },
-];
-
-// Plan row & Actual/Outlook row – keyed by stage id
-const MILESTONE_PLAN = {
-  l0drg: "Apr'22", l1drg: "Sep'22", qsvob: "Sep'22–Nov'22", tko: "Jun'22–Mar'23",
-  gen2build: "Apr'23–Jun'23", gen2val: "May'23–Feb'24", gen2cbuild: "Sep'23",
-  reval: "Oct'24–Nov'24", pp1: "Mar'25", pp2: "Apr'25", sop: "Jul'25", sovp: "Aug'25"
-};
-const MILESTONE_ACTUAL = {
-  l0drg: { value: "✔", status: 'done' },
-  l1drg: { value: "✔", status: 'done' },
-  qsvob: { value: "✔", status: 'done' },
-  tko: { value: "✔", status: 'done' },
-  gen2build: { value: "Jun'23", status: 'delayed' },
-  gen2val: { value: "Jun'23–Feb'24", status: 'done' },
-  gen2cbuild: { value: "Sep'23", status: 'done' },
-  reval: { value: "Oct'24–Nov'24", status: 'pending' },
-  pp1: { value: "Mar'25", status: 'pending' },
-  pp2: { value: "May'25", status: 'at-risk' },
-  sop: { value: '', status: 'pending' },
-  sovp: { value: '', status: 'pending' },
-};
-
-// Dummy data for critical issues
-const DUMMY_ISSUES = [
-  {
-    id: 1,
-    issue: 'Automatic Sealant dispenser installation pending at Nagpur main line. Machine received at plant, but installation delayed due to current production priorities at main line. However machine is established in 1 bar line.',
-    resp: 'CME',
-    supportRequired: 'Installation as per plan',
-    fromWhom: 'Mangesh',
-    status: 'Open',
-  },
-  {
-    id: 2,
-    issue: 'ORC Parts Development Progress\n1. Conrod Bolt – Assembled conrod required for fatigue testing. 8 samples each from bolt suppliers to be sent to both conrod suppliers (Shashank)\n2. Crank case (3DI & 4DI) – No progress in semi finish investment approval. Impact on Implementation. (Shashank)\n3. Thrust Bearing (KSPG) – KSPG has shared updated proposal. Feedback awaited from Design (Deepak)\n4. PIX Belt – Validation failed on 3 cyl at 453 hrs. Supplier feedback to be verified at tractor & to be further discussed with supplier for closure. 4 cyl validation completed (2×800 hrs). Supplier final DVP to be signed off\n5. CONTI Belt – Development with EPDM material to be started. Communication to CDMM to be initiated (Twisha)\n6. VHC Cover – Feasibility closure & SOR sign off delayed. Impact on validation & Implementation (Deepak)',
-    resp: 'Mentioned in each line',
-    supportRequired: 'Expediting Development',
-    fromWhom: 'Dr. Ramesh Tarun & Milind',
-    status: 'In Progress',
-  },
+  { id: 'a', label: 'A' },
+  { id: 'b', label: 'B' },
+  { id: 'c', label: 'C' },
+  { id: 'd', label: 'D' },
+  { id: 'e', label: 'E' },
+  { id: 'f', label: 'F' },
+  { id: 'implementation', label: 'Implementation' },
 ];
 
 // Project stages configuration with embedded charts
@@ -90,42 +40,6 @@ const PROJECT_STAGES = [
   { id: 'monitoring', name: 'Monitoring', color: 'teal', description: 'Performance Monitoring' },
 ];
 
-// Enhanced Custom Tooltip with better formatting
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white px-4 py-3 border border-gray-200 rounded-lg shadow-lg max-w-xs">
-        <p className="font-medium text-gray-900 mb-2 border-b pb-1">{label}</p>
-        {payload.map((entry, index) => {
-          const valueColor = entry.color || entry.fill || '#2563eb';
-          const value = entry.value;
-
-          // Format value based on type
-          let formattedValue = value;
-          if (typeof value === 'number') {
-            if (Number.isInteger(value)) {
-              formattedValue = value.toLocaleString();
-            } else {
-              formattedValue = value.toFixed(2);
-            }
-          }
-
-          return (
-            <div key={index} className="flex items-center justify-between text-sm mb-1">
-              <span style={{ color: valueColor }} className="font-medium">
-                {entry.name}:
-              </span>
-              <span className="ml-4 font-mono font-semibold" style={{ color: valueColor }}>
-                {formattedValue}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-  return null;
-};
 
 // Stage Configuration Modal Component - Made bigger and more comfortable
 const StageConfigModal = ({ stage, isOpen, onClose, departmentColumns, onSave, currentConfig }) => {
@@ -281,117 +195,44 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
             </button>
           </div>
 
-          {/* Full Size Chart */}
           <div className="h-[500px] w-full">
             {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                {localChartType === 'bar' && (
-                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                      dataKey="name"
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                      interval={0}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend
-                      wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
-                      layout="horizontal"
-                      verticalAlign="bottom"
-                      align="center"
-                    />
-                    {distribution.map((item, index) => (
-                      <Bar
-                        key={item.name}
-                        dataKey={item.name}
-                        stackId={item.name !== 'value' && item.name !== 'sum' && item.name !== 'average' ? "a" : undefined}
-                        fill={item.color}
-                        name={item.name}
-                        radius={[4, 4, 0, 0]}
-                      />
-                    ))}
-                  </BarChart>
-                )}
-                {localChartType === 'pie' && (
-                  <RePieChart>
-                    <Pie
-                      data={distribution}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={true}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={200}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {distribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </RePieChart>
-                )}
-                {localChartType === 'line' && (
-                  <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                      dataKey="name"
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                      interval={0}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                    {distribution.map((item) => (
-                      <Line
-                        key={item.name}
-                        type="monotone"
-                        dataKey={item.name}
-                        stroke={item.color}
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: item.color }}
-                        name={item.name}
-                      />
-                    ))}
-                  </LineChart>
-                )}
-                {localChartType === 'area' && (
-                  <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                      dataKey="name"
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                      interval={0}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                    {distribution.map((item) => (
-                      <Area
-                        key={item.name}
-                        type="monotone"
-                        dataKey={item.name}
-                        stackId="1"
-                        stroke={item.color}
-                        fill={item.color}
-                        fillOpacity={0.6}
-                        name={item.name}
-                      />
-                    ))}
-                  </AreaChart>
-                )}
-              </ResponsiveContainer>
+              <ReactECharts
+                option={{
+                  tooltip: {
+                    trigger: localChartType === 'pie' ? 'item' : 'axis',
+                    axisPointer: { type: localChartType === 'bar' ? 'shadow' : 'cross' }
+                  },
+                  legend: { bottom: 0, textStyle: { fontSize: 12 } },
+                  grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+                  ...(localChartType !== 'pie' ? {
+                    xAxis: {
+                      type: 'category',
+                      data: chartData.map(d => d.name),
+                      axisLabel: { rotate: 45, fontSize: 12 }
+                    },
+                    yAxis: { type: 'value', axisLabel: { fontSize: 12 } }
+                  } : {}),
+                  series: localChartType === 'pie'
+                    ? [{
+                      type: 'pie',
+                      radius: '70%',
+                      data: distribution.map(d => ({ value: d.value, name: d.name, itemStyle: { color: d.color } })),
+                      label: { formatter: '{b}: {d}%' }
+                    }]
+                    : distribution.map(item => ({
+                      name: item.name,
+                      type: localChartType === 'area' ? 'line' : localChartType,
+                      areaStyle: localChartType === 'area' ? { color: item.color, opacity: 0.6 } : undefined,
+                      stack: (localChartType === 'bar' || localChartType === 'area') ? 'total' : undefined,
+                      itemStyle: { color: item.color, borderRadius: localChartType === 'bar' ? [4, 4, 0, 0] : 0 },
+                      symbolSize: localChartType === 'line' ? 6 : 0,
+                      data: chartData.map(d => d[item.name] || 0)
+                    }))
+                }}
+                style={{ height: '100%', width: '100%' }}
+                notMerge={true}
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
                 <p className="text-gray-500">No data available</p>
@@ -407,7 +248,7 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
 const MiniChart = ({ chartData, statusDistribution, chartType = 'bar' }) => {
   if (!chartData || chartData.length === 0) {
     return (
-      <div className="h-24 flex items-center justify-center bg-gray-50 rounded border border-gray-200">
+      <div className="h-full w-full flex items-center justify-center bg-gray-50 rounded border border-gray-200">
         <BarChart2 className="h-8 w-8 text-gray-300" />
       </div>
     );
@@ -417,58 +258,75 @@ const MiniChart = ({ chartData, statusDistribution, chartType = 'bar' }) => {
   const miniData = chartData.slice(0, 5);
 
   return (
-    <div className="h-24 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        {chartType === 'pie' ? (
-          <RePieChart>
-            <Pie
-              data={statusDistribution.slice(0, 4)}
-              cx="50%"
-              cy="50%"
-              innerRadius={20}
-              outerRadius={35}
-              dataKey="value"
-              paddingAngle={2}
-            >
-              {statusDistribution.slice(0, 4).map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-          </RePieChart>
-        ) : chartType === 'line' ? (
-          <LineChart data={miniData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-            <Line
-              type="monotone"
-              dataKey={statusDistribution[0]?.name || 'value'}
-              stroke={statusDistribution[0]?.color || '#2563eb'}
-              strokeWidth={2}
-              dot={false}
-            />
-          </LineChart>
-        ) : chartType === 'area' ? (
-          <AreaChart data={miniData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-            <Area
-              type="monotone"
-              dataKey={statusDistribution[0]?.name || 'value'}
-              stroke={statusDistribution[0]?.color || '#2563eb'}
-              fill={statusDistribution[0]?.color || '#2563eb'}
-              fillOpacity={0.3}
-            />
-          </AreaChart>
-        ) : (
-          <BarChart data={miniData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-            {statusDistribution.map((item) => (
-              <Bar
-                key={item.name}
-                dataKey={item.name}
-                stackId="a"
-                fill={item.color}
-                radius={[2, 2, 0, 0]}
-              />
-            ))}
-          </BarChart>
-        )}
-      </ResponsiveContainer>
+    <div className="h-full w-full relative">
+      <ReactECharts
+        option={{
+          color: ['#1a73e8', '#34a853', '#ea4335', '#fbbc04', '#ff6d00', '#46bdc6', '#b0bec5'],
+          textStyle: { fontFamily: '"Google Sans", Roboto, Arial, sans-serif' },
+          tooltip: {
+            trigger: chartType === 'pie' ? 'item' : 'axis',
+            axisPointer: { type: chartType === 'bar' ? 'shadow' : 'line', lineStyle: { color: '#dadce0', type: 'dashed' } },
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderColor: '#dadce0',
+            textStyle: { color: '#202124', fontSize: 12 },
+            padding: [8, 12],
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+          },
+          grid: { top: 15, right: 10, bottom: 5, left: 10, containLabel: false },
+          ...(chartType !== 'pie' ? {
+            xAxis: {
+              type: 'category',
+              data: miniData.map(d => d.name),
+              axisLine: { show: false },
+              axisTick: { show: false },
+              axisLabel: { show: false }
+            },
+            yAxis: {
+              type: 'value',
+              splitLine: { show: false },
+              axisLabel: { show: false }
+            }
+          } : {}),
+          series: chartType === 'pie'
+            ? [{
+              type: 'pie',
+              radius: ['45%', '85%'],
+              avoidLabelOverlap: false,
+              itemStyle: { borderColor: '#fff', borderWidth: 2 },
+              label: { show: false },
+              labelLine: { show: false },
+              data: statusDistribution.slice(0, 4).map(d => ({ value: d.value, name: d.name, itemStyle: { color: d.color } }))
+            }]
+            : chartType === 'bar'
+              ? statusDistribution.map(item => ({
+                type: 'bar',
+                name: item.name,
+                stack: 'total',
+                itemStyle: { color: item.color, borderRadius: [3, 3, 0, 0] },
+                barMaxWidth: 35,
+                data: miniData.map(d => d[item.name] || 0)
+              }))
+              : [{
+                type: 'line',
+                name: statusDistribution[0]?.name || 'Value',
+                smooth: true,
+                itemStyle: { color: statusDistribution[0]?.color || '#1a73e8' },
+                lineStyle: { width: 3, shadowColor: 'rgba(26,115,232,0.2)', shadowBlur: 8, shadowOffsetY: 4 },
+                showSymbol: false,
+                symbol: 'circle',
+                symbolSize: 6,
+                areaStyle: chartType === 'area' ? {
+                  color: {
+                    type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                    colorStops: [{ offset: 0, color: statusDistribution[0]?.color || 'rgba(26,115,232,0.4)' }, { offset: 1, color: 'rgba(255,255,255,0)' }]
+                  }
+                } : undefined,
+                data: miniData.map(d => d[statusDistribution[0]?.name || 'value'] || 0)
+              }]
+        }}
+        style={{ height: '100%', width: '100%' }}
+        notMerge={true}
+      />
     </div>
   );
 };
@@ -703,6 +561,49 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
   const [loading, setLoading] = useState(true);
   const [trackers, setTrackers] = useState([]);
   const [uploadedFilesData, setUploadedFilesData] = useState({});
+
+  // Employee Master Data for Reference
+  const [employeesMaster, setEmployeesMaster] = useState([]);
+  const [milestonePlan, setMilestonePlan] = useState({
+    a: "Apr'25", b: "", c: "", d: "", e: "", f: "", implementation: ""
+  });
+  const [milestoneActual, setMilestoneActual] = useState({
+    a: { value: "", status: "done" },
+    b: { value: "", status: "pending" },
+    c: { value: "", status: "pending" },
+    d: { value: "", status: "pending" },
+    e: { value: "", status: "pending" },
+    f: { value: "", status: "pending" },
+    implementation: { value: "", status: "pending" },
+  });
+  const [milestonesEditMode, setMilestonesEditMode] = useState(false);
+
+  const [criticalIssuesList, setCriticalIssuesList] = useState([
+    {
+      id: 1,
+      issue: 'Delay in procurement',
+      resp: '',
+      func: 'Procurement',
+      targetDate: '',
+      status: 'Open'
+    }
+  ]);
+  const [issuesEditMode, setIssuesEditMode] = useState(false);
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+        const res = await axios.get(`${url}/employees`);
+        if (Array.isArray(res.data)) {
+          setEmployeesMaster(res.data);
+        }
+      } catch (err) {
+        console.error("Error fetching employees", err);
+      }
+    };
+    fetchEmployees();
+  }, []);
 
   // Project selection
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -1675,9 +1576,20 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                 <div className="px-7 py-5" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-11 h-11 rounded-xl" style={{ background: '#eef2ff', border: '1px solid #e0e7ff' }}>
-                        <Folder className="h-5 w-5 text-indigo-500" />
-                      </div>
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-sm filter">
+                        <defs>
+                          <linearGradient id="folderGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#6366f1" />
+                            <stop offset="1" stopColor="#4f46e5" />
+                          </linearGradient>
+                          <linearGradient id="folderLight" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#818cf8" />
+                            <stop offset="1" stopColor="#6366f1" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M2.5 10V6.5C2.5 5.11929 3.61929 4 5 4H9.5C10.0304 4 10.5391 4.21071 10.9142 4.58579L12.5858 6.25736C12.9609 6.63244 13.4696 6.84315 14 6.84315H19C20.3807 6.84315 21.5 7.96243 21.5 9.34315V10M2.5 10H21.5M2.5 10V17.5C2.5 18.8807 3.61929 20 5 20H19C20.3807 20 21.5 18.8807 21.5 17.5V10" stroke="url(#folderLight)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="url(#folderGrad)" fillOpacity="0.1" />
+                        <path d="M7 14H12" stroke="url(#folderGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                       <div>
                         <p className="text-slate-400 text-xs font-medium uppercase tracking-widest mb-0.5">Active Project</p>
                         <h2 className="text-xl font-bold text-slate-800 leading-tight">{selectedProject.name}</h2>
@@ -1726,20 +1638,41 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
                   {/* ── MILESTONES SECTION ── */}
                   {dashboardConfig.milestones && (
-                    <div className="rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 16px rgba(15,23,42,0.08)', border: '1px solid #e2e8f0' }}>
+                    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200">
                       {/* Card Header */}
-                      <div className="flex items-center justify-between px-6 py-4" style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
+                      <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
                         <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: '#e0e7ff' }}>
-                            <Calendar className="h-4 w-4 text-indigo-500" />
-                          </div>
+                          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-sm filter">
+                            <defs>
+                              <linearGradient id="calGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                <stop stopColor="#6366f1" />
+                                <stop offset="1" stopColor="#4f46e5" />
+                              </linearGradient>
+                              <linearGradient id="calLight" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                <stop stopColor="#818cf8" />
+                                <stop offset="1" stopColor="#6366f1" />
+                              </linearGradient>
+                            </defs>
+                            <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" stroke="url(#calLight)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="url(#calGrad)" fillOpacity="0.08" />
+                            <path d="M3.5 10.5H20.5" stroke="url(#calLight)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M8 3.5V7.5" stroke="url(#calGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M16 3.5V7.5" stroke="url(#calGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M8.5 14H8.51" stroke="url(#calGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M12 14H12.01" stroke="url(#calGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M15.5 14H15.51" stroke="url(#calGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
                           <div>
-                            <h3 className="text-sm font-bold text-slate-700 tracking-wide">Major Milestones</h3>
-                            <p className="text-slate-400 text-xs">Project Timeline Overview</p>
+                            <h3 className="text-[15px] font-bold text-slate-800 tracking-tight">Major Milestones</h3>
+                            <p className="text-slate-500 text-[13px] mt-0.5">Project Timeline Overview</p>
                           </div>
                         </div>
-                        {/* Legend inline */}
                         <div className="flex items-center gap-4">
+                          <button
+                            onClick={() => setMilestonesEditMode(!milestonesEditMode)}
+                            className="px-4 py-1.5 bg-white border border-slate-200 rounded-md shadow-sm text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all focus:outline-none focus:ring-2 focus:ring-slate-100"
+                          >
+                            {milestonesEditMode ? 'Save Changes' : 'Edit Milestones'}
+                          </button>
                           {[
                             { color: '#86efac', label: 'Completed' },
                             { color: '#fde68a', label: 'Delayed' },
@@ -1755,81 +1688,111 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
                       {/* Table */}
                       <div className="overflow-x-auto">
-                        <table className="min-w-full border-collapse" style={{ tableLayout: 'fixed', minWidth: '960px' }}>
-                          <colgroup>
-                            <col style={{ width: '148px' }} />
-                            {MILESTONE_STAGES.map(s => <col key={s.id} style={{ width: '88px' }} />)}
-                          </colgroup>
+                        <table className="w-full border-collapse bg-white table-fixed min-w-[900px]">
                           <thead>
-                            <tr style={{ background: '#e8edf3' }}>
+                            <tr className="bg-[#f0f9ff] border-b border-[#e0f2fe]">
                               <th
-                                className="py-2.5 px-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider"
-                                style={{ borderRight: '1px solid #d5dce6' }}
+                                className="py-4 px-6 text-left text-[12px] font-semibold text-sky-700 uppercase tracking-widest w-[16%]"
+                                style={{ borderRight: '1px solid #f8fafc' }}
                               >
                                 Phase
                               </th>
                               {MILESTONE_STAGES.map(stage => (
                                 <th
                                   key={stage.id}
-                                  className="py-2.5 px-2 text-center text-xs font-semibold text-slate-600 leading-tight"
-                                  style={{ borderRight: '1px solid #d5dce6' }}
+                                  className="py-4 px-3 text-center text-[12px] font-semibold text-sky-700 leading-tight w-[12%]"
+                                  style={{ borderRight: '1px solid #e0f2fe' }}
                                 >
                                   {stage.label}
                                 </th>
                               ))}
                             </tr>
                           </thead>
-                          <tbody>
+                          <tbody className="divide-y divide-slate-100">
                             {/* Plan row */}
-                            <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
+                            <tr className="hover:bg-slate-50/50 transition-colors group">
                               <td
-                                className="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap"
-                                style={{ borderRight: '1px solid #e2e8f0' }}
+                                className="py-5 px-6 text-[14px] font-semibold text-slate-800 whitespace-nowrap bg-slate-50/30"
+                                style={{ borderRight: '1px solid #f8fafc' }}
                               >
                                 Plan
                               </td>
                               {MILESTONE_STAGES.map(stage => (
                                 <td
                                   key={stage.id}
-                                  className="py-3 px-2 text-center text-xs text-slate-600 font-medium"
-                                  style={{ borderRight: '1px solid #e2e8f0' }}
+                                  className="py-3 px-4 text-center text-[14px] text-slate-700 font-medium"
+                                  style={{ borderRight: '1px solid #f8fafc' }}
                                 >
-                                  {MILESTONE_PLAN[stage.id] || <span className="text-slate-300">—</span>}
+                                  {milestonesEditMode ? (
+                                    <input
+                                      type="text"
+                                      value={milestonePlan[stage.id] || ''}
+                                      onChange={(e) => setMilestonePlan({ ...milestonePlan, [stage.id]: e.target.value })}
+                                      className="w-full text-center p-2.5 bg-white border border-slate-200 rounded-lg text-[14px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                                      placeholder="Month Year"
+                                    />
+                                  ) : (
+                                    <span className="group-hover:text-slate-900 transition-colors">{milestonePlan[stage.id] || <span className="text-slate-300">—</span>}</span>
+                                  )}
                                 </td>
                               ))}
                             </tr>
                             {/* Actual / Outlook row */}
-                            <tr style={{ background: '#fff' }}>
+                            <tr className="hover:bg-slate-50/50 transition-colors group">
                               <td
-                                className="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap"
-                                style={{ borderRight: '1px solid #e2e8f0' }}
+                                className="py-5 px-6 text-[14px] font-semibold text-slate-800 whitespace-nowrap bg-slate-50/30"
+                                style={{ borderRight: '1px solid #f8fafc' }}
                               >
                                 Actual / Outlook
                               </td>
                               {MILESTONE_STAGES.map(stage => {
-                                const cell = MILESTONE_ACTUAL[stage.id];
+                                const cell = milestoneActual[stage.id];
                                 const cfg = {
                                   done: { bg: '#dcfce7', border: '#86efac', text: '#166534' },
                                   delayed: { bg: '#fef9c3', border: '#fde047', text: '#854d0e' },
                                   'at-risk': { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
-                                }[cell?.status] || { bg: 'transparent', border: '#e2e8f0', text: '#64748b' };
+                                }[cell?.status] || { bg: 'transparent', border: 'transparent', text: '#475569' };
                                 return (
                                   <td
                                     key={stage.id}
-                                    className="py-3 px-1.5 text-center text-xs font-semibold"
-                                    style={{ borderRight: '1px solid #e2e8f0' }}
+                                    className="py-3 px-4 text-center text-[14px] font-medium"
+                                    style={{ borderRight: '1px solid #f8fafc' }}
                                   >
-                                    {cell?.value ? (
-                                      <span
-                                        className="inline-flex items-center justify-center w-full px-1.5 py-1 rounded-md text-xs font-semibold leading-tight"
-                                        style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.text }}
-                                      >
-                                        {cell.value === '✔' ? (
-                                          <CheckCircle className="h-3.5 w-3.5" />
-                                        ) : cell.value}
-                                      </span>
+                                    {milestonesEditMode ? (
+                                      <div className="flex flex-col gap-2 w-full max-w-[140px] mx-auto">
+                                        <input
+                                          type="text"
+                                          value={cell?.value || ''}
+                                          onChange={(e) => setMilestoneActual({ ...milestoneActual, [stage.id]: { ...cell, value: e.target.value } })}
+                                          className="w-full text-center p-2.5 bg-white border border-slate-200 rounded-lg text-[14px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm"
+                                          placeholder="Actual"
+                                        />
+                                        <select
+                                          value={cell?.status || 'pending'}
+                                          onChange={(e) => setMilestoneActual({ ...milestoneActual, [stage.id]: { ...cell, status: e.target.value } })}
+                                          className="w-full text-center p-2 bg-slate-50 border border-slate-200 rounded-lg text-[12px] font-semibold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none transition-all hover:bg-white cursor-pointer"
+                                        >
+                                          <option value="pending">Pending</option>
+                                          <option value="done">Done</option>
+                                          <option value="delayed">Delayed</option>
+                                          <option value="at-risk">At Risk</option>
+                                        </select>
+                                      </div>
                                     ) : (
-                                      <span className="text-slate-300">—</span>
+                                      cell?.value ? (
+                                        <div className="flex items-center justify-center">
+                                          <span
+                                            className="inline-flex items-center justify-center w-[90%] max-w-[140px] px-2.5 py-1.5 rounded-lg text-[13px] font-bold tracking-wide shadow-sm"
+                                            style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.text }}
+                                          >
+                                            {cell.value.toLowerCase() === '✔' ? (
+                                              <CheckCircle className="h-4 w-4" />
+                                            ) : cell.value}
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-slate-300">—</span>
+                                      )
                                     )}
                                   </td>
                                 );
@@ -1843,219 +1806,363 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
                   {/* ── CRITICAL ISSUES SECTION ── */}
                   {dashboardConfig.criticalIssues && (
-                    <div className="rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 16px rgba(15,23,42,0.08)', border: '1px solid #e2e8f0' }}>
+                    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 mt-6 -mx-2 sm:mx-0">
                       {/* Card Header */}
-                      <div className="flex items-center justify-between px-6 py-4" style={{ background: '#fef2f2', borderBottom: '1px solid #fecdd3' }}>
+                      <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
                         <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: '#fee2e2' }}>
-                            <AlertTriangle className="h-4 w-4 text-red-400" />
-                          </div>
+                          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-sm filter">
+                            <defs>
+                              <linearGradient id="alertGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                <stop stopColor="#ef4444" />
+                                <stop offset="1" stopColor="#dc2626" />
+                              </linearGradient>
+                              <linearGradient id="alertLight" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                <stop stopColor="#f87171" />
+                                <stop offset="1" stopColor="#ef4444" />
+                              </linearGradient>
+                            </defs>
+                            <path d="M11.1388 4.2263L2.61807 18.9664C2.26126 19.5835 2.70678 20.3541 3.41951 20.3541H20.5815C21.2942 20.3541 21.7397 19.5835 21.3829 18.9664L12.8622 4.2263C12.5028 3.60464 11.4982 3.60464 11.1388 4.2263Z" stroke="url(#alertLight)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="url(#alertGrad)" fillOpacity="0.08" />
+                            <path d="M12 9.5V14" stroke="url(#alertGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M12 17H12.01" stroke="url(#alertGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
                           <div>
-                            <h3 className="text-sm font-bold text-slate-700 tracking-wide">Top Critical Issues</h3>
-                            <p className="text-slate-400 text-xs">{DUMMY_ISSUES.length} active issues requiring attention</p>
+                            <h3 className="text-[15px] font-bold text-slate-800 tracking-tight">Critical Issues Summary</h3>
+                            <p className="text-slate-500 text-[13px] mt-0.5">{criticalIssuesList.length} total issues requiring attention</p>
                           </div>
                         </div>
-                        <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }}>
-                          {DUMMY_ISSUES.filter(i => i.status === 'Open').length} Open
-                        </span>
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-1.5 px-3 py-1 bg-red-50 rounded-full text-[13px] font-semibold text-red-600 border border-red-100">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                            {criticalIssuesList.filter(i => i.status === 'Open').length} Open
+                          </span>
+                          <button
+                            onClick={() => {
+                              const ws = new Blob([JSON.stringify(criticalIssuesList)], { type: 'application/json' });
+                              const url = URL.createObjectURL(ws);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = 'critical_issues.json';
+                              a.click();
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm text-[13px] font-semibold text-slate-700 hover:bg-slate-50 transition-all focus:outline-none focus:ring-2 focus:ring-slate-100"
+                          >
+                            <Download className="h-4 w-4 text-slate-400" />
+                            Export
+                          </button>
+                        </div>
                       </div>
 
                       {/* Table */}
                       <div className="overflow-x-auto">
-                        <table className="min-w-full border-collapse">
+                        <table className="min-w-full border-collapse bg-white">
                           <thead>
-                            <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-14" style={{ borderRight: '1px solid #e5e7eb' }}>S.No</th>
-                              <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" style={{ borderRight: '1px solid #e5e7eb' }}>Issue Description</th>
-                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-28" style={{ borderRight: '1px solid #e5e7eb' }}>Responsible</th>
-                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-40" style={{ borderRight: '1px solid #e5e7eb' }}>Support Required</th>
-                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-36" style={{ borderRight: '1px solid #e5e7eb' }}>From Whom</th>
-                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-28">Status</th>
+                            <tr className="bg-[#f0f9ff] border-b border-[#e0f2fe]">
+                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-sky-700 w-16">#</th>
+                              <th className="py-4 px-6 text-left text-[12px] font-semibold text-sky-700">List of Top Critical Issues</th>
+                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-sky-700 w-48">Responsibility</th>
+                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-sky-700 w-36">Function</th>
+                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-sky-700 w-40">Target date for Closure</th>
+                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-sky-700 w-32">Status</th>
+                              {issuesEditMode && <th className="py-4 px-5 text-center text-[12px] font-semibold text-sky-700 w-20">Action</th>}
                             </tr>
                           </thead>
-                          <tbody>
-                            {DUMMY_ISSUES.map((issue, idx) => (
+                          <tbody className="divide-y divide-slate-100/80">
+                            {criticalIssuesList.map((issue, idx) => (
                               <tr
                                 key={issue.id}
-                                style={{
-                                  verticalAlign: 'top',
-                                  background: idx % 2 === 0 ? '#ffffff' : '#fffbfb',
-                                  borderBottom: '1px solid #fee2e2',
-                                  transition: 'background 0.15s'
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#fff5f5'}
-                                onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? '#ffffff' : '#fffbfb'}
+                                className="group hover:bg-slate-50/50 transition-colors bg-white hover:shadow-sm"
                               >
-                                {/* S.No badge */}
-                                <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
-                                  <span
-                                    className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white"
-                                    style={{ background: 'linear-gradient(135deg,#dc2626,#b91c1c)', boxShadow: '0 2px 6px rgba(220,38,38,0.35)' }}
-                                  >
-                                    {issue.id}
+                                {/* S.No */}
+                                <td className="py-5 px-5 text-center">
+                                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-[12px] font-semibold text-slate-600">
+                                    {idx + 1}
                                   </span>
                                 </td>
 
                                 {/* Issue text */}
                                 <td
-                                  className="py-4 px-4 text-sm text-slate-700 leading-relaxed whitespace-pre-line"
-                                  style={{ borderRight: '1px solid #fee2e2', maxWidth: '440px' }}
+                                  className="py-5 px-6 max-w-[440px]"
                                 >
-                                  {issue.issue}
+                                  {issuesEditMode ? (
+                                    <textarea
+                                      className="w-full p-3 border border-slate-200 bg-white rounded-lg text-[14px] text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm resize-y min-h-[80px]"
+                                      value={issue.issue}
+                                      onChange={e => {
+                                        const newList = [...criticalIssuesList]; newList[idx].issue = e.target.value; setCriticalIssuesList(newList);
+                                      }}
+                                    />
+                                  ) : (
+                                    <p className="text-[14px] text-slate-700 leading-relaxed whitespace-pre-line">
+                                      {issue.issue}
+                                    </p>
+                                  )}
                                 </td>
 
                                 {/* Resp */}
-                                <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
-                                  <span className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-slate-600 px-2.5 py-1 rounded-full" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>
-                                    <User className="h-3 w-3 text-slate-400" />
-                                    {issue.resp}
-                                  </span>
+                                <td className="py-5 px-5 text-center">
+                                  {issuesEditMode ? (
+                                    <select className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-[13px] shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none" value={issue.resp} onChange={e => {
+                                      const newList = [...criticalIssuesList]; newList[idx].resp = e.target.value; setCriticalIssuesList(newList);
+                                    }}>
+                                      <option value="">Select Assignee</option>
+                                      {employeesMaster.map(emp => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
+                                    </select>
+                                  ) : (
+                                    <div className="flex items-center justify-center">
+                                      {issue.resp ? (
+                                        <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-slate-50/50 border border-slate-200 hover:bg-slate-50 transition-colors cursor-default">
+                                          <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-[11px]">
+                                            {issue.resp.charAt(0).toUpperCase()}
+                                          </div>
+                                          <span className="text-[13px] font-medium text-slate-700">{issue.resp}</span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-[13px] text-slate-400 italic bg-slate-50 px-3 py-1 rounded-full border border-slate-100">Unassigned</span>
+                                      )}
+                                    </div>
+                                  )}
                                 </td>
 
-                                {/* Support Required */}
-                                <td className="py-4 px-4 text-center text-xs text-slate-600 font-medium" style={{ borderRight: '1px solid #fee2e2' }}>
-                                  {issue.supportRequired}
+                                {/* Function */}
+                                <td className="py-5 px-5 text-center">
+                                  {issuesEditMode ? (
+                                    <input type="text" className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-[13px] shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none text-center" placeholder="e.g. Design" value={issue.func} onChange={e => {
+                                      const newList = [...criticalIssuesList]; newList[idx].func = e.target.value; setCriticalIssuesList(newList);
+                                    }} />
+                                  ) : (
+                                    <span className="text-[14px] font-medium text-slate-600">{issue.func || '-'}</span>
+                                  )}
                                 </td>
 
-                                {/* From Whom */}
-                                <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
-                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 px-2.5 py-1 rounded-full" style={{ background: '#eef2ff', border: '1px solid #c7d2fe' }}>
-                                    <Users className="h-3 w-3" />
-                                    {issue.fromWhom}
-                                  </span>
+                                {/* Target date */}
+                                <td className="py-5 px-5 text-center">
+                                  {issuesEditMode ? (
+                                    <input type="text" placeholder="Date/Text" className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-[13px] shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none text-center" value={issue.targetDate} onChange={e => {
+                                      const newList = [...criticalIssuesList]; newList[idx].targetDate = e.target.value; setCriticalIssuesList(newList);
+                                    }} />
+                                  ) : (
+                                    <span className={issue.targetDate ? "text-[14px] font-medium text-slate-700" : "text-[14px] text-slate-300"}>{issue.targetDate || '-'}</span>
+                                  )}
                                 </td>
 
                                 {/* Status */}
-                                <td className="py-4 px-4 text-center">
-                                  {(() => {
-                                    const s = issue.status;
-                                    const cfg = s === 'In Progress'
-                                      ? { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af', dot: '#3b82f6' }
-                                      : s === 'Open'
-                                        ? { bg: '#fef9c3', border: '#fde047', text: '#854d0e', dot: '#eab308' }
-                                        : s === 'Resolved'
-                                          ? { bg: '#dcfce7', border: '#86efac', text: '#166534', dot: '#22c55e' }
-                                          : { bg: '#f1f5f9', border: '#e2e8f0', text: '#64748b', dot: '#94a3b8' };
-                                    return (
+                                <td className="py-5 px-5 text-center">
+                                  {issuesEditMode ? (
+                                    <select className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-[13px] shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none font-medium" value={issue.status} onChange={e => {
+                                      const newList = [...criticalIssuesList]; newList[idx].status = e.target.value; setCriticalIssuesList(newList);
+                                    }}>
+                                      <option value="Open">Open</option>
+                                      <option value="Closed">Closed</option>
+                                    </select>
+                                  ) : (
+                                    <div className="flex justify-center">
                                       <span
-                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
-                                        style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.text }}
+                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold border ${issue.status === 'Open'
+                                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                          }`}
                                       >
-                                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }}></span>
-                                        {s}
+                                        <div className={`w-1.5 h-1.5 rounded-full ${issue.status === 'Open' ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+                                        {issue.status}
                                       </span>
-                                    );
-                                  })()}
+                                    </div>
+                                  )}
                                 </td>
+
+                                {/* Action Delete */}
+                                {issuesEditMode && (
+                                  <td className="py-5 px-5 text-center">
+                                    <button onClick={() => {
+                                      const newList = [...criticalIssuesList]; newList.splice(idx, 1); setCriticalIssuesList(newList);
+                                    }} className="p-2 bg-white border border-slate-200 hover:bg-red-50 text-slate-400 hover:text-red-500 hover:border-red-200 rounded-lg transition-all shadow-sm" title="Remove Issue">
+                                      <X className="h-4 w-4" />
+                                    </button>
+                                  </td>
+                                )}
                               </tr>
                             ))}
                           </tbody>
                         </table>
+                      </div>
+
+                      <div className="px-6 py-4 flex items-center justify-between border-t border-slate-100 bg-slate-50/50">
+                        <div className="text-[13px] text-slate-500">
+                          Viewing <span className="font-semibold text-slate-700">{criticalIssuesList.length}</span> issues
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => {
+                              if (!issuesEditMode) setIssuesEditMode(true);
+                              setCriticalIssuesList([...criticalIssuesList, { id: criticalIssuesList.length > 0 ? Math.max(...criticalIssuesList.map(i => i.id)) + 1 : 1, issue: '', resp: '', func: '', targetDate: '', status: 'Open' }]);
+                            }}
+                            className="flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all focus:outline-none focus:ring-2 focus:ring-slate-100"
+                          >
+                            <Plus className="h-4 w-4 text-slate-500" />
+                            Add Issue
+                          </button>
+                          <button
+                            onClick={() => setIssuesEditMode(!issuesEditMode)}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 ${issuesEditMode
+                              ? 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500 border border-transparent shadow-[0_4px_12px_rgba(79,70,229,0.25)]'
+                              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:ring-slate-200'
+                              }`}
+                          >
+                            {issuesEditMode ? 'Save Changes' : 'Edit Issues'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
 
                   {/* Project Stages with Embedded Charts - Only show selected metrics */}
                   {dashboardConfig.metrics && dashboardConfig.selectedMetrics.length > 0 && departmentColumns.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                        Project Metrics
-                      </h3>
-                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                        {PROJECT_STAGES.filter(stage => dashboardConfig.selectedMetrics.includes(stage.id)).map((stage) => {
-                          const stageConfig = stageConfigs[stage.id] || {};
-                          const chartData = stageChartData[stage.id] || [];
-                          const distribution = stageDistribution[stage.id] || [];
-                          const chartType = stageChartTypes[stage.id] || 'bar';
-                          const hasConfig = stageConfig.xAxis && stageConfig.yAxis;
+                    <div className="rounded-2xl overflow-hidden bg-white" style={{ boxShadow: '0 2px 16px rgba(15,23,42,0.08)', border: '1px solid #e2e8f0' }}>
+                      {/* Card Header */}
+                      <div className="flex items-center justify-between px-6 py-4" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                        <div className="flex items-center gap-3">
+                          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-sm filter">
+                            <defs>
+                              <linearGradient id="metricsGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                <stop stopColor="#0ea5e9" />
+                                <stop offset="1" stopColor="#0284c7" />
+                              </linearGradient>
+                              <linearGradient id="metricsLight" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                <stop stopColor="#38bdf8" />
+                                <stop offset="1" stopColor="#0ea5e9" />
+                              </linearGradient>
+                            </defs>
+                            <rect x="3.5" y="3.5" width="17" height="17" rx="2.5" stroke="url(#metricsLight)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="url(#metricsGrad)" fillOpacity="0.08" />
+                            <path d="M8 16V11" stroke="url(#metricsGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M12 16V8" stroke="url(#metricsGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M16 16V13" stroke="url(#metricsGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                          <div>
+                            <h3 className="text-sm font-bold text-slate-700 tracking-wide">Project Metrics</h3>
+                            <p className="text-slate-400 text-xs">Customized charts and analysis views</p>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: '#e0f2fe', color: '#0284c7', border: '1px solid #bae6fd' }}>
+                          {dashboardConfig.selectedMetrics.length} Charts Rendered
+                        </span>
+                      </div>
 
-                          const colorClasses = {
-                            blue: 'border-blue-200 bg-blue-50',
-                            purple: 'border-purple-200 bg-purple-50',
-                            green: 'border-green-200 bg-green-50',
-                            orange: 'border-orange-200 bg-orange-50',
-                            red: 'border-red-200 bg-red-50',
-                            teal: 'border-teal-200 bg-teal-50',
-                          };
+                      {/* Grid Body */}
+                      <div className="p-6 bg-slate-50/50">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {PROJECT_STAGES.filter(stage => dashboardConfig.selectedMetrics.includes(stage.id)).map((stage) => {
+                            const stageConfig = stageConfigs[stage.id] || {};
+                            const chartData = stageChartData[stage.id] || [];
+                            const distribution = stageDistribution[stage.id] || [];
+                            const chartType = stageChartTypes[stage.id] || 'bar';
+                            const hasConfig = stageConfig.xAxis && stageConfig.yAxis;
 
-                          return (
-                            <div
-                              key={stage.id}
-                              className={`border rounded-xl overflow-hidden ${colorClasses[stage.color]}`}
-                            >
-                              {/* Stage Header */}
-                              <div className="p-3 border-b border-gray-200 bg-white bg-opacity-50">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center">
-                                    <h4 className="font-medium text-gray-900">{stage.name}</h4>
+                            // Google Material Design Card Styles
+                            const googlePalette = {
+                              blue: '#1a73e8',
+                              purple: '#9334e6',
+                              green: '#1e8e3e',
+                              orange: '#f29900',
+                              red: '#d93025',
+                              teal: '#007b83',
+                              default: '#5f6368'
+                            };
+                            const accentColor = googlePalette[stage.color] || googlePalette.default;
+
+                            return (
+                              <div
+                                key={stage.id}
+                                className="group relative bg-white transition-all duration-200"
+                                style={{
+                                  border: `1px solid #dadce0`,
+                                  borderRadius: '8px',
+                                  boxShadow: 'none',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.boxShadow = `0 1px 2px 0 rgba(60,64,67,0.3), 0 2px 6px 2px rgba(60,64,67,0.15)`;
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.boxShadow = 'none';
+                                }}
+                              >
+                                {/* Stage Header */}
+                                <div className="px-5 pt-4 pb-3 flex items-start justify-between bg-[#f0f9ff] rounded-t-lg" style={{ borderBottom: '1px solid #e0f2fe' }}>
+                                  <div className="pr-2 flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex-shrink-0 w-2 h-2 rounded-full" style={{ backgroundColor: accentColor }}></div>
+                                      <h4 className="font-semibold text-[13px] tracking-wide uppercase" style={{ color: '#3c4043', fontFamily: '"Google Sans", Roboto, Arial, sans-serif' }}>{stage.name}</h4>
+                                    </div>
+                                    {hasConfig && (
+                                      <p className="text-[11px] font-medium tracking-tight text-ellipsis overflow-hidden whitespace-nowrap max-w-[180px]" style={{ color: '#80868b' }}>
+                                        {stageConfig.yAxis} <span className="lowercase font-normal mx-0.5" style={{ color: '#bdc1c6' }}>by</span> {stageConfig.xAxis}
+                                      </p>
+                                    )}
                                   </div>
-                                  <div className="flex items-center space-x-1">
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                       onClick={() => handleFullScreen(stage)}
-                                      className="p-1.5 bg-white rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                                      className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700 transition-colors"
                                       title="Full screen view"
                                     >
-                                      <Maximize2 className="h-4 w-4 text-gray-600" />
+                                      <Maximize2 className="h-3.5 w-3.5" />
                                     </button>
                                     <button
                                       onClick={() => setConfiguringStage(stage)}
-                                      className="p-1.5 bg-white rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
-                                      title="Configure chart"
+                                      className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700 transition-colors"
+                                      title="Configure axes"
                                     >
-                                      <Settings2 className="h-4 w-4 text-gray-600" />
+                                      <Settings2 className="h-3.5 w-3.5" />
                                     </button>
                                   </div>
                                 </div>
-                                {hasConfig && (
-                                  <p className="text-xs text-gray-500 mt-1 truncate">
-                                    {stageConfig.xAxis} vs {stageConfig.yAxis}
-                                  </p>
-                                )}
-                              </div>
 
-                              {/* Chart Area */}
-                              <div className="p-3">
-                                {hasConfig ? (
-                                  chartData.length > 0 ? (
-                                    <MiniChart
-                                      chartData={chartData}
-                                      statusDistribution={distribution}
-                                      chartType={chartType}
-                                    />
+                                {/* Chart Area */}
+                                <div className="px-5 pb-3 bg-white">
+                                  {hasConfig ? (
+                                    chartData.length > 0 ? (
+                                      <div className="h-56 w-full">
+                                        <MiniChart
+                                          chartData={chartData}
+                                          statusDistribution={distribution}
+                                          chartType={chartType}
+                                        />
+                                      </div>
+                                    ) : (
+                                      <div className="h-56 flex flex-col items-center justify-center bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
+                                        <Activity className="h-5 w-5 text-gray-300 mb-2" />
+                                        <p className="text-[11px] font-medium text-gray-400">No data mapped</p>
+                                      </div>
+                                    )
                                   ) : (
-                                    <div className="h-24 flex items-center justify-center bg-white bg-opacity-50 rounded border border-gray-200">
-                                      <p className="text-xs text-gray-400">No data available</p>
+                                    <div className="h-56 flex items-center justify-center bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
+                                      <button
+                                        onClick={() => setConfiguringStage(stage)}
+                                        className="text-[12px] font-medium text-blue-600 flex items-center bg-white px-4 py-2 rounded-md shadow-sm border border-gray-200 transition-all hover:bg-gray-50"
+                                      >
+                                        <Sliders className="h-3.5 w-3.5 mr-1.5" />
+                                        Configure Axes
+                                      </button>
                                     </div>
-                                  )
-                                ) : (
-                                  <div className="h-24 flex items-center justify-center bg-white bg-opacity-50 rounded border border-gray-200">
-                                    <button
-                                      onClick={() => setConfiguringStage(stage)}
-                                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center"
-                                    >
-                                      <Settings2 className="h-3 w-3 mr-1" />
-                                      Configure axes
-                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Stats Footer */}
+                                {hasConfig && chartData.length > 0 && (
+                                  <div className="px-5 py-2.5 flex justify-between items-center" style={{ borderTop: '1px solid #f1f3f4', backgroundColor: '#fff', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px' }}>
+                                    <div className="flex flex-col">
+                                      <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#9aa0a6' }}>Variables</span>
+                                      <span className="text-[13px] font-semibold" style={{ color: '#3c4043' }}>{chartData.length}</span>
+                                    </div>
+                                    <div className="w-[1px] h-4" style={{ backgroundColor: '#f1f3f4' }}></div>
+                                    <div className="flex flex-col text-right">
+                                      <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#9aa0a6' }}>Segments</span>
+                                      <span className="text-[13px] font-semibold" style={{ color: '#3c4043' }}>{distribution.length}</span>
+                                    </div>
                                   </div>
                                 )}
                               </div>
-
-                              {/* Stats Footer */}
-                              {hasConfig && chartData.length > 0 && (
-                                <div className="px-3 pb-3">
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-gray-500">Categories:</span>
-                                    <span className="font-medium text-gray-900">{chartData.length}</span>
-                                  </div>
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-gray-500">Groups:</span>
-                                    <span className="font-medium text-gray-900">{distribution.length}</span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   )}
@@ -2097,24 +2204,26 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
               </div>
             </div>
           )
-        )}
-      </div>
+        )
+        }
+      </div >
 
       {/* Dashboard Configuration Modal */}
       {
-        showConfigModal && (
+        showConfigModal && createPortal(
           <DashboardConfigModal
             isOpen={showConfigModal}
             onClose={() => setShowConfigModal(false)}
             onApply={handleDashboardConfigApply}
             selectedProject={selectedProject}
-          />
+          />,
+          document.body
         )
       }
 
       {/* Stage Configuration Modal */}
       {
-        configuringStage && (
+        configuringStage && createPortal(
           <StageConfigModal
             stage={configuringStage}
             isOpen={true}
@@ -2122,13 +2231,14 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
             departmentColumns={departmentColumns}
             onSave={handleStageConfig}
             currentConfig={stageConfigs[configuringStage.id]}
-          />
+          />,
+          document.body
         )
       }
 
       {/* Full Screen Chart Modal */}
       {
-        fullScreenStage && (
+        fullScreenStage && createPortal(
           <FullScreenChartModal
             stage={fullScreenStage}
             isOpen={true}
@@ -2137,13 +2247,14 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
             distribution={stageDistribution[fullScreenStage.id] || []}
             chartType={stageChartTypes[fullScreenStage.id] || 'bar'}
             onChartTypeChange={handleChartTypeChange}
-          />
+          />,
+          document.body
         )
       }
 
       {/* Header Configuration Modal */}
       {
-        showHeaderConfig && departmentFiles.length > 0 && (
+        showHeaderConfig && departmentFiles.length > 0 && createPortal(
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-8">
@@ -2179,13 +2290,14 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                 </div>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )
       }
 
       {/* Email Modal - Made bigger */}
       {
-        showEmailModal && (
+        showEmailModal && createPortal(
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-8">
@@ -2306,7 +2418,8 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                 </div>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )
       }
     </div >
