@@ -306,33 +306,66 @@ const MiniChart = ({ chartData, statusDistribution, chartType = 'bar' }) => {
     <div className="h-full w-full relative">
       <ReactECharts
         option={{
-          grid: { top: 10, right: 10, bottom: 10, left: 10 },
+          color: ['#1a73e8', '#34a853', '#ea4335', '#fbbc04', '#ff6d00', '#46bdc6', '#b0bec5'],
+          textStyle: { fontFamily: '"Google Sans", Roboto, Arial, sans-serif' },
+          tooltip: {
+            trigger: chartType === 'pie' ? 'item' : 'axis',
+            axisPointer: { type: chartType === 'bar' ? 'shadow' : 'line', lineStyle: { color: '#dadce0', type: 'dashed' } },
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderColor: '#dadce0',
+            textStyle: { color: '#202124', fontSize: 12 },
+            padding: [8, 12],
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+          },
+          grid: { top: 15, right: 10, bottom: 5, left: 10, containLabel: false },
           ...(chartType !== 'pie' ? {
-            xAxis: { type: 'category', show: false, data: miniData.map(d => d.name) },
-            yAxis: { type: 'value', show: false }
+            xAxis: {
+              type: 'category',
+              data: miniData.map(d => d.name),
+              axisLine: { show: false },
+              axisTick: { show: false },
+              axisLabel: { show: false }
+            },
+            yAxis: {
+              type: 'value',
+              splitLine: { show: false },
+              axisLabel: { show: false }
+            }
           } : {}),
           series: chartType === 'pie'
             ? [{
               type: 'pie',
-              radius: ['40%', '80%'],
+              radius: ['45%', '85%'],
               avoidLabelOverlap: false,
+              itemStyle: { borderColor: '#fff', borderWidth: 2 },
               label: { show: false },
+              labelLine: { show: false },
               data: statusDistribution.slice(0, 4).map(d => ({ value: d.value, name: d.name, itemStyle: { color: d.color } }))
             }]
             : chartType === 'bar'
               ? statusDistribution.map(item => ({
                 type: 'bar',
+                name: item.name,
                 stack: 'total',
-                itemStyle: { color: item.color, borderRadius: [4, 4, 0, 0] },
-                barMaxWidth: 40,
+                itemStyle: { color: item.color, borderRadius: [3, 3, 0, 0] },
+                barMaxWidth: 35,
                 data: miniData.map(d => d[item.name] || 0)
               }))
               : [{
                 type: 'line',
-                itemStyle: { color: statusDistribution[0]?.color || '#2563eb' },
-                lineStyle: { width: 3 },
+                name: statusDistribution[0]?.name || 'Value',
+                smooth: true,
+                itemStyle: { color: statusDistribution[0]?.color || '#1a73e8' },
+                lineStyle: { width: 3, shadowColor: 'rgba(26,115,232,0.2)', shadowBlur: 8, shadowOffsetY: 4 },
                 showSymbol: false,
-                areaStyle: chartType === 'area' ? { color: statusDistribution[0]?.color || '#2563eb', opacity: 0.3 } : undefined,
+                symbol: 'circle',
+                symbolSize: 6,
+                areaStyle: chartType === 'area' ? {
+                  color: {
+                    type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                    colorStops: [{ offset: 0, color: statusDistribution[0]?.color || 'rgba(26,115,232,0.4)' }, { offset: 1, color: 'rgba(255,255,255,0)' }]
+                  }
+                } : undefined,
                 data: miniData.map(d => d[statusDistribution[0]?.name || 'value'] || 0)
               }]
         }}
@@ -1883,41 +1916,41 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                 }}
                               >
                                 {/* Stage Header */}
-                                <div className="px-5 py-4 border-b flex items-start justify-between bg-white rounded-t-lg" style={{ borderColor: '#dadce0' }}>
-                                  <div className="pr-2 flex items-start gap-2">
-                                    <div className="mt-1.5 flex-shrink-0 w-2.5 h-2.5 rounded-full" style={{ backgroundColor: accentColor }}></div>
-                                    <div>
-                                      <h4 className="font-medium text-[15px] tracking-tight" style={{ color: '#202124', fontFamily: '"Google Sans", Roboto, Arial, sans-serif' }}>{stage.name}</h4>
-                                      {hasConfig && (
-                                        <p className="text-xs mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis max-w-[180px]" style={{ color: '#5f6368' }}>
-                                          {stageConfig.xAxis} <span className="mx-1 text-gray-300">|</span> {stageConfig.yAxis}
-                                        </p>
-                                      )}
+                                <div className="px-5 pt-5 pb-2 flex items-start justify-between bg-white rounded-t-lg">
+                                  <div className="pr-2 flex flex-col gap-1.5">
+                                    <div className="flex items-center gap-2">
+                                      <div className="flex-shrink-0 w-2 h-2 rounded-full" style={{ backgroundColor: accentColor }}></div>
+                                      <h4 className="font-semibold text-[13px] tracking-wide uppercase" style={{ color: '#3c4043', fontFamily: '"Google Sans", Roboto, Arial, sans-serif' }}>{stage.name}</h4>
                                     </div>
+                                    {hasConfig && (
+                                      <p className="text-[11px] font-medium tracking-tight text-ellipsis overflow-hidden whitespace-nowrap max-w-[180px]" style={{ color: '#80868b' }}>
+                                        {stageConfig.yAxis} <span className="lowercase font-normal mx-0.5" style={{ color: '#bdc1c6' }}>by</span> {stageConfig.xAxis}
+                                      </p>
+                                    )}
                                   </div>
                                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                       onClick={() => handleFullScreen(stage)}
-                                      className="p-1.5 hover:bg-gray-100 rounded-full text-gray-500 hover:text-gray-800 transition-colors"
+                                      className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700 transition-colors"
                                       title="Full screen view"
                                     >
-                                      <Maximize2 className="h-4 w-4" />
+                                      <Maximize2 className="h-3.5 w-3.5" />
                                     </button>
                                     <button
                                       onClick={() => setConfiguringStage(stage)}
-                                      className="p-1.5 hover:bg-gray-100 rounded-full text-gray-500 hover:text-gray-800 transition-colors"
+                                      className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-700 transition-colors"
                                       title="Configure axes"
                                     >
-                                      <Settings2 className="h-4 w-4" />
+                                      <Settings2 className="h-3.5 w-3.5" />
                                     </button>
                                   </div>
                                 </div>
 
                                 {/* Chart Area */}
-                                <div className="p-5 bg-white">
+                                <div className="px-5 pb-3 bg-white">
                                   {hasConfig ? (
                                     chartData.length > 0 ? (
-                                      <div className="h-64 w-full">
+                                      <div className="h-56 w-full">
                                         <MiniChart
                                           chartData={chartData}
                                           statusDistribution={distribution}
@@ -1925,18 +1958,18 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                         />
                                       </div>
                                     ) : (
-                                      <div className="h-64 flex flex-col items-center justify-center bg-gray-50 rounded border border-dashed border-gray-300">
-                                        <Activity className="h-6 w-6 text-gray-400 mb-2" />
-                                        <p className="text-sm font-medium text-gray-500">No data available for these axes</p>
+                                      <div className="h-56 flex flex-col items-center justify-center bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
+                                        <Activity className="h-5 w-5 text-gray-300 mb-2" />
+                                        <p className="text-[11px] font-medium text-gray-400">No data mapped</p>
                                       </div>
                                     )
                                   ) : (
-                                    <div className="h-64 flex items-center justify-center bg-gray-50 rounded border border-dashed border-gray-300">
+                                    <div className="h-56 flex items-center justify-center bg-gray-50/50 rounded-lg border border-dashed border-gray-200">
                                       <button
                                         onClick={() => setConfiguringStage(stage)}
-                                        className="text-sm font-medium text-blue-600 flex items-center bg-white px-5 py-2.5 rounded shadow-sm border border-gray-200 transition-all hover:bg-gray-50"
+                                        className="text-[12px] font-medium text-blue-600 flex items-center bg-white px-4 py-2 rounded-md shadow-sm border border-gray-200 transition-all hover:bg-gray-50"
                                       >
-                                        <Sliders className="h-4 w-4 mr-2" />
+                                        <Sliders className="h-3.5 w-3.5 mr-1.5" />
                                         Configure Axes
                                       </button>
                                     </div>
@@ -1945,15 +1978,15 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
                                 {/* Stats Footer */}
                                 {hasConfig && chartData.length > 0 && (
-                                  <div className="px-5 py-3 border-t flex justify-between items-center" style={{ borderColor: '#dadce0', backgroundColor: '#f8f9fa', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px' }}>
+                                  <div className="px-5 py-2.5 flex justify-between items-center" style={{ borderTop: '1px solid #f1f3f4', backgroundColor: '#fff', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px' }}>
                                     <div className="flex flex-col">
-                                      <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: '#5f6368' }}>Categories</span>
-                                      <span className="text-sm font-bold" style={{ color: '#202124' }}>{chartData.length}</span>
+                                      <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#9aa0a6' }}>Variables</span>
+                                      <span className="text-[13px] font-semibold" style={{ color: '#3c4043' }}>{chartData.length}</span>
                                     </div>
-                                    <div className="w-[1px] h-6 bg-gray-300"></div>
+                                    <div className="w-[1px] h-4" style={{ backgroundColor: '#f1f3f4' }}></div>
                                     <div className="flex flex-col text-right">
-                                      <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: '#5f6368' }}>Data Groups</span>
-                                      <span className="text-sm font-bold" style={{ color: '#202124' }}>{distribution.length}</span>
+                                      <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: '#9aa0a6' }}>Segments</span>
+                                      <span className="text-[13px] font-semibold" style={{ color: '#3c4043' }}>{distribution.length}</span>
                                     </div>
                                   </div>
                                 )}
