@@ -15,64 +15,19 @@ import {
   Settings2, Minimize2, Sliders
 } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
+import axios from 'axios';
 
 import FileContentViewer from './Trackers/FileContentViewer';
 
 // Milestone stages (columns in the timeline)
 const MILESTONE_STAGES = [
-  { id: 'l0drg', label: 'L0 Drg' },
-  { id: 'l1drg', label: 'L1 Drg' },
-  { id: 'qsvob', label: 'QS/VOB' },
-  { id: 'tko', label: 'Exclusive TKO' },
-  { id: 'gen2build', label: 'Gen2 Build' },
-  { id: 'gen2val', label: 'Gen2 Validation' },
-  { id: 'gen2cbuild', label: 'Gen2C Build' },
-  { id: 'reval', label: 'Revalidation & Seeding Build' },
-  { id: 'pp1', label: 'PP1' },
-  { id: 'pp2', label: 'PP2' },
-  { id: 'sop', label: 'SOP' },
-  { id: 'sovp', label: 'SOVP' },
-];
-
-// Plan row & Actual/Outlook row – keyed by stage id
-const MILESTONE_PLAN = {
-  l0drg: "Apr'22", l1drg: "Sep'22", qsvob: "Sep'22–Nov'22", tko: "Jun'22–Mar'23",
-  gen2build: "Apr'23–Jun'23", gen2val: "May'23–Feb'24", gen2cbuild: "Sep'23",
-  reval: "Oct'24–Nov'24", pp1: "Mar'25", pp2: "Apr'25", sop: "Jul'25", sovp: "Aug'25"
-};
-const MILESTONE_ACTUAL = {
-  l0drg: { value: "✔", status: 'done' },
-  l1drg: { value: "✔", status: 'done' },
-  qsvob: { value: "✔", status: 'done' },
-  tko: { value: "✔", status: 'done' },
-  gen2build: { value: "Jun'23", status: 'delayed' },
-  gen2val: { value: "Jun'23–Feb'24", status: 'done' },
-  gen2cbuild: { value: "Sep'23", status: 'done' },
-  reval: { value: "Oct'24–Nov'24", status: 'pending' },
-  pp1: { value: "Mar'25", status: 'pending' },
-  pp2: { value: "May'25", status: 'at-risk' },
-  sop: { value: '', status: 'pending' },
-  sovp: { value: '', status: 'pending' },
-};
-
-// Dummy data for critical issues
-const DUMMY_ISSUES = [
-  {
-    id: 1,
-    issue: 'Automatic Sealant dispenser installation pending at Nagpur main line. Machine received at plant, but installation delayed due to current production priorities at main line. However machine is established in 1 bar line.',
-    resp: 'CME',
-    supportRequired: 'Installation as per plan',
-    fromWhom: 'Mangesh',
-    status: 'Open',
-  },
-  {
-    id: 2,
-    issue: 'ORC Parts Development Progress\n1. Conrod Bolt – Assembled conrod required for fatigue testing. 8 samples each from bolt suppliers to be sent to both conrod suppliers (Shashank)\n2. Crank case (3DI & 4DI) – No progress in semi finish investment approval. Impact on Implementation. (Shashank)\n3. Thrust Bearing (KSPG) – KSPG has shared updated proposal. Feedback awaited from Design (Deepak)\n4. PIX Belt – Validation failed on 3 cyl at 453 hrs. Supplier feedback to be verified at tractor & to be further discussed with supplier for closure. 4 cyl validation completed (2×800 hrs). Supplier final DVP to be signed off\n5. CONTI Belt – Development with EPDM material to be started. Communication to CDMM to be initiated (Twisha)\n6. VHC Cover – Feasibility closure & SOR sign off delayed. Impact on validation & Implementation (Deepak)',
-    resp: 'Mentioned in each line',
-    supportRequired: 'Expediting Development',
-    fromWhom: 'Dr. Ramesh Tarun & Milind',
-    status: 'In Progress',
-  },
+  { id: 'a', label: 'A' },
+  { id: 'b', label: 'B' },
+  { id: 'c', label: 'C' },
+  { id: 'd', label: 'D' },
+  { id: 'e', label: 'E' },
+  { id: 'f', label: 'F' },
+  { id: 'implementation', label: 'Implementation' },
 ];
 
 // Project stages configuration with embedded charts
@@ -606,6 +561,49 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
   const [loading, setLoading] = useState(true);
   const [trackers, setTrackers] = useState([]);
   const [uploadedFilesData, setUploadedFilesData] = useState({});
+
+  // Employee Master Data for Reference
+  const [employeesMaster, setEmployeesMaster] = useState([]);
+  const [milestonePlan, setMilestonePlan] = useState({
+    a: "Apr'25", b: "", c: "", d: "", e: "", f: "", implementation: ""
+  });
+  const [milestoneActual, setMilestoneActual] = useState({
+    a: { value: "", status: "done" },
+    b: { value: "", status: "pending" },
+    c: { value: "", status: "pending" },
+    d: { value: "", status: "pending" },
+    e: { value: "", status: "pending" },
+    f: { value: "", status: "pending" },
+    implementation: { value: "", status: "pending" },
+  });
+  const [milestonesEditMode, setMilestonesEditMode] = useState(false);
+
+  const [criticalIssuesList, setCriticalIssuesList] = useState([
+    {
+      id: 1,
+      issue: 'Delay in procurement',
+      resp: '',
+      func: 'Procurement',
+      targetDate: '',
+      status: 'Open'
+    }
+  ]);
+  const [issuesEditMode, setIssuesEditMode] = useState(false);
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const url = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+        const res = await axios.get(`${url}/employees`);
+        if (Array.isArray(res.data)) {
+          setEmployeesMaster(res.data);
+        }
+      } catch (err) {
+        console.error("Error fetching employees", err);
+      }
+    };
+    fetchEmployees();
+  }, []);
 
   // Project selection
   const [selectedProjectId, setSelectedProjectId] = useState('');
@@ -1641,8 +1639,13 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                             <p className="text-slate-400 text-xs">Project Timeline Overview</p>
                           </div>
                         </div>
-                        {/* Legend inline */}
                         <div className="flex items-center gap-4">
+                          <button
+                            onClick={() => setMilestonesEditMode(!milestonesEditMode)}
+                            className="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-semibold hover:bg-gray-50 text-gray-700"
+                          >
+                            {milestonesEditMode ? 'SAVE' : 'EDIT'}
+                          </button>
                           {[
                             { color: '#86efac', label: 'Completed' },
                             { color: '#fde68a', label: 'Delayed' },
@@ -1694,10 +1697,20 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                               {MILESTONE_STAGES.map(stage => (
                                 <td
                                   key={stage.id}
-                                  className="py-3 px-2 text-center text-xs text-slate-600 font-medium"
+                                  className="py-1 px-2 text-center text-xs text-slate-600 font-medium"
                                   style={{ borderRight: '1px solid #e2e8f0' }}
                                 >
-                                  {MILESTONE_PLAN[stage.id] || <span className="text-slate-300">—</span>}
+                                  {milestonesEditMode ? (
+                                    <input
+                                      type="text"
+                                      value={milestonePlan[stage.id] || ''}
+                                      onChange={(e) => setMilestonePlan({ ...milestonePlan, [stage.id]: e.target.value })}
+                                      className="w-full text-center p-1 border border-gray-300 rounded text-xs"
+                                      placeholder="Month Year"
+                                    />
+                                  ) : (
+                                    milestonePlan[stage.id] || <span className="text-slate-300">—</span>
+                                  )}
                                 </td>
                               ))}
                             </tr>
@@ -1710,7 +1723,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                 Actual / Outlook
                               </td>
                               {MILESTONE_STAGES.map(stage => {
-                                const cell = MILESTONE_ACTUAL[stage.id];
+                                const cell = milestoneActual[stage.id];
                                 const cfg = {
                                   done: { bg: '#dcfce7', border: '#86efac', text: '#166534' },
                                   delayed: { bg: '#fef9c3', border: '#fde047', text: '#854d0e' },
@@ -1719,20 +1732,42 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                 return (
                                   <td
                                     key={stage.id}
-                                    className="py-3 px-1.5 text-center text-xs font-semibold"
+                                    className="py-1.5 px-1.5 text-center text-xs font-semibold"
                                     style={{ borderRight: '1px solid #e2e8f0' }}
                                   >
-                                    {cell?.value ? (
-                                      <span
-                                        className="inline-flex items-center justify-center w-full px-1.5 py-1 rounded-md text-xs font-semibold leading-tight"
-                                        style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.text }}
-                                      >
-                                        {cell.value === '✔' ? (
-                                          <CheckCircle className="h-3.5 w-3.5" />
-                                        ) : cell.value}
-                                      </span>
+                                    {milestonesEditMode ? (
+                                      <div className="flex flex-col gap-1 w-full">
+                                        <input
+                                          type="text"
+                                          value={cell?.value || ''}
+                                          onChange={(e) => setMilestoneActual({ ...milestoneActual, [stage.id]: { ...cell, value: e.target.value } })}
+                                          className="w-full text-center p-1 border border-gray-300 rounded text-xs font-normal"
+                                          placeholder="Actual"
+                                        />
+                                        <select
+                                          value={cell?.status || 'pending'}
+                                          onChange={(e) => setMilestoneActual({ ...milestoneActual, [stage.id]: { ...cell, status: e.target.value } })}
+                                          className="w-full text-center p-1 border border-gray-300 rounded text-[10px] font-normal"
+                                        >
+                                          <option value="pending">Pending</option>
+                                          <option value="done">Done</option>
+                                          <option value="delayed">Delayed</option>
+                                          <option value="at-risk">At Risk</option>
+                                        </select>
+                                      </div>
                                     ) : (
-                                      <span className="text-slate-300">—</span>
+                                      cell?.value ? (
+                                        <span
+                                          className="inline-flex items-center justify-center w-full px-1.5 py-1 rounded-md text-xs font-semibold leading-tight"
+                                          style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.text }}
+                                        >
+                                          {cell.value.toLowerCase() === '✔' ? (
+                                            <CheckCircle className="h-3.5 w-3.5" />
+                                          ) : cell.value}
+                                        </span>
+                                      ) : (
+                                        <span className="text-slate-300">—</span>
+                                      )
                                     )}
                                   </td>
                                 );
@@ -1754,13 +1789,15 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                             <AlertTriangle className="h-4 w-4 text-red-400" />
                           </div>
                           <div>
-                            <h3 className="text-sm font-bold text-slate-700 tracking-wide">Top Critical Issues</h3>
-                            <p className="text-slate-400 text-xs">{DUMMY_ISSUES.length} active issues requiring attention</p>
+                            <h3 className="text-sm font-bold text-slate-700 tracking-wide">Critical Issues Summary</h3>
+                            <p className="text-slate-400 text-xs">{criticalIssuesList.length} total issues</p>
                           </div>
                         </div>
-                        <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }}>
-                          {DUMMY_ISSUES.filter(i => i.status === 'Open').length} Open
-                        </span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }}>
+                            {criticalIssuesList.filter(i => i.status === 'Open').length} Open
+                          </span>
+                        </div>
                       </div>
 
                       {/* Table */}
@@ -1769,15 +1806,16 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                           <thead>
                             <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
                               <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-14" style={{ borderRight: '1px solid #e5e7eb' }}>S.No</th>
-                              <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" style={{ borderRight: '1px solid #e5e7eb' }}>Issue Description</th>
-                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-28" style={{ borderRight: '1px solid #e5e7eb' }}>Responsible</th>
-                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-40" style={{ borderRight: '1px solid #e5e7eb' }}>Support Required</th>
-                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-36" style={{ borderRight: '1px solid #e5e7eb' }}>From Whom</th>
+                              <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" style={{ borderRight: '1px solid #e5e7eb' }}>List of Top Critical Issues</th>
+                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-40" style={{ borderRight: '1px solid #e5e7eb' }}>Responsibility</th>
+                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-32" style={{ borderRight: '1px solid #e5e7eb' }}>Function</th>
+                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-36" style={{ borderRight: '1px solid #e5e7eb' }}>Target date for Closure</th>
                               <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-28">Status</th>
+                              {issuesEditMode && <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-16">Action</th>}
                             </tr>
                           </thead>
                           <tbody>
-                            {DUMMY_ISSUES.map((issue, idx) => (
+                            {criticalIssuesList.map((issue, idx) => (
                               <tr
                                 key={issue.id}
                                 style={{
@@ -1795,7 +1833,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                     className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white"
                                     style={{ background: 'linear-gradient(135deg,#dc2626,#b91c1c)', boxShadow: '0 2px 6px rgba(220,38,38,0.35)' }}
                                   >
-                                    {issue.id}
+                                    {idx + 1}
                                   </span>
                                 </td>
 
@@ -1804,56 +1842,113 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                   className="py-4 px-4 text-sm text-slate-700 leading-relaxed whitespace-pre-line"
                                   style={{ borderRight: '1px solid #fee2e2', maxWidth: '440px' }}
                                 >
-                                  {issue.issue}
+                                  {issuesEditMode ? (
+                                    <textarea className="w-full p-2 border border-gray-300 rounded text-sm" rows={3} value={issue.issue} onChange={e => {
+                                      const newList = [...criticalIssuesList]; newList[idx].issue = e.target.value; setCriticalIssuesList(newList);
+                                    }} />
+                                  ) : (
+                                    issue.issue
+                                  )}
                                 </td>
 
                                 {/* Resp */}
                                 <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
-                                  <span className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-slate-600 px-2.5 py-1 rounded-full" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>
-                                    <User className="h-3 w-3 text-slate-400" />
-                                    {issue.resp}
-                                  </span>
+                                  {issuesEditMode ? (
+                                    <select className="w-full p-2 border border-gray-300 rounded text-xs" value={issue.resp} onChange={e => {
+                                      const newList = [...criticalIssuesList]; newList[idx].resp = e.target.value; setCriticalIssuesList(newList);
+                                    }}>
+                                      <option value="">Select Employee</option>
+                                      {employeesMaster.map(emp => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
+                                    </select>
+                                  ) : (
+                                    <span className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-slate-600 px-2.5 py-1 rounded-full" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>
+                                      <User className="h-3 w-3 text-slate-400" />
+                                      {issue.resp || 'Unassigned'}
+                                    </span>
+                                  )}
                                 </td>
 
-                                {/* Support Required */}
+                                {/* Function */}
                                 <td className="py-4 px-4 text-center text-xs text-slate-600 font-medium" style={{ borderRight: '1px solid #fee2e2' }}>
-                                  {issue.supportRequired}
+                                  {issuesEditMode ? (
+                                    <input type="text" className="w-full p-2 border border-gray-300 rounded text-xs" value={issue.func} onChange={e => {
+                                      const newList = [...criticalIssuesList]; newList[idx].func = e.target.value; setCriticalIssuesList(newList);
+                                    }} />
+                                  ) : (
+                                    issue.func
+                                  )}
                                 </td>
 
-                                {/* From Whom */}
+                                {/* Target date */}
                                 <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
-                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 px-2.5 py-1 rounded-full" style={{ background: '#eef2ff', border: '1px solid #c7d2fe' }}>
-                                    <Users className="h-3 w-3" />
-                                    {issue.fromWhom}
-                                  </span>
+                                  {issuesEditMode ? (
+                                    <input type="text" placeholder="Date/Text" className="w-full p-2 border border-gray-300 rounded text-xs" value={issue.targetDate} onChange={e => {
+                                      const newList = [...criticalIssuesList]; newList[idx].targetDate = e.target.value; setCriticalIssuesList(newList);
+                                    }} />
+                                  ) : (
+                                    issue.targetDate ? <span className="text-xs font-semibold text-indigo-700 px-2.5 py-1 rounded-full" style={{ background: '#eef2ff', border: '1px solid #c7d2fe' }}>{issue.targetDate}</span> : '-'
+                                  )}
                                 </td>
 
                                 {/* Status */}
                                 <td className="py-4 px-4 text-center">
-                                  {(() => {
-                                    const s = issue.status;
-                                    const cfg = s === 'In Progress'
-                                      ? { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af', dot: '#3b82f6' }
-                                      : s === 'Open'
+                                  {issuesEditMode ? (
+                                    <select className="w-full p-2 border border-gray-300 rounded text-[10px]" value={issue.status} onChange={e => {
+                                      const newList = [...criticalIssuesList]; newList[idx].status = e.target.value; setCriticalIssuesList(newList);
+                                    }}>
+                                      <option value="Open">Open</option>
+                                      <option value="Closed">Closed</option>
+                                    </select>
+                                  ) : (
+                                    (() => {
+                                      const s = issue.status;
+                                      const cfg = s === 'Open'
                                         ? { bg: '#fef9c3', border: '#fde047', text: '#854d0e', dot: '#eab308' }
-                                        : s === 'Resolved'
-                                          ? { bg: '#dcfce7', border: '#86efac', text: '#166534', dot: '#22c55e' }
-                                          : { bg: '#f1f5f9', border: '#e2e8f0', text: '#64748b', dot: '#94a3b8' };
-                                    return (
-                                      <span
-                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
-                                        style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.text }}
-                                      >
-                                        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }}></span>
-                                        {s}
-                                      </span>
-                                    );
-                                  })()}
+                                        : { bg: '#dcfce7', border: '#86efac', text: '#166534', dot: '#22c55e' };
+                                      return (
+                                        <span
+                                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
+                                          style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.text }}
+                                        >
+                                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }}></span>
+                                          {s}
+                                        </span>
+                                      );
+                                    })()
+                                  )}
                                 </td>
+
+                                {/* Action Delete */}
+                                {issuesEditMode && (
+                                  <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
+                                    <button onClick={() => {
+                                      const newList = [...criticalIssuesList]; newList.splice(idx, 1); setCriticalIssuesList(newList);
+                                    }} className="p-1 hover:bg-red-50 text-red-500 hover:text-red-700 rounded transition-colors" title="Remove Issue">
+                                      <X className="h-4 w-4" />
+                                    </button>
+                                  </td>
+                                )}
                               </tr>
                             ))}
                           </tbody>
                         </table>
+                      </div>
+                      <div className="px-6 py-4 flex items-center justify-end gap-3" style={{ background: '#fcfcfc', borderTop: '1px solid #e5e7eb' }}>
+                        <button
+                          onClick={() => {
+                            if (!issuesEditMode) setIssuesEditMode(true);
+                            setCriticalIssuesList([...criticalIssuesList, { id: criticalIssuesList.length > 0 ? Math.max(...criticalIssuesList.map(i => i.id)) + 1 : 1, issue: '', resp: '', func: '', targetDate: '', status: 'Open' }]);
+                          }}
+                          className="px-4 py-1.5 bg-white border border-gray-300 rounded text-xs font-bold hover:bg-gray-50 text-gray-700"
+                        >
+                          ADD ISSUE
+                        </button>
+                        <button
+                          onClick={() => setIssuesEditMode(!issuesEditMode)}
+                          className="px-4 py-1.5 bg-white border border-gray-300 rounded text-xs font-bold hover:bg-gray-50 text-gray-700"
+                        >
+                          {issuesEditMode ? 'SAVE CHANGES' : 'EDIT'}
+                        </button>
                       </div>
                     </div>
                   )}
@@ -2035,8 +2130,9 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
               </div>
             </div>
           )
-        )}
-      </div>
+        )
+        }
+      </div >
 
       {/* Dashboard Configuration Modal */}
       {
