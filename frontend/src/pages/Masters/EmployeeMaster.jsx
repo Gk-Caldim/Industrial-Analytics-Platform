@@ -285,7 +285,7 @@ const EmployeeMaster = () => {
   };
 
   const getSortIcon = (key) => {
-    if (sortConfig.key !== key) return <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4 opacity-30" />;
+    if (sortConfig.key !== key) return null;
     return sortConfig.direction === 'ascending' ? <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" /> : <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />;
   };
 
@@ -1473,7 +1473,6 @@ const EmployeeMaster = () => {
 
                               {/* Right side, sort icon and dropdown */}
                               <div className="flex items-center space-x-1 relative">
-                                {col.sortable && getSortIcon(col.id)}
 
                                 <button
                                   onClick={(e) => {

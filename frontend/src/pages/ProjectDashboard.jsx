@@ -14,13 +14,7 @@ import {
   Calendar, Target, Shield, GitBranch, Users, Award,
   Settings2, Minimize2, Sliders
 } from 'lucide-react';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  PieChart as RePieChart, Pie, Cell,
-  LineChart, Line,
-  AreaChart, Area,
-  ResponsiveContainer
-} from 'recharts';
+import ReactECharts from 'echarts-for-react';
 
 import FileContentViewer from './Trackers/FileContentViewer';
 
@@ -91,42 +85,6 @@ const PROJECT_STAGES = [
   { id: 'monitoring', name: 'Monitoring', color: 'teal', description: 'Performance Monitoring' },
 ];
 
-// Enhanced Custom Tooltip with better formatting
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white px-4 py-3 border border-gray-200 rounded-lg shadow-lg max-w-xs">
-        <p className="font-medium text-gray-900 mb-2 border-b pb-1">{label}</p>
-        {payload.map((entry, index) => {
-          const valueColor = entry.color || entry.fill || '#2563eb';
-          const value = entry.value;
-
-          // Format value based on type
-          let formattedValue = value;
-          if (typeof value === 'number') {
-            if (Number.isInteger(value)) {
-              formattedValue = value.toLocaleString();
-            } else {
-              formattedValue = value.toFixed(2);
-            }
-          }
-
-          return (
-            <div key={index} className="flex items-center justify-between text-sm mb-1">
-              <span style={{ color: valueColor }} className="font-medium">
-                {entry.name}:
-              </span>
-              <span className="ml-4 font-mono font-semibold" style={{ color: valueColor }}>
-                {formattedValue}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  }
-  return null;
-};
 
 // Stage Configuration Modal Component - Made bigger and more comfortable
 const StageConfigModal = ({ stage, isOpen, onClose, departmentColumns, onSave, currentConfig }) => {
@@ -282,117 +240,44 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
             </button>
           </div>
 
-          {/* Full Size Chart */}
           <div className="h-[500px] w-full">
             {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                {localChartType === 'bar' && (
-                  <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                      dataKey="name"
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                      interval={0}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend
-                      wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
-                      layout="horizontal"
-                      verticalAlign="bottom"
-                      align="center"
-                    />
-                    {distribution.map((item, index) => (
-                      <Bar
-                        key={item.name}
-                        dataKey={item.name}
-                        stackId={item.name !== 'value' && item.name !== 'sum' && item.name !== 'average' ? "a" : undefined}
-                        fill={item.color}
-                        name={item.name}
-                        radius={[4, 4, 0, 0]}
-                      />
-                    ))}
-                  </BarChart>
-                )}
-                {localChartType === 'pie' && (
-                  <RePieChart>
-                    <Pie
-                      data={distribution}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={true}
-                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={200}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {distribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </RePieChart>
-                )}
-                {localChartType === 'line' && (
-                  <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                      dataKey="name"
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                      interval={0}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                    {distribution.map((item) => (
-                      <Line
-                        key={item.name}
-                        type="monotone"
-                        dataKey={item.name}
-                        stroke={item.color}
-                        strokeWidth={2}
-                        dot={{ r: 3, fill: item.color }}
-                        name={item.name}
-                      />
-                    ))}
-                  </LineChart>
-                )}
-                {localChartType === 'area' && (
-                  <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis
-                      dataKey="name"
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                      interval={0}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                    {distribution.map((item) => (
-                      <Area
-                        key={item.name}
-                        type="monotone"
-                        dataKey={item.name}
-                        stackId="1"
-                        stroke={item.color}
-                        fill={item.color}
-                        fillOpacity={0.6}
-                        name={item.name}
-                      />
-                    ))}
-                  </AreaChart>
-                )}
-              </ResponsiveContainer>
+              <ReactECharts
+                option={{
+                  tooltip: {
+                    trigger: localChartType === 'pie' ? 'item' : 'axis',
+                    axisPointer: { type: localChartType === 'bar' ? 'shadow' : 'cross' }
+                  },
+                  legend: { bottom: 0, textStyle: { fontSize: 12 } },
+                  grid: { left: '3%', right: '4%', bottom: '10%', containLabel: true },
+                  ...(localChartType !== 'pie' ? {
+                    xAxis: {
+                      type: 'category',
+                      data: chartData.map(d => d.name),
+                      axisLabel: { rotate: 45, fontSize: 12 }
+                    },
+                    yAxis: { type: 'value', axisLabel: { fontSize: 12 } }
+                  } : {}),
+                  series: localChartType === 'pie'
+                    ? [{
+                      type: 'pie',
+                      radius: '70%',
+                      data: distribution.map(d => ({ value: d.value, name: d.name, itemStyle: { color: d.color } })),
+                      label: { formatter: '{b}: {d}%' }
+                    }]
+                    : distribution.map(item => ({
+                      name: item.name,
+                      type: localChartType === 'area' ? 'line' : localChartType,
+                      areaStyle: localChartType === 'area' ? { color: item.color, opacity: 0.6 } : undefined,
+                      stack: (localChartType === 'bar' || localChartType === 'area') ? 'total' : undefined,
+                      itemStyle: { color: item.color, borderRadius: localChartType === 'bar' ? [4, 4, 0, 0] : 0 },
+                      symbolSize: localChartType === 'line' ? 6 : 0,
+                      data: chartData.map(d => d[item.name] || 0)
+                    }))
+                }}
+                style={{ height: '100%', width: '100%' }}
+                notMerge={true}
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
                 <p className="text-gray-500">No data available</p>
@@ -408,7 +293,7 @@ const FullScreenChartModal = ({ stage, isOpen, onClose, chartData, distribution,
 const MiniChart = ({ chartData, statusDistribution, chartType = 'bar' }) => {
   if (!chartData || chartData.length === 0) {
     return (
-      <div className="h-24 flex items-center justify-center bg-gray-50 rounded border border-gray-200">
+      <div className="h-full w-full flex items-center justify-center bg-gray-50 rounded border border-gray-200">
         <BarChart2 className="h-8 w-8 text-gray-300" />
       </div>
     );
@@ -418,58 +303,42 @@ const MiniChart = ({ chartData, statusDistribution, chartType = 'bar' }) => {
   const miniData = chartData.slice(0, 5);
 
   return (
-    <div className="h-24 w-full">
-      <ResponsiveContainer width="100%" height="100%">
-        {chartType === 'pie' ? (
-          <RePieChart>
-            <Pie
-              data={statusDistribution.slice(0, 4)}
-              cx="50%"
-              cy="50%"
-              innerRadius={20}
-              outerRadius={35}
-              dataKey="value"
-              paddingAngle={2}
-            >
-              {statusDistribution.slice(0, 4).map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-          </RePieChart>
-        ) : chartType === 'line' ? (
-          <LineChart data={miniData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-            <Line
-              type="monotone"
-              dataKey={statusDistribution[0]?.name || 'value'}
-              stroke={statusDistribution[0]?.color || '#2563eb'}
-              strokeWidth={2}
-              dot={false}
-            />
-          </LineChart>
-        ) : chartType === 'area' ? (
-          <AreaChart data={miniData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-            <Area
-              type="monotone"
-              dataKey={statusDistribution[0]?.name || 'value'}
-              stroke={statusDistribution[0]?.color || '#2563eb'}
-              fill={statusDistribution[0]?.color || '#2563eb'}
-              fillOpacity={0.3}
-            />
-          </AreaChart>
-        ) : (
-          <BarChart data={miniData} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-            {statusDistribution.map((item) => (
-              <Bar
-                key={item.name}
-                dataKey={item.name}
-                stackId="a"
-                fill={item.color}
-                radius={[2, 2, 0, 0]}
-              />
-            ))}
-          </BarChart>
-        )}
-      </ResponsiveContainer>
+    <div className="h-full w-full relative">
+      <ReactECharts
+        option={{
+          grid: { top: 10, right: 10, bottom: 10, left: 10 },
+          ...(chartType !== 'pie' ? {
+            xAxis: { type: 'category', show: false, data: miniData.map(d => d.name) },
+            yAxis: { type: 'value', show: false }
+          } : {}),
+          series: chartType === 'pie'
+            ? [{
+              type: 'pie',
+              radius: ['40%', '80%'],
+              avoidLabelOverlap: false,
+              label: { show: false },
+              data: statusDistribution.slice(0, 4).map(d => ({ value: d.value, name: d.name, itemStyle: { color: d.color } }))
+            }]
+            : chartType === 'bar'
+              ? statusDistribution.map(item => ({
+                type: 'bar',
+                stack: 'total',
+                itemStyle: { color: item.color, borderRadius: [4, 4, 0, 0] },
+                barMaxWidth: 40,
+                data: miniData.map(d => d[item.name] || 0)
+              }))
+              : [{
+                type: 'line',
+                itemStyle: { color: statusDistribution[0]?.color || '#2563eb' },
+                lineStyle: { width: 3 },
+                showSymbol: false,
+                areaStyle: chartType === 'area' ? { color: statusDistribution[0]?.color || '#2563eb', opacity: 0.3 } : undefined,
+                data: miniData.map(d => d[statusDistribution[0]?.name || 'value'] || 0)
+              }]
+        }}
+        style={{ height: '100%', width: '100%' }}
+        notMerge={true}
+      />
     </div>
   );
 };
@@ -1958,105 +1827,140 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
                   {/* Project Stages with Embedded Charts - Only show selected metrics */}
                   {dashboardConfig.metrics && dashboardConfig.selectedMetrics.length > 0 && departmentColumns.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                        Project Metrics
-                      </h3>
-                      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-                        {PROJECT_STAGES.filter(stage => dashboardConfig.selectedMetrics.includes(stage.id)).map((stage) => {
-                          const stageConfig = stageConfigs[stage.id] || {};
-                          const chartData = stageChartData[stage.id] || [];
-                          const distribution = stageDistribution[stage.id] || [];
-                          const chartType = stageChartTypes[stage.id] || 'bar';
-                          const hasConfig = stageConfig.xAxis && stageConfig.yAxis;
+                    <div className="rounded-2xl overflow-hidden bg-white" style={{ boxShadow: '0 2px 16px rgba(15,23,42,0.08)', border: '1px solid #e2e8f0' }}>
+                      {/* Card Header */}
+                      <div className="flex items-center justify-between px-6 py-4" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: '#e0f2fe' }}>
+                            <BarChart2 className="h-4 w-4 text-sky-500" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-bold text-slate-700 tracking-wide">Project Metrics</h3>
+                            <p className="text-slate-400 text-xs">Customized charts and analysis views</p>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: '#e0f2fe', color: '#0284c7', border: '1px solid #bae6fd' }}>
+                          {dashboardConfig.selectedMetrics.length} Charts Rendered
+                        </span>
+                      </div>
 
-                          const colorClasses = {
-                            blue: 'border-blue-200 bg-blue-50',
-                            purple: 'border-purple-200 bg-purple-50',
-                            green: 'border-green-200 bg-green-50',
-                            orange: 'border-orange-200 bg-orange-50',
-                            red: 'border-red-200 bg-red-50',
-                            teal: 'border-teal-200 bg-teal-50',
-                          };
+                      {/* Grid Body */}
+                      <div className="p-6 bg-slate-50/50">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {PROJECT_STAGES.filter(stage => dashboardConfig.selectedMetrics.includes(stage.id)).map((stage) => {
+                            const stageConfig = stageConfigs[stage.id] || {};
+                            const chartData = stageChartData[stage.id] || [];
+                            const distribution = stageDistribution[stage.id] || [];
+                            const chartType = stageChartTypes[stage.id] || 'bar';
+                            const hasConfig = stageConfig.xAxis && stageConfig.yAxis;
 
-                          return (
-                            <div
-                              key={stage.id}
-                              className={`border rounded-xl overflow-hidden ${colorClasses[stage.color]}`}
-                            >
-                              {/* Stage Header */}
-                              <div className="p-3 border-b border-gray-200 bg-white bg-opacity-50">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center">
-                                    <h4 className="font-medium text-gray-900">{stage.name}</h4>
+                            // Google Material Design Card Styles
+                            const googlePalette = {
+                              blue: '#1a73e8',
+                              purple: '#9334e6',
+                              green: '#1e8e3e',
+                              orange: '#f29900',
+                              red: '#d93025',
+                              teal: '#007b83',
+                              default: '#5f6368'
+                            };
+                            const accentColor = googlePalette[stage.color] || googlePalette.default;
+
+                            return (
+                              <div
+                                key={stage.id}
+                                className="group relative bg-white transition-all duration-200"
+                                style={{
+                                  border: `1px solid #dadce0`,
+                                  borderRadius: '8px',
+                                  boxShadow: 'none',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.boxShadow = `0 1px 2px 0 rgba(60,64,67,0.3), 0 2px 6px 2px rgba(60,64,67,0.15)`;
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.boxShadow = 'none';
+                                }}
+                              >
+                                {/* Stage Header */}
+                                <div className="px-5 py-4 border-b flex items-start justify-between bg-white rounded-t-lg" style={{ borderColor: '#dadce0' }}>
+                                  <div className="pr-2 flex items-start gap-2">
+                                    <div className="mt-1.5 flex-shrink-0 w-2.5 h-2.5 rounded-full" style={{ backgroundColor: accentColor }}></div>
+                                    <div>
+                                      <h4 className="font-medium text-[15px] tracking-tight" style={{ color: '#202124', fontFamily: '"Google Sans", Roboto, Arial, sans-serif' }}>{stage.name}</h4>
+                                      {hasConfig && (
+                                        <p className="text-xs mt-0.5 whitespace-nowrap overflow-hidden text-ellipsis max-w-[180px]" style={{ color: '#5f6368' }}>
+                                          {stageConfig.xAxis} <span className="mx-1 text-gray-300">|</span> {stageConfig.yAxis}
+                                        </p>
+                                      )}
+                                    </div>
                                   </div>
-                                  <div className="flex items-center space-x-1">
+                                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <button
                                       onClick={() => handleFullScreen(stage)}
-                                      className="p-1.5 bg-white rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
+                                      className="p-1.5 hover:bg-gray-100 rounded-full text-gray-500 hover:text-gray-800 transition-colors"
                                       title="Full screen view"
                                     >
-                                      <Maximize2 className="h-4 w-4 text-gray-600" />
+                                      <Maximize2 className="h-4 w-4" />
                                     </button>
                                     <button
                                       onClick={() => setConfiguringStage(stage)}
-                                      className="p-1.5 bg-white rounded-lg hover:bg-gray-100 transition-colors border border-gray-200"
-                                      title="Configure chart"
+                                      className="p-1.5 hover:bg-gray-100 rounded-full text-gray-500 hover:text-gray-800 transition-colors"
+                                      title="Configure axes"
                                     >
-                                      <Settings2 className="h-4 w-4 text-gray-600" />
+                                      <Settings2 className="h-4 w-4" />
                                     </button>
                                   </div>
                                 </div>
-                                {hasConfig && (
-                                  <p className="text-xs text-gray-500 mt-1 truncate">
-                                    {stageConfig.xAxis} vs {stageConfig.yAxis}
-                                  </p>
-                                )}
-                              </div>
 
-                              {/* Chart Area */}
-                              <div className="p-3">
-                                {hasConfig ? (
-                                  chartData.length > 0 ? (
-                                    <MiniChart
-                                      chartData={chartData}
-                                      statusDistribution={distribution}
-                                      chartType={chartType}
-                                    />
+                                {/* Chart Area */}
+                                <div className="p-5 bg-white">
+                                  {hasConfig ? (
+                                    chartData.length > 0 ? (
+                                      <div className="h-64 w-full">
+                                        <MiniChart
+                                          chartData={chartData}
+                                          statusDistribution={distribution}
+                                          chartType={chartType}
+                                        />
+                                      </div>
+                                    ) : (
+                                      <div className="h-64 flex flex-col items-center justify-center bg-gray-50 rounded border border-dashed border-gray-300">
+                                        <Activity className="h-6 w-6 text-gray-400 mb-2" />
+                                        <p className="text-sm font-medium text-gray-500">No data available for these axes</p>
+                                      </div>
+                                    )
                                   ) : (
-                                    <div className="h-24 flex items-center justify-center bg-white bg-opacity-50 rounded border border-gray-200">
-                                      <p className="text-xs text-gray-400">No data available</p>
+                                    <div className="h-64 flex items-center justify-center bg-gray-50 rounded border border-dashed border-gray-300">
+                                      <button
+                                        onClick={() => setConfiguringStage(stage)}
+                                        className="text-sm font-medium text-blue-600 flex items-center bg-white px-5 py-2.5 rounded shadow-sm border border-gray-200 transition-all hover:bg-gray-50"
+                                      >
+                                        <Sliders className="h-4 w-4 mr-2" />
+                                        Configure Axes
+                                      </button>
                                     </div>
-                                  )
-                                ) : (
-                                  <div className="h-24 flex items-center justify-center bg-white bg-opacity-50 rounded border border-gray-200">
-                                    <button
-                                      onClick={() => setConfiguringStage(stage)}
-                                      className="text-xs text-blue-600 hover:text-blue-800 flex items-center"
-                                    >
-                                      <Settings2 className="h-3 w-3 mr-1" />
-                                      Configure axes
-                                    </button>
+                                  )}
+                                </div>
+
+                                {/* Stats Footer */}
+                                {hasConfig && chartData.length > 0 && (
+                                  <div className="px-5 py-3 border-t flex justify-between items-center" style={{ borderColor: '#dadce0', backgroundColor: '#f8f9fa', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px' }}>
+                                    <div className="flex flex-col">
+                                      <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: '#5f6368' }}>Categories</span>
+                                      <span className="text-sm font-bold" style={{ color: '#202124' }}>{chartData.length}</span>
+                                    </div>
+                                    <div className="w-[1px] h-6 bg-gray-300"></div>
+                                    <div className="flex flex-col text-right">
+                                      <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: '#5f6368' }}>Data Groups</span>
+                                      <span className="text-sm font-bold" style={{ color: '#202124' }}>{distribution.length}</span>
+                                    </div>
                                   </div>
                                 )}
                               </div>
-
-                              {/* Stats Footer */}
-                              {hasConfig && chartData.length > 0 && (
-                                <div className="px-3 pb-3">
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-gray-500">Categories:</span>
-                                    <span className="font-medium text-gray-900">{chartData.length}</span>
-                                  </div>
-                                  <div className="flex justify-between text-xs">
-                                    <span className="text-gray-500">Groups:</span>
-                                    <span className="font-medium text-gray-900">{distribution.length}</span>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
                   )}
