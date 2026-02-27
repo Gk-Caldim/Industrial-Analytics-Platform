@@ -1627,24 +1627,24 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
                   {/* ── MILESTONES SECTION ── */}
                   {dashboardConfig.milestones && (
-                    <div className="rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 16px rgba(15,23,42,0.08)', border: '1px solid #e2e8f0' }}>
+                    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200">
                       {/* Card Header */}
-                      <div className="flex items-center justify-between px-6 py-4" style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
+                      <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
                         <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: '#e0e7ff' }}>
-                            <Calendar className="h-4 w-4 text-indigo-500" />
+                          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-50/80 border border-indigo-100/50">
+                            <Calendar className="h-5 w-5 text-indigo-600" />
                           </div>
                           <div>
-                            <h3 className="text-sm font-bold text-slate-700 tracking-wide">Major Milestones</h3>
-                            <p className="text-slate-400 text-xs">Project Timeline Overview</p>
+                            <h3 className="text-[15px] font-bold text-slate-800 tracking-tight">Major Milestones</h3>
+                            <p className="text-slate-500 text-[13px] mt-0.5">Project Timeline Overview</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
                           <button
                             onClick={() => setMilestonesEditMode(!milestonesEditMode)}
-                            className="px-3 py-1 bg-white border border-gray-300 rounded text-xs font-semibold hover:bg-gray-50 text-gray-700"
+                            className="px-4 py-1.5 bg-white border border-slate-200 rounded-md shadow-sm text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all focus:outline-none focus:ring-2 focus:ring-slate-100"
                           >
-                            {milestonesEditMode ? 'SAVE' : 'EDIT'}
+                            {milestonesEditMode ? 'Save Changes' : 'Edit Milestones'}
                           </button>
                           {[
                             { color: '#86efac', label: 'Completed' },
@@ -1661,51 +1661,51 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
                       {/* Table */}
                       <div className="overflow-x-auto">
-                        <table className="min-w-full border-collapse" style={{ tableLayout: 'fixed', minWidth: '960px' }}>
+                        <table className="min-w-full border-collapse bg-white" style={{ tableLayout: 'fixed', minWidth: '960px' }}>
                           <colgroup>
-                            <col style={{ width: '148px' }} />
-                            {MILESTONE_STAGES.map(s => <col key={s.id} style={{ width: '88px' }} />)}
+                            <col style={{ width: '180px' }} />
+                            {MILESTONE_STAGES.map(s => <col key={s.id} style={{ width: '100px' }} />)}
                           </colgroup>
                           <thead>
-                            <tr style={{ background: '#e8edf3' }}>
+                            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                               <th
-                                className="py-2.5 px-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider"
-                                style={{ borderRight: '1px solid #d5dce6' }}
+                                className="py-3 px-5 text-left text-[11px] font-bold text-slate-500 uppercase tracking-widest"
+                                style={{ borderRight: '1px solid #f1f5f9' }}
                               >
                                 Phase
                               </th>
                               {MILESTONE_STAGES.map(stage => (
                                 <th
                                   key={stage.id}
-                                  className="py-2.5 px-2 text-center text-xs font-semibold text-slate-600 leading-tight"
-                                  style={{ borderRight: '1px solid #d5dce6' }}
+                                  className="py-3 px-3 text-center text-[12px] font-bold text-slate-600 leading-tight"
+                                  style={{ borderRight: '1px solid #f1f5f9' }}
                                 >
                                   {stage.label}
                                 </th>
                               ))}
                             </tr>
                           </thead>
-                          <tbody>
+                          <tbody className="divide-y divide-slate-100">
                             {/* Plan row */}
-                            <tr style={{ background: '#f1f5f9', borderBottom: '1px solid #e2e8f0' }}>
+                            <tr className="hover:bg-slate-50/50 transition-colors">
                               <td
-                                className="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap"
-                                style={{ borderRight: '1px solid #e2e8f0' }}
+                                className="py-4 px-5 text-[13px] font-bold text-slate-700 whitespace-nowrap"
+                                style={{ borderRight: '1px solid #f1f5f9' }}
                               >
                                 Plan
                               </td>
                               {MILESTONE_STAGES.map(stage => (
                                 <td
                                   key={stage.id}
-                                  className="py-1 px-2 text-center text-xs text-slate-600 font-medium"
-                                  style={{ borderRight: '1px solid #e2e8f0' }}
+                                  className="py-2 px-3 text-center text-[13px] text-slate-600 font-medium"
+                                  style={{ borderRight: '1px solid #f1f5f9' }}
                                 >
                                   {milestonesEditMode ? (
                                     <input
                                       type="text"
                                       value={milestonePlan[stage.id] || ''}
                                       onChange={(e) => setMilestonePlan({ ...milestonePlan, [stage.id]: e.target.value })}
-                                      className="w-full text-center p-1 border border-gray-300 rounded text-xs"
+                                      className="w-full text-center p-1.5 border border-slate-200 rounded text-[13px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                                       placeholder="Month Year"
                                     />
                                   ) : (
@@ -1715,10 +1715,10 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                               ))}
                             </tr>
                             {/* Actual / Outlook row */}
-                            <tr style={{ background: '#fff' }}>
+                            <tr className="hover:bg-slate-50/50 transition-colors">
                               <td
-                                className="py-3 px-4 text-xs font-bold text-slate-600 uppercase tracking-wider whitespace-nowrap"
-                                style={{ borderRight: '1px solid #e2e8f0' }}
+                                className="py-4 px-5 text-[13px] font-bold text-slate-700 whitespace-nowrap"
+                                style={{ borderRight: '1px solid #f1f5f9' }}
                               >
                                 Actual / Outlook
                               </td>
@@ -1732,22 +1732,22 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                 return (
                                   <td
                                     key={stage.id}
-                                    className="py-1.5 px-1.5 text-center text-xs font-semibold"
-                                    style={{ borderRight: '1px solid #e2e8f0' }}
+                                    className="py-3 px-3 text-center text-[13px] font-medium"
+                                    style={{ borderRight: '1px solid #f1f5f9' }}
                                   >
                                     {milestonesEditMode ? (
-                                      <div className="flex flex-col gap-1 w-full">
+                                      <div className="flex flex-col gap-2 w-full max-w-[120px] mx-auto">
                                         <input
                                           type="text"
                                           value={cell?.value || ''}
                                           onChange={(e) => setMilestoneActual({ ...milestoneActual, [stage.id]: { ...cell, value: e.target.value } })}
-                                          className="w-full text-center p-1 border border-gray-300 rounded text-xs font-normal"
+                                          className="w-full text-center p-1.5 border border-slate-200 rounded text-[13px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                                           placeholder="Actual"
                                         />
                                         <select
                                           value={cell?.status || 'pending'}
                                           onChange={(e) => setMilestoneActual({ ...milestoneActual, [stage.id]: { ...cell, status: e.target.value } })}
-                                          className="w-full text-center p-1 border border-gray-300 rounded text-[10px] font-normal"
+                                          className="w-full text-center p-1.5 border border-slate-200 rounded text-[11px] font-medium text-slate-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
                                         >
                                           <option value="pending">Pending</option>
                                           <option value="done">Done</option>
@@ -1781,149 +1781,163 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
                   {/* ── CRITICAL ISSUES SECTION ── */}
                   {dashboardConfig.criticalIssues && (
-                    <div className="rounded-2xl overflow-hidden" style={{ boxShadow: '0 2px 16px rgba(15,23,42,0.08)', border: '1px solid #e2e8f0' }}>
+                    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 mt-6 -mx-2 sm:mx-0">
                       {/* Card Header */}
-                      <div className="flex items-center justify-between px-6 py-4" style={{ background: '#fef2f2', borderBottom: '1px solid #fecdd3' }}>
+                      <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
                         <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: '#fee2e2' }}>
-                            <AlertTriangle className="h-4 w-4 text-red-400" />
+                          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-red-50/80 border border-red-100/50">
+                            <AlertTriangle className="h-5 w-5 text-red-500" />
                           </div>
                           <div>
-                            <h3 className="text-sm font-bold text-slate-700 tracking-wide">Critical Issues Summary</h3>
-                            <p className="text-slate-400 text-xs">{criticalIssuesList.length} total issues</p>
+                            <h3 className="text-[15px] font-bold text-slate-800 tracking-tight">Critical Issues Summary</h3>
+                            <p className="text-slate-500 text-[13px] mt-0.5">{criticalIssuesList.length} total issues requiring attention</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-bold px-3 py-1 rounded-full" style={{ background: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }}>
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-1.5 px-3 py-1 bg-red-50 rounded-full text-[13px] font-semibold text-red-600 border border-red-100">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
                             {criticalIssuesList.filter(i => i.status === 'Open').length} Open
                           </span>
+                          <button
+                            onClick={() => {
+                              const ws = new Blob([JSON.stringify(criticalIssuesList)], { type: 'application/json' });
+                              const url = URL.createObjectURL(ws);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = 'critical_issues.json';
+                              a.click();
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm text-[13px] font-semibold text-slate-700 hover:bg-slate-50 transition-all focus:outline-none focus:ring-2 focus:ring-slate-100"
+                          >
+                            <Download className="h-4 w-4 text-slate-400" />
+                            Export
+                          </button>
                         </div>
                       </div>
 
                       {/* Table */}
                       <div className="overflow-x-auto">
-                        <table className="min-w-full border-collapse">
+                        <table className="min-w-full border-collapse bg-white">
                           <thead>
-                            <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-14" style={{ borderRight: '1px solid #e5e7eb' }}>S.No</th>
-                              <th className="py-3 px-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider" style={{ borderRight: '1px solid #e5e7eb' }}>List of Top Critical Issues</th>
-                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-40" style={{ borderRight: '1px solid #e5e7eb' }}>Responsibility</th>
-                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-32" style={{ borderRight: '1px solid #e5e7eb' }}>Function</th>
-                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-36" style={{ borderRight: '1px solid #e5e7eb' }}>Target date for Closure</th>
-                              <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-28">Status</th>
-                              {issuesEditMode && <th className="py-3 px-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider w-16">Action</th>}
+                            <tr className="bg-slate-50/80 border-b border-slate-200">
+                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-slate-600 w-16">#</th>
+                              <th className="py-4 px-6 text-left text-[12px] font-semibold text-slate-600">List of Top Critical Issues</th>
+                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-slate-600 w-48">Responsibility</th>
+                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-slate-600 w-36">Function</th>
+                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-slate-600 w-40">Target date for Closure</th>
+                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-slate-600 w-32">Status</th>
+                              {issuesEditMode && <th className="py-4 px-5 text-center text-[12px] font-semibold text-slate-600 w-20">Action</th>}
                             </tr>
                           </thead>
-                          <tbody>
+                          <tbody className="divide-y divide-slate-100/80">
                             {criticalIssuesList.map((issue, idx) => (
                               <tr
                                 key={issue.id}
-                                style={{
-                                  verticalAlign: 'top',
-                                  background: idx % 2 === 0 ? '#ffffff' : '#fffbfb',
-                                  borderBottom: '1px solid #fee2e2',
-                                  transition: 'background 0.15s'
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.background = '#fff5f5'}
-                                onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? '#ffffff' : '#fffbfb'}
+                                className="group hover:bg-slate-50/50 transition-colors bg-white hover:shadow-sm"
                               >
-                                {/* S.No badge */}
-                                <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
-                                  <span
-                                    className="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold text-white"
-                                    style={{ background: 'linear-gradient(135deg,#dc2626,#b91c1c)', boxShadow: '0 2px 6px rgba(220,38,38,0.35)' }}
-                                  >
+                                {/* S.No */}
+                                <td className="py-5 px-5 text-center">
+                                  <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-[12px] font-semibold text-slate-600">
                                     {idx + 1}
                                   </span>
                                 </td>
 
                                 {/* Issue text */}
                                 <td
-                                  className="py-4 px-4 text-sm text-slate-700 leading-relaxed whitespace-pre-line"
-                                  style={{ borderRight: '1px solid #fee2e2', maxWidth: '440px' }}
+                                  className="py-5 px-6 max-w-[440px]"
                                 >
                                   {issuesEditMode ? (
-                                    <textarea className="w-full p-2 border border-gray-300 rounded text-sm" rows={3} value={issue.issue} onChange={e => {
-                                      const newList = [...criticalIssuesList]; newList[idx].issue = e.target.value; setCriticalIssuesList(newList);
-                                    }} />
+                                    <textarea
+                                      className="w-full p-3 border border-slate-200 bg-white rounded-lg text-[14px] text-slate-700 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm resize-y min-h-[80px]"
+                                      value={issue.issue}
+                                      onChange={e => {
+                                        const newList = [...criticalIssuesList]; newList[idx].issue = e.target.value; setCriticalIssuesList(newList);
+                                      }}
+                                    />
                                   ) : (
-                                    issue.issue
+                                    <p className="text-[14px] text-slate-700 leading-relaxed whitespace-pre-line">
+                                      {issue.issue}
+                                    </p>
                                   )}
                                 </td>
 
                                 {/* Resp */}
-                                <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
+                                <td className="py-5 px-5 text-center">
                                   {issuesEditMode ? (
-                                    <select className="w-full p-2 border border-gray-300 rounded text-xs" value={issue.resp} onChange={e => {
+                                    <select className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-[13px] shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none" value={issue.resp} onChange={e => {
                                       const newList = [...criticalIssuesList]; newList[idx].resp = e.target.value; setCriticalIssuesList(newList);
                                     }}>
-                                      <option value="">Select Employee</option>
+                                      <option value="">Select Assignee</option>
                                       {employeesMaster.map(emp => <option key={emp.id} value={emp.name}>{emp.name}</option>)}
                                     </select>
                                   ) : (
-                                    <span className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-slate-600 px-2.5 py-1 rounded-full" style={{ background: '#f1f5f9', border: '1px solid #e2e8f0' }}>
-                                      <User className="h-3 w-3 text-slate-400" />
-                                      {issue.resp || 'Unassigned'}
-                                    </span>
+                                    <div className="flex items-center justify-center">
+                                      {issue.resp ? (
+                                        <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-slate-50/50 border border-slate-200 hover:bg-slate-50 transition-colors cursor-default">
+                                          <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-[11px]">
+                                            {issue.resp.charAt(0).toUpperCase()}
+                                          </div>
+                                          <span className="text-[13px] font-medium text-slate-700">{issue.resp}</span>
+                                        </div>
+                                      ) : (
+                                        <span className="text-[13px] text-slate-400 italic bg-slate-50 px-3 py-1 rounded-full border border-slate-100">Unassigned</span>
+                                      )}
+                                    </div>
                                   )}
                                 </td>
 
                                 {/* Function */}
-                                <td className="py-4 px-4 text-center text-xs text-slate-600 font-medium" style={{ borderRight: '1px solid #fee2e2' }}>
+                                <td className="py-5 px-5 text-center">
                                   {issuesEditMode ? (
-                                    <input type="text" className="w-full p-2 border border-gray-300 rounded text-xs" value={issue.func} onChange={e => {
+                                    <input type="text" className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-[13px] shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none text-center" placeholder="e.g. Design" value={issue.func} onChange={e => {
                                       const newList = [...criticalIssuesList]; newList[idx].func = e.target.value; setCriticalIssuesList(newList);
                                     }} />
                                   ) : (
-                                    issue.func
+                                    <span className="text-[14px] font-medium text-slate-600">{issue.func || '-'}</span>
                                   )}
                                 </td>
 
                                 {/* Target date */}
-                                <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
+                                <td className="py-5 px-5 text-center">
                                   {issuesEditMode ? (
-                                    <input type="text" placeholder="Date/Text" className="w-full p-2 border border-gray-300 rounded text-xs" value={issue.targetDate} onChange={e => {
+                                    <input type="text" placeholder="Date/Text" className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-[13px] shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none text-center" value={issue.targetDate} onChange={e => {
                                       const newList = [...criticalIssuesList]; newList[idx].targetDate = e.target.value; setCriticalIssuesList(newList);
                                     }} />
                                   ) : (
-                                    issue.targetDate ? <span className="text-xs font-semibold text-indigo-700 px-2.5 py-1 rounded-full" style={{ background: '#eef2ff', border: '1px solid #c7d2fe' }}>{issue.targetDate}</span> : '-'
+                                    <span className={issue.targetDate ? "text-[14px] font-medium text-slate-700" : "text-[14px] text-slate-300"}>{issue.targetDate || '-'}</span>
                                   )}
                                 </td>
 
                                 {/* Status */}
-                                <td className="py-4 px-4 text-center">
+                                <td className="py-5 px-5 text-center">
                                   {issuesEditMode ? (
-                                    <select className="w-full p-2 border border-gray-300 rounded text-[10px]" value={issue.status} onChange={e => {
+                                    <select className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-[13px] shadow-sm focus:ring-2 focus:ring-indigo-500 outline-none font-medium" value={issue.status} onChange={e => {
                                       const newList = [...criticalIssuesList]; newList[idx].status = e.target.value; setCriticalIssuesList(newList);
                                     }}>
                                       <option value="Open">Open</option>
                                       <option value="Closed">Closed</option>
                                     </select>
                                   ) : (
-                                    (() => {
-                                      const s = issue.status;
-                                      const cfg = s === 'Open'
-                                        ? { bg: '#fef9c3', border: '#fde047', text: '#854d0e', dot: '#eab308' }
-                                        : { bg: '#dcfce7', border: '#86efac', text: '#166534', dot: '#22c55e' };
-                                      return (
-                                        <span
-                                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold"
-                                          style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.text }}
-                                        >
-                                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }}></span>
-                                          {s}
-                                        </span>
-                                      );
-                                    })()
+                                    <div className="flex justify-center">
+                                      <span
+                                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold border ${issue.status === 'Open'
+                                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                          }`}
+                                      >
+                                        <div className={`w-1.5 h-1.5 rounded-full ${issue.status === 'Open' ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+                                        {issue.status}
+                                      </span>
+                                    </div>
                                   )}
                                 </td>
 
                                 {/* Action Delete */}
                                 {issuesEditMode && (
-                                  <td className="py-4 px-4 text-center" style={{ borderRight: '1px solid #fee2e2' }}>
+                                  <td className="py-5 px-5 text-center">
                                     <button onClick={() => {
                                       const newList = [...criticalIssuesList]; newList.splice(idx, 1); setCriticalIssuesList(newList);
-                                    }} className="p-1 hover:bg-red-50 text-red-500 hover:text-red-700 rounded transition-colors" title="Remove Issue">
+                                    }} className="p-2 bg-white border border-slate-200 hover:bg-red-50 text-slate-400 hover:text-red-500 hover:border-red-200 rounded-lg transition-all shadow-sm" title="Remove Issue">
                                       <X className="h-4 w-4" />
                                     </button>
                                   </td>
@@ -1933,22 +1947,32 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                           </tbody>
                         </table>
                       </div>
-                      <div className="px-6 py-4 flex items-center justify-end gap-3" style={{ background: '#fcfcfc', borderTop: '1px solid #e5e7eb' }}>
-                        <button
-                          onClick={() => {
-                            if (!issuesEditMode) setIssuesEditMode(true);
-                            setCriticalIssuesList([...criticalIssuesList, { id: criticalIssuesList.length > 0 ? Math.max(...criticalIssuesList.map(i => i.id)) + 1 : 1, issue: '', resp: '', func: '', targetDate: '', status: 'Open' }]);
-                          }}
-                          className="px-4 py-1.5 bg-white border border-gray-300 rounded text-xs font-bold hover:bg-gray-50 text-gray-700"
-                        >
-                          ADD ISSUE
-                        </button>
-                        <button
-                          onClick={() => setIssuesEditMode(!issuesEditMode)}
-                          className="px-4 py-1.5 bg-white border border-gray-300 rounded text-xs font-bold hover:bg-gray-50 text-gray-700"
-                        >
-                          {issuesEditMode ? 'SAVE CHANGES' : 'EDIT'}
-                        </button>
+
+                      <div className="px-6 py-4 flex items-center justify-between border-t border-slate-100 bg-slate-50/50">
+                        <div className="text-[13px] text-slate-500">
+                          Viewing <span className="font-semibold text-slate-700">{criticalIssuesList.length}</span> issues
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => {
+                              if (!issuesEditMode) setIssuesEditMode(true);
+                              setCriticalIssuesList([...criticalIssuesList, { id: criticalIssuesList.length > 0 ? Math.max(...criticalIssuesList.map(i => i.id)) + 1 : 1, issue: '', resp: '', func: '', targetDate: '', status: 'Open' }]);
+                            }}
+                            className="flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 rounded-lg shadow-sm text-[13px] font-semibold text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all focus:outline-none focus:ring-2 focus:ring-slate-100"
+                          >
+                            <Plus className="h-4 w-4 text-slate-500" />
+                            Add Issue
+                          </button>
+                          <button
+                            onClick={() => setIssuesEditMode(!issuesEditMode)}
+                            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 ${issuesEditMode
+                                ? 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500 border border-transparent shadow-[0_4px_12px_rgba(79,70,229,0.25)]'
+                                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:ring-slate-200'
+                              }`}
+                          >
+                            {issuesEditMode ? 'Save Changes' : 'Edit Issues'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
