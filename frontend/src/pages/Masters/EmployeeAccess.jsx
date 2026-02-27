@@ -83,7 +83,17 @@ const EmployeeAccess = () => {
   const [tempFrozenRows, setTempFrozenRows] = useState([]);
   const [tempFrozenColumns, setTempFrozenColumns] = useState([]);
 
-  const modulesList = ['Dashboard', 'Employee Master', 'Project Master', 'Settings'];
+  const modulesList = [
+    'Dashboard',
+    'Upload Trackers',
+    'MOM',
+    'Employee Master',
+    'Employee Access',
+    'Project Master',
+    'Part Master',
+    'Department Master',
+    'Settings'
+  ];
   const accessLevels = ['Admin', 'Manager', 'User', 'Viewer'];
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
@@ -429,7 +439,7 @@ const EmployeeAccess = () => {
       name: '',
       email: '',
       role: 'User',
-      permissions: []
+      permissions: [...modulesList]
     });
     setNewPassword('');
     setConfirmPassword('');
@@ -448,7 +458,7 @@ const EmployeeAccess = () => {
         name: selected.name,
         email: selected.email,
         role: selected.role || 'User',
-        permissions: []
+        permissions: [...modulesList]
       });
       setEmployeeSearch('');
     }

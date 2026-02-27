@@ -28,7 +28,8 @@ const Sidebar = ({
     otherModules,
     isFileSelected,
     handleFileModuleClick,
-    handleProjectFileClick
+    handleProjectFileClick,
+    hasAccess
 }) => {
     const [sidebarHovered, setSidebarHovered] = useState(false);
 
@@ -177,7 +178,11 @@ const Sidebar = ({
 
     const renderMastersModule = () => {
         const isExpanded = expandedModules['masters'];
-        const isActive = activeModule === 'masters-main' || mastersSubmodules.some(s => s.id === activeModule);
+        const allowedSubmodules = hasAccess ? mastersSubmodules.filter(s => hasAccess(s.name)) : mastersSubmodules;
+
+        if (allowedSubmodules.length === 0) return null;
+
+        const isActive = activeModule === 'masters-main' || allowedSubmodules.some(s => s.id === activeModule);
         const isHovered = hoveredModule === 'masters-main';
 
         return (
@@ -222,7 +227,7 @@ const Sidebar = ({
 
                 {!sidebarCollapsed && isExpanded && (
                     <div className="ml-7 mt-1.5 space-y-1.5">
-                        {mastersSubmodules.map((submodule, index) => {
+                        {allowedSubmodules.map((submodule, index) => {
                             const isSubmoduleActive = activeModule === submodule.id;
                             const isSubmoduleHovered = hoveredModule === submodule.id;
 
@@ -339,7 +344,8 @@ const Sidebar = ({
     };
 
     const renderOtherModules = () => {
-        return otherModules.filter(module => module.id !== 'upload-trackers').map((module, index) => {
+        const allowedOtherModules = hasAccess ? otherModules.filter(m => hasAccess(m.name)) : otherModules;
+        return allowedOtherModules.filter(module => module.id !== 'upload-trackers').map((module, index) => {
             const isActive = activeModule === module.id;
             const isHovered = hoveredModule === module.id;
 
@@ -397,11 +403,11 @@ const Sidebar = ({
 
             {/* Navigation */}
             <div className="sidebar-scroll px-3 py-4 space-y-1.5 text-sm">
-                {renderProjectDashboardModule()}
-                {renderMOMModule()}
+                {(!hasAccess || hasAccess('Dashboard')) && renderProjectDashboardModule()}
+                {(!hasAccess || hasAccess('MOM')) && renderMOMModule()}
                 {renderMastersModule()}
                 <div className="space-y-1.5">
-                    {renderUploadTrackersModule()}
+                    {(!hasAccess || hasAccess('Upload Trackers')) && renderUploadTrackersModule()}
                     {renderOtherModules()}
                 </div>
             </div>

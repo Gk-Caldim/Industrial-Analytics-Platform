@@ -3,7 +3,7 @@ import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download,
 import axios from 'axios';
 
 const EmployeeMaster = () => {
-  // Fixed columns - Simplified to match EmployeeAccess
+  // Fixed columns - Simplified un-grouped structure with SaaS styling
   const initialColumns = [
     { id: 'id', label: 'ID', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'name', label: 'Name', visible: true, sortable: true, type: 'text', required: true, deletable: false },
@@ -31,7 +31,7 @@ const EmployeeMaster = () => {
 
   // Load columns from localStorage
   const [columns, setColumns] = useState(() => {
-    const savedColumns = localStorage.getItem('employee_columns_v2');
+    const savedColumns = localStorage.getItem('employee_columns_v3');
     return savedColumns ? JSON.parse(savedColumns) : initialColumns;
   });
 
@@ -291,7 +291,7 @@ const EmployeeMaster = () => {
 
   // Save columns to localStorage
   useEffect(() => {
-    localStorage.setItem('employee_columns_v2', JSON.stringify(columns));
+    localStorage.setItem('employee_columns_v3', JSON.stringify(columns));
   }, [columns]);
 
   // Filter employees
@@ -664,17 +664,24 @@ const EmployeeMaster = () => {
   };
 
   // Render cell content
-  const renderCellContent = (column, value) => {
+  const renderCellContent = (column, value, emp) => {
     if (column.id === 'status') {
       const isActive = value === 'Active';
       return (
-        <span className={`px-2 py-1 rounded-full text-sm whitespace-nowrap ${isActive ? 'bg-green-100 text-green-800' : 'bg-slate-100 dark:bg-slate-800 text-gray-800'
-          }`}>
-          {value || 'Inactive'}
-        </span>
+        <div className="flex items-center gap-2">
+          <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            {value || 'Inactive'}
+          </span>
+        </div>
       );
     }
-    return value || '-';
+    if (column.id === 'id') {
+      return (
+        <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value}</span>
+      )
+    }
+    return <span className="text-sm text-slate-700 dark:text-slate-300">{value || '-'}</span>;
   };
 
   const visibleColumns = columns.filter(col => col.visible);
@@ -1432,7 +1439,7 @@ const EmployeeMaster = () => {
                     <tr className="border-b border-slate-200 dark:border-slate-700">
                       {/* Checkbox column */}
                       <th
-                        className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap w-8 ${isColumnFrozen(0) ? 'frozen-column' : ''
+                        className={`text-left py-3 px-6 font-medium cursor-pointer w-10 ${isColumnFrozen(0) ? 'frozen-column' : ''
                           }`}
                         style={{
                           left: isColumnFrozen(0) ? '0' : 'auto',
@@ -1442,10 +1449,10 @@ const EmployeeMaster = () => {
                         <div className="flex items-center justify-center">
                           <button
                             onClick={toggleSelectAll}
-                            className="p-1 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100"
+                            className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:text-slate-100 transition-colors"
                           >
                             {selectAll ? (
-                              <CheckSquare className="h-4 w-4" />
+                              <CheckSquare className="h-4 w-4 text-blue-600" />
                             ) : (
                               <Square className="h-4 w-4" />
                             )}
@@ -1466,9 +1473,9 @@ const EmployeeMaster = () => {
                           >
                             <div className="flex items-center justify-between space-x-2">
                               {/* Left side, label and required star */}
-                              <div className="flex items-center space-x-1 cursor-pointer flex-1" onClick={() => col.sortable && handleSort(col.id)}>
-                                <span className="font-semibold text-xs uppercase tracking-wider">{col.label}</span>
-                                {col.required && <span className="text-red-300">*</span>}
+                              <div className="flex items-center space-x-1.5 cursor-pointer flex-1" onClick={() => col.sortable && handleSort(col.id)}>
+                                <span className="font-medium text-[13px]">{col.label}</span>
+                                {col.required && <span className="text-red-400">*</span>}
                               </div>
 
                               {/* Right side, sort icon and dropdown */}
@@ -1584,10 +1591,12 @@ const EmployeeMaster = () => {
                           </th>
                         );
                       })}
+                      {/* Empty TH for Actions Row */}
+                      <th className="w-24"></th>
                     </tr>
                   </thead>
 
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100/80 dark:divide-slate-700/50">
                     {paginatedEmployees.map((emp, rowIndex) => {
                       const actualRowIndex = (currentPage - 1) * pageSize + rowIndex;
                       const isRowCurrentlyFrozen = isRowFrozen(actualRowIndex);
@@ -1595,27 +1604,27 @@ const EmployeeMaster = () => {
                       return (
                         <tr
                           key={emp.id}
-                          className={`transition-colors ${isRowCurrentlyFrozen ? 'frozen-row' : ''
-                            }`}
+                          className={`group transition-colors duration-150 ${isRowCurrentlyFrozen ? 'frozen-row' : ''
+                            } ${selectedEmployees.includes(emp.id) ? 'row-selected bg-blue-50/40 dark:bg-blue-900/10' : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/50'}`}
                           style={{
                             top: isRowCurrentlyFrozen ? getFrozenRowTop(actualRowIndex) : 'auto'
                           }}
                         >
                           {/* Checkbox cell */}
                           <td
-                            className={`py-3 px-8 whitespace-nowrap w-4 ${isColumnFrozen(0) ? 'frozen-column' : ''
+                            className={`py-3 px-6 whitespace-nowrap w-10 ${isColumnFrozen(0) ? 'frozen-column' : ''
                               }`}
                             style={{
                               left: isColumnFrozen(0) ? '0' : 'auto',
                               zIndex: isColumnFrozen(0) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto'
                             }}
                           >
-                            <div className="flex items-center justify-center">
+                            <div className={`flex items-center justify-center ${selectedEmployees.includes(emp.id) ? 'opacity-100' : 'master-table-checkbox-cell'}`}>
                               <input
                                 type="checkbox"
                                 checked={selectedEmployees.includes(emp.id)}
                                 onChange={() => toggleEmployeeSelection(emp.id)}
-                                className="h-4 w-4 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 rounded focus:ring-gray-500"
+                                className="h-4 w-4 text-blue-600 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500 cursor-pointer"
                               />
                             </div>
                           </td>
@@ -1624,17 +1633,36 @@ const EmployeeMaster = () => {
                             return (
                               <td
                                 key={col.id}
-                                className={`py-3 px-8 whitespace-nowrap min-w-[160px] text-base ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
+                                className={`py-3 px-6 whitespace-nowrap ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
                                   }`}
                                 style={{
                                   left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
                                   zIndex: isColumnFrozen(actualColumnIndex) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto'
                                 }}
                               >
-                                {renderCellContent(col, emp[col.id])}
+                                {renderCellContent(col, emp[col.id], emp)}
                               </td>
                             );
                           })}
+                          {/* Actions Cell */}
+                          <td className="py-3 px-6 text-right whitespace-nowrap w-[100px]">
+                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); startEditing(emp); }}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                                title="Edit"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setShowDeletePrompt({ id: emp.id, name: emp.name }); }}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}

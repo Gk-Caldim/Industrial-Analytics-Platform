@@ -71,7 +71,8 @@ def login(data: dict, db: Session = Depends(get_db)):
                 "id": access_rule.employee_id,
                 "email": email_to_use,
                 "employee_id": employee_code,
-                "role": access_rule.access_level
+                "role": access_rule.access_level,
+                "permissions": access_rule.modules or []
             },
         }
 
