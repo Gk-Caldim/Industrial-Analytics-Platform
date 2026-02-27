@@ -1576,9 +1576,20 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                 <div className="px-7 py-5" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-11 h-11 rounded-xl" style={{ background: '#eef2ff', border: '1px solid #e0e7ff' }}>
-                        <Folder className="h-5 w-5 text-indigo-500" />
-                      </div>
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-sm filter">
+                        <defs>
+                          <linearGradient id="folderGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#6366f1" />
+                            <stop offset="1" stopColor="#4f46e5" />
+                          </linearGradient>
+                          <linearGradient id="folderLight" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                            <stop stopColor="#818cf8" />
+                            <stop offset="1" stopColor="#6366f1" />
+                          </linearGradient>
+                        </defs>
+                        <path d="M2.5 10V6.5C2.5 5.11929 3.61929 4 5 4H9.5C10.0304 4 10.5391 4.21071 10.9142 4.58579L12.5858 6.25736C12.9609 6.63244 13.4696 6.84315 14 6.84315H19C20.3807 6.84315 21.5 7.96243 21.5 9.34315V10M2.5 10H21.5M2.5 10V17.5C2.5 18.8807 3.61929 20 5 20H19C20.3807 20 21.5 18.8807 21.5 17.5V10" stroke="url(#folderLight)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="url(#folderGrad)" fillOpacity="0.1" />
+                        <path d="M7 14H12" stroke="url(#folderGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
                       <div>
                         <p className="text-slate-400 text-xs font-medium uppercase tracking-widest mb-0.5">Active Project</p>
                         <h2 className="text-xl font-bold text-slate-800 leading-tight">{selectedProject.name}</h2>
@@ -1631,9 +1642,25 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                       {/* Card Header */}
                       <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
                         <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-50/80 border border-indigo-100/50">
-                            <Calendar className="h-5 w-5 text-indigo-600" />
-                          </div>
+                          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-sm filter">
+                            <defs>
+                              <linearGradient id="calGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                <stop stopColor="#6366f1" />
+                                <stop offset="1" stopColor="#4f46e5" />
+                              </linearGradient>
+                              <linearGradient id="calLight" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                <stop stopColor="#818cf8" />
+                                <stop offset="1" stopColor="#6366f1" />
+                              </linearGradient>
+                            </defs>
+                            <rect x="3.5" y="5.5" width="17" height="15" rx="2.5" stroke="url(#calLight)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="url(#calGrad)" fillOpacity="0.08" />
+                            <path d="M3.5 10.5H20.5" stroke="url(#calLight)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M8 3.5V7.5" stroke="url(#calGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M16 3.5V7.5" stroke="url(#calGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M8.5 14H8.51" stroke="url(#calGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M12 14H12.01" stroke="url(#calGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M15.5 14H15.51" stroke="url(#calGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
                           <div>
                             <h3 className="text-[15px] font-bold text-slate-800 tracking-tight">Major Milestones</h3>
                             <p className="text-slate-500 text-[13px] mt-0.5">Project Timeline Overview</p>
@@ -1663,9 +1690,9 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                       <div className="overflow-x-auto">
                         <table className="w-full border-collapse bg-white table-fixed min-w-[900px]">
                           <thead>
-                            <tr className="bg-slate-50/80 border-b border-slate-200">
+                            <tr className="bg-[#f0f9ff] border-b border-[#e0f2fe]">
                               <th
-                                className="py-4 px-6 text-left text-[12px] font-semibold text-slate-500 uppercase tracking-widest w-[16%]"
+                                className="py-4 px-6 text-left text-[12px] font-semibold text-sky-700 uppercase tracking-widest w-[16%]"
                                 style={{ borderRight: '1px solid #f8fafc' }}
                               >
                                 Phase
@@ -1673,8 +1700,8 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                               {MILESTONE_STAGES.map(stage => (
                                 <th
                                   key={stage.id}
-                                  className="py-4 px-3 text-center text-[12px] font-semibold text-slate-600 leading-tight w-[12%]"
-                                  style={{ borderRight: '1px solid #f8fafc' }}
+                                  className="py-4 px-3 text-center text-[12px] font-semibold text-sky-700 leading-tight w-[12%]"
+                                  style={{ borderRight: '1px solid #e0f2fe' }}
                                 >
                                   {stage.label}
                                 </th>
@@ -1783,9 +1810,21 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                       {/* Card Header */}
                       <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
                         <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-red-50/80 border border-red-100/50">
-                            <AlertTriangle className="h-5 w-5 text-red-500" />
-                          </div>
+                          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-sm filter">
+                            <defs>
+                              <linearGradient id="alertGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                <stop stopColor="#ef4444" />
+                                <stop offset="1" stopColor="#dc2626" />
+                              </linearGradient>
+                              <linearGradient id="alertLight" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                <stop stopColor="#f87171" />
+                                <stop offset="1" stopColor="#ef4444" />
+                              </linearGradient>
+                            </defs>
+                            <path d="M11.1388 4.2263L2.61807 18.9664C2.26126 19.5835 2.70678 20.3541 3.41951 20.3541H20.5815C21.2942 20.3541 21.7397 19.5835 21.3829 18.9664L12.8622 4.2263C12.5028 3.60464 11.4982 3.60464 11.1388 4.2263Z" stroke="url(#alertLight)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="url(#alertGrad)" fillOpacity="0.08" />
+                            <path d="M12 9.5V14" stroke="url(#alertGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M12 17H12.01" stroke="url(#alertGrad)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
                           <div>
                             <h3 className="text-[15px] font-bold text-slate-800 tracking-tight">Critical Issues Summary</h3>
                             <p className="text-slate-500 text-[13px] mt-0.5">{criticalIssuesList.length} total issues requiring attention</p>
@@ -1817,14 +1856,14 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                       <div className="overflow-x-auto">
                         <table className="min-w-full border-collapse bg-white">
                           <thead>
-                            <tr className="bg-slate-50/80 border-b border-slate-200">
-                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-slate-600 w-16">#</th>
-                              <th className="py-4 px-6 text-left text-[12px] font-semibold text-slate-600">List of Top Critical Issues</th>
-                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-slate-600 w-48">Responsibility</th>
-                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-slate-600 w-36">Function</th>
-                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-slate-600 w-40">Target date for Closure</th>
-                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-slate-600 w-32">Status</th>
-                              {issuesEditMode && <th className="py-4 px-5 text-center text-[12px] font-semibold text-slate-600 w-20">Action</th>}
+                            <tr className="bg-[#f0f9ff] border-b border-[#e0f2fe]">
+                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-sky-700 w-16">#</th>
+                              <th className="py-4 px-6 text-left text-[12px] font-semibold text-sky-700">List of Top Critical Issues</th>
+                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-sky-700 w-48">Responsibility</th>
+                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-sky-700 w-36">Function</th>
+                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-sky-700 w-40">Target date for Closure</th>
+                              <th className="py-4 px-5 text-center text-[12px] font-semibold text-sky-700 w-32">Status</th>
+                              {issuesEditMode && <th className="py-4 px-5 text-center text-[12px] font-semibold text-sky-700 w-20">Action</th>}
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100/80">
@@ -1981,9 +2020,22 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                       {/* Card Header */}
                       <div className="flex items-center justify-between px-6 py-4" style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                         <div className="flex items-center gap-3">
-                          <div className="flex items-center justify-center w-8 h-8 rounded-lg" style={{ background: '#e0f2fe' }}>
-                            <BarChart2 className="h-4 w-4 text-sky-500" />
-                          </div>
+                          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-sm filter">
+                            <defs>
+                              <linearGradient id="metricsGrad" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                <stop stopColor="#0ea5e9" />
+                                <stop offset="1" stopColor="#0284c7" />
+                              </linearGradient>
+                              <linearGradient id="metricsLight" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+                                <stop stopColor="#38bdf8" />
+                                <stop offset="1" stopColor="#0ea5e9" />
+                              </linearGradient>
+                            </defs>
+                            <rect x="3.5" y="3.5" width="17" height="17" rx="2.5" stroke="url(#metricsLight)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="url(#metricsGrad)" fillOpacity="0.08" />
+                            <path d="M8 16V11" stroke="url(#metricsGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M12 16V8" stroke="url(#metricsGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            <path d="M16 16V13" stroke="url(#metricsGrad)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
                           <div>
                             <h3 className="text-sm font-bold text-slate-700 tracking-wide">Project Metrics</h3>
                             <p className="text-slate-400 text-xs">Customized charts and analysis views</p>
@@ -2033,7 +2085,7 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                 }}
                               >
                                 {/* Stage Header */}
-                                <div className="px-5 pt-5 pb-2 flex items-start justify-between bg-white rounded-t-lg">
+                                <div className="px-5 pt-4 pb-3 flex items-start justify-between bg-[#f0f9ff] rounded-t-lg" style={{ borderBottom: '1px solid #e0f2fe' }}>
                                   <div className="pr-2 flex flex-col gap-1.5">
                                     <div className="flex items-center gap-2">
                                       <div className="flex-shrink-0 w-2 h-2 rounded-full" style={{ backgroundColor: accentColor }}></div>
