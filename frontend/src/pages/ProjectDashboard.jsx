@@ -1661,24 +1661,20 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
 
                       {/* Table */}
                       <div className="overflow-x-auto">
-                        <table className="min-w-full border-collapse bg-white" style={{ tableLayout: 'fixed', minWidth: '960px' }}>
-                          <colgroup>
-                            <col style={{ width: '180px' }} />
-                            {MILESTONE_STAGES.map(s => <col key={s.id} style={{ width: '100px' }} />)}
-                          </colgroup>
+                        <table className="w-full border-collapse bg-white table-fixed min-w-[900px]">
                           <thead>
-                            <tr style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                            <tr className="bg-slate-50/80 border-b border-slate-200">
                               <th
-                                className="py-3 px-5 text-left text-[11px] font-bold text-slate-500 uppercase tracking-widest"
-                                style={{ borderRight: '1px solid #f1f5f9' }}
+                                className="py-4 px-6 text-left text-[12px] font-semibold text-slate-500 uppercase tracking-widest w-[16%]"
+                                style={{ borderRight: '1px solid #f8fafc' }}
                               >
                                 Phase
                               </th>
                               {MILESTONE_STAGES.map(stage => (
                                 <th
                                   key={stage.id}
-                                  className="py-3 px-3 text-center text-[12px] font-bold text-slate-600 leading-tight"
-                                  style={{ borderRight: '1px solid #f1f5f9' }}
+                                  className="py-4 px-3 text-center text-[12px] font-semibold text-slate-600 leading-tight w-[12%]"
+                                  style={{ borderRight: '1px solid #f8fafc' }}
                                 >
                                   {stage.label}
                                 </th>
@@ -1687,38 +1683,38 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                           </thead>
                           <tbody className="divide-y divide-slate-100">
                             {/* Plan row */}
-                            <tr className="hover:bg-slate-50/50 transition-colors">
+                            <tr className="hover:bg-slate-50/50 transition-colors group">
                               <td
-                                className="py-4 px-5 text-[13px] font-bold text-slate-700 whitespace-nowrap"
-                                style={{ borderRight: '1px solid #f1f5f9' }}
+                                className="py-5 px-6 text-[14px] font-semibold text-slate-800 whitespace-nowrap bg-slate-50/30"
+                                style={{ borderRight: '1px solid #f8fafc' }}
                               >
                                 Plan
                               </td>
                               {MILESTONE_STAGES.map(stage => (
                                 <td
                                   key={stage.id}
-                                  className="py-2 px-3 text-center text-[13px] text-slate-600 font-medium"
-                                  style={{ borderRight: '1px solid #f1f5f9' }}
+                                  className="py-3 px-4 text-center text-[14px] text-slate-700 font-medium"
+                                  style={{ borderRight: '1px solid #f8fafc' }}
                                 >
                                   {milestonesEditMode ? (
                                     <input
                                       type="text"
                                       value={milestonePlan[stage.id] || ''}
                                       onChange={(e) => setMilestonePlan({ ...milestonePlan, [stage.id]: e.target.value })}
-                                      className="w-full text-center p-1.5 border border-slate-200 rounded text-[13px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                      className="w-full text-center p-2.5 bg-white border border-slate-200 rounded-lg text-[14px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm"
                                       placeholder="Month Year"
                                     />
                                   ) : (
-                                    milestonePlan[stage.id] || <span className="text-slate-300">—</span>
+                                    <span className="group-hover:text-slate-900 transition-colors">{milestonePlan[stage.id] || <span className="text-slate-300">—</span>}</span>
                                   )}
                                 </td>
                               ))}
                             </tr>
                             {/* Actual / Outlook row */}
-                            <tr className="hover:bg-slate-50/50 transition-colors">
+                            <tr className="hover:bg-slate-50/50 transition-colors group">
                               <td
-                                className="py-4 px-5 text-[13px] font-bold text-slate-700 whitespace-nowrap"
-                                style={{ borderRight: '1px solid #f1f5f9' }}
+                                className="py-5 px-6 text-[14px] font-semibold text-slate-800 whitespace-nowrap bg-slate-50/30"
+                                style={{ borderRight: '1px solid #f8fafc' }}
                               >
                                 Actual / Outlook
                               </td>
@@ -1728,26 +1724,26 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                   done: { bg: '#dcfce7', border: '#86efac', text: '#166534' },
                                   delayed: { bg: '#fef9c3', border: '#fde047', text: '#854d0e' },
                                   'at-risk': { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b' },
-                                }[cell?.status] || { bg: 'transparent', border: '#e2e8f0', text: '#64748b' };
+                                }[cell?.status] || { bg: 'transparent', border: 'transparent', text: '#475569' };
                                 return (
                                   <td
                                     key={stage.id}
-                                    className="py-3 px-3 text-center text-[13px] font-medium"
-                                    style={{ borderRight: '1px solid #f1f5f9' }}
+                                    className="py-3 px-4 text-center text-[14px] font-medium"
+                                    style={{ borderRight: '1px solid #f8fafc' }}
                                   >
                                     {milestonesEditMode ? (
-                                      <div className="flex flex-col gap-2 w-full max-w-[120px] mx-auto">
+                                      <div className="flex flex-col gap-2 w-full max-w-[140px] mx-auto">
                                         <input
                                           type="text"
                                           value={cell?.value || ''}
                                           onChange={(e) => setMilestoneActual({ ...milestoneActual, [stage.id]: { ...cell, value: e.target.value } })}
-                                          className="w-full text-center p-1.5 border border-slate-200 rounded text-[13px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                          className="w-full text-center p-2.5 bg-white border border-slate-200 rounded-lg text-[14px] focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm"
                                           placeholder="Actual"
                                         />
                                         <select
                                           value={cell?.status || 'pending'}
                                           onChange={(e) => setMilestoneActual({ ...milestoneActual, [stage.id]: { ...cell, status: e.target.value } })}
-                                          className="w-full text-center p-1.5 border border-slate-200 rounded text-[11px] font-medium text-slate-600 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                                          className="w-full text-center p-2 bg-slate-50 border border-slate-200 rounded-lg text-[12px] font-semibold text-slate-600 focus:ring-2 focus:ring-indigo-500 outline-none transition-all hover:bg-white cursor-pointer"
                                         >
                                           <option value="pending">Pending</option>
                                           <option value="done">Done</option>
@@ -1757,14 +1753,16 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                       </div>
                                     ) : (
                                       cell?.value ? (
-                                        <span
-                                          className="inline-flex items-center justify-center w-full px-1.5 py-1 rounded-md text-xs font-semibold leading-tight"
-                                          style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.text }}
-                                        >
-                                          {cell.value.toLowerCase() === '✔' ? (
-                                            <CheckCircle className="h-3.5 w-3.5" />
-                                          ) : cell.value}
-                                        </span>
+                                        <div className="flex items-center justify-center">
+                                          <span
+                                            className="inline-flex items-center justify-center w-[90%] max-w-[140px] px-2.5 py-1.5 rounded-lg text-[13px] font-bold tracking-wide shadow-sm"
+                                            style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, color: cfg.text }}
+                                          >
+                                            {cell.value.toLowerCase() === '✔' ? (
+                                              <CheckCircle className="h-4 w-4" />
+                                            ) : cell.value}
+                                          </span>
+                                        </div>
                                       ) : (
                                         <span className="text-slate-300">—</span>
                                       )
@@ -1921,8 +1919,8 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                                     <div className="flex justify-center">
                                       <span
                                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[13px] font-semibold border ${issue.status === 'Open'
-                                            ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                            : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                          ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                          : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                           }`}
                                       >
                                         <div className={`w-1.5 h-1.5 rounded-full ${issue.status === 'Open' ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
@@ -1966,8 +1964,8 @@ const ProjectDashboard = ({ selectedFileId, onClearSelection }) => {
                           <button
                             onClick={() => setIssuesEditMode(!issuesEditMode)}
                             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-semibold transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-1 ${issuesEditMode
-                                ? 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500 border border-transparent shadow-[0_4px_12px_rgba(79,70,229,0.25)]'
-                                : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:ring-slate-200'
+                              ? 'bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500 border border-transparent shadow-[0_4px_12px_rgba(79,70,229,0.25)]'
+                              : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 focus:ring-slate-200'
                               }`}
                           >
                             {issuesEditMode ? 'Save Changes' : 'Edit Issues'}
