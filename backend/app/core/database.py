@@ -11,7 +11,8 @@ engine = create_engine(
     poolclass=NullPool,
     connect_args={
         "sslmode": "require",
-        "options": "-c statement_cache_size=0",  # DISABLE prepared statements for Supabase transaction pool
+        "options": "-c statement_cache_size=0 -c statement_timeout=15000",  # DISABLE prepared statements & add 15s timeout
+        "connect_timeout": 10,  # 10 second timeout for establishing the connection
     },
 )
 
