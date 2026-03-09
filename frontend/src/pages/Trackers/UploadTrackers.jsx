@@ -2340,25 +2340,60 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
     });
   };
 
-  const confirmBulkDelete = () => {
-    // Delete all selected trackers
-    const newTrackers = trackers.filter(tracker => !selectedTrackers.includes(tracker.id));
-    setTrackers(newTrackers);
+  const confirmBulkDelete = async () => {
+    if (selectedTrackers.length === 0) return;
 
-    // Remove from uploaded files data
-    const newFileData = { ...uploadedFilesData };
-    selectedTrackers.forEach(id => {
-      delete newFileData[id];
-      // Remove from BOTH sidebar contexts
-      sidebarManager.deleteFileFromAllContexts(id);
-    });
-    setUploadedFilesData(newFileData);
+    const count = selectedTrackers.length;
+    let deletedCount = 0;
+    let errors = [];
 
-    // Clear selection
-    setSelectedTrackers([]);
-    setSelectAll(false);
-    setShowBulkDeletePrompt({ show: false, count: 0 });
-    showNotification(`${selectedTrackers.length} upload${selectedTrackers.length > 1 ? 's' : ''} deleted successfully`);
+    // Show a temporary "Deleting..." notification if many files
+    if (count > 2) {
+      showNotification(`Deleting ${count} records...`, 'info');
+    }
+
+    try {
+      // Process deletions in parallel
+      await Promise.all(selectedTrackers.map(async (id) => {
+        try {
+          await API.delete(`/datasets/${id}`);
+          deletedCount++;
+        } catch (err) {
+          console.error(`Error deleting tracker ${id}:`, err);
+          errors.push(id);
+        }
+      }));
+
+      // Update local state even if some failed (the ones that succeeded should be removed)
+      // Filter out only the ones that were successfully deleted from the backend
+      // But for simplicity in UX, if most succeeded we refresh everything
+
+      const successfulIds = selectedTrackers.filter(id => !errors.includes(id));
+
+      setTrackers(prev => prev.filter(tracker => !successfulIds.includes(tracker.id)));
+
+      // Remove from uploaded files data and sidebar contexts
+      const newFileData = { ...uploadedFilesData };
+      successfulIds.forEach(id => {
+        delete newFileData[id];
+        sidebarManager.deleteFileFromAllContexts(id);
+      });
+      setUploadedFilesData(newFileData);
+
+      // Clear selection for the ones we tried to delete
+      setSelectedTrackers(errors);
+      if (errors.length === 0) {
+        setSelectAll(false);
+        showNotification(`${count} upload${count > 1 ? 's' : ''} deleted successfully`);
+      } else {
+        showNotification(`Deleted ${deletedCount} records. ${errors.length} failed.`, 'warning');
+      }
+
+      setShowBulkDeletePrompt({ show: false, count: 0 });
+    } catch (error) {
+      console.error('Error in bulk delete process:', error);
+      showNotification('An error occurred during deletion', 'error');
+    }
   };
 
   // Handle sorting

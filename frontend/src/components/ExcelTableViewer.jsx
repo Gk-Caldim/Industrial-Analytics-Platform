@@ -590,7 +590,7 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                                 className="flex items-center gap-1.5 h-9 px-3 text-sm border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-50 dark:hover:bg-slate-700/80"
                             >
                                 <Filter className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-                                <span className="text-slate-700 dark:text-slate-300">Columns</span>
+                                <span className="text-slate-700 dark:text-slate-300">Filter</span>
                             </button>
 
                             {showFilterDropdown && (
@@ -674,7 +674,7 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
 
                         <button onClick={() => setShowColumnModal(true)} className="flex items-center gap-1 h-9 px-3 text-sm font-medium border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition" title="Add Column">
                             <Plus className="h-4 w-4" />
-                            <span className="hidden xl:inline">Col</span>
+                            <span className="hidden xl:inline">Column</span>
                         </button>
 
                         <div className="relative">
