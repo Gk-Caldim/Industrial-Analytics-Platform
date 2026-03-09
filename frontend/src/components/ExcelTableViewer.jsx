@@ -34,6 +34,9 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
     const pageSizeOptions = [10, 25, 50, 100];
     const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
 
+    // Column Virtualization State
+    const [startColumnIndex, setStartColumnIndex] = useState(0);
+
     // Modals / Dropdowns / Prompts
     const [activeDropdownColumn, setActiveDropdownColumn] = useState(null);
     const [showExportDropdown, setShowExportDropdown] = useState(false);
@@ -465,6 +468,54 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
 
     const visibleColumns = columns.filter(col => col.visible);
 
+    // Virtualized Visible Columns Window based on text length
+    const { paginatedVisibleColumns, nextIndex, prevIndex } = useMemo(() => {
+        const MAX_CHAR_LENGTH = 120; // Target character count per page
+        let currentLength = 0;
+        let endIndex = startColumnIndex;
+
+        while (endIndex < visibleColumns.length) {
+            const charCount = visibleColumns[endIndex].label.length;
+            const weight = Math.max(charCount, 15); // Base width for padding/icons
+
+            if (currentLength + weight > MAX_CHAR_LENGTH && endIndex > startColumnIndex) {
+                break;
+            }
+            currentLength += weight;
+            endIndex++;
+        }
+
+        // Ensure no more than 8 columns at a time to prevent squishing
+        endIndex = Math.min(startColumnIndex + 8, endIndex);
+
+        let pIndex = startColumnIndex - 1;
+        let prevLength = 0;
+        while (pIndex >= 0) {
+            const charCount = visibleColumns[pIndex].label.length;
+            const weight = Math.max(charCount, 15);
+            if (prevLength + weight > MAX_CHAR_LENGTH && pIndex < startColumnIndex - 1) {
+                break;
+            }
+            prevLength += weight;
+            pIndex--;
+        }
+        pIndex = Math.max(pIndex, startColumnIndex - 8 - 1);
+
+        return {
+            paginatedVisibleColumns: visibleColumns.slice(startColumnIndex, endIndex),
+            nextIndex: endIndex < visibleColumns.length ? endIndex : null,
+            prevIndex: startColumnIndex > 0 ? pIndex + 1 : null
+        };
+    }, [visibleColumns, startColumnIndex]);
+
+    const handlePreviousColumns = () => {
+        if (prevIndex !== null) setStartColumnIndex(prevIndex);
+    };
+
+    const handleNextColumns = () => {
+        if (nextIndex !== null) setStartColumnIndex(nextIndex);
+    };
+
     return (
         <div className="flex flex-col bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm w-full h-[600px] overflow-hidden master-table-container">
             {/* Notification Banner */}
@@ -547,7 +598,29 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                     </div>
 
                     {/* RIGHT SIDE -> Actions & Exporters */}
-                    <div className="flex gap-2 mt-2 sm:mt-0">
+                    <div className="flex gap-2 mt-2 sm:mt-0 items-center">
+                        <div className="flex items-center mr-2 border-r pr-2 border-slate-300 dark:border-slate-600 gap-1 text-slate-600 dark:text-slate-400">
+                            <button
+                                onClick={handlePreviousColumns}
+                                disabled={prevIndex === null}
+                                className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent"
+                                title="Previous Columns"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </button>
+                            <span className="text-xs whitespace-nowrap">
+                                Cols {startColumnIndex + 1}-{startColumnIndex + paginatedVisibleColumns.length} of {visibleColumns.length}
+                            </span>
+                            <button
+                                onClick={handleNextColumns}
+                                disabled={nextIndex === null}
+                                className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent"
+                                title="Next Columns"
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </button>
+                        </div>
+
                         {selectedRows.length > 0 && (
                             <div className="flex items-center gap-1 mr-2 border-r pr-2 border-slate-300 dark:border-slate-600">
                                 <button
@@ -604,7 +677,7 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
 
             {/* Render Data Table */}
             <div className="flex-1 overflow-auto relative">
-                <table className="master-table w-full text-left border-collapse min-w-max">
+                <table className="master-table w-full text-left border-collapse table-fixed">
                     <thead className="bg-slate-100 dark:bg-slate-700/80 text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-[40]">
                         <tr>
                             {/* Checkbox Header */}
@@ -617,8 +690,8 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                                 </button>
                             </th>
 
-                            {/* Dynamic Headers */}
-                            {visibleColumns.map((col) => {
+                            {/* Dynamic Headers (Virtualized Window) */}
+                            {paginatedVisibleColumns.map((col) => {
                                 const actualColumnIndex = columns.findIndex(c => c.id === col.id);
                                 const isFrozen = isColumnFrozen(actualColumnIndex);
 
@@ -630,14 +703,13 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                                     >
                                         <div className="flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-1.5 flex-1" onClick={() => col.sortable && handleSort(col.id)}>
-                                                {col.label}
-                                                <span className="text-slate-400">{getSortIcon(col.id)}</span>
+                                                <span className="truncate">{col.label}</span>
                                             </div>
 
                                             <div className="relative">
                                                 <button
                                                     onClick={(e) => { e.stopPropagation(); setActiveDropdownColumn(activeDropdownColumn === col.id ? null : col.id); }}
-                                                    className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-600 ${activeDropdownColumn === col.id ? 'opacity-100 bg-slate-200 dark:bg-slate-600' : ''}`}
+                                                    className={`p-1 rounded transition-colors text-slate-500 hover:text-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 ${activeDropdownColumn === col.id ? 'bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-100' : ''}`}
                                                 >
                                                     <ChevronDown className="h-4 w-4" />
                                                 </button>
@@ -695,8 +767,8 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                                         </div>
                                     </td>
 
-                                    {/* Normal Data Cells */}
-                                    {visibleColumns.map((col) => {
+                                    {/* Normal Data Cells (Virtualized Window) */}
+                                    {paginatedVisibleColumns.map((col) => {
                                         const actualColumnIndex = columns.findIndex(c => c.id === col.id);
                                         const isColFrozen = isColumnFrozen(actualColumnIndex);
                                         return (
