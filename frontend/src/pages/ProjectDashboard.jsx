@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import ReactECharts from 'echarts-for-react';
 import ExcelTableViewer from '../components/ExcelTableViewer';
 
 const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
@@ -331,6 +332,11 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     setActiveProject(selectedProject);
     setSelectedSubmodule(null); // Reset submodule selection
 
+    // PREFETCH: Load the first file's data for charts and dashboard configuration
+    if (selectedProject?.submodules && selectedProject.submodules.length > 0) {
+      loadSubmoduleData(selectedProject.submodules[0].trackerId);
+    }
+
     if (selectedProject?.dashboardConfig) {
       setVisibleSections(selectedProject.dashboardConfig.visibleSections || {});
       setShowSimulateModal(false);
@@ -368,7 +374,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
             build: 'pie',
             gateway: 'area',
             validation: 'bar',
-            qualityCheck: 'gauge'
+            qualityCheck: 'bar'
           }
         }));
 
@@ -2203,109 +2209,247 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   const renderChart = (chartId, chartType, isMaximized = false) => {
     if (!activeProject) return null;
 
-    const size = isMaximized ? { width: '100%', height: '400px' } : { width: '100%', height: 'auto' };
-    const axisConfig = axisConfigs[activeProject.id]?.[chartId] || { xAxis: 'Category', yAxis: 'Value' };
+    const size = isMaximized ? { width: '100%', height: '400px' } : { width: '100%', height: '320px' };
+
+    // Get the configured axes for this chart
+    const axisConfig = axisConfigs[activeProject.id]?.[chartId];
+
+    // If no chart data or configuration, show placeholder
+    let chartData = [];
+    if (activeProject?.submodules && activeProject.submodules.length > 0) {
+      const trackerId = activeProject.submodules[0].trackerId;
+      if (submoduleData[trackerId] && submoduleData[trackerId].rows) {
+        chartData = submoduleData[trackerId].rows;
+      }
+    }
+
+    if (!axisConfig || !axisConfig.xAxis || !axisConfig.yAxis || chartData.length === 0) {
+      return (
+        <div style={{ ...size, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
+          <span style={{ color: '#64748b', fontSize: '14px', marginBottom: '8px' }}>No Data or Configuration</span>
+          <button
+            onClick={() => toggleAxisSelector(chartId)}
+            style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+          >
+            Configure Axes
+          </button>
+        </div>
+      );
+    }
+
+    // Process data based on selected axes
+    // We group by xAxis, and aggregate yAxis (sum if numeric, count otherwise)
+    const groupedData = {};
+    const yAxisIsNumeric = chartData.some(row => {
+      const val = row[axisConfig.yAxis];
+      return val !== null && val !== undefined && val !== '' && !isNaN(parseFloat(val));
+    });
+
+    chartData.forEach(row => {
+      let xVal = row[axisConfig.xAxis];
+      if (xVal === null || xVal === undefined || String(xVal).trim() === '') {
+        xVal = 'Uncategorized';
+      } else {
+        xVal = String(xVal).trim();
+      }
+
+      const yVal = row[axisConfig.yAxis];
+
+      if (!groupedData[xVal]) {
+        groupedData[xVal] = 0;
+      }
+
+      if (yAxisIsNumeric) {
+        if (yVal !== null && yVal !== undefined && yVal !== '') {
+          groupedData[xVal] += parseFloat(yVal) || 0;
+        }
+      } else {
+        if (yVal !== null && yVal !== undefined && String(yVal).trim() !== '') {
+          groupedData[xVal] += 1; // Count valid non-empty values
+        }
+      }
+    });
+
+    // Sort labels to make charts readable (e.g. chronological or alphabetical)
+    const sortedEntries = Object.entries(groupedData).sort((a, b) => {
+      // Always put Uncategorized at the very end
+      if (a[0] === 'Uncategorized') return 1;
+      if (b[0] === 'Uncategorized') return -1;
+
+      // Try numeric sort first
+      const numA = parseFloat(a[0]);
+      const numB = parseFloat(b[0]);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+
+      // Fallback to string local compare
+      return a[0].localeCompare(b[0]);
+    });
+
+    const xLabels = sortedEntries.map(e => e[0]);
+    const yValues = sortedEntries.map(e => {
+      // Round to 2 decimals if numeric to avoid floating point issues
+      return yAxisIsNumeric ? Math.round(e[1] * 100) / 100 : e[1];
+    });
+
+    const baseOption = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: { type: 'shadow' }
+      },
+      toolbox: isMaximized ? {
+        right: '20px',
+        feature: {
+          dataView: { show: true, readOnly: false, title: 'Data View' },
+          saveAsImage: { show: true, title: 'Save Image' }
+        }
+      } : undefined,
+      dataZoom: xLabels.length > 10 ? [
+        { type: 'slider', show: true, start: 0, end: Math.max(20, Math.floor(1000 / xLabels.length)), bottom: '2%' },
+        { type: 'inside', start: 0, end: 100 }
+      ] : [],
+      grid: {
+        left: '5%',
+        right: '5%',
+        bottom: xLabels.length > 10 ? '25%' : '15%',
+        top: '15%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: xLabels,
+        axisLabel: {
+          interval: 0,
+          rotate: xLabels.length > 5 ? 30 : 0
+        }
+      },
+      yAxis: {
+        type: 'value'
+      }
+    };
+
+    let option = {};
 
     switch (chartType) {
       case 'bar':
-        return (
-          <div style={size}>
-            <div style={{ marginBottom: '10px', fontSize: '12px', color: '#4b5563', textAlign: 'center', backgroundColor: '#f3f4f6', padding: '4px 8px', borderRadius: '4px' }}>
-              <span style={{ fontWeight: 'bold' }}>X:</span> {axisConfig.xAxis} | <span style={{ fontWeight: 'bold' }}>Y:</span> {axisConfig.yAxis}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'flex-end', height: isMaximized ? '300px' : '140px', gap: isMaximized ? '30px' : '15px', justifyContent: 'center' }}>
-              <div style={{ width: isMaximized ? '80px' : '45px', backgroundColor: '#3b82f6', height: isMaximized ? '220px' : '110px', borderRadius: '4px 4px 0 0', position: 'relative' }}>
-                <div style={{ position: 'absolute', top: '-25px', left: '50%', transform: 'translateX(-50%)', fontSize: isMaximized ? '16px' : '13px', fontWeight: 'bold' }}>85%</div>
-              </div>
-              <div style={{ width: isMaximized ? '80px' : '45px', backgroundColor: '#f59e0b', height: isMaximized ? '160px' : '70px', borderRadius: '4px 4px 0 0', position: 'relative' }}>
-                <div style={{ position: 'absolute', top: '-25px', left: '50%', transform: 'translateX(-50%)', fontSize: isMaximized ? '16px' : '13px', fontWeight: 'bold' }}>60%</div>
-              </div>
-              <div style={{ width: isMaximized ? '80px' : '45px', backgroundColor: '#10b981', height: isMaximized ? '120px' : '50px', borderRadius: '4px 4px 0 0', position: 'relative' }}>
-                <div style={{ position: 'absolute', top: '-25px', left: '50%', transform: 'translateX(-50%)', fontSize: isMaximized ? '16px' : '13px', fontWeight: 'bold' }}>45%</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: isMaximized ? '60px' : '30px', marginTop: isMaximized ? '40px' : '25px', fontSize: isMaximized ? '16px' : '13px', fontWeight: 'bold' }}>
-              <span>UI</span>
-              <span>UX</span>
-              <span>Research</span>
-            </div>
-          </div>
-        );
+        option = {
+          ...baseOption,
+          color: ['#3b82f6', '#f59e0b', '#10b981', '#6366f1'],
+          series: [
+            {
+              name: axisConfig.yAxis,
+              type: 'bar',
+              barWidth: '60%',
+              data: yValues,
+              itemStyle: { borderRadius: [4, 4, 0, 0] }
+            }
+          ]
+        };
+        break;
 
       case 'line':
-        return (
-          <div style={size}>
-            <div style={{ marginBottom: '10px', fontSize: '12px', color: '#4b5563', textAlign: 'center', backgroundColor: '#f3f4f6', padding: '4px 8px', borderRadius: '4px' }}>
-              <span style={{ fontWeight: 'bold' }}>X:</span> {axisConfig.xAxis} | <span style={{ fontWeight: 'bold' }}>Y:</span> {axisConfig.yAxis}
-            </div>
-            <svg width="100%" height={isMaximized ? "300" : "150"} viewBox="0 0 400 150" preserveAspectRatio="none">
-              <polyline points="50,120 120,60 190,80 260,30 330,70" stroke="#f59e0b" strokeWidth="3" fill="none" />
-              <circle cx="50" cy="120" r="4" fill="#f59e0b" />
-              <circle cx="120" cy="60" r="4" fill="#f59e0b" />
-              <circle cx="190" cy="80" r="4" fill="#f59e0b" />
-              <circle cx="260" cy="30" r="4" fill="#f59e0b" />
-              <circle cx="330" cy="70" r="4" fill="#f59e0b" />
-            </svg>
-            <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: '10px', fontSize: isMaximized ? '14px' : '12px', fontWeight: 'bold' }}>
-              <span>W1</span>
-              <span>W2</span>
-              <span>W3</span>
-              <span>W4</span>
-              <span>W5</span>
-            </div>
-          </div>
-        );
+      case 'area':
+        option = {
+          ...baseOption,
+          color: ['#f59e0b'],
+          series: [
+            {
+              name: axisConfig.yAxis,
+              type: 'line',
+              smooth: true,
+              data: yValues,
+              areaStyle: chartType === 'area' ? { opacity: 0.3 } : undefined
+            }
+          ]
+        };
+        break;
 
       case 'pie':
-        return (
-          <div style={size}>
-            <div style={{ marginBottom: '10px', fontSize: '12px', color: '#4b5563', textAlign: 'center', backgroundColor: '#f3f4f6', padding: '4px 8px', borderRadius: '4px' }}>
-              Distribution
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '20px' }}>
-              <svg width={isMaximized ? "200" : "100"} height={isMaximized ? "200" : "100"} viewBox="0 0 32 32">
-                <circle r="16" cx="16" cy="16" fill="#10b981" />
-                <path d="M16,16 L16,0 A16,16 0 0,1 32,16 Z" fill="#10b981cc" />
-                <path d="M16,16 L32,16 A16,16 0 0,1 16,32 Z" fill="#10b98199" />
-                <circle r="8" cx="16" cy="16" fill="white" />
-              </svg>
-              <div style={{ fontSize: isMaximized ? '14px' : '12px' }}>
-                <div><span style={{ color: '#10b981' }}>●</span> Complete 45%</div>
-                <div><span style={{ color: '#10b981cc' }}>●</span> In Progress 35%</div>
-                <div><span style={{ color: '#10b98199' }}>●</span> Pending 20%</div>
-              </div>
-            </div>
-          </div>
-        );
+        const pieData = xLabels.map((label, index) => ({
+          name: label,
+          value: yValues[index]
+        }));
+        option = {
+          tooltip: {
+            trigger: 'item'
+          },
+          legend: {
+            orient: isMaximized ? 'vertical' : 'horizontal',
+            left: isMaximized ? 'left' : 'center',
+            bottom: isMaximized ? 'auto' : 0
+          },
+          color: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b'],
+          series: [
+            {
+              name: axisConfig.yAxis,
+              type: 'pie',
+              radius: ['40%', '70%'],
+              center: ['50%', isMaximized ? '50%' : '45%'],
+              avoidLabelOverlap: false,
+              itemStyle: {
+                borderRadius: 10,
+                borderColor: '#fff',
+                borderWidth: 2
+              },
+              label: { show: false, position: 'center' },
+              emphasis: {
+                label: { show: true, fontSize: 16, fontWeight: 'bold' }
+              },
+              labelLine: { show: false },
+              data: pieData
+            }
+          ]
+        };
+        break;
 
-      case 'gauge':
-        return (
-          <div style={size}>
-            <div style={{ marginBottom: '10px', fontSize: '12px', color: '#4b5563', textAlign: 'center', backgroundColor: '#f3f4f6', padding: '4px 8px', borderRadius: '4px' }}>
-              Quality Score: 85%
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <svg width={isMaximized ? "300" : "150"} height={isMaximized ? "150" : "75"} viewBox="0 0 200 100">
-                <path d="M20,80 A70,70 0 0,1 180,80" fill="none" stroke="#e0e0e0" strokeWidth="20" strokeLinecap="round" />
-                <path d="M20,80 A70,70 0 0,1 140,25" fill="none" stroke="#ef4444" strokeWidth="20" strokeLinecap="round" />
-                <circle cx="100" cy="60" r="15" fill="white" stroke="#1e3a5f" strokeWidth="3" />
-                <text x="100" y="65" textAnchor="middle" fill="#1e3a5f" fontSize="16" fontWeight="bold">85%</text>
-              </svg>
-            </div>
-          </div>
-        );
+      case 'histogram':
+        option = {
+          ...baseOption,
+          color: ['#8b5cf6'],
+          series: [
+            {
+              name: axisConfig.yAxis,
+              type: 'bar',
+              barWidth: '99%',
+              data: yValues,
+            }
+          ]
+        };
+        break;
 
       default:
         return null;
     }
+
+    return (
+      <div style={size}>
+        <div style={{ marginBottom: '10px', fontSize: '12px', color: '#4b5563', textAlign: 'center', backgroundColor: '#f3f4f6', padding: '4px 8px', borderRadius: '4px' }}>
+          <span style={{ fontWeight: 'bold' }}>X:</span> {axisConfig.xAxis} | <span style={{ fontWeight: 'bold' }}>Y:</span> {axisConfig.yAxis}
+        </div>
+        <ReactECharts option={option} style={{ height: isMaximized ? '350px' : '280px', width: '100%' }} />
+      </div>
+    );
   };
+
+  // Axis Selector Modal
 
   // Axis Selector Modal
   const AxisSelectorModal = ({ chartId, onClose }) => {
     if (!activeProject) return null;
 
-    const config = axisConfigs[activeProject.id]?.[chartId] || { xAxis: 'Category', yAxis: 'Value' };
+    const config = axisConfigs[activeProject.id]?.[chartId] || { xAxis: '', yAxis: '' };
     const [localConfig, setLocalConfig] = useState(config);
+
+    // Compute dynamic dynamicAvailableColumns based on prefetched data
+    const dynamicAvailableColumns = useMemo(() => {
+      if (activeProject?.submodules && activeProject.submodules.length > 0) {
+        const trackerId = activeProject.submodules[0].trackerId;
+        const data = submoduleData[trackerId];
+        if (data && data.headers) {
+          return data.headers;
+        }
+      }
+      return availableColumns; // Fallback to dummy data
+    }, [activeProject, submoduleData]);
 
     const handleApply = () => {
       handleAxisChange(chartId, 'xAxis', localConfig.xAxis);
@@ -2369,7 +2513,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               color: '#1e3a5f'
             }}
           >
-            {availableColumns.map(col => (
+            {dynamicAvailableColumns.map(col => (
               <option key={col} value={col} style={{ color: '#1e3a5f', padding: '6px' }}>{col}</option>
             ))}
           </select>
@@ -2394,7 +2538,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               color: '#1e3a5f'
             }}
           >
-            {availableColumns.map(col => (
+            {dynamicAvailableColumns.map(col => (
               <option key={col} value={col} style={{ color: '#1e3a5f', padding: '6px' }}>{col}</option>
             ))}
           </select>
@@ -2444,7 +2588,6 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         <option value="pie" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Pie</option>
         <option value="area" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Area</option>
         <option value="histogram" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Histogram</option>
-        <option value="gauge" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Gauge</option>
       </select>
 
       <button
@@ -2559,7 +2702,6 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                 <option value="pie" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Pie</option>
                 <option value="area" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Area</option>
                 <option value="histogram" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Histogram</option>
-                <option value="gauge" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Gauge</option>
               </select>
               <button
                 onClick={handleCloseMaximize}
@@ -2648,7 +2790,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
           <div style={{ textAlign: 'center', flex: 2 }}>
             {selectedSubmodule ? (
-              <span>{selectedSubmodule.name}</span>
+              <span>{String(selectedSubmodule.displayName || selectedSubmodule.name).replace(/\.(xlsx|xls|csv|pdf|docx|txt|json)$/i, "")}</span>
             ) : activeProject ? (
               <span>{activeProject.name} Dashboard</span>
             ) : (
@@ -2807,32 +2949,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
           </div>
         ) : selectedSubmodule ? (
           /* Submodule Detail View */
-          <div style={{ padding: '25px' }}>
-            <div style={{
-              marginBottom: '20px',
-              padding: '15px',
-              backgroundColor: '#f8f9fa',
-              border: '1px solid #e0e0e0',
-              borderRadius: '4px'
-            }}>
-              <h3 style={{
-                fontSize: '16px',
-                fontWeight: 'bold',
-                color: '#1e3a5f',
-                margin: '0 0 5px 0'
-              }}>
-                {selectedSubmodule.name}
-              </h3>
-              <p style={{
-                fontSize: '13px',
-                color: '#4b5563',
-                margin: 0
-              }}>
-                Tracker ID: {selectedSubmodule.trackerId}
-              </p>
-            </div>
-
-            {renderSubmoduleTable(submoduleData[selectedSubmodule.trackerId], selectedSubmodule.name)}
+          <div style={{ padding: '0 25px 25px 25px' }}>
+            {renderSubmoduleTable(submoduleData[selectedSubmodule.trackerId], String(selectedSubmodule.displayName || selectedSubmodule.name).replace(/\.(xlsx|xls|csv|pdf|docx|txt|json)$/i, ""))}
           </div>
         ) : (
           /* Active Project Dashboard */
@@ -3249,10 +3367,10 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                             alignItems: 'center'
                           }}>
                             <span>Quality Check</span>
-                            <ChartOptions chartId="qualityCheck" currentType={chartTypes[activeProject.id]?.qualityCheck || 'gauge'} />
+                            <ChartOptions chartId="qualityCheck" currentType={chartTypes[activeProject.id]?.qualityCheck || 'bar'} />
                           </div>
                           <div style={{ padding: '15px' }}>
-                            {renderChart('qualityCheck', chartTypes[activeProject.id]?.qualityCheck || 'gauge')}
+                            {renderChart('qualityCheck', chartTypes[activeProject.id]?.qualityCheck || 'bar')}
                           </div>
                         </div>
                       )}

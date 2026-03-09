@@ -751,6 +751,14 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                             const isRowCurrentlyFrozen = isRowFrozen(actualRowIndex);
                             const isSelected = selectedRows.includes(row._local_id);
 
+                            const formatCellValue = (value, colId, colLabel) => {
+                                let strVal = value !== undefined && value !== null && String(value) !== "" ? String(value) : '-';
+                                if (strVal !== '-' && (String(colId).toLowerCase().includes('file') || String(colLabel).toLowerCase().includes('file'))) {
+                                    strVal = strVal.replace(/\.(xlsx|xls|csv|pdf|docx|txt|json)$/i, "");
+                                }
+                                return strVal;
+                            };
+
                             return (
                                 <tr key={row._local_id} className={`group hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${isSelected ? 'bg-blue-50/40 dark:bg-blue-900/10' : ''} ${isRowCurrentlyFrozen ? 'frozen-row z-[30] shadow-[0_4px_10px_rgba(0,0,0,0.05)]' : ''}`} style={{ top: isRowCurrentlyFrozen ? getFrozenRowTop(actualRowIndex) : 'auto' }}>
                                     {/* Checkbox Cell */}
@@ -781,7 +789,7 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                                                     backgroundColor: isSelected ? 'inherit' : undefined
                                                 }}
                                             >
-                                                {row[col.id] !== undefined && row[col.id] !== null && String(row[col.id]) !== "" ? String(row[col.id]) : '-'}
+                                                {formatCellValue(row[col.id], col.id, col.label)}
                                             </td>
                                         );
                                     })}

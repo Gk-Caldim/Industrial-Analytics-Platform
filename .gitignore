@@ -7,6 +7,11 @@ __pycache__/
 *.pyd
 *.so
 
+# text files
+*.log
+*.out
+*.txt
+
 # Virtual environments
 venv/
 .env/
