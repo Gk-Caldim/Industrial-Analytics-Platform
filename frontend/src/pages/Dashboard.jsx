@@ -44,6 +44,7 @@ import ProjectDashboard from "./ProjectDashboard";
 import UploadTrackers from "../pages/Trackers/UploadTrackers";
 import SystemSettings from "../pages/Settings/SystemSettings";
 import MOMModule from "../pages/mom/MOMModule";
+import API from "../utils/api";
 
 // ============================================================================
 // SIDEBAR MANAGER
@@ -187,68 +188,84 @@ const Dashboard = () => {
   };
 
   // ==========================================================================
-  // LOAD MODULES
+  // LOAD MODULES FROM API
   // ==========================================================================
-  const loadDynamicModules = () => {
-    const uploadModules = sidebarManager.loadUploadTrackerModules();
-    const projectModules = sidebarManager.loadProjectDashboardModules();
+  const loadDynamicModules = async () => {
+    try {
+      const response = await API.get('/datasets/');
+      const datasets = response.data;
 
-    const uniqueProjectsMap = new Map();
-    (Array.isArray(projectModules) ? projectModules : []).forEach(module => {
-      const name = capitalizeFirstLetter(module.name || '');
-      if (!uniqueProjectsMap.has(name)) {
-        uniqueProjectsMap.set(name, {
-          ...module,
-          name: name,
-          submodules: (module.submodules || []).map(sub => ({
-            ...sub,
-            displayName: capitalizeFirstLetter(sub.displayName || sub.name || '')
-          }))
-        });
-      } else {
-        const existing = uniqueProjectsMap.get(name);
-        const newSubmodules = (module.submodules || []).map(sub => ({
-          ...sub,
-          displayName: capitalizeFirstLetter(sub.displayName || sub.name || '')
-        }));
-        newSubmodules.forEach(sub => {
-          if (!existing.submodules.some(eSub => eSub.trackerId === sub.trackerId)) {
-            existing.submodules.push(sub);
-          }
-        });
-      }
-    });
-    const capitalizedProjectModules = Array.from(uniqueProjectsMap.values());
+      const uploadProjectsMap = new Map();
+      const dashProjectsMap = new Map();
 
-    const uniqueUploadsMap = new Map();
-    (Array.isArray(uploadModules) ? uploadModules : []).forEach(module => {
-      const name = capitalizeFirstLetter(module.name || '');
-      if (!uniqueUploadsMap.has(name)) {
-        uniqueUploadsMap.set(name, {
-          ...module,
-          name: name,
-          submodules: (module.submodules || []).map(sub => ({
-            ...sub,
-            displayName: capitalizeFirstLetter(sub.displayName || sub.name || '')
-          }))
-        });
-      } else {
-        const existing = uniqueUploadsMap.get(name);
-        const newSubmodules = (module.submodules || []).map(sub => ({
-          ...sub,
-          displayName: capitalizeFirstLetter(sub.displayName || sub.name || '')
-        }));
-        newSubmodules.forEach(sub => {
-          if (!existing.submodules.some(eSub => eSub.trackerId === sub.trackerId)) {
-            existing.submodules.push(sub);
-          }
-        });
-      }
-    });
-    const capitalizedUploadModules = Array.from(uniqueUploadsMap.values());
+      datasets.forEach(dataset => {
+        const projectName = capitalizeFirstLetter(dataset.project || 'Uncategorized');
+        const projectId = projectName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
-    setUploadTrackerModules(capitalizedUploadModules);
-    setProjectDashboardModules(capitalizedProjectModules);
+        // --- Dashboard / Project Context ---
+        if (!dashProjectsMap.has(projectName)) {
+          dashProjectsMap.set(projectName, {
+            id: `project-dashboard-${projectId}`,
+            moduleId: `project-dashboard-${projectId}`,
+            name: projectName,
+            projectName: projectName,
+            type: 'project',
+            context: 'project-dashboard',
+            isExpanded: false,
+            submodules: []
+          });
+        }
+
+        const dashProject = dashProjectsMap.get(projectName);
+
+        if (!dashProject.submodules.some(sub => sub.trackerId === dataset.id)) {
+          dashProject.submodules.push({
+            id: `project-file-${dataset.id}`,
+            moduleId: `project-file-${dataset.id}`,
+            trackerId: dataset.id,
+            name: dataset.fileName,
+            displayName: capitalizeFirstLetter(dataset.fileName.replace(/\.[^/.]+$/, "")),
+            type: 'file',
+            projectName: projectName,
+            context: 'project-dashboard'
+          });
+        }
+
+        // --- Upload Management Context ---
+        if (!uploadProjectsMap.has(projectName)) {
+          uploadProjectsMap.set(projectName, {
+            id: `upload-project-${projectId}`,
+            moduleId: `upload-project-${projectId}`,
+            name: projectName,
+            projectName: projectName,
+            type: 'project',
+            context: 'upload-management',
+            isExpanded: false,
+            submodules: []
+          });
+        }
+
+        const uploadProject = uploadProjectsMap.get(projectName);
+
+        if (!uploadProject.submodules.some(sub => sub.trackerId === dataset.id)) {
+          uploadProject.submodules.push({
+            id: `upload-file-${dataset.id}`,
+            moduleId: `upload-file-${dataset.id}`,
+            trackerId: dataset.id,
+            name: dataset.fileName,
+            displayName: capitalizeFirstLetter(dataset.fileName.replace(/\.[^/.]+$/, "")),
+            type: 'file',
+            projectName: projectName,
+            context: 'upload-management'
+          });
+        }
+      });
+
+      setProjectDashboardModules(Array.from(dashProjectsMap.values()));
+      setUploadTrackerModules(Array.from(uploadProjectsMap.values()));
+    } catch (error) {
+      console.error('Error loading dynamic modules from API:', error);
+    }
   };
 
   useEffect(() => {

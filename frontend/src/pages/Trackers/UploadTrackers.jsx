@@ -9,7 +9,7 @@ import {
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-
+import API from '../../utils/api';
 
 // ============================================================================
 // DUAL SIDEBAR MANAGER - Two Independent Hierarchies
@@ -1459,8 +1459,8 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
       {/* Notification */}
       {notification.show && (
         <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${notification.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' :
-            notification.type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
-              'bg-blue-100 text-blue-800 border border-blue-200'
+          notification.type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
+            'bg-blue-100 text-blue-800 border border-blue-200'
           }`}>
           <div className="flex items-center">
             <span className="text-sm font-medium">{notification.message}</span>
@@ -2030,11 +2030,21 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
   // Load columns
   const [availableColumns, setAvailableColumns] = useState(initialColumns);
 
-  // Load trackers from localStorage
-  const [trackers, setTrackers] = useState(() => {
-    const savedTrackers = localStorage.getItem('upload_trackers');
-    return savedTrackers ? JSON.parse(savedTrackers) : [];
-  });
+  // Load trackers from API
+  const [trackers, setTrackers] = useState([]);
+
+  useEffect(() => {
+    const fetchTrackers = async () => {
+      try {
+        const response = await API.get('/datasets/');
+        setTrackers(response.data);
+      } catch (error) {
+        console.error('Error fetching trackers from API:', error);
+        showNotification('Failed to load upload history', 'error');
+      }
+    };
+    fetchTrackers();
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeletePrompt, setShowDeletePrompt] = useState(null);
@@ -2394,33 +2404,45 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
     setValidationErrors({});
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     const errors = validateEditForm(editForm);
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       return;
     }
 
-    // Get old project name for sidebar update
-    const oldTracker = trackers.find(t => t.id === editingId);
-    const oldProjectName = oldTracker?.project;
-    const newProjectName = editForm.project;
+    try {
+      // Send update to API
+      await API.put(`/datasets/${editingId}`, {
+        project: editForm.project,
+        department: editForm.department,
+        employeeName: editForm.employeeName
+      });
 
-    // Update tracker in state
-    setTrackers(trackers.map(tracker =>
-      tracker.id === editingId ? { ...tracker, ...editForm } : tracker
-    ));
+      // Get old project name for sidebar update
+      const oldTracker = trackers.find(t => t.id === editingId);
+      const oldProjectName = oldTracker?.project;
+      const newProjectName = editForm.project;
 
-    // Update BOTH sidebar contexts if project name changed
-    if (oldProjectName && newProjectName && oldProjectName !== newProjectName) {
-      sidebarManager.updateProjectNameInUploadTrackers(oldProjectName, newProjectName, editingId);
-      sidebarManager.updateProjectNameInProjectDashboard(oldProjectName, newProjectName, editingId);
+      // Update tracker in state
+      setTrackers(trackers.map(tracker =>
+        tracker.id === editingId ? { ...tracker, ...editForm } : tracker
+      ));
+
+      // Update BOTH sidebar contexts if project name changed
+      if (oldProjectName && newProjectName && oldProjectName !== newProjectName) {
+        sidebarManager.updateProjectNameInUploadTrackers(oldProjectName, newProjectName, editingId);
+        sidebarManager.updateProjectNameInProjectDashboard(oldProjectName, newProjectName, editingId);
+      }
+
+      setEditingId(null);
+      setEditForm({});
+      setValidationErrors({});
+      showNotification('Upload record updated successfully');
+    } catch (error) {
+      console.error('Error updating record:', error);
+      showNotification('Failed to update record', 'error');
     }
-
-    setEditingId(null);
-    setEditForm({});
-    setValidationErrors({});
-    showNotification('Upload record updated successfully');
   };
 
   const cancelEdit = () => {
@@ -2432,23 +2454,32 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
   // Delete tracker
   const showDeleteConfirmation = (id, name) => setShowDeletePrompt({ id, name });
 
-  const confirmDeleteTracker = () => {
+  const confirmDeleteTracker = async () => {
     if (showDeletePrompt) {
       const { id } = showDeletePrompt;
 
-      // Remove from trackers
-      setTrackers(trackers.filter(tracker => tracker.id !== id));
+      try {
+        await API.delete(`/datasets/${id}`);
 
-      // Remove from uploaded files data
-      const newFileData = { ...uploadedFilesData };
-      delete newFileData[id];
-      setUploadedFilesData(newFileData);
+        // Remove from trackers
+        setTrackers(trackers.filter(tracker => tracker.id !== id));
 
-      // Remove from BOTH sidebar contexts
-      sidebarManager.deleteFileFromAllContexts(id);
+        // Remove from uploaded files data if exists locally
+        const newFileData = { ...uploadedFilesData };
+        if (newFileData[id]) {
+          delete newFileData[id];
+          setUploadedFilesData(newFileData);
+        }
 
-      setShowDeletePrompt(null);
-      showNotification('Upload record deleted successfully');
+        // Remove from BOTH sidebar contexts
+        sidebarManager.deleteFileFromAllContexts(id);
+
+        setShowDeletePrompt(null);
+        showNotification('Upload record deleted successfully');
+      } catch (error) {
+        console.error('Error deleting record:', error);
+        showNotification('Failed to delete record', 'error');
+      }
     }
   };
 
@@ -2630,135 +2661,120 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
     setSelectedFile(file);
 
     try {
-      const fileData = await readFileData(file);
+      const formData = new FormData();
+      formData.append('file', file);
+      if (uploadForm.project) formData.append('project', uploadForm.project);
+      if (uploadForm.department) formData.append('department', uploadForm.department);
+      if (uploadForm.employeeName) formData.append('employeeName', uploadForm.employeeName);
 
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(progressInterval);
+      const response = await API.post('/datasets/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setProgress(percentCompleted);
+        }
+      });
 
-            // Get current user and date
-            const currentUser = getCurrentUser();
-            const currentDate = getCurrentDate();
-            const formattedDate = getFormattedDate();
+      const newTracker = response.data;
 
-            // Create new tracker
-            const newTracker = {
-              id: Math.max(...trackers.map(t => t.id), 0) + 1,
-              project: uploadForm.project,
-              department: uploadForm.department,
-              employeeName: uploadForm.employeeName,
-              fileName: file.name,
-              uploadedBy: currentUser,
-              uploadDate: formattedDate,
-              fileType: file.name.split('.').pop().toUpperCase(),
-              records: fileData.data.length,
-              status: 'Completed',
-              uploadDateISO: currentDate
-            };
+      // Get current user for metadata
+      const currentUser = getCurrentUser();
 
-            // Store file data
-            setUploadedFilesData(prev => ({
-              ...prev,
-              [newTracker.id]: fileData
-            }));
+      // Ensure progress finishes visually
+      setProgress(100);
 
-            // Add to trackers
-            setTrackers([newTracker, ...trackers]);
+      // Add to trackers state
+      setTrackers(prev => [newTracker, ...prev]);
 
-            // ============ ADD TO BOTH SIDEBAR CONTEXTS ============
+      // ============ ADD TO BOTH SIDEBAR CONTEXTS ============
 
-            // 1. Add to Upload Trackers hierarchy (for management view)
-            sidebarManager.addToUploadTrackers(
-              uploadForm.project,
-              file.name,
-              newTracker.id,
-              {
-                department: uploadForm.department,
-                employeeName: uploadForm.employeeName,
-                fileType: file.name.split('.').pop().toUpperCase()
-              }
-            );
+      // 1. Add to Upload Trackers hierarchy (for management view)
+      sidebarManager.addToUploadTrackers(
+        uploadForm.project,
+        file.name,
+        newTracker.id,
+        {
+          department: uploadForm.department,
+          employeeName: uploadForm.employeeName,
+          fileType: file.name.split('.').pop().toUpperCase()
+        }
+      );
 
-            // 2. Add to Project Dashboard hierarchy (for project view)
-            sidebarManager.addToProjectDashboard(
-              uploadForm.project,
-              file.name,
-              newTracker.id,
-              currentUser,
-              {
-                department: uploadForm.department,
-                uploadedBy: currentUser,
-                fileType: file.name.split('.').pop().toUpperCase()
-              }
-            );
+      // 2. Add to Project Dashboard hierarchy (for project view)
+      sidebarManager.addToProjectDashboard(
+        uploadForm.project,
+        file.name,
+        newTracker.id,
+        currentUser,
+        {
+          department: uploadForm.department,
+          uploadedBy: currentUser,
+          fileType: file.name.split('.').pop().toUpperCase()
+        }
+      );
 
-            // Notify both contexts about the update
-            window.dispatchEvent(new CustomEvent('uploadTrackerUpdate', {
-              detail: { type: 'create', tracker: newTracker, context: 'upload-management' }
-            }));
+      // Notify both contexts about the update
+      window.dispatchEvent(new CustomEvent('uploadTrackerUpdate', {
+        detail: { type: 'create', tracker: newTracker, context: 'upload-management' }
+      }));
 
-            window.dispatchEvent(new CustomEvent('projectDashboardUpdate', {
-              detail: { type: 'create', tracker: newTracker, context: 'project-dashboard' }
-            }));
+      window.dispatchEvent(new CustomEvent('projectDashboardUpdate', {
+        detail: { type: 'create', tracker: newTracker, context: 'project-dashboard' }
+      }));
 
-            setUploading(false);
-            setProgress(0);
-            setSelectedFile(null);
-            setUploadForm({
-              project: '',
-              department: 'Design Release',
-              employeeName: '',
-              file: null
-            });
+      setUploading(false);
+      setProgress(0);
+      setSelectedFile(null);
+      setUploadForm({
+        project: '',
+        department: 'Design Release',
+        employeeName: '',
+        file: null
+      });
 
-            showNotification('File uploaded successfully and added to both sidebar views');
-
-            return 100;
-          }
-          return prev + 20;
-        });
-      }, 300);
+      showNotification('File uploaded successfully and added to both sidebar views');
 
     } catch (error) {
       console.error('Error uploading file:', error);
       setUploading(false);
       setProgress(0);
-      showNotification(`Error reading file: ${error.message}. Please make sure it's a valid file format.`, 'error');
+      showNotification(`Error uploading file: ${error.response?.data?.detail || error.message}. Please try again.`, 'error');
     }
   };
 
   // Excel viewer functions - FIXED to match FileContentViewer expected format
-  const showExcelViewer = (tracker) => {
-    const fileData = uploadedFilesData[tracker.id];
+  const showExcelViewer = async (tracker) => {
+    try {
+      const response = await API.get(`/datasets/${tracker.id}/excel-view`);
+      const { headers, data } = response.data;
 
-    if (!fileData) {
-      showNotification('No file data available. Please re-upload the file.', 'error');
-      return;
+      // Create a properly formatted fileData object that FileContentViewer expects
+      const formattedFileData = {
+        fileName: tracker.fileName,
+        headers: headers,
+        data: data,
+        sheets: [{
+          name: "Sheet1",
+          headers: headers,
+          data: data
+        }]
+      };
+
+      setExcelViewerData({
+        ...tracker,
+        fileData: formattedFileData,
+        sheets: formattedFileData.sheets
+      });
+
+      setExcelEditData(data.map(row => [...(row || [])]));
+      setExcelHeaders(headers || []);
+      setExcelEditMode(false);
+      setCurrentSheet(0);
+      setInitialFileLoaded(true);
+    } catch (error) {
+      console.error('Error fetching excel view data:', error);
+      showNotification('Failed to load file data.', 'error');
     }
-
-    // Get the first sheet data
-    const currentSheetData = fileData.sheets[0];
-
-    // Create a properly formatted fileData object that FileContentViewer expects
-    const formattedFileData = {
-      ...fileData,
-      headers: currentSheetData.headers,
-      data: currentSheetData.data,
-      sheets: fileData.sheets
-    };
-
-    setExcelViewerData({
-      ...tracker,
-      fileData: formattedFileData,
-      sheets: fileData.sheets
-    });
-
-    setExcelEditData(currentSheetData.data.map(row => [...(row || [])]));
-    setExcelHeaders(currentSheetData.headers || []);
-    setExcelEditMode(false);
-    setCurrentSheet(0);
-    setInitialFileLoaded(true); // ← ADDED
   };
 
   const closeExcelViewer = () => {
@@ -2766,7 +2782,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
     setExcelEditMode(false);
     setExcelEditData([]);
     setExcelHeaders([]);
-    setInitialFileLoaded(false); // ← ADDED
+    setInitialFileLoaded(false);
   };
 
   // Export functions
@@ -2994,8 +3010,8 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
       {/* Notification Banner */}
       {notification.show && (
         <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${notification.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' :
-            notification.type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
-              'bg-blue-100 text-blue-800 border border-blue-200'
+          notification.type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
+            'bg-blue-100 text-blue-800 border border-blue-200'
           }`}>
           <div className="flex items-center">
             <span className="text-sm font-medium">{notification.message}</span>

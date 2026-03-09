@@ -1,43 +1,46 @@
 import React, { useState, useEffect } from 'react';
+import ExcelTableViewer from '../components/ExcelTableViewer';
 
 const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   // Projects data
   const [projects, setProjects] = useState([]);
 
   useEffect(() => {
-    const loadProjects = () => {
+    const loadProjects = async () => {
       try {
-        const saved = localStorage.getItem('project_dashboard_modules');
-        const allModules = saved ? JSON.parse(saved) : [];
-        const projectModules = Array.isArray(allModules)
-          ? allModules.filter(m => m && m.type === 'project' && m.context === 'project-dashboard')
-          : [];
+        const { default: API } = await import('../utils/api');
+        const response = await API.get('/datasets/');
+        const datasets = response.data;
 
         setProjects(prevProjects => {
           const uniqueProjectsMap = new Map();
 
-          projectModules.forEach((m, index) => {
-            let projectName = m.name || m.projectName || 'Unnamed Project';
+          datasets.forEach((dataset, index) => {
+            let projectName = dataset.project || 'Uncategorized';
             projectName = projectName.replace(/tata\s+motors/ig, 'TATA');
             const capitalizedName = projectName.charAt(0).toUpperCase() + projectName.slice(1);
 
             if (!uniqueProjectsMap.has(capitalizedName)) {
-              const existing = prevProjects.find(p => p.id === m.id || p.name === capitalizedName || p.name === projectName);
+              const existing = prevProjects.find(p => p.name === capitalizedName || p.name === projectName);
               uniqueProjectsMap.set(capitalizedName, {
-                id: m.id || `proj_${index}`,
+                id: existing ? existing.id : `project-dashboard-${capitalizedName.toLowerCase().replace(/\\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`,
                 name: capitalizedName,
-                code: m.code || capitalizedName.substring(0, 4).toUpperCase(),
+                code: capitalizedName.substring(0, 4).toUpperCase(),
                 active: existing ? existing.active : false,
                 dashboardConfig: existing ? existing.dashboardConfig : null,
-                submodules: m.submodules || []
+                submodules: []
               });
-            } else {
-              const existingProject = uniqueProjectsMap.get(capitalizedName);
-              const newSubmodules = m.submodules || [];
-              newSubmodules.forEach(sub => {
-                if (!existingProject.submodules.some(eSub => eSub.trackerId === sub.trackerId)) {
-                  existingProject.submodules.push(sub);
-                }
+            }
+
+            const existingProject = uniqueProjectsMap.get(capitalizedName);
+            if (!existingProject.submodules.some(sub => sub.trackerId === dataset.id)) {
+              existingProject.submodules.push({
+                id: `project-file-${dataset.id}`,
+                trackerId: dataset.id,
+                name: dataset.fileName,
+                displayName: (dataset.fileName || '').replace(/\\.[^/.]+$/, ""),
+                type: 'file',
+                projectName: capitalizedName
               });
             }
           });
@@ -51,18 +54,12 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
     loadProjects();
 
-    const handleStorageChange = (e) => {
-      if (e.key === 'project_dashboard_modules') {
-        loadProjects();
-      }
-    };
-
     window.addEventListener('projectDashboardUpdate', loadProjects);
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('uploadTrackerUpdate', loadProjects);
 
     return () => {
       window.removeEventListener('projectDashboardUpdate', loadProjects);
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('uploadTrackerUpdate', loadProjects);
     };
   }, []);
 
@@ -260,51 +257,62 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     }
   };
 
-  // Load submodule data from localStorage
-  const loadSubmoduleData = (trackerId) => {
+  // Load submodule data from API
+  const loadSubmoduleData = async (trackerId) => {
     try {
-      // Try to get data from various possible storage keys
-      const possibleKeys = [
-        `table_data_${trackerId}`,
-        `excel_data_${trackerId}`,
-        `submodule_${trackerId}`,
-        `module_${trackerId}`
-      ];
+      const { default: API } = await import('../utils/api');
+      const response = await API.get(`/datasets/${trackerId}/excel-view`);
 
-      for (const key of possibleKeys) {
-        const saved = localStorage.getItem(key);
-        if (saved) {
-          try {
-            const parsed = JSON.parse(saved);
-            if (parsed && (Array.isArray(parsed) || parsed.data || parsed.rows)) {
-              setSubmoduleData(prev => ({
-                ...prev,
-                [trackerId]: parsed
-              }));
-              return;
-            }
-          } catch (e) {
-            console.log(`Failed to parse ${key}:`, e);
-          }
-        }
-      }
+      const sheet = response.data.fileData?.sheets?.[0] || {};
+      const headers = sheet.headers || [];
+      const data = sheet.data || [];
 
-      // If no data found, check project_dashboard_modules
-      const saved = localStorage.getItem('project_dashboard_modules');
-      if (saved) {
-        const allModules = JSON.parse(saved);
-        const submodule = allModules.find(m => m.trackerId === trackerId);
-        if (submodule && submodule.data) {
-          setSubmoduleData(prev => ({
-            ...prev,
-            [trackerId]: submodule.data
-          }));
+      setSubmoduleData(prev => ({
+        ...prev,
+        [trackerId]: {
+          headers: headers,
+          rows: data.map(rowArray => {
+            const rowObj = {};
+            headers.forEach((h, i) => {
+              rowObj[h] = rowArray[i];
+            });
+            return rowObj;
+          })
         }
-      }
+      }));
     } catch (error) {
       console.error('Error loading submodule data:', error);
     }
   };
+  // Handle selected file ID prop from Dashboard
+  useEffect(() => {
+    if (selectedFileId && projects.length > 0) {
+      // Find the project containing this file
+      for (const project of projects) {
+        const fileMatch = project.submodules?.find(s =>
+          s.trackerId === selectedFileId ||
+          `project-file-${s.trackerId}` === selectedFileId ||
+          s.id === selectedFileId
+        );
+
+        if (fileMatch) {
+          // Set active project if not already set or different
+          if (!activeProject || activeProject.id !== project.id) {
+            setActiveProject(project);
+            if (project.dashboardConfig) {
+              setVisibleSections(project.dashboardConfig.visibleSections || {});
+              setShowSimulateModal(false);
+            }
+          }
+
+          // Set active file
+          setSelectedSubmodule(fileMatch);
+          loadSubmoduleData(fileMatch.trackerId);
+          break;
+        }
+      }
+    }
+  }, [selectedFileId, projects, activeProject]);
 
   // Handle submodule click
   const handleSubmoduleClick = (submodule) => {
@@ -588,7 +596,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   };
 
   // Render table for submodule data
-  const renderSubmoduleTable = (data) => {
+  const renderSubmoduleTable = (data, fileName) => {
     if (!data) {
       return (
         <div style={{ textAlign: 'center', padding: '50px', color: '#6b7280' }}>
@@ -631,53 +639,11 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     }
 
     return (
-      <div style={{
-        overflowX: 'auto',
-        border: '1px solid #e0e0e0',
-        borderRadius: '4px',
-        backgroundColor: 'white'
-      }}>
-        <table style={{
-          width: '100%',
-          borderCollapse: 'collapse',
-          fontSize: '14px',
-          minWidth: '600px'
-        }}>
-          <thead>
-            <tr style={{ backgroundColor: '#1e3a5f' }}>
-              {columns.map((col, idx) => (
-                <th key={idx} style={{
-                  padding: '12px 15px',
-                  textAlign: 'left',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  borderRight: idx < columns.length - 1 ? '1px solid #2c4c7c' : 'none'
-                }}>
-                  {col.charAt(0).toUpperCase() + col.slice(1).replace(/_/g, ' ')}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, rowIdx) => (
-              <tr key={rowIdx} style={{
-                backgroundColor: rowIdx % 2 === 0 ? 'white' : '#f8f9fa',
-                borderBottom: '1px solid #e0e0e0'
-              }}>
-                {columns.map((col, colIdx) => (
-                  <td key={colIdx} style={{
-                    padding: '10px 15px',
-                    borderRight: colIdx < columns.length - 1 ? '1px solid #e0e0e0' : 'none',
-                    color: '#1f2937'
-                  }}>
-                    {row[col] !== undefined ? String(row[col]) : '-'}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ExcelTableViewer
+        columns={columns}
+        data={rows}
+        fileName={fileName || 'Dataset'}
+      />
     );
   };
 
@@ -2866,7 +2832,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               </p>
             </div>
 
-            {renderSubmoduleTable(submoduleData[selectedSubmodule.trackerId])}
+            {renderSubmoduleTable(submoduleData[selectedSubmodule.trackerId], selectedSubmodule.name)}
           </div>
         ) : (
           /* Active Project Dashboard */
