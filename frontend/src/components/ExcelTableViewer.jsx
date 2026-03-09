@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, Copy, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
-const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, loading }) => {
+const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, loading, onDataUpdate }) => {
     // Convert string array of columns to object array for consistent handling
     const [columns, setColumns] = useState(() => {
         return initialColumns.map((col, idx) => ({
@@ -89,6 +89,18 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
+
+    // Helper to sync data back to parent
+    const triggerDataUpdate = (currentData, currentColumns) => {
+        if (onDataUpdate) {
+            const dataToSync = currentData.map(row => {
+                const { _local_id, ...rest } = row;
+                return rest;
+            });
+            const columnsToSync = currentColumns.map(col => col.id);
+            onDataUpdate(dataToSync, columnsToSync);
+        }
+    };
 
     // Filter data
     const filteredData = useMemo(() => {
@@ -209,11 +221,13 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
     };
 
     const confirmBulkDelete = () => {
-        setLocalData(prev => prev.filter(r => !selectedRows.includes(r._local_id)));
+        const newData = localData.filter(r => !selectedRows.includes(r._local_id));
+        setLocalData(newData);
         setSelectedRows([]);
         setSelectAll(false);
         setShowBulkDeletePrompt({ show: false, count: 0 });
         showNotification(`${selectedRows.length} row(s) deleted locally`);
+        triggerDataUpdate(newData, columns);
     };
 
     // Bulk Edit (Only 1 allowed at a time)
@@ -246,10 +260,12 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
     };
 
     const saveNewRow = () => {
-        setLocalData([newRow, ...localData]);
+        const newData = [newRow, ...localData];
+        setLocalData(newData);
         setShowAddRowModal(false);
         setNewRow({});
         showNotification('Row added locally');
+        triggerDataUpdate(newData, columns);
     };
 
     const startEditing = (row) => {
@@ -258,19 +274,23 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
     };
 
     const saveEdit = () => {
-        setLocalData(prev => prev.map(r => r._local_id === editingId ? editForm : r));
+        const newData = localData.map(r => r._local_id === editingId ? editForm : r);
+        setLocalData(newData);
         setEditingId(null);
         setEditForm({});
         setSelectedRows([]);
         setSelectAll(false);
         showNotification('Row updated locally');
+        triggerDataUpdate(newData, columns);
     };
 
     const confirmDeleteRow = () => {
         if (showDeletePrompt) {
-            setLocalData(prev => prev.filter(r => r._local_id !== showDeletePrompt.id));
+            const newData = localData.filter(r => r._local_id !== showDeletePrompt.id);
+            setLocalData(newData);
             setShowDeletePrompt(null);
             showNotification('Row deleted locally');
+            triggerDataUpdate(newData, columns);
         }
     };
 
@@ -286,10 +306,12 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
 
     const saveEditColumn = (columnId) => {
         if (tempColumnName.trim()) {
-            setColumns(columns.map(col => col.id === columnId ? { ...col, label: tempColumnName } : col));
+            const newColumns = columns.map(col => col.id === columnId ? { ...col, label: tempColumnName } : col);
+            setColumns(newColumns);
             setEditingColumn(null);
             setTempColumnName('');
             showNotification('Column updated successfully');
+            triggerDataUpdate(localData, newColumns);
         }
     };
 
@@ -305,10 +327,12 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
 
     const confirmDeleteColumn = () => {
         if (!showDeleteColumnPrompt) return;
-        setColumns(columns.filter(col => col.id !== showDeleteColumnPrompt.id));
+        const newColumns = columns.filter(col => col.id !== showDeleteColumnPrompt.id);
+        setColumns(newColumns);
         setShowDeleteColumnPrompt(null);
         setShowColumnModal(false);
         showNotification('Column hidden/deleted locally');
+        triggerDataUpdate(localData, newColumns);
     };
 
     const confirmAddColumn = () => {
@@ -326,14 +350,17 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                 type: 'text',
                 deletable: true
             };
-            setColumns([...columns, newColumn]);
+            const newColumns = [...columns, newColumn];
+            setColumns(newColumns);
             // Backfill empty string into all rows for the new column
-            setLocalData(prev => prev.map(row => ({ ...row, [newColumnId]: '' })));
+            const newData = localData.map(row => ({ ...row, [newColumnId]: '' }));
+            setLocalData(newData);
 
             setNewColumnName('');
             setShowColumnAddPrompt({ show: false, columnName: '' });
             setShowColumnModal(false);
             showNotification('Column added locally');
+            triggerDataUpdate(newData, newColumns);
         }
     };
 

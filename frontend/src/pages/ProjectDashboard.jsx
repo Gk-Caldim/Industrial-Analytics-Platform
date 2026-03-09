@@ -285,6 +285,17 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       console.error('Error loading submodule data:', error);
     }
   };
+
+  // Handle local data updates from ExcelTableViewer to keep charts in sync
+  const handleSubmoduleDataUpdate = (trackerId, updatedRows, updatedHeaders) => {
+    setSubmoduleData(prev => ({
+      ...prev,
+      [trackerId]: {
+        headers: updatedHeaders,
+        rows: updatedRows
+      }
+    }));
+  };
   // Handle selected file ID prop from Dashboard
   useEffect(() => {
     if (selectedFileId && projects.length > 0) {
@@ -649,6 +660,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         columns={columns}
         data={rows}
         fileName={fileName || 'Dataset'}
+        onDataUpdate={(updatedRows, updatedHeaders) => handleSubmoduleDataUpdate(selectedSubmodule.trackerId, updatedRows, updatedHeaders)}
+        onRefresh={() => loadSubmoduleData(selectedSubmodule.trackerId)}
       />
     );
   };
