@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   Upload, File, CheckCircle, Clock, AlertCircle, Download, Trash2, Eye, Edit,
   Plus, Search, X, ChevronUp, ChevronDown, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   AlertTriangle, FileText, FileSpreadsheet, Database,
@@ -9,18 +9,18 @@ import {
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-
+import API from '../../utils/api';
 
 // ============================================================================
 // DUAL SIDEBAR MANAGER - Two Independent Hierarchies
 // ============================================================================
-  
+
 const sidebarManager = {
   // ============== HIERARCHY 1: UPLOAD TRACKERS MODULE ==============
   // Purpose: For file management, tracking, and administrative view
   // Parent: UploadTrackers module in sidebar
   // Context: "management" - shows all uploaded files regardless of project
-  
+
   loadUploadTrackerModules: () => {
     try {
       const saved = localStorage.getItem('upload_tracker_modules');
@@ -44,7 +44,7 @@ const sidebarManager = {
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
-    
+
     return {
       id: `upload-project-${projectId}-${Date.now()}`,
       moduleId: `upload-project-${projectId}`,
@@ -70,7 +70,7 @@ const sidebarManager = {
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
-    
+
     return {
       id: `upload-file-${trackerId}`,
       moduleId: `upload-file-${trackerId}`,
@@ -99,26 +99,26 @@ const sidebarManager = {
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
-    
+
     // Find or create project in upload trackers
-    let projectModule = modules.find(m => 
-      m.moduleId === `upload-project-${projectId}` && 
+    let projectModule = modules.find(m =>
+      m.moduleId === `upload-project-${projectId}` &&
       m.context === 'upload-management'
     );
-    
+
     if (!projectModule) {
       projectModule = sidebarManager.createUploadTrackerProject(projectName);
       modules.push(projectModule);
     }
-    
+
     // Check if file already exists in this context
-    const existingFile = projectModule.submodules.find(file => 
+    const existingFile = projectModule.submodules.find(file =>
       file.trackerId === trackerId && file.context === 'upload-management'
     );
-    
+
     if (!existingFile) {
       const fileModule = sidebarManager.createUploadTrackerFile(fileName, trackerId, projectName);
-      
+
       // Add metadata
       fileModule.metadata = {
         ...fileModule.metadata,
@@ -126,45 +126,45 @@ const sidebarManager = {
         department: metadata.department || null,
         employeeName: metadata.employeeName || null
       };
-      
+
       projectModule.submodules.push(fileModule);
-      
+
       // Update project stats
       projectModule.stats.fileCount = projectModule.submodules.length;
       projectModule.stats.lastUpload = new Date().toISOString();
       projectModule.lastUpdated = new Date().toISOString();
-      
+
       // Sort files by date (newest first)
-      projectModule.submodules.sort((a, b) => 
+      projectModule.submodules.sort((a, b) =>
         new Date(b.createdAt) - new Date(a.createdAt)
       );
-      
+
       sidebarManager.saveUploadTrackerModules(modules);
-      
+
       // Dispatch context-specific event
-      window.dispatchEvent(new CustomEvent('uploadTrackerUpdate', { 
-        detail: { type: 'add', trackerId, projectName, context: 'upload-management' } 
+      window.dispatchEvent(new CustomEvent('uploadTrackerUpdate', {
+        detail: { type: 'add', trackerId, projectName, context: 'upload-management' }
       }));
     }
-    
+
     return modules;
   },
 
   removeFromUploadTrackers: (trackerId) => {
     const modules = sidebarManager.loadUploadTrackerModules();
     let removed = false;
-    
+
     for (const projectModule of modules) {
-      const fileIndex = projectModule.submodules.findIndex(file => 
+      const fileIndex = projectModule.submodules.findIndex(file =>
         file.trackerId === trackerId && file.context === 'upload-management'
       );
-      
+
       if (fileIndex !== -1) {
         projectModule.submodules.splice(fileIndex, 1);
         projectModule.stats.fileCount = projectModule.submodules.length;
         projectModule.lastUpdated = new Date().toISOString();
         removed = true;
-        
+
         // Remove empty projects
         if (projectModule.submodules.length === 0) {
           const projectIndex = modules.findIndex(p => p.moduleId === projectModule.moduleId);
@@ -172,17 +172,17 @@ const sidebarManager = {
             modules.splice(projectIndex, 1);
           }
         }
-        
+
         sidebarManager.saveUploadTrackerModules(modules);
-        
-        window.dispatchEvent(new CustomEvent('uploadTrackerUpdate', { 
-          detail: { type: 'delete', trackerId, context: 'upload-management' } 
+
+        window.dispatchEvent(new CustomEvent('uploadTrackerUpdate', {
+          detail: { type: 'delete', trackerId, context: 'upload-management' }
         }));
-        
+
         break;
       }
     }
-    
+
     return removed;
   },
 
@@ -190,7 +190,7 @@ const sidebarManager = {
   // Purpose: For project-based organization and team collaboration
   // Parent: Direct child of Project Dashboard (root level)
   // Context: "project-dashboard" - shows files organized by project only
-  
+
   loadProjectDashboardModules: () => {
     try {
       const saved = localStorage.getItem('project_dashboard_modules');
@@ -214,7 +214,7 @@ const sidebarManager = {
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
-    
+
     return {
       id: `project-dashboard-${projectId}-${Date.now()}`,
       moduleId: `project-dashboard-${projectId}`,
@@ -241,7 +241,7 @@ const sidebarManager = {
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
-    
+
     return {
       id: `project-file-${trackerId}`,
       moduleId: `project-file-${trackerId}`,
@@ -273,75 +273,75 @@ const sidebarManager = {
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
-    
+
     // Find or create project in project dashboard
-    let projectModule = modules.find(m => 
-      m.moduleId === `project-dashboard-${projectId}` && 
+    let projectModule = modules.find(m =>
+      m.moduleId === `project-dashboard-${projectId}` &&
       m.context === 'project-dashboard'
     );
-    
+
     if (!projectModule) {
       projectModule = sidebarManager.createProjectDashboardProject(projectName);
       modules.push(projectModule);
     }
-    
+
     // Check if file already exists in this context
-    const existingFile = projectModule.submodules.find(file => 
+    const existingFile = projectModule.submodules.find(file =>
       file.trackerId === trackerId && file.context === 'project-dashboard'
     );
-    
+
     if (!existingFile) {
       const fileModule = sidebarManager.createProjectDashboardFile(
-        fileName, 
-        trackerId, 
-        projectName, 
+        fileName,
+        trackerId,
+        projectName,
         employeeName
       );
-      
+
       // Add additional metadata
       fileModule.metadata = {
         ...fileModule.metadata,
         ...metadata,
         department: metadata.department || null
       };
-      
+
       // Add to contributors if new
       if (!projectModule.projectStats.contributors.includes(employeeName)) {
         projectModule.projectStats.contributors.push(employeeName);
       }
-      
+
       projectModule.submodules.push(fileModule);
-      
+
       // Update project stats
       projectModule.projectStats.totalFiles = projectModule.submodules.length;
       projectModule.projectStats.lastActivity = new Date().toISOString();
       projectModule.lastUpdated = new Date().toISOString();
-      
+
       // Sort files by date
-      projectModule.submodules.sort((a, b) => 
+      projectModule.submodules.sort((a, b) =>
         new Date(b.createdAt) - new Date(a.createdAt)
       );
-      
+
       sidebarManager.saveProjectDashboardModules(modules);
-      
+
       // Dispatch context-specific event
-      window.dispatchEvent(new CustomEvent('projectDashboardUpdate', { 
-        detail: { type: 'add', trackerId, projectName, context: 'project-dashboard' } 
+      window.dispatchEvent(new CustomEvent('projectDashboardUpdate', {
+        detail: { type: 'add', trackerId, projectName, context: 'project-dashboard' }
       }));
     }
-    
+
     return modules;
   },
 
   removeFromProjectDashboard: (trackerId) => {
     const modules = sidebarManager.loadProjectDashboardModules();
     let removed = false;
-    
+
     for (const projectModule of modules) {
-      const fileIndex = projectModule.submodules.findIndex(file => 
+      const fileIndex = projectModule.submodules.findIndex(file =>
         file.trackerId === trackerId && file.context === 'project-dashboard'
       );
-      
+
       if (fileIndex !== -1) {
         const removedFile = projectModule.submodules[fileIndex];
         projectModule.submodules.splice(fileIndex, 1);
@@ -349,7 +349,7 @@ const sidebarManager = {
         projectModule.projectStats.lastActivity = new Date().toISOString();
         projectModule.lastUpdated = new Date().toISOString();
         removed = true;
-        
+
         // Remove empty projects
         if (projectModule.submodules.length === 0) {
           const projectIndex = modules.findIndex(p => p.moduleId === projectModule.moduleId);
@@ -357,46 +357,46 @@ const sidebarManager = {
             modules.splice(projectIndex, 1);
           }
         }
-        
+
         sidebarManager.saveProjectDashboardModules(modules);
-        
-        window.dispatchEvent(new CustomEvent('projectDashboardUpdate', { 
-          detail: { type: 'delete', trackerId, context: 'project-dashboard' } 
+
+        window.dispatchEvent(new CustomEvent('projectDashboardUpdate', {
+          detail: { type: 'delete', trackerId, context: 'project-dashboard' }
         }));
-        
+
         break;
       }
     }
-    
+
     return removed;
   },
 
   // ============== UPDATE OPERATIONS FOR BOTH CONTEXTS ==============
-  
+
   updateProjectNameInUploadTrackers: (oldProjectName, newProjectName, trackerId) => {
     const modules = sidebarManager.loadUploadTrackerModules();
     const oldProjectId = oldProjectName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const newProjectId = newProjectName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    
-    const projectIndex = modules.findIndex(m => 
-      m.moduleId === `upload-project-${oldProjectId}` && 
+
+    const projectIndex = modules.findIndex(m =>
+      m.moduleId === `upload-project-${oldProjectId}` &&
       m.context === 'upload-management'
     );
-    
+
     if (projectIndex !== -1) {
       const projectModule = modules[projectIndex];
       projectModule.name = newProjectName;
       projectModule.moduleId = `upload-project-${newProjectId}`;
       projectModule.path = `/upload-trackers/${newProjectId}`;
       projectModule.lastUpdated = new Date().toISOString();
-      
+
       projectModule.submodules.forEach(file => {
         if (file.trackerId === trackerId || !trackerId) {
           file.parentId = `upload-project-${newProjectId}`;
           file.path = `/upload-trackers/${newProjectId}/${file.trackerId}`;
         }
       });
-      
+
       sidebarManager.saveUploadTrackerModules(modules);
       window.dispatchEvent(new CustomEvent('uploadTrackerUpdate'));
     }
@@ -406,42 +406,42 @@ const sidebarManager = {
     const modules = sidebarManager.loadProjectDashboardModules();
     const oldProjectId = oldProjectName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const newProjectId = newProjectName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    
-    const projectIndex = modules.findIndex(m => 
-      m.moduleId === `project-dashboard-${oldProjectId}` && 
+
+    const projectIndex = modules.findIndex(m =>
+      m.moduleId === `project-dashboard-${oldProjectId}` &&
       m.context === 'project-dashboard'
     );
-    
+
     if (projectIndex !== -1) {
       const projectModule = modules[projectIndex];
       projectModule.name = newProjectName;
       projectModule.moduleId = `project-dashboard-${newProjectId}`;
       projectModule.path = `/projects/${newProjectId}`;
       projectModule.lastUpdated = new Date().toISOString();
-      
+
       projectModule.submodules.forEach(file => {
         if (file.trackerId === trackerId || !trackerId) {
           file.parentId = `project-dashboard-${newProjectId}`;
           file.path = `/projects/${newProjectId}/${file.trackerId}`;
         }
       });
-      
+
       sidebarManager.saveProjectDashboardModules(modules);
       window.dispatchEvent(new CustomEvent('projectDashboardUpdate'));
     }
   },
 
   // ============== DELETE FROM BOTH CONTEXTS ==============
-  
+
   deleteFileFromAllContexts: (trackerId) => {
     const removedFromUpload = sidebarManager.removeFromUploadTrackers(trackerId);
     const removedFromProject = sidebarManager.removeFromProjectDashboard(trackerId);
-    
+
     return { removedFromUpload, removedFromProject };
   },
 
   // ============== REPAIR FUNCTIONS ==============
-  
+
   repairAllModules: () => {
     try {
       // Repair Upload Tracker modules
@@ -449,7 +449,7 @@ const sidebarManager = {
       const savedTrackers = localStorage.getItem('upload_trackers');
       const trackers = savedTrackers ? JSON.parse(savedTrackers) : [];
       let uploadModified = false;
-      
+
       uploadModules.forEach(project => {
         if (project.submodules) {
           project.submodules.forEach(file => {
@@ -467,15 +467,15 @@ const sidebarManager = {
           });
         }
       });
-      
+
       if (uploadModified) {
         sidebarManager.saveUploadTrackerModules(uploadModules);
       }
-      
+
       // Repair Project Dashboard modules
       const projectModules = sidebarManager.loadProjectDashboardModules();
       let projectModified = false;
-      
+
       projectModules.forEach(project => {
         if (project.submodules) {
           project.submodules.forEach(file => {
@@ -492,22 +492,22 @@ const sidebarManager = {
           });
         }
       });
-      
+
       if (projectModified) {
         sidebarManager.saveProjectDashboardModules(projectModules);
       }
-      
+
       // Dispatch both events
       window.dispatchEvent(new CustomEvent('uploadTrackerUpdate'));
       window.dispatchEvent(new CustomEvent('projectDashboardUpdate'));
-      
+
     } catch (error) {
       console.error('Error repairing modules:', error);
     }
   },
 
   // ============== GETTERS FOR DIFFERENT CONTEXTS ==============
-  
+
   getUploadTrackerFiles: () => {
     const modules = sidebarManager.loadUploadTrackerModules();
     const files = [];
@@ -539,7 +539,7 @@ const sidebarManager = {
   },
 
   // ============== CLEAR ALL DATA ==============
-  
+
   clearAllData: () => {
     localStorage.removeItem('upload_tracker_modules');
     localStorage.removeItem('project_dashboard_modules');
@@ -579,7 +579,7 @@ const AddColumnModal = ({ isOpen, onClose, onSubmit }) => {
             <X className="h-5 w-5" />
           </button>
         </div>
-        
+
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Column Name
@@ -592,14 +592,13 @@ const AddColumnModal = ({ isOpen, onClose, onSubmit }) => {
               if (error) setError('');
             }}
             placeholder="Enter column name"
-            className={`w-full px-3 py-2 border rounded ${
-              error ? 'border-red-500' : 'border-gray-300'
-            }`}
+            className={`w-full px-3 py-2 border rounded ${error ? 'border-red-500' : 'border-gray-300'
+              }`}
             autoFocus
           />
           {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
         </div>
-        
+
         <div className="flex justify-end space-x-3">
           <button
             onClick={onClose}
@@ -632,12 +631,12 @@ const DeleteConfirmationModal = ({ isOpen, onClose, onConfirm, message, type = '
             <X className="h-5 w-5" />
           </button>
         </div>
-        
+
         <div className="mb-6">
           <p className="text-gray-600">{message}</p>
           <p className="text-sm text-red-600 mt-2">This action cannot be undone.</p>
         </div>
-        
+
         <div className="flex justify-end space-x-3">
           <button
             onClick={onClose}
@@ -680,12 +679,12 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
   const [editedHeaders, setEditedHeaders] = useState([]);
   const [editedRows, setEditedRows] = useState([]);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
-  const [showDeleteModal, setShowDeleteModal] = useState({ 
-    isOpen: false, 
-    type: '', 
-    index: null, 
+  const [showDeleteModal, setShowDeleteModal] = useState({
+    isOpen: false,
+    type: '',
+    index: null,
     onConfirm: null,
-    message: '' 
+    message: ''
   });
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -695,15 +694,15 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
   const [showAddRowModal, setShowAddRowModal] = useState(false);
   const [newRowData, setNewRowData] = useState({});
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Checkbox state - ONLY used when viewOnly is false
   const [selectedRows, setSelectedRows] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
-  
+
   // Action prompts state
   const [showBulkDeletePrompt, setShowBulkDeletePrompt] = useState(false);
   const [showExportConfirmPrompt, setShowExportConfirmPrompt] = useState(null);
-  
+
   // Filter state - ONLY for project context
   const [columnFilter, setColumnFilter] = useState('');
 
@@ -739,7 +738,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
       const capitalizedHeaders = capitalizeHeaders([...currentSheet.headers]);
       setEditedHeaders(capitalizedHeaders);
       setEditedRows(currentSheet.data.map(row => [...(row || [])]));
-      
+
       const initialRowData = {};
       capitalizedHeaders.forEach(header => {
         initialRowData[header] = '';
@@ -748,18 +747,18 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
       setIsLoading(false);
       return;
     }
-    
+
     // CASE 2: Has headers and data at root level
     if (fileData.headers && fileData.data && Array.isArray(fileData.data)) {
       console.log('📊 CASE 2: Using headers/data root format');
       console.log('Headers found:', fileData.headers);
       console.log(`Data rows: ${fileData.data.length}`);
-      
+
       // Capitalize headers
       const capitalizedHeaders = capitalizeHeaders([...fileData.headers]);
       setEditedHeaders(capitalizedHeaders);
       setEditedRows(fileData.data.map(row => [...(row || [])]));
-      
+
       const initialRowData = {};
       capitalizedHeaders.forEach(header => {
         initialRowData[header] = '';
@@ -768,27 +767,27 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
       setIsLoading(false);
       return;
     }
-    
+
     // CASE 3: Is an array of objects
     if (Array.isArray(fileData) && fileData.length > 0) {
       console.log('📊 CASE 3: Converting array of objects to sheets format');
       console.log('Sample first row:', fileData[0]);
-      
+
       const headers = Object.keys(fileData[0]);
       console.log('Headers found:', headers);
-      
+
       // Capitalize headers
       const capitalizedHeaders = capitalizeHeaders(headers);
-      
+
       const data = fileData.map(row => capitalizedHeaders.map((h, index) => {
         const originalHeader = headers[index];
         return row[originalHeader] !== undefined ? row[originalHeader] : '';
       }));
       console.log(`Converted ${data.length} rows`);
-      
+
       setEditedHeaders(capitalizedHeaders);
       setEditedRows(data);
-      
+
       const initialRowData = {};
       capitalizedHeaders.forEach(header => {
         initialRowData[header] = '';
@@ -797,24 +796,24 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
       setIsLoading(false);
       return;
     }
-    
+
     // CASE 4: Has data property that's an array of objects
     if (fileData.data && Array.isArray(fileData.data) && fileData.data.length > 0) {
       console.log('📊 CASE 4: Using fileData.data format');
-      
+
       if (typeof fileData.data[0] === 'object' && !Array.isArray(fileData.data[0])) {
         const headers = Object.keys(fileData.data[0]);
         // Capitalize headers
         const capitalizedHeaders = capitalizeHeaders(headers);
-        
+
         const data = fileData.data.map(row => capitalizedHeaders.map((h, index) => {
           const originalHeader = headers[index];
           return row[originalHeader] || '';
         }));
-        
+
         setEditedHeaders(capitalizedHeaders);
         setEditedRows(data);
-        
+
         const initialRowData = {};
         capitalizedHeaders.forEach(header => {
           initialRowData[header] = '';
@@ -823,14 +822,14 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
         setIsLoading(false);
         return;
       }
-      
+
       if (Array.isArray(fileData.data[0])) {
         const headers = fileData.headers || Array.from({ length: fileData.data[0].length }, (_, i) => `Column ${i + 1}`);
         // Capitalize headers
         const capitalizedHeaders = capitalizeHeaders([...headers]);
         setEditedHeaders(capitalizedHeaders);
         setEditedRows(fileData.data.map(row => [...(row || [])]));
-        
+
         const initialRowData = {};
         capitalizedHeaders.forEach(header => {
           initialRowData[header] = '';
@@ -840,24 +839,24 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
         return;
       }
     }
-    
+
     // CASE 5: Has rows property
     if (fileData.rows && Array.isArray(fileData.rows) && fileData.rows.length > 0) {
       console.log('📊 CASE 5: Using fileData.rows format');
-      
+
       if (typeof fileData.rows[0] === 'object' && !Array.isArray(fileData.rows[0])) {
         const headers = Object.keys(fileData.rows[0]);
         // Capitalize headers
         const capitalizedHeaders = capitalizeHeaders(headers);
-        
+
         const data = fileData.rows.map(row => capitalizedHeaders.map((h, index) => {
           const originalHeader = headers[index];
           return row[originalHeader] || '';
         }));
-        
+
         setEditedHeaders(capitalizedHeaders);
         setEditedRows(data);
-        
+
         const initialRowData = {};
         capitalizedHeaders.forEach(header => {
           initialRowData[header] = '';
@@ -867,7 +866,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
         return;
       }
     }
-    
+
     // CASE 6: CSV content string
     if (fileData.content && typeof fileData.content === 'string') {
       console.log('📊 CASE 6: Parsing CSV content');
@@ -877,14 +876,14 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
           const headers = lines[0].split(',').map(h => h.trim());
           // Capitalize headers
           const capitalizedHeaders = capitalizeHeaders(headers);
-          
+
           const data = lines.slice(1)
             .filter(line => line.trim())
             .map(line => line.split(',').map(cell => cell.trim()));
-          
+
           setEditedHeaders(capitalizedHeaders);
           setEditedRows(data);
-          
+
           const initialRowData = {};
           capitalizedHeaders.forEach(header => {
             initialRowData[header] = '';
@@ -897,11 +896,11 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
         console.error('Error parsing CSV:', e);
       }
     }
-    
+
     // If we get here, we couldn't parse the data
     console.warn('⚠️ Could not parse fileData format:', fileData);
     setIsLoading(false);
-    
+
   }, [fileData]);
 
   // ==========================================================================
@@ -912,15 +911,15 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
   const headers = React.useMemo(() => {
     // Get raw headers
     let rawHeaders = isEditing ? editedHeaders : (currentSheet.headers || editedHeaders || fileData?.headers || []);
-    
+
     // If null/undefined, return empty array
     if (!rawHeaders) return [];
-    
+
     // If already a real array with map, return it
     if (Array.isArray(rawHeaders) && typeof rawHeaders.map === 'function') {
       return rawHeaders;
     }
-    
+
     // If it has length, convert to real array
     if (rawHeaders.length !== undefined) {
       try {
@@ -931,22 +930,22 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
         return [];
       }
     }
-    
+
     return [];
   }, [isEditing, editedHeaders, currentSheet.headers, fileData?.headers]);
 
   const rows = React.useMemo(() => {
     // Get raw rows
     let rawRows = isEditing ? editedRows : (currentSheet.data || editedRows || fileData?.data || []);
-    
+
     // If null/undefined, return empty array
     if (!rawRows) return [];
-    
+
     // If already a real array with map, return it
     if (Array.isArray(rawRows) && typeof rawRows.map === 'function') {
       return rawRows;
     }
-    
+
     // If it has length, convert to real array
     if (rawRows.length !== undefined) {
       try {
@@ -957,7 +956,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
         return [];
       }
     }
-    
+
     return [];
   }, [isEditing, editedRows, currentSheet.data, fileData?.data]);
 
@@ -1011,8 +1010,8 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
     if (sortConfig.key !== key) {
       return <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4 opacity-30" />;
     }
-    return sortConfig.direction === 'ascending' 
-      ? <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" /> 
+    return sortConfig.direction === 'ascending'
+      ? <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" />
       : <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />;
   };
 
@@ -1040,7 +1039,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
         const newSelection = [...prev, rowIndex];
         const allVisibleIndices = sortedRows.map(item => item.originalIndex);
         const allSelected = allVisibleIndices.every(idx => newSelection.includes(idx));
-        
+
         if (allSelected && allVisibleIndices.length > 0) {
           setSelectAll(true);
         }
@@ -1056,7 +1055,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
       showNotification('Please select at least one row to delete', 'error');
       return;
     }
-    
+
     setShowBulkDeletePrompt({
       show: true,
       count: selectedRows.length
@@ -1081,11 +1080,11 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
       console.warn('⚠️ rowsWithIndices: rows is not a valid array', rows);
       return [];
     }
-    
+
     try {
-      return rows.map((row, index) => ({ 
-        data: row, 
-        originalIndex: index 
+      return rows.map((row, index) => ({
+        data: row,
+        originalIndex: index
       }));
     } catch (e) {
       console.error('❌ rows.map failed in rowsWithIndices:', e);
@@ -1098,21 +1097,21 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
   // ==========================================================================
   const filteredRows = React.useMemo(() => {
     if (!rowsWithIndices || rowsWithIndices.length === 0) return [];
-    
+
     return rowsWithIndices.filter(item => {
       // Only apply search if searchTerm has a value
-      const matchesSearch = !searchTerm || searchTerm.trim() === '' || 
-        item.data.some(cell => 
+      const matchesSearch = !searchTerm || searchTerm.trim() === '' ||
+        item.data.some(cell =>
           String(cell).toLowerCase().includes(searchTerm.toLowerCase())
         );
-      
+
       // Only apply column filter for project context and when columnFilter has value AND NOT VIEWONLY
-      const matchesColumnFilter = !(!viewOnly && context === 'project') || 
+      const matchesColumnFilter = !(!viewOnly && context === 'project') ||
         !columnFilter || columnFilter.trim() === '' ||
-        item.data.some(cell => 
+        item.data.some(cell =>
           String(cell).toLowerCase().includes(columnFilter.toLowerCase())
         );
-        
+
       return matchesSearch && matchesColumnFilter;
     });
   }, [rowsWithIndices, searchTerm, columnFilter, context, viewOnly]);
@@ -1121,14 +1120,14 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
   const sortedRows = React.useMemo(() => {
     if (!filteredRows || filteredRows.length === 0) return [];
     if (!sortConfig.key) return filteredRows;
-    
+
     const colIndex = headers.findIndex(h => h === sortConfig.key);
     if (colIndex === -1) return filteredRows;
 
     return [...filteredRows].sort((a, b) => {
       const aVal = a.data[colIndex] || '';
       const bVal = b.data[colIndex] || '';
-      
+
       if (aVal < bVal) {
         return sortConfig.direction === 'ascending' ? -1 : 1;
       }
@@ -1196,12 +1195,12 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
       showNotification('Please select a row to edit', 'error');
       return;
     }
-    
+
     if (selectedRows.length > 1) {
       showNotification('Please select only one row to edit at a time', 'error');
       return;
     }
-    
+
     const rowIndex = selectedRows[0];
     setIsEditing(true);
     setEditingRowIndex(rowIndex);
@@ -1212,20 +1211,20 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
     if (viewOnly) return;
     if (onSaveData) {
       // Create updated file data WITHOUT assuming sheets property
-      const updatedFileData = Array.isArray(fileData) 
+      const updatedFileData = Array.isArray(fileData)
         ? rows.map(row => {
-            const obj = {};
-            headers.forEach((header, index) => {
-              obj[header] = row[index] || '';
-            });
-            return obj;
-          })
+          const obj = {};
+          headers.forEach((header, index) => {
+            obj[header] = row[index] || '';
+          });
+          return obj;
+        })
         : {
-            ...fileData,
-            headers: headers,
-            data: rows
-          };
-      
+          ...fileData,
+          headers: headers,
+          data: rows
+        };
+
       onSaveData(updatedFileData);
       showNotification('Changes saved successfully!');
     }
@@ -1260,7 +1259,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
   const handleCellChange = (rowIndex, colIndex, value) => {
     if (viewOnly) return;
     if (!isEditing || rowIndex !== editingRowIndex) return;
-    
+
     const newRows = [...editedRows];
     if (!newRows[rowIndex]) {
       newRows[rowIndex] = new Array(editedHeaders.length).fill('');
@@ -1275,23 +1274,23 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
       showNotification('Please enter a column name', 'error');
       return;
     }
-    
+
     if (editedHeaders.includes(newColumnName)) {
       showNotification('Column name already exists', 'error');
       return;
     }
-    
+
     const newHeaders = [...editedHeaders, newColumnName];
     setEditedHeaders(newHeaders);
-    
+
     const newRows = editedRows.map(row => [...row, '']);
     setEditedRows(newRows);
-    
+
     setNewRowData(prev => ({
       ...prev,
       [newColumnName]: ''
     }));
-    
+
     showNotification(`Column "${newColumnName}" added`, 'success');
     setNewColumnName('');
     setShowAddColumnModal(false);
@@ -1307,15 +1306,15 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
       onConfirm: () => {
         const newHeaders = editedHeaders.filter((_, index) => index !== colIndex);
         setEditedHeaders(newHeaders);
-        
+
         const newRows = editedRows.map(row => row.filter((_, index) => index !== colIndex));
         setEditedRows(newRows);
-        
+
         const headerName = editedHeaders[colIndex];
         const newRowDataCopy = { ...newRowData };
         delete newRowDataCopy[headerName];
         setNewRowData(newRowDataCopy);
-        
+
         showNotification('Column removed', 'info');
       }
     });
@@ -1326,13 +1325,13 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
     const rowData = headers.map(header => newRowData[header] || '');
     const newRows = [...editedRows, rowData];
     setEditedRows(newRows);
-    
+
     const resetRowData = {};
     headers.forEach(header => {
       resetRowData[header] = '';
     });
     setNewRowData(resetRowData);
-    
+
     setShowAddRowModal(false);
     showNotification('New row added', 'success');
   };
@@ -1360,7 +1359,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
       showNotification('No data to export', 'error');
       return;
     }
-    
+
     setShowExportConfirmPrompt({
       show: true,
       format: format,
@@ -1377,10 +1376,10 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
       });
       return obj;
     });
-    
+
     let content, mimeType, filename;
-    
-    switch(format) {
+
+    switch (format) {
       case 'excel':
         const ws = XLSX.utils.json_to_sheet(dataToExport);
         const wb = XLSX.utils.book_new();
@@ -1403,7 +1402,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
         showNotification('Export to PDF completed successfully');
         return;
     }
-    
+
     const blob = new Blob([content], { type: mimeType });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1413,7 +1412,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-    
+
     showNotification(`Export to ${format.toUpperCase()} completed successfully`);
   };
 
@@ -1421,7 +1420,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
     if (viewOnly) return;
     const doc = new jsPDF();
     const tableColumn = headers;
-    const tableRows = data.map(row => 
+    const tableRows = data.map(row =>
       headers.map(header => row[header] || '')
     );
 
@@ -1438,20 +1437,20 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
 
   const convertToCSV = (data) => {
     if (data.length === 0) return '';
-    
+
     const headers = Object.keys(data[0]);
     const csvRows = [
       headers.join(','),
-      ...data.map(row => 
+      ...data.map(row =>
         headers.map(header => {
           const cell = row[header];
-          return typeof cell === 'string' && (cell.includes(',') || cell.includes('"') || cell.includes('\n')) 
-            ? `"${cell.replace(/"/g, '""')}"` 
+          return typeof cell === 'string' && (cell.includes(',') || cell.includes('"') || cell.includes('\n'))
+            ? `"${cell.replace(/"/g, '""')}"`
             : cell;
         }).join(',')
       )
     ];
-    
+
     return csvRows.join('\n');
   };
 
@@ -1459,15 +1458,14 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
     <div className="space-y-3 sm:space-y-4 px-0">
       {/* Notification */}
       {notification.show && (
-        <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${
-          notification.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 
-          notification.type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' : 
-          'bg-blue-100 text-blue-800 border border-blue-200'
-        }`}>
+        <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${notification.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' :
+          notification.type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
+            'bg-blue-100 text-blue-800 border border-blue-200'
+          }`}>
           <div className="flex items-center">
             <span className="text-sm font-medium">{notification.message}</span>
-            <button 
-              onClick={() => setNotification({ show: false, message: '', type: '' })} 
+            <button
+              onClick={() => setNotification({ show: false, message: '', type: '' })}
               className="ml-4 text-gray-500 hover:text-gray-700"
             >
               <X className="h-4 w-4" />
@@ -1494,7 +1492,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h3 className="font-medium text-gray-900 text-sm sm:text-base">Confirm Bulk Delete</h3>
               <button onClick={() => setShowBulkDeletePrompt({ show: false, count: 0 })} className="p-1 text-gray-400 hover:text-gray-600">
-                <X className="h-4 w-4 sm:h-5 sm:w-5"/>
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
             <div className="mb-4">
@@ -1518,7 +1516,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h3 className="font-medium text-gray-900 text-sm sm:text-base">Confirm Export</h3>
               <button onClick={() => setShowExportConfirmPrompt(null)} className="p-1 text-gray-400 hover:text-gray-600">
-                <X className="h-4 w-4 sm:h-5 sm:w-5"/>
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
             <div className="mb-4">
@@ -1547,7 +1545,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
                 <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
-          
+
             <div className="mb-4 p-3 rounded">
               <h3 className="font-medium text-gray-900 text-sm sm:text-base -mt-5 mb-2">
                 <span className="bg-gray-200 px-2 py-0.5 rounded flex items-center gap-1">
@@ -1571,8 +1569,8 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
                   Add Column
                 </button>
               </div>
-            </div>            
-            
+            </div>
+
             {/* Existing columns management section */}
             <div className="mb-4">
               <h4 className="text-xs sm:text-sm font-medium text-gray-900 mb-2">Manage Columns</h4>
@@ -1580,7 +1578,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
                 {editedHeaders.map((header, index) => {
                   const isFixedColumn = ['project', 'department', 'employeeName', 'fileName'].includes(header.toLowerCase().replace(/\s+/g, ''));
                   const isEditingCol = editingColumnIndex === index;
-                
+
                   return (
                     <div key={index} className="flex items-center justify-between p-2 border border-gray-200 rounded">
                       <div className="flex items-center space-x-2">
@@ -1619,7 +1617,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
                           </>
                         )}
                       </div>
-                    
+
                       <div className="flex items-center space-x-2">
                         {!isEditingCol && (
                           <button
@@ -1630,7 +1628,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
                             <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
                           </button>
                         )}
-                      
+
                         <button
                           onClick={() => handleRemoveColumn(index)}
                           className={`p-1 ${isFixedColumn ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-red-800'}`}
@@ -1645,10 +1643,10 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
                 })}
               </div>
             </div>
-          
+
             <div className="flex justify-end space-x-2 mt-4 pt-4 border-t border-gray-200">
-              <button 
-                onClick={() => setShowAddColumnModal(false)} 
+              <button
+                onClick={() => setShowAddColumnModal(false)}
                 className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50"
               >
                 Close
@@ -1672,7 +1670,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
                 <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
-            
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               {headers.map((header, index) => (
                 <div key={index} className="col-span-1">
@@ -1690,7 +1688,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
                 </div>
               ))}
             </div>
-            
+
             <div className="flex justify-end space-x-2">
               <button onClick={() => setShowAddRowModal(false)} className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
               <button onClick={handleAddRow} className="px-4 py-2 text-sm border border-gray-300 rounded hover:bg-gray-50">Add</button>
@@ -1701,11 +1699,11 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
 
       {/* MAIN BORDER CONTAINER */}
       <div className={`bg-white border ${context === 'project' && !viewOnly ? 'border-gray-200 shadow-sm' : 'border-gray-300'} rounded mx-0`}>
-        
+
         {/* TOOLBAR SECTION */}
         <div className="p-4 border-b border-gray-300">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            
+
             {/* LEFT SIDE - Search Box ONLY */}
             <div className="flex flex-1 flex-col sm:flex-row gap-2 sm:gap-2 items-start sm:items-center">
               <div className="relative w-full sm:w-auto">
@@ -1722,7 +1720,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
 
             {/* RIGHT SIDE - Action Buttons */}
             <div className="flex gap-2 mt-2 sm:mt-0">
-              
+
               {/* FILTER BUTTON - ONLY SHOW FOR PROJECT CONTEXT AND NOT VIEWONLY */}
               {!viewOnly && context === 'project' && (
                 <div className="relative">
@@ -1754,7 +1752,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
                   <Plus className="h-4 w-4" />
                 </button>
               )}
-              
+
               {/* EXPORT BUTTON - ONLY SHOW FOR PROJECT CONTEXT AND NOT VIEWONLY */}
               {!viewOnly && context === 'project' && (
                 <div className="relative">
@@ -1764,12 +1762,12 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
                   >
                     <Download className="h-4 w-4" />
                   </button>
-                  
+
                   {/* Export Dropdown */}
                   {showExportDropdown && (
                     <>
-                      <div 
-                        className="fixed inset-0 z-40" 
+                      <div
+                        className="fixed inset-0 z-40"
                         onClick={() => setShowExportDropdown(false)}
                       />
                       <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-300 rounded shadow-lg z-50">
@@ -1840,8 +1838,8 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
                     </th>
                   )}
                   {headers.map((header, index) => (
-                    <th 
-                      key={index} 
+                    <th
+                      key={index}
                       scope="col"
                       className={`text-left py-2 px-3 font-medium text-gray-700 cursor-pointer hover:bg-gray-200 whitespace-nowrap border-r border-gray-300 ${viewOnly && index === headers.length - 1 ? 'border-r-0' : ''}`}
                       onClick={() => handleSort(header)}
@@ -1854,7 +1852,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
                   ))}
                 </tr>
               </thead>
-              
+
               <tbody>
                 {sortedRows && sortedRows.length > 0 ? (
                   sortedRows.map((item) => {
@@ -1862,10 +1860,10 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
                     const rowIndex = item.originalIndex;
                     const isSelected = !viewOnly && selectedRows.includes(rowIndex);
                     const isEditingThisRow = !viewOnly && isEditing && editingRowIndex === rowIndex;
-                    
+
                     return (
-                      <tr 
-                        key={rowIndex} 
+                      <tr
+                        key={rowIndex}
                         className={`border-b border-gray-300 transition-colors ${!viewOnly && isSelected ? 'bg-blue-50 hover:bg-blue-100' : 'hover:bg-gray-50'} ${!viewOnly && isEditingThisRow ? 'bg-yellow-50 hover:bg-yellow-100' : ''}`}
                       >
                         {/* Checkbox cell - ONLY show when not viewOnly */}
@@ -1927,7 +1925,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
                 <Plus className="h-4 w-4" />
               </button>
             )}
-            
+
             {/* Edit, Done, Cancel and Delete buttons - HIDE when viewOnly */}
             {!viewOnly && (selectedRows.length > 0 || isEditing) && (
               <div className="flex items-center gap-1 ml-1">
@@ -1955,7 +1953,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
                     </button>
                   </>
                 )}
-                
+
                 {!isEditing && (
                   <button
                     onClick={handleBulkDelete}
@@ -1968,7 +1966,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onBack, onSaveData, viewOnly
               </div>
             )}
           </div>
-          
+
           {/* RIGHT SIDE - Info and Column Count */}
           <div className="flex items-center gap-4">
             <span>
@@ -2032,34 +2030,44 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
   // Load columns
   const [availableColumns, setAvailableColumns] = useState(initialColumns);
 
-  // Load trackers from localStorage
-  const [trackers, setTrackers] = useState(() => {
-    const savedTrackers = localStorage.getItem('upload_trackers');
-    return savedTrackers ? JSON.parse(savedTrackers) : [];
-  });
+  // Load trackers from API
+  const [trackers, setTrackers] = useState([]);
+
+  useEffect(() => {
+    const fetchTrackers = async () => {
+      try {
+        const response = await API.get('/datasets/');
+        setTrackers(response.data);
+      } catch (error) {
+        console.error('Error fetching trackers from API:', error);
+        showNotification('Failed to load upload history', 'error');
+      }
+    };
+    fetchTrackers();
+  }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeletePrompt, setShowDeletePrompt] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
-  
+
   // Upload state
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [selectedFile, setSelectedFile] = useState(null);
-  
+
   // Editing state
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
-  
+
   // Excel Viewer Modal State
   const [excelViewerData, setExcelViewerData] = useState(null);
   const [excelEditMode, setExcelEditMode] = useState(false);
   const [excelEditData, setExcelEditData] = useState([]);
   const [currentSheet, setCurrentSheet] = useState(0);
   const [excelHeaders, setExcelHeaders] = useState([]);
-  
+
   // Upload Form Modal State
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadForm, setUploadForm] = useState({
@@ -2069,7 +2077,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
     file: null
   });
   const [uploadFormErrors, setUploadFormErrors] = useState({});
-  
+
   // Sorting state
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'ascending' });
 
@@ -2112,18 +2120,18 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
       const urlParams = new URLSearchParams(window.location.search);
       const fileId = urlParams.get('file');
       const projectName = urlParams.get('project');
-      
+
       console.log('URL Params:', { fileId, projectName });
-      
+
       if (fileId && !selectedFileId && !initialFileLoaded) {
         const trackerId = parseInt(fileId, 10);
         console.log('Opening file from URL:', trackerId);
-        
+
         const tracker = trackers.find(t => t.id === trackerId);
         if (tracker) {
           console.log('Found tracker:', tracker);
           setSelectedFileTrackerInfo(tracker);
-          
+
           const fileData = uploadedFilesData[trackerId];
           if (fileData) {
             setSelectedFileContent(fileData);
@@ -2139,7 +2147,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
           }
         }
       }
-      
+
       if (projectName) {
         console.log('Project filter from URL:', projectName);
       }
@@ -2189,7 +2197,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
       if (tracker) {
         setSelectedFileTrackerInfo(tracker);
       }
-      
+
       const fileData = uploadedFilesData[selectedFileId];
       if (fileData) {
         setSelectedFileContent(fileData);
@@ -2217,11 +2225,11 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
       ...prev,
       [trackerId]: updatedFileData
     }));
-    
+
     const allFilesData = JSON.parse(localStorage.getItem('uploaded_files_data') || '{}');
     allFilesData[trackerId] = updatedFileData;
     localStorage.setItem('uploaded_files_data', JSON.stringify(allFilesData));
-    
+
     showNotification('File changes saved successfully!');
   };
 
@@ -2245,12 +2253,12 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
 
   // Filter trackers based on search and filters
   const filteredTrackers = trackers.filter(tracker => {
-    const matchesSearch = Object.values(tracker).some(value => 
+    const matchesSearch = Object.values(tracker).some(value =>
       String(value).toLowerCase().includes(searchTerm.toLowerCase())
     );
-    
+
     const matchesDept = !departmentFilter || tracker.department?.toLowerCase().includes(departmentFilter.toLowerCase());
-    
+
     return matchesSearch && matchesDept;
   });
 
@@ -2261,7 +2269,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
     return [...filteredTrackers].sort((a, b) => {
       const aVal = a[sortConfig.key] || '';
       const bVal = b[sortConfig.key] || '';
-      
+
       if (aVal < bVal) {
         return sortConfig.direction === 'ascending' ? -1 : 1;
       }
@@ -2307,7 +2315,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
       showNotification('Please select at least one upload to edit', 'error');
       return;
     }
-    
+
     if (selectedTrackers.length === 1) {
       const tracker = trackers.find(t => t.id === selectedTrackers[0]);
       if (tracker) {
@@ -2325,32 +2333,67 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
       showNotification('Please select at least one upload to delete', 'error');
       return;
     }
-    
+
     setShowBulkDeletePrompt({
       show: true,
       count: selectedTrackers.length
     });
   };
 
-  const confirmBulkDelete = () => {
-    // Delete all selected trackers
-    const newTrackers = trackers.filter(tracker => !selectedTrackers.includes(tracker.id));
-    setTrackers(newTrackers);
-    
-    // Remove from uploaded files data
-    const newFileData = { ...uploadedFilesData };
-    selectedTrackers.forEach(id => {
-      delete newFileData[id];
-      // Remove from BOTH sidebar contexts
-      sidebarManager.deleteFileFromAllContexts(id);
-    });
-    setUploadedFilesData(newFileData);
-    
-    // Clear selection
-    setSelectedTrackers([]);
-    setSelectAll(false);
-    setShowBulkDeletePrompt({ show: false, count: 0 });
-    showNotification(`${selectedTrackers.length} upload${selectedTrackers.length > 1 ? 's' : ''} deleted successfully`);
+  const confirmBulkDelete = async () => {
+    if (selectedTrackers.length === 0) return;
+
+    const count = selectedTrackers.length;
+    let deletedCount = 0;
+    let errors = [];
+
+    // Show a temporary "Deleting..." notification if many files
+    if (count > 2) {
+      showNotification(`Deleting ${count} records...`, 'info');
+    }
+
+    try {
+      // Process deletions in parallel
+      await Promise.all(selectedTrackers.map(async (id) => {
+        try {
+          await API.delete(`/datasets/${id}`);
+          deletedCount++;
+        } catch (err) {
+          console.error(`Error deleting tracker ${id}:`, err);
+          errors.push(id);
+        }
+      }));
+
+      // Update local state even if some failed (the ones that succeeded should be removed)
+      // Filter out only the ones that were successfully deleted from the backend
+      // But for simplicity in UX, if most succeeded we refresh everything
+
+      const successfulIds = selectedTrackers.filter(id => !errors.includes(id));
+
+      setTrackers(prev => prev.filter(tracker => !successfulIds.includes(tracker.id)));
+
+      // Remove from uploaded files data and sidebar contexts
+      const newFileData = { ...uploadedFilesData };
+      successfulIds.forEach(id => {
+        delete newFileData[id];
+        sidebarManager.deleteFileFromAllContexts(id);
+      });
+      setUploadedFilesData(newFileData);
+
+      // Clear selection for the ones we tried to delete
+      setSelectedTrackers(errors);
+      if (errors.length === 0) {
+        setSelectAll(false);
+        showNotification(`${count} upload${count > 1 ? 's' : ''} deleted successfully`);
+      } else {
+        showNotification(`Deleted ${deletedCount} records. ${errors.length} failed.`, 'warning');
+      }
+
+      setShowBulkDeletePrompt({ show: false, count: 0 });
+    } catch (error) {
+      console.error('Error in bulk delete process:', error);
+      showNotification('An error occurred during deletion', 'error');
+    }
   };
 
   // Handle sorting
@@ -2367,8 +2410,8 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
     if (sortConfig.key !== key) {
       return <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4 opacity-30" />;
     }
-    return sortConfig.direction === 'ascending' 
-      ? <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" /> 
+    return sortConfig.direction === 'ascending'
+      ? <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" />
       : <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />;
   };
 
@@ -2396,33 +2439,45 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
     setValidationErrors({});
   };
 
-  const saveEdit = () => {
+  const saveEdit = async () => {
     const errors = validateEditForm(editForm);
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
       return;
     }
 
-    // Get old project name for sidebar update
-    const oldTracker = trackers.find(t => t.id === editingId);
-    const oldProjectName = oldTracker?.project;
-    const newProjectName = editForm.project;
+    try {
+      // Send update to API
+      await API.put(`/datasets/${editingId}`, {
+        project: editForm.project,
+        department: editForm.department,
+        employeeName: editForm.employeeName
+      });
 
-    // Update tracker in state
-    setTrackers(trackers.map(tracker => 
-      tracker.id === editingId ? { ...tracker, ...editForm } : tracker
-    ));
+      // Get old project name for sidebar update
+      const oldTracker = trackers.find(t => t.id === editingId);
+      const oldProjectName = oldTracker?.project;
+      const newProjectName = editForm.project;
 
-    // Update BOTH sidebar contexts if project name changed
-    if (oldProjectName && newProjectName && oldProjectName !== newProjectName) {
-      sidebarManager.updateProjectNameInUploadTrackers(oldProjectName, newProjectName, editingId);
-      sidebarManager.updateProjectNameInProjectDashboard(oldProjectName, newProjectName, editingId);
+      // Update tracker in state
+      setTrackers(trackers.map(tracker =>
+        tracker.id === editingId ? { ...tracker, ...editForm } : tracker
+      ));
+
+      // Update BOTH sidebar contexts if project name changed
+      if (oldProjectName && newProjectName && oldProjectName !== newProjectName) {
+        sidebarManager.updateProjectNameInUploadTrackers(oldProjectName, newProjectName, editingId);
+        sidebarManager.updateProjectNameInProjectDashboard(oldProjectName, newProjectName, editingId);
+      }
+
+      setEditingId(null);
+      setEditForm({});
+      setValidationErrors({});
+      showNotification('Upload record updated successfully');
+    } catch (error) {
+      console.error('Error updating record:', error);
+      showNotification('Failed to update record', 'error');
     }
-
-    setEditingId(null);
-    setEditForm({});
-    setValidationErrors({});
-    showNotification('Upload record updated successfully');
   };
 
   const cancelEdit = () => {
@@ -2434,23 +2489,32 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
   // Delete tracker
   const showDeleteConfirmation = (id, name) => setShowDeletePrompt({ id, name });
 
-  const confirmDeleteTracker = () => {
+  const confirmDeleteTracker = async () => {
     if (showDeletePrompt) {
       const { id } = showDeletePrompt;
-      
-      // Remove from trackers
-      setTrackers(trackers.filter(tracker => tracker.id !== id));
-      
-      // Remove from uploaded files data
-      const newFileData = { ...uploadedFilesData };
-      delete newFileData[id];
-      setUploadedFilesData(newFileData);
-      
-      // Remove from BOTH sidebar contexts
-      sidebarManager.deleteFileFromAllContexts(id);
-      
-      setShowDeletePrompt(null);
-      showNotification('Upload record deleted successfully');
+
+      try {
+        await API.delete(`/datasets/${id}`);
+
+        // Remove from trackers
+        setTrackers(trackers.filter(tracker => tracker.id !== id));
+
+        // Remove from uploaded files data if exists locally
+        const newFileData = { ...uploadedFilesData };
+        if (newFileData[id]) {
+          delete newFileData[id];
+          setUploadedFilesData(newFileData);
+        }
+
+        // Remove from BOTH sidebar contexts
+        sidebarManager.deleteFileFromAllContexts(id);
+
+        setShowDeletePrompt(null);
+        showNotification('Upload record deleted successfully');
+      } catch (error) {
+        console.error('Error deleting record:', error);
+        showNotification('Failed to delete record', 'error');
+      }
     }
   };
 
@@ -2471,21 +2535,21 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
   const readFileData = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      
+
       reader.onload = (e) => {
         try {
           const data = e.target.result;
           const fileExtension = file.name.split('.').pop().toLowerCase();
-          
+
           if (fileExtension === 'csv') {
             const workbook = XLSX.read(data, { type: 'binary' });
             const worksheet = workbook.Sheets[workbook.SheetNames[0]];
             const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-            
+
             if (jsonData.length > 0) {
               const headers = jsonData[0];
               const rows = jsonData.slice(1);
-              
+
               resolve({
                 headers,
                 data: rows,
@@ -2511,7 +2575,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
             const sheets = workbook.SheetNames.map(sheetName => {
               const worksheet = workbook.Sheets[sheetName];
               const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-              
+
               if (jsonData.length > 0) {
                 return {
                   name: sheetName,
@@ -2526,7 +2590,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                 };
               }
             });
-            
+
             resolve({
               headers: sheets[0].headers,
               data: sheets[0].data,
@@ -2536,7 +2600,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
             const jsonData = JSON.parse(data);
             let headers = [];
             let rows = [];
-            
+
             if (Array.isArray(jsonData) && jsonData.length > 0) {
               headers = Object.keys(jsonData[0]);
               rows = jsonData.map(item => Object.values(item));
@@ -2544,7 +2608,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
               headers = ['Key', 'Value'];
               rows = Object.entries(jsonData);
             }
-            
+
             resolve({
               headers,
               data: rows,
@@ -2558,7 +2622,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
             const lines = data.split('\n').filter(line => line.trim() !== '');
             const headers = ['Line', 'Content'];
             const rows = lines.map((line, index) => [index + 1, line.trim()]);
-            
+
             resolve({
               headers,
               data: rows,
@@ -2574,11 +2638,11 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
           reject(new Error(`Error parsing file: ${error.message}`));
         }
       };
-      
+
       reader.onerror = (error) => {
         reject(new Error(`File reading error: ${error.target.error}`));
       };
-      
+
       if (file.name.endsWith('.json') || file.name.endsWith('.txt')) {
         reader.readAsText(file);
       } else {
@@ -2592,19 +2656,19 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
     if (file) {
       const fileType = file.name.split('.').pop().toUpperCase();
       const allowedTypes = ['CSV', 'XLSX', 'XLS', 'JSON', 'TXT'];
-      
+
       if (!allowedTypes.includes(fileType)) {
-        setUploadFormErrors({...uploadFormErrors, file: 'Please upload CSV, Excel, or JSON files only'});
+        setUploadFormErrors({ ...uploadFormErrors, file: 'Please upload CSV, Excel, or JSON files only' });
         return;
       }
-      
+
       if (file.size > 50 * 1024 * 1024) {
-        setUploadFormErrors({...uploadFormErrors, file: 'File size must be less than 50MB'});
+        setUploadFormErrors({ ...uploadFormErrors, file: 'File size must be less than 50MB' });
         return;
       }
-      
-      setUploadForm({...uploadForm, file});
-      setUploadFormErrors({...uploadFormErrors, file: ''});
+
+      setUploadForm({ ...uploadForm, file });
+      setUploadFormErrors({ ...uploadFormErrors, file: '' });
     }
   };
 
@@ -2614,153 +2678,138 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
     if (!uploadForm.department.trim()) errors.department = 'Department is required';
     if (!uploadForm.employeeName.trim()) errors.employeeName = 'Employee name is required';
     if (!uploadForm.file) errors.file = 'File is required';
-    
+
     if (Object.keys(errors).length > 0) {
       setUploadFormErrors(errors);
       return;
     }
-    
+
     setShowUploadModal(false);
     await handleFileUpload(uploadForm.file);
   };
 
   const handleFileUpload = async (file) => {
     if (!file) return;
-    
+
     setUploading(true);
     setProgress(0);
     setSelectedFile(file);
-    
+
     try {
-      const fileData = await readFileData(file);
-      
-      const progressInterval = setInterval(() => {
-        setProgress(prev => {
-          if (prev >= 100) {
-            clearInterval(progressInterval);
-            
-            // Get current user and date
-            const currentUser = getCurrentUser();
-            const currentDate = getCurrentDate();
-            const formattedDate = getFormattedDate();
-            
-            // Create new tracker
-            const newTracker = {
-              id: Math.max(...trackers.map(t => t.id), 0) + 1,
-              project: uploadForm.project,
-              department: uploadForm.department,
-              employeeName: uploadForm.employeeName,
-              fileName: file.name,
-              uploadedBy: currentUser,
-              uploadDate: formattedDate,
-              fileType: file.name.split('.').pop().toUpperCase(),
-              records: fileData.data.length,
-              status: 'Completed',
-              uploadDateISO: currentDate
-            };
-            
-            // Store file data
-            setUploadedFilesData(prev => ({
-              ...prev,
-              [newTracker.id]: fileData
-            }));
-            
-            // Add to trackers
-            setTrackers([newTracker, ...trackers]);
-            
-            // ============ ADD TO BOTH SIDEBAR CONTEXTS ============
-            
-            // 1. Add to Upload Trackers hierarchy (for management view)
-            sidebarManager.addToUploadTrackers(
-              uploadForm.project, 
-              file.name, 
-              newTracker.id,
-              {
-                department: uploadForm.department,
-                employeeName: uploadForm.employeeName,
-                fileType: file.name.split('.').pop().toUpperCase()
-              }
-            );
-            
-            // 2. Add to Project Dashboard hierarchy (for project view)
-            sidebarManager.addToProjectDashboard(
-              uploadForm.project,
-              file.name,
-              newTracker.id,
-              currentUser,
-              {
-                department: uploadForm.department,
-                uploadedBy: currentUser,
-                fileType: file.name.split('.').pop().toUpperCase()
-              }
-            );
-            
-            // Notify both contexts about the update
-            window.dispatchEvent(new CustomEvent('uploadTrackerUpdate', { 
-              detail: { type: 'create', tracker: newTracker, context: 'upload-management' } 
-            }));
-            
-            window.dispatchEvent(new CustomEvent('projectDashboardUpdate', { 
-              detail: { type: 'create', tracker: newTracker, context: 'project-dashboard' } 
-            }));
-            
-            setUploading(false);
-            setProgress(0);
-            setSelectedFile(null);
-            setUploadForm({
-              project: '',
-              department: 'Design Release',
-              employeeName: '',
-              file: null
-            });
-            
-            showNotification('File uploaded successfully and added to both sidebar views');
-            
-            return 100;
-          }
-          return prev + 20;
-        });
-      }, 300);
-      
+      const formData = new FormData();
+      formData.append('file', file);
+      if (uploadForm.project) formData.append('project', uploadForm.project);
+      if (uploadForm.department) formData.append('department', uploadForm.department);
+      if (uploadForm.employeeName) formData.append('employeeName', uploadForm.employeeName);
+
+      const response = await API.post('/datasets/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setProgress(percentCompleted);
+        }
+      });
+
+      const newTracker = response.data;
+
+      // Get current user for metadata
+      const currentUser = getCurrentUser();
+
+      // Ensure progress finishes visually
+      setProgress(100);
+
+      // Add to trackers state
+      setTrackers(prev => [newTracker, ...prev]);
+
+      // ============ ADD TO BOTH SIDEBAR CONTEXTS ============
+
+      // 1. Add to Upload Trackers hierarchy (for management view)
+      sidebarManager.addToUploadTrackers(
+        uploadForm.project,
+        file.name,
+        newTracker.id,
+        {
+          department: uploadForm.department,
+          employeeName: uploadForm.employeeName,
+          fileType: file.name.split('.').pop().toUpperCase()
+        }
+      );
+
+      // 2. Add to Project Dashboard hierarchy (for project view)
+      sidebarManager.addToProjectDashboard(
+        uploadForm.project,
+        file.name,
+        newTracker.id,
+        currentUser,
+        {
+          department: uploadForm.department,
+          uploadedBy: currentUser,
+          fileType: file.name.split('.').pop().toUpperCase()
+        }
+      );
+
+      // Notify both contexts about the update
+      window.dispatchEvent(new CustomEvent('uploadTrackerUpdate', {
+        detail: { type: 'create', tracker: newTracker, context: 'upload-management' }
+      }));
+
+      window.dispatchEvent(new CustomEvent('projectDashboardUpdate', {
+        detail: { type: 'create', tracker: newTracker, context: 'project-dashboard' }
+      }));
+
+      setUploading(false);
+      setProgress(0);
+      setSelectedFile(null);
+      setUploadForm({
+        project: '',
+        department: 'Design Release',
+        employeeName: '',
+        file: null
+      });
+
+      showNotification('File uploaded successfully and added to both sidebar views');
+
     } catch (error) {
       console.error('Error uploading file:', error);
       setUploading(false);
       setProgress(0);
-      showNotification(`Error reading file: ${error.message}. Please make sure it's a valid file format.`, 'error');
+      showNotification(`Error uploading file: ${error.response?.data?.detail || error.message}. Please try again.`, 'error');
     }
   };
 
   // Excel viewer functions - FIXED to match FileContentViewer expected format
-  const showExcelViewer = (tracker) => {
-    const fileData = uploadedFilesData[tracker.id];
-    
-    if (!fileData) {
-      showNotification('No file data available. Please re-upload the file.', 'error');
-      return;
+  const showExcelViewer = async (tracker) => {
+    try {
+      const response = await API.get(`/datasets/${tracker.id}/excel-view`);
+      const { headers, data } = response.data;
+
+      // Create a properly formatted fileData object that FileContentViewer expects
+      const formattedFileData = {
+        fileName: tracker.fileName,
+        headers: headers,
+        data: data,
+        sheets: [{
+          name: "Sheet1",
+          headers: headers,
+          data: data
+        }]
+      };
+
+      setExcelViewerData({
+        ...tracker,
+        fileData: formattedFileData,
+        sheets: formattedFileData.sheets
+      });
+
+      setExcelEditData(data.map(row => [...(row || [])]));
+      setExcelHeaders(headers || []);
+      setExcelEditMode(false);
+      setCurrentSheet(0);
+      setInitialFileLoaded(true);
+    } catch (error) {
+      console.error('Error fetching excel view data:', error);
+      showNotification('Failed to load file data.', 'error');
     }
-    
-    // Get the first sheet data
-    const currentSheetData = fileData.sheets[0];
-    
-    // Create a properly formatted fileData object that FileContentViewer expects
-    const formattedFileData = {
-      ...fileData,
-      headers: currentSheetData.headers,
-      data: currentSheetData.data,
-      sheets: fileData.sheets
-    };
-    
-    setExcelViewerData({
-      ...tracker,
-      fileData: formattedFileData,
-      sheets: fileData.sheets
-    });
-    
-    setExcelEditData(currentSheetData.data.map(row => [...(row || [])]));
-    setExcelHeaders(currentSheetData.headers || []);
-    setExcelEditMode(false);
-    setCurrentSheet(0);
-    setInitialFileLoaded(true); // ← ADDED
   };
 
   const closeExcelViewer = () => {
@@ -2768,7 +2817,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
     setExcelEditMode(false);
     setExcelEditData([]);
     setExcelHeaders([]);
-    setInitialFileLoaded(false); // ← ADDED
+    setInitialFileLoaded(false);
   };
 
   // Export functions
@@ -2777,7 +2826,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
       showNotification('No data to export', 'error');
       return;
     }
-    
+
     setShowExportConfirmPrompt({
       show: true,
       format: format,
@@ -2793,10 +2842,10 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
       });
       return row;
     });
-    
+
     let content, mimeType, filename;
-    
-    switch(format) {
+
+    switch (format) {
       case 'excel':
         const ws = XLSX.utils.json_to_sheet(dataToExport);
         const wb = XLSX.utils.book_new();
@@ -2821,7 +2870,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
         showNotification('Export to PDF completed successfully');
         return;
     }
-    
+
     const blob = new Blob([content], { type: mimeType });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -2831,7 +2880,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-    
+
     setShowExportDropdown(false);
     showNotification(`Export to ${format.toUpperCase()} completed successfully`);
   };
@@ -2839,7 +2888,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
   const exportToPDF = (data) => {
     const doc = new jsPDF();
     const tableColumn = availableColumns.map(col => col.label);
-    const tableRows = data.map(tracker => 
+    const tableRows = data.map(tracker =>
       availableColumns.map(col => tracker[col.label] || '')
     );
 
@@ -2856,23 +2905,23 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
 
   const convertToCSV = (data) => {
     if (data.length === 0) return '';
-    
+
     const headers = Object.keys(data[0]);
     const csvRows = [
       headers.join(','),
-      ...data.map(row => 
+      ...data.map(row =>
         headers.map(header => {
           const cell = row[header];
           return typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell;
         }).join(',')
       )
     ];
-    
+
     return csvRows.join('\n');
   };
 
   // Render Input Fields
-  const handleInputChange = (field, value, isEdit=false) => {
+  const handleInputChange = (field, value, isEdit = false) => {
     if (isEdit) {
       setEditForm({ ...editForm, [field]: value });
     }
@@ -2883,12 +2932,12 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
 
   const renderInput = (col, value, onChange, error) => {
     const inputClass = `w-full px-2 py-1 text-xs sm:text-sm border ${error ? 'border-red-500' : 'border-gray-300'} rounded`;
-    
+
     if (col.id === 'department' && col.type === 'select') return (
       <div>
-        <select 
+        <select
           value={value || 'Design Release'}
-          onChange={e => onChange(col.id, e.target.value)} 
+          onChange={e => onChange(col.id, e.target.value)}
           className={inputClass}
         >
           <option value="">Select Department</option>
@@ -2899,10 +2948,10 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
     );
-    
+
     return (
       <div>
-        <input type="text" value={value||''} onChange={e=>onChange(col.id,e.target.value)} className={inputClass} />
+        <input type="text" value={value || ''} onChange={e => onChange(col.id, e.target.value)} className={inputClass} />
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
     );
@@ -2917,7 +2966,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
   const renderCellContent = (col, value, tracker) => {
     if (col.id === 'fileName') {
       const getFileColor = (type) => {
-        switch(type) {
+        switch (type) {
           case 'CSV': return 'text-blue-600';
           case 'XLS':
           case 'XLSX': return 'text-green-600';
@@ -2925,7 +2974,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
           default: return 'text-gray-600';
         }
       };
-      
+
       return (
         <div className="flex items-center">
           <File className="h-4 w-4 text-gray-500 mr-2" />
@@ -2960,13 +3009,13 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
   // ==========================================================================
   const openFileDirectly = (trackerId) => {
     console.log('Opening file directly:', trackerId);
-    
+
     const tracker = trackers.find(t => t.id === trackerId);
     if (!tracker) {
       showNotification('File not found', 'error');
       return;
     }
-    
+
     const fileData = uploadedFilesData[trackerId];
     if (!fileData) {
       const allFilesData = JSON.parse(localStorage.getItem('uploaded_files_data') || '{}');
@@ -2995,15 +3044,14 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
     <div className="space-y-3 sm:space-y-4 px-0">
       {/* Notification Banner */}
       {notification.show && (
-        <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${
-          notification.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 
-          notification.type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' : 
-          'bg-blue-100 text-blue-800 border border-blue-200'
-        }`}>
+        <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${notification.type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' :
+          notification.type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' :
+            'bg-blue-100 text-blue-800 border border-blue-200'
+          }`}>
           <div className="flex items-center">
             <span className="text-sm font-medium">{notification.message}</span>
-            <button 
-              onClick={() => setNotification({ show: false, message: '', type: '' })} 
+            <button
+              onClick={() => setNotification({ show: false, message: '', type: '' })}
               className="ml-4 text-gray-500 hover:text-gray-700"
             >
               <X className="h-4 w-4" />
@@ -3018,7 +3066,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
           <div className="bg-white rounded-lg p-4 sm:p-6 max-w-sm w-full mx-4">
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h3 className="font-medium text-gray-900 text-sm sm:text-base">Confirm Delete</h3>
-              <button onClick={cancelDelete} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4 sm:h-5 sm:w-5"/></button>
+              <button onClick={cancelDelete} className="text-gray-400 hover:text-gray-600"><X className="h-4 w-4 sm:h-5 sm:w-5" /></button>
             </div>
             <div className="mb-4">
               <p className="text-xs sm:text-sm text-gray-600">Delete upload record <span className="font-medium">{showDeletePrompt.name}</span>?</p>
@@ -3039,7 +3087,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h3 className="font-medium text-gray-900 text-sm sm:text-base">Confirm Bulk Delete</h3>
               <button onClick={() => setShowBulkDeletePrompt({ show: false, count: 0 })} className="p-1 text-gray-400 hover:text-gray-600">
-                <X className="h-4 w-4 sm:h-5 sm:w-5"/>
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
             <div className="mb-4">
@@ -3063,7 +3111,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
             <div className="flex items-center justify-between mb-3 sm:mb-4">
               <h3 className="font-medium text-gray-900 text-sm sm:text-base">Confirm Export</h3>
               <button onClick={() => setShowExportConfirmPrompt(null)} className="p-1 text-gray-400 hover:text-gray-600">
-                <X className="h-4 w-4 sm:h-5 sm:w-5"/>
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
             <div className="mb-4">
@@ -3100,7 +3148,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                 <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </button>
             </div>
-            
+
             <div className="space-y-4">
               {/* Project */}
               <div>
@@ -3110,28 +3158,26 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                   placeholder="Enter project name"
                   value={uploadForm.project}
                   onChange={(e) => {
-                    setUploadForm({...uploadForm, project: e.target.value});
-                    if (uploadFormErrors.project) setUploadFormErrors({...uploadFormErrors, project: ''});
+                    setUploadForm({ ...uploadForm, project: e.target.value });
+                    if (uploadFormErrors.project) setUploadFormErrors({ ...uploadFormErrors, project: '' });
                   }}
-                  className={`w-full px-3 py-2 text-xs sm:text-sm border rounded ${
-                    uploadFormErrors.project ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 text-xs sm:text-sm border rounded ${uploadFormErrors.project ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 />
                 {uploadFormErrors.project && <p className="mt-1 text-xs text-red-600">{uploadFormErrors.project}</p>}
               </div>
-              
+
               {/* Department */}
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Department *</label>
                 <select
                   value={uploadForm.department}
                   onChange={(e) => {
-                    setUploadForm({...uploadForm, department: e.target.value});
-                    if (uploadFormErrors.department) setUploadFormErrors({...uploadFormErrors, department: ''});
+                    setUploadForm({ ...uploadForm, department: e.target.value });
+                    if (uploadFormErrors.department) setUploadFormErrors({ ...uploadFormErrors, department: '' });
                   }}
-                  className={`w-full px-3 py-2 text-xs sm:text-sm border rounded ${
-                    uploadFormErrors.department ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 text-xs sm:text-sm border rounded ${uploadFormErrors.department ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 >
                   <option value="">Select department</option>
                   {departmentOptions.map(dept => (
@@ -3140,7 +3186,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                 </select>
                 {uploadFormErrors.department && <p className="mt-1 text-xs text-red-600">{uploadFormErrors.department}</p>}
               </div>
-              
+
               {/* Employee Name */}
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Employee Name *</label>
@@ -3149,16 +3195,15 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                   placeholder="Enter employee name"
                   value={uploadForm.employeeName}
                   onChange={(e) => {
-                    setUploadForm({...uploadForm, employeeName: e.target.value});
-                    if (uploadFormErrors.employeeName) setUploadFormErrors({...uploadFormErrors, employeeName: ''});
+                    setUploadForm({ ...uploadForm, employeeName: e.target.value });
+                    if (uploadFormErrors.employeeName) setUploadFormErrors({ ...uploadFormErrors, employeeName: '' });
                   }}
-                  className={`w-full px-3 py-2 text-xs sm:text-sm border rounded ${
-                    uploadFormErrors.employeeName ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full px-3 py-2 text-xs sm:text-sm border rounded ${uploadFormErrors.employeeName ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 />
                 {uploadFormErrors.employeeName && <p className="mt-1 text-xs text-red-600">{uploadFormErrors.employeeName}</p>}
               </div>
-              
+
               {/* File Upload */}
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">File *</label>
@@ -3182,7 +3227,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                 {uploadFormErrors.file && <p className="mt-1 text-xs text-red-600">{uploadFormErrors.file}</p>}
               </div>
             </div>
-            
+
             <div className="flex justify-end space-x-2 mt-6">
               <button onClick={() => setShowUploadModal(false)} className="px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50">Cancel</button>
               <button onClick={handleUploadSubmit} className="px-3 py-1.5 text-xs sm:text-sm bg-black text-white rounded hover:bg-gray-800">Upload File</button>
@@ -3196,7 +3241,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4">
           <div className="bg-white rounded-lg w-full max-w-7xl h-[95vh] flex flex-col">
             <div className="flex-1 overflow-auto p-2 sm:p-4">
-              <FileContentViewer 
+              <FileContentViewer
                 fileData={excelViewerData.fileData || {
                   headers: excelHeaders,
                   data: excelEditData,
@@ -3225,35 +3270,35 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
 
       {/* MAIN CONTENT */}
       {shouldShowFileContent ? (
-        <FileContentViewer 
-          fileData={selectedFileContent} 
-          trackerInfo={selectedFileTrackerInfo} 
+        <FileContentViewer
+          fileData={selectedFileContent}
+          trackerInfo={selectedFileTrackerInfo}
           onBack={() => {
             // ==========================================================================
             // FIXED: Proper back navigation - Reset all states
             // ==========================================================================
             console.log('Back button clicked - navigating to parent module');
-            
+
             // Clear local state
             setSelectedFileContent(null);
             setSelectedFileTrackerInfo(null);
             setInitialFileLoaded(false); // ← CRITICAL: Reset the flag
-            
+
             // Update URL without file parameter
             const url = new URL(window.location);
             url.searchParams.delete('file');
             window.history.pushState({}, '', url);
-            
+
             // Call onClearSelection to notify parent Dashboard
             if (onClearSelection) {
               onClearSelection(); // This sets selectedUploadFileId to null in Dashboard
             }
-            
+
             // Dispatch event as backup
-            window.dispatchEvent(new CustomEvent('returnToDashboard', { 
-              detail: { from: 'uploadTrackers' } 
+            window.dispatchEvent(new CustomEvent('returnToDashboard', {
+              detail: { from: 'uploadTrackers' }
             }));
-            
+
             console.log('Back navigation complete - should show table view');
           }}
           onSaveData={null}
@@ -3266,7 +3311,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
           {/* UPLOAD AREA */}
           <div className="bg-white border border-gray-300 rounded p-4 sm:p-6">
             <div className="text-center">
-              <div 
+              <div
                 className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-8 hover:border-gray-400 hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={openUploadModal}
               >
@@ -3300,7 +3345,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                     <span className="text-xs sm:text-sm text-gray-600">{progress}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
-                    <div 
+                    <div
                       className="bg-blue-600 h-1.5 sm:h-2 rounded-full transition-all duration-300"
                       style={{ width: `${progress}%` }}
                     ></div>
@@ -3312,11 +3357,11 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
 
           {/* MAIN BORDER CONTAINER */}
           <div className="bg-white border border-gray-300 rounded mx-0">
-            
+
             {/* TOOLBAR SECTION */}
             <div className="p-4 border-b border-gray-300">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                
+
                 {/* LEFT SIDE - Search */}
                 <div className="flex flex-1 flex-col sm:flex-row gap-2 sm:gap-2 items-start sm:items-center">
                   {/* Search */}
@@ -3362,12 +3407,12 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                     >
                       <Download className="h-4 w-4" />
                     </button>
-                    
+
                     {/* Export Dropdown */}
                     {showExportDropdown && (
                       <>
-                        <div 
-                          className="fixed inset-0 z-40" 
+                        <div
+                          className="fixed inset-0 z-40"
                           onClick={() => setShowExportDropdown(false)}
                         />
                         <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-300 rounded shadow-lg z-50">
@@ -3424,9 +3469,9 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                       </div>
                     </th>
                     {visibleColumns.map(col => (
-                      <th 
-                        key={col.id} 
-                        className="text-left py-3 px-4 font-semibold text-gray-600 cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap" 
+                      <th
+                        key={col.id}
+                        className="text-left py-3 px-4 font-semibold text-gray-600 cursor-pointer hover:bg-gray-100 transition-colors whitespace-nowrap"
                         onClick={() => col.sortable && handleSort(col.id)}
                       >
                         <div className="flex items-center space-x-1">
@@ -3439,11 +3484,11 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                     <th className="text-left py-3 px-4 font-semibold text-gray-600 whitespace-nowrap uppercase tracking-wider text-xs">Actions</th>
                   </tr>
                 </thead>
-                
+
                 <tbody className="divide-y divide-gray-100">
                   {sortedTrackers.map((tracker) => (
-                    <tr 
-                      key={tracker.id} 
+                    <tr
+                      key={tracker.id}
                       className={`hover:bg-gray-50 transition-colors ${selectedTrackers.includes(tracker.id) ? 'bg-blue-50' : ''}`}
                     >
                       {/* Checkbox cell */}
@@ -3457,12 +3502,12 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                           />
                         </div>
                       </td>
-                      {editingId === tracker.id ? 
+                      {editingId === tracker.id ?
                         visibleColumns.map(col => (
                           <td key={col.id} className="py-3 px-4 whitespace-nowrap">
-                            {renderInput(col, editForm[col.id], (f,v) => handleInputChange(f,v,true), validationErrors[col.id])}
+                            {renderInput(col, editForm[col.id], (f, v) => handleInputChange(f, v, true), validationErrors[col.id])}
                           </td>
-                        )) : 
+                        )) :
                         visibleColumns.map(col => (
                           <td key={col.id} className="py-3 px-4 whitespace-nowrap">
                             {renderCellContent(col, tracker[col.id], tracker)}
@@ -3481,14 +3526,14 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                           </div>
                         ) : (
                           <div className="flex items-center space-x-2">
-                            <button 
+                            <button
                               onClick={() => {
                                 showExcelViewer(tracker);
                                 // Also set the file as selected for proper navigation
                                 setSelectedFileContent(uploadedFilesData[tracker.id]);
                                 setSelectedFileTrackerInfo(tracker);
                                 setInitialFileLoaded(true);
-                              }} 
+                              }}
                               className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
                             >
                               <Eye className="h-4 w-4" />
@@ -3518,7 +3563,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                 >
                   <Plus className="h-4 w-4" />
                 </button>
-                
+
                 {/* Edit and Delete buttons */}
                 {selectedTrackers.length > 0 && (
                   <div className="flex items-center gap-1 ml-1">
@@ -3530,7 +3575,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                       <Edit className="h-4 w-4" />
                       {selectedTrackers.length > 1 && <span>Edit ({selectedTrackers.length})</span>}
                     </button>
-                    
+
                     <button
                       onClick={handleBulkDelete}
                       className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
@@ -3542,7 +3587,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                   </div>
                 )}
               </div>
-              
+
               {/* RIGHT SIDE - Info and Column Count */}
               <div className="flex items-center gap-4">
                 <span>

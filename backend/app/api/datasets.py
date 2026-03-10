@@ -8,7 +8,8 @@ import pandas as pd
 from io import BytesIO
 from pydantic import BaseModel
 import re
-
+import datetime
+from openpyxl import load_workbook
 from app.core.database import get_db, engine
 from app.models.dataset import Dataset
 from app.models.dataset_column import DatasetColumn
@@ -251,6 +252,153 @@ def update_dataset_data(
     
     return {"message": "Dataset updated successfully"}
 
+def process_excel(file_bytes: bytes):
+    wb = load_workbook(filename=BytesIO(file_bytes), data_only=True)
+    sheet = wb.active
+
+    # 1. Handle merged cells
+    merged_data = {}
+    for merged_range in sheet.merged_cells.ranges:
+        min_col, min_row, max_col, max_row = merged_range.bounds
+        top_left_val = sheet.cell(row=min_row, column=min_col).value
+        for row in range(min_row, max_row + 1):
+            for col in range(min_col, max_col + 1):
+                merged_data[(row, col)] = top_left_val
+
+    # 2. Extract all non-empty cells to find the bounding box
+    cells_dict = {}
+    min_r, max_r, min_c, max_c = float('inf'), -1, float('inf'), -1
+    
+    for row in range(1, sheet.max_row + 1):
+        for col in range(1, sheet.max_column + 1):
+            cell = sheet.cell(row=row, column=col)
+            val = merged_data.get((row, col), cell.value)
+            
+            if val is not None and str(val).strip() != "":
+                cells_dict[(row, col)] = val
+                min_r = min(min_r, row)
+                max_r = max(max_r, row)
+                min_c = min(min_c, col)
+                max_c = max(max_c, col)
+
+    if not cells_dict:
+        return []
+
+    # 3. Robust Header Row Detection
+    header_start_row = None
+    header_depth_detected = 1
+    final_headers = []
+    
+    for r in range(min_r, min(min_r + 20, max_r + 1)):
+        non_null_cells = 0
+        text_cells = 0
+        numeric_cells = 0
+        
+        for c in range(min_c, max_c + 1):
+            val = cells_dict.get((r, c))
+            if val is not None and str(val).strip() != "":
+                non_null_cells += 1
+                if isinstance(val, (int, float, complex)) and not isinstance(val, bool):
+                    numeric_cells += 1
+                else:
+                    text_cells += 1
+                    
+        min_required = min(5, max_c - min_c + 1)
+        if non_null_cells >= min_required:
+            text_ratio = text_cells / non_null_cells
+            numeric_ratio = numeric_cells / non_null_cells
+            
+            if text_ratio >= 0.70 and numeric_ratio <= 0.30:
+                best_d = 1
+                max_score = -1
+                best_headers = []
+                
+                for d in range(1, min(5, max_r - r + 2)):
+                    headers_at_d = []
+                    header_block = {}
+                    
+                    for hr in range(r, r + d):
+                        last_val = ""
+                        for c in range(min_c, max_c + 1):
+                            val = cells_dict.get((hr, c))
+                            if val is not None and str(val).strip() != "":
+                                last_val = str(val).strip()
+                            
+                            if hr < r + d - 1:
+                                header_block[(hr, c)] = last_val
+                            else:
+                                header_block[(hr, c)] = str(val).strip() if val is not None else ""
+                                
+                    for c in range(min_c, max_c + 1):
+                        col_parts = []
+                        for hr in range(r, r + d):
+                            part = header_block.get((hr, c), "")
+                            if part and (not col_parts or col_parts[-1] != part):
+                                col_parts.append(part)
+                                
+                        header_name = " ".join(col_parts).lower().strip()
+                        header_name = re.sub(r'[.\-]', ' ', header_name)
+                        header_name = re.sub(r'[^a-z0-9_\s]', '', header_name)
+                        header_name = re.sub(r'\s+', '_', header_name).strip('_')
+                        
+                        if not header_name:
+                            header_name = f"column_{c}"
+                            
+                        headers_at_d.append(header_name)
+                        
+                    unique_count = len(set(headers_at_d))
+                    generic_count = sum(1 for h in headers_at_d if h.startswith("column_"))
+                    
+                    score = unique_count - (generic_count * 0.5)
+                    
+                    if score > max_score:
+                        max_score = score
+                        best_d = d
+                        best_headers = headers_at_d
+                
+                has_generic = any(h.startswith("column_") for h in best_headers)
+                
+                if not has_generic:
+                    header_start_row = r
+                    header_depth_detected = best_d
+                    final_headers = best_headers
+                    break
+
+    if header_start_row is None:
+        raise ValueError("Could not detect a valid header row. Ensure your sheet has a header with at least 5 text columns and no generic placeholders.")
+        
+    header_rows_end = header_start_row + header_depth_detected - 1
+
+    unique_headers = []
+    header_counts = {}
+    for h in final_headers:
+        if h in header_counts:
+            header_counts[h] += 1
+            unique_headers.append(f"{h}_{header_counts[h]}")
+        else:
+            header_counts[h] = 0
+            unique_headers.append(h)
+
+    # 5. Extract rows
+    data = []
+    for r in range(header_rows_end + 1, max_r + 1):
+        row_data = {}
+        is_empty = True
+        for idx, c in enumerate(range(min_c, max_c + 1)):
+            val = cells_dict.get((r, c))
+            
+            if isinstance(val, (datetime.date, datetime.datetime)):
+                val = val.isoformat()
+                
+            if val is not None:
+                is_empty = False
+                
+            row_data[unique_headers[idx]] = val
+            
+        if not is_empty:
+            data.append(row_data)
+
+    return data
 
 @router.post("/upload")
 async def upload_dataset(
@@ -281,14 +429,18 @@ async def upload_dataset(
 
     # 1️⃣ Read file into DataFrame
     try:
+        contents = await file.read()
         if file.filename.endswith(".csv"):
-            df = pd.read_csv(file.file)
+            df = pd.read_csv(BytesIO(contents))
+            df = df.fillna("")
         else:
-            df = pd.read_excel(file.file)
+            processed_data = process_excel(contents)
+            if not processed_data:
+                raise HTTPException(status_code=400, detail="No readable data found.")
+            df = pd.DataFrame(processed_data)
+            df = df.fillna("")
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to read file: {e}")
-
-    df = df.fillna("")  # replace NaN with empty string
 
     # 2️⃣ Store dataset metadata
     dataset = Dataset(

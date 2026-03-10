@@ -12,7 +12,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = sessionStorage.getItem('token');
     const storedUser = sessionStorage.getItem('user');
-    
+
     if (token && storedUser) {
       try {
         setUser(JSON.parse(storedUser));
@@ -32,30 +32,35 @@ export const AuthProvider = ({ children }) => {
       console.log('AuthContext: Sending request to /auth/login');
       const response = await API.post('/auth/login', { email, password });
       console.log('AuthContext: Response received', response.status, response.data);
-      
+
       if (!response.data || !response.data.access_token) {
         throw new Error('Invalid response from server: No access token received');
       }
 
       const { access_token, user } = response.data;
-      
+
       sessionStorage.setItem('token', access_token);
       sessionStorage.setItem('user', JSON.stringify(user));
       setUser(user);
-      
+
       return { success: true };
     } catch (error) {
-      console.error('AuthContext: Login error', error);
+      if (error.code === 'ECONNABORTED') {
+        console.log('AuthContext: Login message -', error.message);
+      } else {
+        console.error('AuthContext: Login error', error);
+      }
+
       let errorMessage = 'Login failed';
       if (error.code === 'ECONNABORTED') {
-          errorMessage = 'Request timed out. The server might be waking up, please try again.';
+        errorMessage = 'Request timed out. The server might be waking up, please try again.';
       } else if (error.response?.data?.detail) {
-          errorMessage = error.response.data.detail;
+        errorMessage = error.response.data.detail;
       } else if (error.message) {
-          errorMessage = error.message;
+        errorMessage = error.message;
       }
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: errorMessage
       };
     }
