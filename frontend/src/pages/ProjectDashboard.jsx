@@ -958,18 +958,9 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         qualityIssues: 'Quality Issues'
       };
 
-      // Chart sections
+      // Chart sections are handled in a separate grid builder
       if (['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(section)) {
-        const chartType = {
-          design: 'bar',
-          partDevelopment: 'line',
-          build: 'pie',
-          gateway: 'area',
-          validation: 'bar',
-          qualityIssues: 'gauge'
-        }[section];
-
-        return renderChartForPDF(section, chartType);
+        return '';
       }
 
       // Regular sections
@@ -1147,6 +1138,33 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
           return '';
       }
     };
+
+    // Helper to build metrics grid
+    const buildMetricsGridHTML = (selectedSections) => {
+      const metricKeys = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
+      const selectedMetrics = selectedSections.filter(s => metricKeys.includes(s));
+
+      if (selectedMetrics.length === 0) return '';
+
+      const chartTypesMap = {
+        design: chartTypes[activeProject.id]?.design || 'bar',
+        partDevelopment: chartTypes[activeProject.id]?.partDevelopment || 'line',
+        build: chartTypes[activeProject.id]?.build || 'pie',
+        gateway: chartTypes[activeProject.id]?.gateway || 'area',
+        validation: chartTypes[activeProject.id]?.validation || 'bar',
+        qualityIssues: chartTypes[activeProject.id]?.qualityIssues || 'gauge'
+      };
+
+      return `
+        <div class="metrics-grid-header">
+          <h2 class="metrics-main-title">Project Metrics Summary</h2>
+        </div>
+        <div class="metrics-grid">
+          ${selectedMetrics.map(m => renderChartForPDF(m, chartTypesMap[m])).join('')}
+        </div>
+      `;
+    };
+
 
     // Build complete HTML with enhanced dashboard styling
     const printContent = `
@@ -1413,6 +1431,23 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               font-weight: 600;
             }
             
+            .metrics-grid-header {
+              margin-bottom: 15px;
+            }
+            
+            .metrics-main-title {
+              font-size: 20px;
+              font-weight: bold;
+              color: #1e3a5f;
+            }
+            
+            .metrics-grid {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 15px;
+              margin-bottom: 30px;
+            }
+            
             .summary-grid {
               display: grid;
               grid-template-columns: repeat(4, 1fr);
@@ -1672,18 +1707,57 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
             }
             
             @media print {
+              @page {
+                size: A4;
+                margin: 10mm;
+              }
+              
               body {
                 background: white;
                 padding: 0;
+                font-size: 10pt;
               }
               
               .report-container {
                 box-shadow: none;
                 border-radius: 0;
+                max-width: 100%;
+                margin: 0;
               }
               
               .section-card {
                 break-inside: avoid;
+                margin-bottom: 15px;
+                padding: 15px;
+              }
+
+              .chart-card {
+                break-inside: avoid;
+                margin-bottom: 10px;
+                padding: 10px;
+              }
+              
+              .report-header {
+                padding: 15px;
+              }
+              
+              .content-section {
+                padding: 15px;
+              }
+
+              /* Force 2 column grid in print */
+              .metrics-grid {
+                display: block;
+              }
+              .chart-card {
+                width: 48%;
+                display: inline-block;
+                vertical-align: top;
+                margin-right: 1%;
+              }
+
+              .report-title {
+                font-size: 24px;
               }
             }
           </style>
@@ -1717,8 +1791,10 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
             </div>
             
             <div class="content-section">
-              ${selected.map(section => buildSectionHTML(section)).join('<div style="page-break-after: avoid; margin-bottom: 20px;"></div>')}
+              ${selected.map(section => buildSectionHTML(section)).filter(html => html !== '').join('<div style="margin-bottom: 20px;"></div>')}
+              ${buildMetricsGridHTML(selected)}
             </div>
+
             
             <div class="report-footer">
               <p>© ${new Date().getFullYear()} Project Dashboard. All rights reserved.</p>
