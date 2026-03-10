@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, Copy, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, Copy, ArrowUp, ArrowDown, Filter, Zap } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
-const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, loading, onDataUpdate }) => {
+const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, loading, onDataUpdate, onProcessData }) => {
     // Convert string array of columns to object array for consistent handling
     const [columns, setColumns] = useState(() => {
         return (initialColumns || []).map((col, idx) => ({
@@ -722,7 +722,7 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                             )}
                         </div>
 
-                        {hasChanges && (
+                        {hasChanges ? (
                             <button
                                 onClick={handleSaveChanges}
                                 className="flex items-center gap-1.5 h-9 px-4 text-sm font-bold bg-green-600 text-white rounded-md hover:bg-green-700 transition shadow-sm animate-pulse"
@@ -731,6 +731,18 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                                 <Check className="h-4 w-4" />
                                 <span>Save Changes</span>
                             </button>
+                        ) : (
+                            onProcessData && (
+                                <button
+                                    onClick={onProcessData}
+                                    disabled={loading}
+                                    className="flex items-center gap-1.5 h-9 px-3 text-sm font-medium border border-blue-300 dark:border-blue-600 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition disabled:opacity-50 group"
+                                    title="Process & Optimize Data (Type Inference)"
+                                >
+                                    <Zap className="h-4 w-4 fill-blue-600/20 group-hover:fill-blue-600 transition-all" />
+                                    <span className="hidden sm:inline">Optimize</span>
+                                </button>
+                            )
                         )}
 
                         {onRefresh && (

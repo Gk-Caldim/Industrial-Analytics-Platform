@@ -130,6 +130,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   const [showAxisSelector, setShowAxisSelector] = useState(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showSimulateModal, setShowSimulateModal] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const [emailData, setEmailData] = useState({
     to: '',
@@ -336,6 +337,31 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       }));
     } catch (error) {
       console.error('Error loading submodule data:', error);
+    }
+  };
+
+  // Handle data optimization logic (re-processing)
+  const handleSubmoduleProcess = async (trackerId) => {
+    try {
+      setLoading(true);
+      const { default: API } = await import('../utils/api');
+      const response = await API.post(`/datasets/${trackerId}/process`);
+
+      console.log('Successfully processed submodule data for tracker:', trackerId);
+
+      // Refresh the data to reflect updated types/headers
+      await loadSubmoduleData(trackerId);
+
+      // We also need to refresh the projects list because column metadata might have changed
+      // which affects chart axis selection
+      const datasetsResponse = await API.get('/datasets/');
+      // (Optional: Implement a more targeted refresh if projects state is huge)
+
+    } catch (error) {
+      console.error('Error processing submodule data:', error);
+      alert('Failed to optimize data. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -764,7 +790,9 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         data={rows}
         fileName={fileName || 'Dataset'}
         onDataUpdate={(updatedRows, updatedHeaders) => handleSubmoduleDataUpdate(selectedSubmodule.trackerId, updatedRows, updatedHeaders)}
+        onProcessData={() => handleSubmoduleProcess(selectedSubmodule.trackerId)}
         onRefresh={() => loadSubmoduleData(selectedSubmodule.trackerId)}
+        loading={loading}
       />
     );
   };

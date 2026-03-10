@@ -576,9 +576,6 @@ def delete_dataset(dataset_id: int, db: Session = Depends(get_db)):
     if dataset.table_name:
         try:
             # Use text() for raw SQL to drop table
-            # Sanitize or trust table_name since we generated it?
-            # We generated it, so it should be safe, but still good to be careful.
-            # However, table_name cannot be parameterized in DROP TABLE.
             db.execute(text(f'DROP TABLE IF EXISTS "{dataset.table_name}"'))
         except Exception as e:
             print(f"Error dropping table {dataset.table_name}: {e}")
@@ -591,4 +588,47 @@ def delete_dataset(dataset_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "Dataset deleted successfully"}
+
+@router.post("/{dataset_id}/process")
+def process_dataset_data(
+    dataset_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Triggers re-processing of dataset data:
+    1. Re-infers column types
+    2. Updates column metadata
+    """
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    df = get_dataset_df(dataset, db)
+    if df.empty:
+        raise HTTPException(status_code=400, detail="No data available to process")
+
+    # 1. Update Column Metadata (Type Inference)
+    # First, delete existing columns metadata to refresh them
+    db.query(DatasetColumn).filter(DatasetColumn.dataset_id == dataset_id).delete()
+    
+    new_columns = []
+    for col in df.columns:
+        inferred_type = infer_column_type(df[col])
+        db.add(DatasetColumn(
+            dataset_id=dataset_id,
+            column_name=col,
+            data_type=inferred_type
+        ))
+        new_columns.append({
+            "column_name": col,
+            "data_type": inferred_type
+        })
+    
+    db.commit()
+    
+    return {
+        "message": "Dataset processed and optimized successfully",
+        "columns": new_columns,
+        "rowCount": len(df)
+    }
 
