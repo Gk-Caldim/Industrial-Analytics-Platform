@@ -652,8 +652,8 @@ def process_dataset_data(
                 
                 # Use a reasonable threshold to decide if it's a date column
                 if valid_date_count > 0 and (valid_date_count / non_null_count) >= 0.4:
-                    # Format as ISO string for consistency in the DB
-                    df[col] = date_series.dt.strftime('%Y-%m-%dT%H:%M:%S')
+                    # Format as date-only for consistency in the DB
+                    df[col] = date_series.dt.strftime('%Y-%m-%d')
             except:
                 pass
 
