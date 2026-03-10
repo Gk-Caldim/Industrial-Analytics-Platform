@@ -197,7 +197,7 @@ def get_chart_data(
 
 class UpdateDatasetRequest(BaseModel):
     headers: List[str]
-    data: List[List[Any]]
+    data: List[Any]
 
 @router.put("/{dataset_id}/data")
 def update_dataset_data(
@@ -225,7 +225,15 @@ def update_dataset_data(
     if dataset.table_name:
         # Update dynamic table
         try:
-            new_df = pd.DataFrame(payload.data, columns=payload.headers)
+            # Check if data is already list of dicts or list of lists
+            if payload.data and isinstance(payload.data[0], dict):
+                new_df = pd.DataFrame(payload.data)
+                # Reorder to match headers and handle missing columns in some rows
+                cols_to_use = [h for h in payload.headers if h in new_df.columns]
+                new_df = new_df[cols_to_use]
+            else:
+                new_df = pd.DataFrame(payload.data, columns=payload.headers)
+            
             new_df.to_sql(dataset.table_name, engine, if_exists='replace', index=False)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to update table: {e}")
@@ -233,11 +241,14 @@ def update_dataset_data(
         # Legacy update
         db.query(DatasetRow).filter(DatasetRow.dataset_id == dataset_id).delete()
         new_rows = []
-        for row_data in payload.data:
-            row_dict = {}
-            for i, val in enumerate(row_data):
-                if i < len(payload.headers):
-                    row_dict[payload.headers[i]] = val
+        for row_entry in payload.data:
+            if isinstance(row_entry, dict):
+                row_dict = row_entry
+            else:
+                row_dict = {}
+                for i, val in enumerate(row_entry):
+                    if i < len(payload.headers):
+                        row_dict[payload.headers[i]] = val
             
             new_rows.append(DatasetRow(
                 dataset_id=dataset_id,

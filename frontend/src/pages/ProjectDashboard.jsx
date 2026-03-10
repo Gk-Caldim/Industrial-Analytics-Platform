@@ -340,14 +340,29 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   };
 
   // Handle local data updates from ExcelTableViewer to keep charts in sync
-  const handleSubmoduleDataUpdate = (trackerId, updatedRows, updatedHeaders) => {
-    setSubmoduleData(prev => ({
-      ...prev,
-      [trackerId]: {
+  const handleSubmoduleDataUpdate = async (trackerId, updatedRows, updatedHeaders) => {
+    try {
+      // Update local state first for immediate feedback
+      setSubmoduleData(prev => ({
+        ...prev,
+        [trackerId]: {
+          headers: updatedHeaders,
+          rows: updatedRows
+        }
+      }));
+
+      // Call API to persist changes
+      const { default: API } = await import('../utils/api');
+      await API.put(`/datasets/${trackerId}/data`, {
         headers: updatedHeaders,
-        rows: updatedRows
-      }
-    }));
+        data: updatedRows
+      });
+
+      console.log('Successfully saved submodule data for tracker:', trackerId);
+    } catch (error) {
+      console.error('Error saving submodule data:', error);
+      alert('Failed to save changes to the database. Please try again.');
+    }
   };
   // Handle selected file ID prop from Dashboard
   useEffect(() => {
@@ -744,6 +759,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
     return (
       <ExcelTableViewer
+        key={`excel-viewer-${selectedSubmodule.trackerId}`}
         columns={columns}
         data={rows}
         fileName={fileName || 'Dataset'}
