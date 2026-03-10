@@ -168,6 +168,32 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     sopTables: false
   });
 
+  // Helper to determine which phases are available based on uploaded files
+  const availablePhases = useMemo(() => {
+    if (!activeProject || !activeProject.submodules) return {
+      design: false,
+      partDevelopment: false,
+      build: false,
+      gateway: false,
+      validation: false,
+      qualityCheck: false
+    };
+
+    const isAvailable = (aliases) => activeProject.submodules.some(sub => {
+      const name = (sub.displayName || sub.name || '').toLowerCase();
+      return aliases.some(alias => name.includes(alias));
+    });
+
+    return {
+      design: isAvailable(['design']),
+      partDevelopment: isAvailable(['part development', 'partdevelopment', 'part_development', 'part']),
+      build: isAvailable(['build']),
+      gateway: isAvailable(['gateway']),
+      validation: isAvailable(['validation']),
+      qualityCheck: isAvailable(['quality check', 'qualitycheck', 'quality_check', 'quality'])
+    };
+  }, [activeProject]);
+
   // Predefined email contacts (dummy data)
   const emailContacts = [
     { id: 1, name: 'John Doe', email: 'john.doe@company.com', department: 'Management' },
@@ -492,10 +518,23 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
   // Handle select all sections for visibility
   const handleSelectAllVisibility = () => {
-    const allSelected = Object.values(visibleSections).every(value => value);
-    const newVisibleSections = {};
+    const availableSectionKeys = [
+      'milestones', 'criticalIssues', 'sopTables',
+      'budget', 'resource', 'quality',
+      ...['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityCheck'].filter(key => availablePhases[key])
+    ];
+    
+    const allSelected = availableSectionKeys.every(key => visibleSections[key]);
+    const setTarget = !allSelected;
+    
+    // Create new object, taking care to not turn on unavailable ones
+    const newVisibleSections = { ...visibleSections };
     Object.keys(visibleSections).forEach(key => {
-      newVisibleSections[key] = !allSelected;
+      if (availableSectionKeys.includes(key)) {
+        newVisibleSections[key] = setTarget;
+      } else {
+        newVisibleSections[key] = false;
+      }
     });
 
     setVisibleSections(newVisibleSections);
@@ -514,10 +553,22 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
   // Handle select all sections for email
   const handleSelectAll = () => {
-    const allSelected = Object.values(emailData.selectedSections).every(value => value);
-    const newSelectedSections = {};
+    const availableSectionKeys = Object.keys(emailData.selectedSections).filter(key => {
+      const metricKeys = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityCheck'];
+      if (metricKeys.includes(key)) return availablePhases[key];
+      return true;
+    });
+    
+    const allSelected = availableSectionKeys.every(key => emailData.selectedSections[key]);
+    const setTarget = !allSelected;
+    
+    const newSelectedSections = { ...emailData.selectedSections };
     Object.keys(emailData.selectedSections).forEach(key => {
-      newSelectedSections[key] = !allSelected;
+      if (availableSectionKeys.includes(key)) {
+        newSelectedSections[key] = setTarget;
+      } else {
+        newSelectedSections[key] = false;
+      }
     });
 
     setEmailData(prev => ({
@@ -1869,7 +1920,11 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                {Object.keys(emailData.selectedSections).map(section => (
+                {Object.keys(emailData.selectedSections).filter(section => {
+                  const metricKeys = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityCheck'];
+                  if (metricKeys.includes(section)) return availablePhases[section];
+                  return true;
+                }).map(section => (
                   <label key={section} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
@@ -2088,54 +2143,69 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                 <div style={{ gridColumn: 'span 2' }}>
                   <h4 style={{ margin: '10px 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Project Metrics Charts</h4>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.design}
-                        onChange={() => handleSectionVisibilityToggle('design')}
-                      />
-                      Design
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.partDevelopment}
-                        onChange={() => handleSectionVisibilityToggle('partDevelopment')}
-                      />
-                      Part Development
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.build}
-                        onChange={() => handleSectionVisibilityToggle('build')}
-                      />
-                      Build
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.gateway}
-                        onChange={() => handleSectionVisibilityToggle('gateway')}
-                      />
-                      Gateway
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.validation}
-                        onChange={() => handleSectionVisibilityToggle('validation')}
-                      />
-                      Validation
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.qualityCheck}
-                        onChange={() => handleSectionVisibilityToggle('qualityCheck')}
-                      />
-                      Quality Check
-                    </label>
+                    {availablePhases.design && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={visibleSections.design}
+                          onChange={() => handleSectionVisibilityToggle('design')}
+                        />
+                        Design
+                      </label>
+                    )}
+                    {availablePhases.partDevelopment && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={visibleSections.partDevelopment}
+                          onChange={() => handleSectionVisibilityToggle('partDevelopment')}
+                        />
+                        Part Development
+                      </label>
+                    )}
+                    {availablePhases.build && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={visibleSections.build}
+                          onChange={() => handleSectionVisibilityToggle('build')}
+                        />
+                        Build
+                      </label>
+                    )}
+                    {availablePhases.gateway && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={visibleSections.gateway}
+                          onChange={() => handleSectionVisibilityToggle('gateway')}
+                        />
+                        Gateway
+                      </label>
+                    )}
+                    {availablePhases.validation && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={visibleSections.validation}
+                          onChange={() => handleSectionVisibilityToggle('validation')}
+                        />
+                        Validation
+                      </label>
+                    )}
+                    {availablePhases.qualityCheck && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={visibleSections.qualityCheck}
+                          onChange={() => handleSectionVisibilityToggle('qualityCheck')}
+                        />
+                        Quality Check
+                      </label>
+                    )}
+                    {(!availablePhases.design && !availablePhases.partDevelopment && !availablePhases.build && !availablePhases.gateway && !availablePhases.validation && !availablePhases.qualityCheck) && (
+                      <div style={{ color: '#9ca3af', fontSize: '13px', gridColumn: 'span 3' }}>No project metrics available based on uploaded files.</div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -3190,8 +3260,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               )}
 
               {/* Project Metrics Charts */}
-              {(visibleSections.design || visibleSections.partDevelopment || visibleSections.build ||
-                visibleSections.gateway || visibleSections.validation || visibleSections.qualityCheck) && (
+              {((visibleSections.design && availablePhases.design) || (visibleSections.partDevelopment && availablePhases.partDevelopment) || (visibleSections.build && availablePhases.build) ||
+                (visibleSections.gateway && availablePhases.gateway) || (visibleSections.validation && availablePhases.validation) || (visibleSections.qualityCheck && availablePhases.qualityCheck)) && (
                   <div style={{ marginBottom: '35px' }}>
                     <h2 style={{
                       fontSize: '20px',
@@ -3209,7 +3279,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                       gap: '15px'
                     }}>
                       {/* Design */}
-                      {visibleSections.design && (
+                      {(visibleSections.design && availablePhases.design) && (
                         <div style={{
                           border: '1px solid #e0e0e0',
                           borderRadius: '6px',
@@ -3239,7 +3309,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                       )}
 
                       {/* Part Development */}
-                      {visibleSections.partDevelopment && (
+                      {(visibleSections.partDevelopment && availablePhases.partDevelopment) && (
                         <div style={{
                           border: '1px solid #e0e0e0',
                           borderRadius: '6px',
@@ -3269,7 +3339,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                       )}
 
                       {/* Build */}
-                      {visibleSections.build && (
+                      {(visibleSections.build && availablePhases.build) && (
                         <div style={{
                           border: '1px solid #e0e0e0',
                           borderRadius: '6px',
@@ -3299,7 +3369,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                       )}
 
                       {/* Gateway */}
-                      {visibleSections.gateway && (
+                      {(visibleSections.gateway && availablePhases.gateway) && (
                         <div style={{
                           border: '1px solid #e0e0e0',
                           borderRadius: '6px',
@@ -3329,7 +3399,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                       )}
 
                       {/* Validation */}
-                      {visibleSections.validation && (
+                      {(visibleSections.validation && availablePhases.validation) && (
                         <div style={{
                           border: '1px solid #e0e0e0',
                           borderRadius: '6px',
@@ -3359,7 +3429,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                       )}
 
                       {/* Quality Check */}
-                      {visibleSections.qualityCheck && (
+                      {(visibleSections.qualityCheck && availablePhases.qualityCheck) && (
                         <div style={{
                           border: '1px solid #e0e0e0',
                           borderRadius: '6px',
