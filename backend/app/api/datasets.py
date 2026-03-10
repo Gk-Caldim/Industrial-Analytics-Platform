@@ -597,7 +597,8 @@ def process_dataset_data(
     """
     Triggers re-processing of dataset data:
     1. Re-infers column types
-    2. Updates column metadata
+    2. Transforms data to normalized formats (e.g. dates to ISO)
+    3. Updates column metadata and underlying table/rows
     """
     dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
     if not dataset:
@@ -607,28 +608,94 @@ def process_dataset_data(
     if df.empty:
         raise HTTPException(status_code=400, detail="No data available to process")
 
-    # 1. Update Column Metadata (Type Inference)
-    # First, delete existing columns metadata to refresh them
-    db.query(DatasetColumn).filter(DatasetColumn.dataset_id == dataset_id).delete()
+    # 1. Clean and Transform Data
+    # For each column, try to infer the best type and convert
+    new_columns_metadata = []
     
-    new_columns = []
     for col in df.columns:
+        # Preprocessing: Clean up string values only, leaving actual nulls as pd.NA
+        if df[col].dtype == 'object':
+            # Handle actual nulls/empty strings first, and then strip
+            df[col] = df[col].apply(lambda x: pd.NA if pd.isna(x) or str(x).strip().lower() in ['nan', 'none', '', 'null'] else str(x).strip())
+            # Normalize common date separators
+            df[col] = df[col].apply(lambda x: x.replace('--', '-') if isinstance(x, str) else x)
+        
+        # Calculate non-null count accurately
+        non_null_mask = df[col].notna()
+        non_null_count = non_null_mask.sum()
+        
+        if non_null_count == 0:
+            new_columns_metadata.append({"name": col, "type": "string"})
+            continue
+            
+        # Try to convert to numeric if possible (handles integers and floats)
+        # Handle commas in strings like "1,234.56"
+        temp_col = df[col].apply(lambda x: x.replace(',', '') if isinstance(x, str) else x)
+        numeric_series = pd.to_numeric(temp_col, errors='coerce')
+        valid_numeric_count = numeric_series.notna().sum()
+        
+        # Threshold: if > 70% of non-null values are numeric, we treat it as numeric
+        if valid_numeric_count > 0 and (valid_numeric_count / non_null_count) >= 0.7:
+            # Check if it's all integers
+            numeric_vals = numeric_series.dropna()
+            if all(val == float(int(val)) for val in numeric_vals):
+                df[col] = numeric_series.round().astype('Int64')
+            else:
+                df[col] = numeric_series
+        else:
+            # Try to convert to datetime if it's not numeric
+            try:
+                # pandas handles "July 2026", "21-Jun-26", "21/09/2026", "2026-07-31" natively
+                # dayfirst=True is critical for DD/MM/YYYY
+                date_series = pd.to_datetime(df[col], errors='coerce', dayfirst=True)
+                valid_date_count = date_series.notna().sum()
+                
+                # Use a reasonable threshold to decide if it's a date column
+                if valid_date_count > 0 and (valid_date_count / non_null_count) >= 0.4:
+                    # Format as ISO string for consistency in the DB
+                    df[col] = date_series.dt.strftime('%Y-%m-%dT%H:%M:%S')
+            except:
+                pass
+
         inferred_type = infer_column_type(df[col])
+        new_columns_metadata.append({
+            "name": col,
+            "type": inferred_type
+        })
+
+    # 2. Persist Optimized Data
+    if dataset.table_name:
+        try:
+            df.to_sql(dataset.table_name, engine, if_exists='replace', index=False)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to update table during optimize: {e}")
+    else:
+        # Legacy update
+        db.query(DatasetRow).filter(DatasetRow.dataset_id == dataset_id).delete()
+        new_rows = []
+        for _, row in df.iterrows():
+            # Handle NaN values for JSON serialization
+            processed_row = row.replace({pd.NA: None, float('nan'): None}).to_dict()
+            new_rows.append(DatasetRow(
+                dataset_id=dataset_id,
+                row_data=processed_row
+            ))
+        db.bulk_save_objects(new_rows)
+
+    # 3. Update Metadata
+    db.query(DatasetColumn).filter(DatasetColumn.dataset_id == dataset_id).delete()
+    for col_info in new_columns_metadata:
         db.add(DatasetColumn(
             dataset_id=dataset_id,
-            column_name=col,
-            data_type=inferred_type
+            column_name=col_info["name"],
+            data_type=col_info["type"]
         ))
-        new_columns.append({
-            "column_name": col,
-            "data_type": inferred_type
-        })
     
     db.commit()
     
     return {
-        "message": "Dataset processed and optimized successfully",
-        "columns": new_columns,
+        "message": "Dataset optimized and normalized successfully",
+        "columns": new_columns_metadata,
         "rowCount": len(df)
     }
 
