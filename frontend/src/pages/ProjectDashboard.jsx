@@ -39,7 +39,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                 id: `project-file-${dataset.id}`,
                 trackerId: dataset.id,
                 name: dataset.fileName,
-                displayName: (dataset.fileName || '').replace(/\\.[^/.]+$/, ""),
+                displayName: (dataset.fileName || '').replace(/\.[^/.]+$/, ""),
+                department: dataset.department, // Add department field
                 type: 'file',
                 projectName: capitalizedName
               });
@@ -96,7 +97,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         build: false,
         gateway: false,
         validation: false,
-        qualityCheck: false,
+        qualityIssues: false,
         sopTables: false
       });
       if (onClearSelection) onClearSelection();
@@ -164,9 +165,61 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     build: false,
     gateway: false,
     validation: false,
-    qualityCheck: false,
+    qualityIssues: false,
     sopTables: false
   });
+
+  // Helper to determine which phases are available based on uploaded files
+  const availablePhases = useMemo(() => {
+    if (!activeProject || !activeProject.submodules) return {
+      design: false,
+      partDevelopment: false,
+      build: false,
+      gateway: false,
+      validation: false,
+      qualityIssues: false
+    };
+
+    const isAvailable = (deptName, aliases) => activeProject.submodules.some(sub => {
+      const name = (sub.displayName || sub.name || '').toLowerCase();
+      const dept = (sub.department || '').toLowerCase();
+      const targetDept = deptName.toLowerCase();
+
+      return dept === targetDept || aliases.some(alias => name.includes(alias.toLowerCase()));
+    });
+
+    return {
+      design: isAvailable('Design Release', ['design']),
+      partDevelopment: isAvailable('Part Development', ['part development', 'partdevelopment', 'part_development', 'part']),
+      build: isAvailable('Build', ['build']),
+      gateway: isAvailable('Gateway', ['gateway']),
+      validation: isAvailable('Validation', ['validation']),
+      qualityIssues: isAvailable('Quality Issues', ['quality check', 'qualitycheck', 'quality_check', 'quality', 'issues'])
+    };
+  }, [activeProject]);
+
+  // Helper to get specific tracker for a phase
+  const getTrackerForPhase = (phase) => {
+    if (!activeProject || !activeProject.submodules) return null;
+
+    const mapping = {
+      design: { dept: 'Design Release', aliases: ['design'] },
+      partDevelopment: { dept: 'Part Development', aliases: ['part development', 'partdevelopment', 'part_development', 'part'] },
+      build: { dept: 'Build', aliases: ['build'] },
+      gateway: { dept: 'Gateway', aliases: ['gateway'] },
+      validation: { dept: 'Validation', aliases: ['validation'] },
+      qualityIssues: { dept: 'Quality Issues', aliases: ['quality check', 'qualitycheck', 'quality_check', 'quality', 'issues'] }
+    };
+
+    const config = mapping[phase];
+    if (!config) return null;
+
+    return activeProject.submodules.find(sub => {
+      const name = (sub.displayName || sub.name || '').toLowerCase();
+      const dept = (sub.department || '').toLowerCase();
+      return dept === config.dept.toLowerCase() || config.aliases.some(alias => name.includes(alias.toLowerCase()));
+    });
+  };
 
   // Predefined email contacts (dummy data)
   const emailContacts = [
@@ -338,15 +391,11 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   };
 
   // Handle project selection
+  // Handle project selection
   const handleProjectSelect = (projectId) => {
     const selectedProject = projects.find(p => p.id === projectId);
     setActiveProject(selectedProject);
     setSelectedSubmodule(null); // Reset submodule selection
-
-    // PREFETCH: Load the first file's data for charts and dashboard configuration
-    if (selectedProject?.submodules && selectedProject.submodules.length > 0) {
-      loadSubmoduleData(selectedProject.submodules[0].trackerId);
-    }
 
     if (selectedProject?.dashboardConfig) {
       setVisibleSections(selectedProject.dashboardConfig.visibleSections || {});
@@ -355,6 +404,19 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       setShowSimulateModal(true);
     }
   };
+
+  // Prefetch data for all phases whenever activeProject changes
+  useEffect(() => {
+    if (activeProject?.submodules) {
+      const phasesToLoad = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
+      phasesToLoad.forEach(phase => {
+        const tracker = getTrackerForPhase(phase);
+        if (tracker && (!submoduleData[tracker.trackerId] || submoduleData[tracker.trackerId].rows.length === 0)) {
+          loadSubmoduleData(tracker.trackerId);
+        }
+      });
+    }
+  }, [activeProject]);
 
   // Handle apply dashboard configuration
   const handleApplyDashboardConfig = () => {
@@ -385,7 +447,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
             build: 'pie',
             gateway: 'area',
             validation: 'bar',
-            qualityCheck: 'bar'
+            qualityIssues: 'bar'
           }
         }));
 
@@ -397,7 +459,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
             build: { xAxis: 'Component', yAxis: 'Percentage' },
             gateway: { xAxis: 'Month', yAxis: 'Performance' },
             validation: { xAxis: 'Test Case', yAxis: 'Pass Rate' },
-            qualityCheck: { xAxis: 'Metric', yAxis: 'Score' }
+            qualityIssues: { xAxis: 'Metric', yAxis: 'Score' }
           }
         }));
       }
@@ -422,7 +484,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       build: false,
       gateway: false,
       validation: false,
-      qualityCheck: false,
+      qualityIssues: false,
       sopTables: false
     });
     window.dispatchEvent(new CustomEvent('resetProjectDashboardMain'));
@@ -492,10 +554,23 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
   // Handle select all sections for visibility
   const handleSelectAllVisibility = () => {
-    const allSelected = Object.values(visibleSections).every(value => value);
-    const newVisibleSections = {};
+    const availableSectionKeys = [
+      'milestones', 'criticalIssues', 'sopTables',
+      'budget', 'resource', 'quality',
+      ...['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].filter(key => availablePhases[key])
+    ];
+
+    const allSelected = availableSectionKeys.every(key => visibleSections[key]);
+    const setTarget = !allSelected;
+
+    // Create new object, taking care to not turn on unavailable ones
+    const newVisibleSections = { ...visibleSections };
     Object.keys(visibleSections).forEach(key => {
-      newVisibleSections[key] = !allSelected;
+      if (availableSectionKeys.includes(key)) {
+        newVisibleSections[key] = setTarget;
+      } else {
+        newVisibleSections[key] = false;
+      }
     });
 
     setVisibleSections(newVisibleSections);
@@ -514,10 +589,22 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
   // Handle select all sections for email
   const handleSelectAll = () => {
-    const allSelected = Object.values(emailData.selectedSections).every(value => value);
-    const newSelectedSections = {};
+    const availableSectionKeys = Object.keys(emailData.selectedSections).filter(key => {
+      const metricKeys = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
+      if (metricKeys.includes(key)) return availablePhases[key];
+      return true;
+    });
+
+    const allSelected = availableSectionKeys.every(key => emailData.selectedSections[key]);
+    const setTarget = !allSelected;
+
+    const newSelectedSections = { ...emailData.selectedSections };
     Object.keys(emailData.selectedSections).forEach(key => {
-      newSelectedSections[key] = !allSelected;
+      if (availableSectionKeys.includes(key)) {
+        newSelectedSections[key] = setTarget;
+      } else {
+        newSelectedSections[key] = false;
+      }
     });
 
     setEmailData(prev => ({
@@ -604,7 +691,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         build: true,
         gateway: true,
         validation: true,
-        qualityCheck: true
+        qualityIssues: true
       },
       emailInputs: [''],
       ccInputs: [''],
@@ -686,7 +773,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         build: '#10b981',
         gateway: '#8b5cf6',
         validation: '#ec4899',
-        qualityCheck: '#ef4444'
+        qualityIssues: '#ef4444'
       };
 
       const chartNames = {
@@ -695,7 +782,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         build: 'Build Status',
         gateway: 'Gateway Performance',
         validation: 'Validation Results',
-        qualityCheck: 'Quality Metrics'
+        qualityIssues: 'Quality Metrics'
       };
 
       switch (chartType) {
@@ -824,18 +911,18 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         build: 'Build Status',
         gateway: 'Gateway Performance',
         validation: 'Validation Results',
-        qualityCheck: 'Quality Check'
+        qualityIssues: 'Quality Issues'
       };
 
       // Chart sections
-      if (['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityCheck'].includes(section)) {
+      if (['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(section)) {
         const chartType = {
           design: 'bar',
           partDevelopment: 'line',
           build: 'pie',
           gateway: 'area',
           validation: 'bar',
-          qualityCheck: 'gauge'
+          qualityIssues: 'gauge'
         }[section];
 
         return renderChartForPDF(section, chartType);
@@ -1869,7 +1956,11 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                {Object.keys(emailData.selectedSections).map(section => (
+                {Object.keys(emailData.selectedSections).filter(section => {
+                  const metricKeys = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityCheck'];
+                  if (metricKeys.includes(section)) return availablePhases[section];
+                  return true;
+                }).map(section => (
                   <label key={section} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
@@ -2088,54 +2179,69 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                 <div style={{ gridColumn: 'span 2' }}>
                   <h4 style={{ margin: '10px 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Project Metrics Charts</h4>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.design}
-                        onChange={() => handleSectionVisibilityToggle('design')}
-                      />
-                      Design
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.partDevelopment}
-                        onChange={() => handleSectionVisibilityToggle('partDevelopment')}
-                      />
-                      Part Development
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.build}
-                        onChange={() => handleSectionVisibilityToggle('build')}
-                      />
-                      Build
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.gateway}
-                        onChange={() => handleSectionVisibilityToggle('gateway')}
-                      />
-                      Gateway
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.validation}
-                        onChange={() => handleSectionVisibilityToggle('validation')}
-                      />
-                      Validation
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.qualityCheck}
-                        onChange={() => handleSectionVisibilityToggle('qualityCheck')}
-                      />
-                      Quality Check
-                    </label>
+                    {availablePhases.design && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={visibleSections.design}
+                          onChange={() => handleSectionVisibilityToggle('design')}
+                        />
+                        Design
+                      </label>
+                    )}
+                    {availablePhases.partDevelopment && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={visibleSections.partDevelopment}
+                          onChange={() => handleSectionVisibilityToggle('partDevelopment')}
+                        />
+                        Part Development
+                      </label>
+                    )}
+                    {availablePhases.build && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={visibleSections.build}
+                          onChange={() => handleSectionVisibilityToggle('build')}
+                        />
+                        Build
+                      </label>
+                    )}
+                    {availablePhases.gateway && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={visibleSections.gateway}
+                          onChange={() => handleSectionVisibilityToggle('gateway')}
+                        />
+                        Gateway
+                      </label>
+                    )}
+                    {availablePhases.validation && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={visibleSections.validation}
+                          onChange={() => handleSectionVisibilityToggle('validation')}
+                        />
+                        Validation
+                      </label>
+                    )}
+                    {availablePhases.qualityCheck && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={visibleSections.qualityCheck}
+                          onChange={() => handleSectionVisibilityToggle('qualityCheck')}
+                        />
+                        Quality Check
+                      </label>
+                    )}
+                    {(!availablePhases.design && !availablePhases.partDevelopment && !availablePhases.build && !availablePhases.gateway && !availablePhases.validation && !availablePhases.qualityCheck) && (
+                      <div style={{ color: '#9ca3af', fontSize: '13px', gridColumn: 'span 3' }}>No project metrics available based on uploaded files.</div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2219,7 +2325,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   };
 
   // Render chart based on type
-  const renderChart = (chartId, chartType, isMaximized = false) => {
+  const renderChart = (chartId, chartType, isMaximized = false, trackerId = null) => {
     if (!activeProject) return null;
 
     const size = isMaximized ? { width: '100%', height: '400px' } : { width: '100%', height: '320px' };
@@ -2229,11 +2335,10 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
     // If no chart data or configuration, show placeholder
     let chartData = [];
-    if (activeProject?.submodules && activeProject.submodules.length > 0) {
-      const trackerId = activeProject.submodules[0].trackerId;
-      if (submoduleData[trackerId] && submoduleData[trackerId].rows) {
-        chartData = submoduleData[trackerId].rows;
-      }
+    const effectiveTrackerId = trackerId || (activeProject?.submodules && activeProject.submodules.length > 0 ? activeProject.submodules[0].trackerId : null);
+
+    if (effectiveTrackerId && submoduleData[effectiveTrackerId] && submoduleData[effectiveTrackerId].rows) {
+      chartData = submoduleData[effectiveTrackerId].rows;
     }
 
     if (!axisConfig || !axisConfig.xAxis || !axisConfig.yAxis || chartData.length === 0) {
@@ -2454,15 +2559,15 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
     // Compute dynamic dynamicAvailableColumns based on prefetched data
     const dynamicAvailableColumns = useMemo(() => {
-      if (activeProject?.submodules && activeProject.submodules.length > 0) {
-        const trackerId = activeProject.submodules[0].trackerId;
-        const data = submoduleData[trackerId];
+      const tracker = getTrackerForPhase(chartId);
+      if (tracker) {
+        const data = submoduleData[tracker.trackerId];
         if (data && data.headers) {
           return data.headers;
         }
       }
       return availableColumns; // Fallback to dummy data
-    }, [activeProject, submoduleData]);
+    }, [activeProject, submoduleData, chartId]);
 
     const handleApply = () => {
       handleAxisChange(chartId, 'xAxis', localConfig.xAxis);
@@ -2654,7 +2759,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       build: 'Build',
       gateway: 'Gateway',
       validation: 'Validation',
-      qualityCheck: 'Quality Check'
+      qualityIssues: 'Quality Issues'
     };
 
     return (
@@ -2734,7 +2839,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
             </div>
           </div>
           <div style={{ padding: '30px' }}>
-            {renderChart(maximizedChart, chartTypes[activeProject.id]?.[maximizedChart], true)}
+            {renderChart(maximizedChart, chartTypes[activeProject.id]?.[maximizedChart], true, getTrackerForPhase(maximizedChart)?.trackerId)}
           </div>
         </div>
       </div>
@@ -3190,8 +3295,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               )}
 
               {/* Project Metrics Charts */}
-              {(visibleSections.design || visibleSections.partDevelopment || visibleSections.build ||
-                visibleSections.gateway || visibleSections.validation || visibleSections.qualityCheck) && (
+              {((visibleSections.design && availablePhases.design) || (visibleSections.partDevelopment && availablePhases.partDevelopment) || (visibleSections.build && availablePhases.build) ||
+                (visibleSections.gateway && availablePhases.gateway) || (visibleSections.validation && availablePhases.validation) || (visibleSections.qualityIssues && availablePhases.qualityIssues)) && (
                   <div style={{ marginBottom: '35px' }}>
                     <h2 style={{
                       fontSize: '20px',
@@ -3209,15 +3314,17 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                       gap: '15px'
                     }}>
                       {/* Design */}
-                      {visibleSections.design && (
-                        <div style={{
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '6px',
-                          overflow: 'hidden',
-                          backgroundColor: 'white',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                          position: 'relative'
-                        }}>
+                      {(visibleSections.design && availablePhases.design) && (
+                        <div
+                          style={{
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '6px',
+                            overflow: 'hidden',
+                            backgroundColor: 'white',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                            position: 'relative'
+                          }}
+                        >
                           <div style={{
                             backgroundColor: '#1e3a5f',
                             color: 'white',
@@ -3233,21 +3340,23 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                             <ChartOptions chartId="design" currentType={chartTypes[activeProject.id]?.design || 'bar'} />
                           </div>
                           <div style={{ padding: '15px' }}>
-                            {renderChart('design', chartTypes[activeProject.id]?.design || 'bar')}
+                            {renderChart('design', chartTypes[activeProject.id]?.design || 'bar', false, getTrackerForPhase('design')?.trackerId)}
                           </div>
                         </div>
                       )}
 
                       {/* Part Development */}
-                      {visibleSections.partDevelopment && (
-                        <div style={{
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '6px',
-                          overflow: 'hidden',
-                          backgroundColor: 'white',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                          position: 'relative'
-                        }}>
+                      {(visibleSections.partDevelopment && availablePhases.partDevelopment) && (
+                        <div
+                          style={{
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '6px',
+                            overflow: 'hidden',
+                            backgroundColor: 'white',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                            position: 'relative'
+                          }}
+                        >
                           <div style={{
                             backgroundColor: '#1e3a5f',
                             color: 'white',
@@ -3263,21 +3372,23 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                             <ChartOptions chartId="partDevelopment" currentType={chartTypes[activeProject.id]?.partDevelopment || 'line'} />
                           </div>
                           <div style={{ padding: '15px' }}>
-                            {renderChart('partDevelopment', chartTypes[activeProject.id]?.partDevelopment || 'line')}
+                            {renderChart('partDevelopment', chartTypes[activeProject.id]?.partDevelopment || 'line', false, getTrackerForPhase('partDevelopment')?.trackerId)}
                           </div>
                         </div>
                       )}
 
                       {/* Build */}
-                      {visibleSections.build && (
-                        <div style={{
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '6px',
-                          overflow: 'hidden',
-                          backgroundColor: 'white',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                          position: 'relative'
-                        }}>
+                      {(visibleSections.build && availablePhases.build) && (
+                        <div
+                          style={{
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '6px',
+                            overflow: 'hidden',
+                            backgroundColor: 'white',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                            position: 'relative'
+                          }}
+                        >
                           <div style={{
                             backgroundColor: '#1e3a5f',
                             color: 'white',
@@ -3293,21 +3404,23 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                             <ChartOptions chartId="build" currentType={chartTypes[activeProject.id]?.build || 'pie'} />
                           </div>
                           <div style={{ padding: '15px' }}>
-                            {renderChart('build', chartTypes[activeProject.id]?.build || 'pie')}
+                            {renderChart('build', chartTypes[activeProject.id]?.build || 'pie', false, getTrackerForPhase('build')?.trackerId)}
                           </div>
                         </div>
                       )}
 
                       {/* Gateway */}
-                      {visibleSections.gateway && (
-                        <div style={{
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '6px',
-                          overflow: 'hidden',
-                          backgroundColor: 'white',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                          position: 'relative'
-                        }}>
+                      {(visibleSections.gateway && availablePhases.gateway) && (
+                        <div
+                          style={{
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '6px',
+                            overflow: 'hidden',
+                            backgroundColor: 'white',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                            position: 'relative'
+                          }}
+                        >
                           <div style={{
                             backgroundColor: '#1e3a5f',
                             color: 'white',
@@ -3323,21 +3436,23 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                             <ChartOptions chartId="gateway" currentType={chartTypes[activeProject.id]?.gateway || 'area'} />
                           </div>
                           <div style={{ padding: '15px' }}>
-                            {renderChart('gateway', chartTypes[activeProject.id]?.gateway || 'area')}
+                            {renderChart('gateway', chartTypes[activeProject.id]?.gateway || 'area', false, getTrackerForPhase('gateway')?.trackerId)}
                           </div>
                         </div>
                       )}
 
                       {/* Validation */}
-                      {visibleSections.validation && (
-                        <div style={{
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '6px',
-                          overflow: 'hidden',
-                          backgroundColor: 'white',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                          position: 'relative'
-                        }}>
+                      {(visibleSections.validation && availablePhases.validation) && (
+                        <div
+                          style={{
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '6px',
+                            overflow: 'hidden',
+                            backgroundColor: 'white',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                            position: 'relative'
+                          }}
+                        >
                           <div style={{
                             backgroundColor: '#1e3a5f',
                             color: 'white',
@@ -3353,21 +3468,23 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                             <ChartOptions chartId="validation" currentType={chartTypes[activeProject.id]?.validation || 'bar'} />
                           </div>
                           <div style={{ padding: '15px' }}>
-                            {renderChart('validation', chartTypes[activeProject.id]?.validation || 'bar')}
+                            {renderChart('validation', chartTypes[activeProject.id]?.validation || 'bar', false, getTrackerForPhase('validation')?.trackerId)}
                           </div>
                         </div>
                       )}
 
-                      {/* Quality Check */}
-                      {visibleSections.qualityCheck && (
-                        <div style={{
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '6px',
-                          overflow: 'hidden',
-                          backgroundColor: 'white',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                          position: 'relative'
-                        }}>
+                      {/* Quality Issues */}
+                      {(visibleSections.qualityIssues && availablePhases.qualityIssues) && (
+                        <div
+                          style={{
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '6px',
+                            overflow: 'hidden',
+                            backgroundColor: 'white',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                            position: 'relative'
+                          }}
+                        >
                           <div style={{
                             backgroundColor: '#1e3a5f',
                             color: 'white',
@@ -3379,11 +3496,11 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                             justifyContent: 'space-between',
                             alignItems: 'center'
                           }}>
-                            <span>Quality Check</span>
-                            <ChartOptions chartId="qualityCheck" currentType={chartTypes[activeProject.id]?.qualityCheck || 'bar'} />
+                            <span>Quality Issues</span>
+                            <ChartOptions chartId="qualityIssues" currentType={chartTypes[activeProject.id]?.qualityIssues || 'bar'} />
                           </div>
                           <div style={{ padding: '15px' }}>
-                            {renderChart('qualityCheck', chartTypes[activeProject.id]?.qualityCheck || 'bar')}
+                            {renderChart('qualityIssues', chartTypes[activeProject.id]?.qualityIssues || 'bar', false, getTrackerForPhase('qualityIssues')?.trackerId)}
                           </div>
                         </div>
                       )}
