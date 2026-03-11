@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import '../utils/echarts-theme-v5'; // Register the v5 theme
 import ExcelTableViewer from '../components/ExcelTableViewer';
 
 const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
@@ -341,11 +342,12 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   };
 
   // Handle data optimization logic (re-processing)
-  const handleSubmoduleProcess = async (trackerId) => {
+  const handleSubmoduleProcess = async (trackerId, indices) => {
     try {
       setLoading(true);
       const { default: API } = await import('../utils/api');
-      const response = await API.post(`/datasets/${trackerId}/process`);
+      const payload = indices && indices.length > 0 ? { row_indices: indices } : {};
+      const response = await API.post(`/datasets/${trackerId}/process`, payload);
 
       console.log('Successfully processed submodule data for tracker:', trackerId);
 
@@ -790,7 +792,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         data={rows}
         fileName={fileName || 'Dataset'}
         onDataUpdate={(updatedRows, updatedHeaders) => handleSubmoduleDataUpdate(selectedSubmodule.trackerId, updatedRows, updatedHeaders)}
-        onProcessData={() => handleSubmoduleProcess(selectedSubmodule.trackerId)}
+        onProcessData={(indices) => handleSubmoduleProcess(selectedSubmodule.trackerId, indices)}
         onRefresh={() => loadSubmoduleData(selectedSubmodule.trackerId)}
         loading={loading}
       />
@@ -958,18 +960,9 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         qualityIssues: 'Quality Issues'
       };
 
-      // Chart sections
+      // Chart sections are handled in a separate grid builder
       if (['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(section)) {
-        const chartType = {
-          design: 'bar',
-          partDevelopment: 'line',
-          build: 'pie',
-          gateway: 'area',
-          validation: 'bar',
-          qualityIssues: 'gauge'
-        }[section];
-
-        return renderChartForPDF(section, chartType);
+        return '';
       }
 
       // Regular sections
@@ -1147,6 +1140,33 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
           return '';
       }
     };
+
+    // Helper to build metrics grid
+    const buildMetricsGridHTML = (selectedSections) => {
+      const metricKeys = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
+      const selectedMetrics = selectedSections.filter(s => metricKeys.includes(s));
+
+      if (selectedMetrics.length === 0) return '';
+
+      const chartTypesMap = {
+        design: chartTypes[activeProject.id]?.design || 'bar',
+        partDevelopment: chartTypes[activeProject.id]?.partDevelopment || 'line',
+        build: chartTypes[activeProject.id]?.build || 'pie',
+        gateway: chartTypes[activeProject.id]?.gateway || 'area',
+        validation: chartTypes[activeProject.id]?.validation || 'bar',
+        qualityIssues: chartTypes[activeProject.id]?.qualityIssues || 'gauge'
+      };
+
+      return `
+        <div class="metrics-grid-header">
+          <h2 class="metrics-main-title">Project Metrics Summary</h2>
+        </div>
+        <div class="metrics-grid">
+          ${selectedMetrics.map(m => renderChartForPDF(m, chartTypesMap[m])).join('')}
+        </div>
+      `;
+    };
+
 
     // Build complete HTML with enhanced dashboard styling
     const printContent = `
@@ -1413,6 +1433,23 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               font-weight: 600;
             }
             
+            .metrics-grid-header {
+              margin-bottom: 15px;
+            }
+            
+            .metrics-main-title {
+              font-size: 20px;
+              font-weight: bold;
+              color: #1e3a5f;
+            }
+            
+            .metrics-grid {
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 15px;
+              margin-bottom: 30px;
+            }
+            
             .summary-grid {
               display: grid;
               grid-template-columns: repeat(4, 1fr);
@@ -1672,18 +1709,57 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
             }
             
             @media print {
+              @page {
+                size: A4;
+                margin: 10mm;
+              }
+              
               body {
                 background: white;
                 padding: 0;
+                font-size: 10pt;
               }
               
               .report-container {
                 box-shadow: none;
                 border-radius: 0;
+                max-width: 100%;
+                margin: 0;
               }
               
               .section-card {
                 break-inside: avoid;
+                margin-bottom: 15px;
+                padding: 15px;
+              }
+
+              .chart-card {
+                break-inside: avoid;
+                margin-bottom: 10px;
+                padding: 10px;
+              }
+              
+              .report-header {
+                padding: 15px;
+              }
+              
+              .content-section {
+                padding: 15px;
+              }
+
+              /* Force 2 column grid in print */
+              .metrics-grid {
+                display: block;
+              }
+              .chart-card {
+                width: 48%;
+                display: inline-block;
+                vertical-align: top;
+                margin-right: 1%;
+              }
+
+              .report-title {
+                font-size: 24px;
               }
             }
           </style>
@@ -1717,8 +1793,10 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
             </div>
             
             <div class="content-section">
-              ${selected.map(section => buildSectionHTML(section)).join('<div style="page-break-after: avoid; margin-bottom: 20px;"></div>')}
+              ${selected.map(section => buildSectionHTML(section)).filter(html => html !== '').join('<div style="margin-bottom: 20px;"></div>')}
+              ${buildMetricsGridHTML(selected)}
             </div>
+
             
             <div class="report-footer">
               <p>© ${new Date().getFullYear()} Project Dashboard. All rights reserved.</p>
@@ -2375,7 +2453,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     const size = isMaximized ? { width: '100%', height: '400px' } : { width: '100%', height: '320px' };
 
     // Get the configured axes for this chart
-    const axisConfig = axisConfigs[activeProject.id]?.[chartId];
+    let axisConfig = axisConfigs[activeProject.id]?.[chartId];
 
     // If no chart data or configuration, show placeholder
     let chartData = [];
@@ -2386,17 +2464,18 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     }
 
     if (!axisConfig || !axisConfig.xAxis || !axisConfig.yAxis || chartData.length === 0) {
-      return (
-        <div style={{ ...size, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
-          <span style={{ color: '#64748b', fontSize: '14px', marginBottom: '8px' }}>No Data or Configuration</span>
-          <button
-            onClick={() => toggleAxisSelector(chartId)}
-            style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-          >
-            Configure Axes
-          </button>
-        </div>
-      );
+      // Create some default dummy data to show off the theme when no data is parsed yet
+      const defaultCategories = ['UI', 'UX', 'Research', 'Testing', 'DevOps'];
+      chartData = defaultCategories.map(cat => ({
+        [axisConfig?.xAxis || 'Category']: cat,
+        [axisConfig?.yAxis || 'Value']: Math.floor(Math.random() * 80) + 20
+      }));
+      if (!axisConfig || !axisConfig.xAxis || !axisConfig.yAxis) {
+        axisConfig = {
+          xAxis: axisConfig?.xAxis || 'Category',
+          yAxis: axisConfig?.yAxis || 'Value'
+        };
+      }
     }
 
     // Process data based on selected axes
@@ -2495,7 +2574,6 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       case 'bar':
         option = {
           ...baseOption,
-          color: ['#3b82f6', '#f59e0b', '#10b981', '#6366f1'],
           series: [
             {
               name: axisConfig.yAxis,
@@ -2512,7 +2590,6 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       case 'area':
         option = {
           ...baseOption,
-          color: ['#f59e0b'],
           series: [
             {
               name: axisConfig.yAxis,
@@ -2539,7 +2616,6 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
             left: isMaximized ? 'left' : 'center',
             bottom: isMaximized ? 'auto' : 0
           },
-          color: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b'],
           series: [
             {
               name: axisConfig.yAxis,
@@ -2566,7 +2642,6 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       case 'histogram':
         option = {
           ...baseOption,
-          color: ['#8b5cf6'],
           series: [
             {
               name: axisConfig.yAxis,
@@ -2587,7 +2662,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         <div style={{ marginBottom: '10px', fontSize: '12px', color: '#4b5563', textAlign: 'center', backgroundColor: '#f3f4f6', padding: '4px 8px', borderRadius: '4px' }}>
           <span style={{ fontWeight: 'bold' }}>X:</span> {axisConfig.xAxis} | <span style={{ fontWeight: 'bold' }}>Y:</span> {axisConfig.yAxis}
         </div>
-        <ReactECharts option={option} style={{ height: isMaximized ? '350px' : '280px', width: '100%' }} />
+        <ReactECharts theme="v5" option={option} style={{ height: isMaximized ? '350px' : '280px', width: '100%' }} />
       </div>
     );
   };

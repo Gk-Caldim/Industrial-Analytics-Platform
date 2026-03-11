@@ -678,6 +678,19 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
 
                         {selectedRows.length > 0 && (
                             <div className="flex items-center gap-1 mr-2 border-r pr-2 border-slate-300 dark:border-slate-600">
+                                {onProcessData && (
+                                    <button
+                                        onClick={() => {
+                                            const indices = selectedRows.map(id => localData.findIndex(r => r._local_id === id)).filter(idx => idx !== -1);
+                                            onProcessData(indices);
+                                        }}
+                                        disabled={loading}
+                                        className="flex items-center gap-1 h-9 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                    >
+                                        <Zap className="h-4 w-4" />
+                                        <span className="hidden lg:inline">Optimize ({selectedRows.length})</span>
+                                    </button>
+                                )}
                                 <button
                                     onClick={handleBulkEdit}
                                     className="flex items-center gap-1 h-9 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700"
@@ -732,9 +745,9 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                                 <span>Save Changes</span>
                             </button>
                         ) : (
-                            onProcessData && (
+                            onProcessData && selectedRows.length === 0 && (
                                 <button
-                                    onClick={onProcessData}
+                                    onClick={() => onProcessData()}
                                     disabled={loading}
                                     className="flex items-center gap-1.5 h-9 px-3 text-sm font-medium border border-blue-300 dark:border-blue-600 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition disabled:opacity-50 group"
                                     title="Process & Optimize Data (Type Inference)"

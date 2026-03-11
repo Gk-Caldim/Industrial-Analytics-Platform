@@ -1,5 +1,3 @@
-# backend/app/api/datasets.py
-
 from fastapi import APIRouter, UploadFile, Form, HTTPException, File, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -18,6 +16,40 @@ from app.utils.type_inference import infer_column_type
 from fastapi.responses import StreamingResponse
 from fastapi import Query
 import json
+from collections import OrderedDict
+import threading
+
+# 🔹 SIMPLE LRU CACHE FOR DASHBOARD DATA
+class DatasetCache:
+    def __init__(self, capacity=256):
+        self.cache = OrderedDict()
+        self.capacity = capacity
+        self.lock = threading.Lock()
+
+    def get(self, key):
+        with self.lock:
+            if key not in self.cache:
+                return None
+            self.cache.move_to_end(key)
+            return self.cache[key]
+
+    def set(self, key, value):
+        with self.lock:
+            if key in self.cache:
+                self.cache.move_to_end(key)
+            self.cache[key] = value
+            if len(self.cache) > self.capacity:
+                self.cache.popitem(last=False)
+
+    def invalidate(self, dataset_id: int):
+        with self.lock:
+            # Keys are tuples (dataset_id, function_name, *args)
+            keys_to_remove = [k for k in self.cache.keys() if k[0] == dataset_id]
+            for k in keys_to_remove:
+                del self.cache[k]
+            print(f"Invalidated cache for dataset_id: {dataset_id}")
+
+global_dataset_cache = DatasetCache()
 
 router = APIRouter(prefix="/datasets", tags=["Datasets"])
 
@@ -57,6 +89,12 @@ def list_datasets(db: Session = Depends(get_db)):
 # 🔹 PREVIEW DATA (EYE BUTTON)
 @router.get("/{dataset_id}/excel-view")
 def get_excel_view(dataset_id: int, db: Session = Depends(get_db)):
+    # Check cache first
+    cache_key = (dataset_id, "excel_view")
+    cached_data = global_dataset_cache.get(cache_key)
+    if cached_data:
+        return cached_data
+
     dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
@@ -118,6 +156,9 @@ def get_excel_view(dataset_id: int, db: Session = Depends(get_db)):
         }
     }
 
+    global_dataset_cache.set(cache_key, result)
+    return result
+
 
 # 🔹 DOWNLOAD DATA AGAIN
 @router.get("/{dataset_id}/download")
@@ -164,6 +205,12 @@ def get_chart_data(
     y: str = Query(...),
     db: Session = Depends(get_db),
 ):
+    # Check cache first
+    cache_key = (dataset_id, "chart", x, y)
+    cached_data = global_dataset_cache.get(cache_key)
+    if cached_data:
+        return cached_data
+
     dataset = db.query(Dataset).filter_by(id=dataset_id).first()
     if not dataset:
         return {"x": [], "y": [], "count": 0}
@@ -189,11 +236,13 @@ def get_chart_data(
         x_vals = df_valid[x].tolist()
         y_vals = df_valid[y].astype(float).tolist()
 
-    return {
+    result = {
         "x": x_vals,
         "y": y_vals,
         "count": len(x_vals)
     }
+    global_dataset_cache.set(cache_key, result)
+    return result
 
 class UpdateDatasetRequest(BaseModel):
     headers: List[str]
@@ -259,7 +308,8 @@ def update_dataset_data(
     # Update row count
     dataset.row_count = len(payload.data)
     
-    db.commit()
+    # Invalidate Cache
+    global_dataset_cache.invalidate(dataset_id)
     
     return {"message": "Dataset updated successfully"}
 
@@ -493,6 +543,9 @@ async def upload_dataset(
         ))
     db.commit()
 
+    # Invalidate cache if overwriting an existing dataset
+    global_dataset_cache.invalidate(dataset.id)
+
     # 5️⃣ Return metadata for frontend tracker
     return {
         "id": dataset.id,
@@ -563,6 +616,9 @@ def update_dataset_metadata(
     db.commit()
     db.refresh(dataset)
     
+    # Invalidate cache
+    global_dataset_cache.invalidate(dataset_id)
+    
     return {"message": "Dataset metadata updated successfully"}
 
 @router.delete("/{dataset_id}")
@@ -584,14 +640,21 @@ def delete_dataset(dataset_id: int, db: Session = Depends(get_db)):
     db.query(DatasetRow).filter(DatasetRow.dataset_id == dataset_id).delete()
     db.query(DatasetColumn).filter(DatasetColumn.dataset_id == dataset_id).delete()
 
+    # Invalidate cache
+    global_dataset_cache.invalidate(dataset_id)
+
     db.delete(dataset)
     db.commit()
 
     return {"message": "Dataset deleted successfully"}
 
+class ProcessDatasetRequest(BaseModel):
+    row_indices: Optional[List[int]] = None
+
 @router.post("/{dataset_id}/process")
 def process_dataset_data(
     dataset_id: int,
+    payload: ProcessDatasetRequest = None,
     db: Session = Depends(get_db)
 ):
     """
@@ -599,6 +662,7 @@ def process_dataset_data(
     1. Re-infers column types
     2. Transforms data to normalized formats (e.g. dates to ISO)
     3. Updates column metadata and underlying table/rows
+    Supports partial processing via payload.row_indices
     """
     dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
     if not dataset:
@@ -609,55 +673,77 @@ def process_dataset_data(
         raise HTTPException(status_code=400, detail="No data available to process")
 
     # 1. Clean and Transform Data
-    # For each column, try to infer the best type and convert
     new_columns_metadata = []
     
+    # Identify explicit subset to process
+    subset_indices = payload.row_indices if payload and payload.row_indices else list(range(len(df)))
+    target_df = df.iloc[subset_indices].copy()
+    
     for col in df.columns:
-        # Preprocessing: Clean up string values only, leaving actual nulls as pd.NA
-        if df[col].dtype == 'object':
-            # Handle actual nulls/empty strings first, and then strip
-            df[col] = df[col].apply(lambda x: pd.NA if pd.isna(x) or str(x).strip().lower() in ['nan', 'none', '', 'null'] else str(x).strip())
-            # Normalize common date separators
-            df[col] = df[col].apply(lambda x: x.replace('--', '-') if isinstance(x, str) else x)
+        # Preprocessing: Clean up string values only on target_df
+        if target_df[col].dtype == 'object':
+            target_df[col] = target_df[col].apply(lambda x: pd.NA if pd.isna(x) or str(x).strip().lower() in ['nan', 'none', '', 'null'] else str(x).strip())
+            target_df[col] = target_df[col].apply(lambda x: x.replace('--', '-') if isinstance(x, str) else x)
         
-        # Calculate non-null count accurately
-        non_null_mask = df[col].notna()
+        non_null_mask = target_df[col].notna()
         non_null_count = non_null_mask.sum()
         
         if non_null_count == 0:
             new_columns_metadata.append({"name": col, "type": "string"})
             continue
             
-        # Try to convert to numeric if possible (handles integers and floats)
-        # Handle commas in strings like "1,234.56"
-        temp_col = df[col].apply(lambda x: x.replace(',', '') if isinstance(x, str) else x)
+        temp_col = target_df[col].apply(lambda x: x.replace(',', '') if isinstance(x, str) else x)
         numeric_series = pd.to_numeric(temp_col, errors='coerce')
         valid_numeric_count = numeric_series.notna().sum()
         
-        # Threshold: if > 70% of non-null values are numeric, we treat it as numeric
-        if valid_numeric_count > 0 and (valid_numeric_count / non_null_count) >= 0.7:
-            # Check if it's all integers
+        inferred_type = None
+
+        # Robust Date Parsing: Try default first (which handles ISO perfectly)
+        # Then try dayfirst=True (which handles DD/MM well, but breaks some ISO strings)
+        # Use whichever yields more valid dates
+        date_series_default = pd.to_datetime(target_df[col], errors='coerce')
+        valid_date_count_default = date_series_default.notna().sum()
+        
+        date_series_df = pd.to_datetime(target_df[col], errors='coerce', dayfirst=True)
+        valid_date_count_df = date_series_df.notna().sum()
+        
+        if valid_date_count_df > valid_date_count_default:
+            date_series = date_series_df
+            valid_date_count = valid_date_count_df
+        else:
+            date_series = date_series_default
+            valid_date_count = valid_date_count_default
+
+        num_ratio = valid_numeric_count / non_null_count
+        date_ratio = valid_date_count / non_null_count
+
+        # If it's mostly numeric, and doesn't look heavily like dates, check for integers
+        # Only treat as date if date_ratio > num_ratio, OR date_ratio >= 0.4 and it's heavily formatted strings (like '2026-07-31' where numeric fails)
+        if date_ratio >= 0.4 and date_ratio > num_ratio:
+            formatted_dates = date_series.dt.strftime('%Y-%m-%d')
+            target_df[col] = formatted_dates.where(date_series.notna(), target_df[col])
+            inferred_type = "date"
+        elif num_ratio >= 0.7:
             numeric_vals = numeric_series.dropna()
             if all(val == float(int(val)) for val in numeric_vals):
-                df[col] = numeric_series.round().astype('Int64')
+                target_df[col] = numeric_series.round().astype('Int64')
+                inferred_type = "integer"
             else:
-                df[col] = numeric_series
+                target_df[col] = numeric_series
+                inferred_type = "float"
+        elif date_ratio >= 0.4:
+            formatted_dates = date_series.dt.strftime('%Y-%m-%d')
+            target_df[col] = formatted_dates.where(date_series.notna(), target_df[col])
+            inferred_type = "date"
         else:
-            # Try to convert to datetime if it's not numeric
-            try:
-                # pandas handles "July 2026", "21-Jun-26", "21/09/2026", "2026-07-31" natively
-                # dayfirst=True is critical for DD/MM/YYYY
-                date_series = pd.to_datetime(df[col], errors='coerce', dayfirst=True)
-                valid_date_count = date_series.notna().sum()
-                
-                # Use a reasonable threshold to decide if it's a date column
-                if valid_date_count > 0 and (valid_date_count / non_null_count) >= 0.4:
-                    # Format as date-only for consistency in the DB
-                    df[col] = date_series.dt.strftime('%Y-%m-%d')
-            except:
-                pass
+            inferred_type = "string"
 
-        inferred_type = infer_column_type(df[col])
+        if inferred_type is None:
+            inferred_type = infer_column_type(target_df[col])
+            
+        # Apply the transformed subset back to the main dataframe
+        df.iloc[subset_indices, df.columns.get_loc(col)] = target_df[col]
+            
         new_columns_metadata.append({
             "name": col,
             "type": inferred_type
@@ -692,6 +778,9 @@ def process_dataset_data(
         ))
     
     db.commit()
+    
+    # Invalidate cache
+    global_dataset_cache.invalidate(dataset_id)
     
     return {
         "message": "Dataset optimized and normalized successfully",
