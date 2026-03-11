@@ -1,5 +1,3 @@
-# backend/app/api/datasets.py
-
 from fastapi import APIRouter, UploadFile, Form, HTTPException, File, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -18,6 +16,40 @@ from app.utils.type_inference import infer_column_type
 from fastapi.responses import StreamingResponse
 from fastapi import Query
 import json
+from collections import OrderedDict
+import threading
+
+# 🔹 SIMPLE LRU CACHE FOR DASHBOARD DATA
+class DatasetCache:
+    def __init__(self, capacity=256):
+        self.cache = OrderedDict()
+        self.capacity = capacity
+        self.lock = threading.Lock()
+
+    def get(self, key):
+        with self.lock:
+            if key not in self.cache:
+                return None
+            self.cache.move_to_end(key)
+            return self.cache[key]
+
+    def set(self, key, value):
+        with self.lock:
+            if key in self.cache:
+                self.cache.move_to_end(key)
+            self.cache[key] = value
+            if len(self.cache) > self.capacity:
+                self.cache.popitem(last=False)
+
+    def invalidate(self, dataset_id: int):
+        with self.lock:
+            # Keys are tuples (dataset_id, function_name, *args)
+            keys_to_remove = [k for k in self.cache.keys() if k[0] == dataset_id]
+            for k in keys_to_remove:
+                del self.cache[k]
+            print(f"Invalidated cache for dataset_id: {dataset_id}")
+
+global_dataset_cache = DatasetCache()
 
 router = APIRouter(prefix="/datasets", tags=["Datasets"])
 
@@ -57,6 +89,12 @@ def list_datasets(db: Session = Depends(get_db)):
 # 🔹 PREVIEW DATA (EYE BUTTON)
 @router.get("/{dataset_id}/excel-view")
 def get_excel_view(dataset_id: int, db: Session = Depends(get_db)):
+    # Check cache first
+    cache_key = (dataset_id, "excel_view")
+    cached_data = global_dataset_cache.get(cache_key)
+    if cached_data:
+        return cached_data
+
     dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
@@ -118,6 +156,9 @@ def get_excel_view(dataset_id: int, db: Session = Depends(get_db)):
         }
     }
 
+    global_dataset_cache.set(cache_key, result)
+    return result
+
 
 # 🔹 DOWNLOAD DATA AGAIN
 @router.get("/{dataset_id}/download")
@@ -164,6 +205,12 @@ def get_chart_data(
     y: str = Query(...),
     db: Session = Depends(get_db),
 ):
+    # Check cache first
+    cache_key = (dataset_id, "chart", x, y)
+    cached_data = global_dataset_cache.get(cache_key)
+    if cached_data:
+        return cached_data
+
     dataset = db.query(Dataset).filter_by(id=dataset_id).first()
     if not dataset:
         return {"x": [], "y": [], "count": 0}
@@ -189,11 +236,13 @@ def get_chart_data(
         x_vals = df_valid[x].tolist()
         y_vals = df_valid[y].astype(float).tolist()
 
-    return {
+    result = {
         "x": x_vals,
         "y": y_vals,
         "count": len(x_vals)
     }
+    global_dataset_cache.set(cache_key, result)
+    return result
 
 class UpdateDatasetRequest(BaseModel):
     headers: List[str]
@@ -259,7 +308,8 @@ def update_dataset_data(
     # Update row count
     dataset.row_count = len(payload.data)
     
-    db.commit()
+    # Invalidate Cache
+    global_dataset_cache.invalidate(dataset_id)
     
     return {"message": "Dataset updated successfully"}
 
@@ -493,6 +543,9 @@ async def upload_dataset(
         ))
     db.commit()
 
+    # Invalidate cache if overwriting an existing dataset
+    global_dataset_cache.invalidate(dataset.id)
+
     # 5️⃣ Return metadata for frontend tracker
     return {
         "id": dataset.id,
@@ -563,6 +616,9 @@ def update_dataset_metadata(
     db.commit()
     db.refresh(dataset)
     
+    # Invalidate cache
+    global_dataset_cache.invalidate(dataset_id)
+    
     return {"message": "Dataset metadata updated successfully"}
 
 @router.delete("/{dataset_id}")
@@ -583,6 +639,9 @@ def delete_dataset(dataset_id: int, db: Session = Depends(get_db)):
     # Delete child rows first (FK safety) - for legacy data
     db.query(DatasetRow).filter(DatasetRow.dataset_id == dataset_id).delete()
     db.query(DatasetColumn).filter(DatasetColumn.dataset_id == dataset_id).delete()
+
+    # Invalidate cache
+    global_dataset_cache.invalidate(dataset_id)
 
     db.delete(dataset)
     db.commit()
@@ -634,30 +693,56 @@ def process_dataset_data(
         numeric_series = pd.to_numeric(temp_col, errors='coerce')
         valid_numeric_count = numeric_series.notna().sum()
         
-        # Threshold: if > 70% of non-null values are numeric, we treat it as numeric
-        if valid_numeric_count > 0 and (valid_numeric_count / non_null_count) >= 0.7:
+        inferred_type = None
+
+        # Robust Date Parsing: Try default first (which handles ISO perfectly)
+        # Then try dayfirst=True (which handles DD/MM well, but breaks some ISO strings)
+        # Use whichever yields more valid dates
+        date_series_default = pd.to_datetime(df[col], errors='coerce')
+        valid_date_count_default = date_series_default.notna().sum()
+        
+        date_series_df = pd.to_datetime(df[col], errors='coerce', dayfirst=True)
+        valid_date_count_df = date_series_df.notna().sum()
+        
+        if valid_date_count_df > valid_date_count_default:
+            date_series = date_series_df
+            valid_date_count = valid_date_count_df
+        else:
+            date_series = date_series_default
+            valid_date_count = valid_date_count_default
+
+        num_ratio = valid_numeric_count / non_null_count
+        date_ratio = valid_date_count / non_null_count
+
+        # If it's mostly numeric, and doesn't look heavily like dates, check for integers
+        # Only treat as date if date_ratio > num_ratio, OR date_ratio >= 0.4 and it's heavily formatted strings (like '2026-07-31' where numeric fails)
+        if date_ratio >= 0.4 and date_ratio > num_ratio:
+            # Format parseable dates, keep original strings for the rest!
+            formatted_dates = date_series.dt.strftime('%Y-%m-%d')
+            df[col] = formatted_dates.where(date_series.notna(), df[col])
+            inferred_type = "date"
+        elif num_ratio >= 0.7:
             # Check if it's all integers
             numeric_vals = numeric_series.dropna()
             if all(val == float(int(val)) for val in numeric_vals):
                 df[col] = numeric_series.round().astype('Int64')
+                inferred_type = "integer"
             else:
                 df[col] = numeric_series
+                inferred_type = "float"
+        elif date_ratio >= 0.4:
+            # It's somewhat a date but num_ratio is also high, probably years like '2023', '2024'.
+            # Or strings that parsed as Excel dates (integers).
+            # If dates are appropriate:
+            formatted_dates = date_series.dt.strftime('%Y-%m-%d')
+            df[col] = formatted_dates.where(date_series.notna(), df[col])
+            inferred_type = "date"
         else:
-            # Try to convert to datetime if it's not numeric
-            try:
-                # pandas handles "July 2026", "21-Jun-26", "21/09/2026", "2026-07-31" natively
-                # dayfirst=True is critical for DD/MM/YYYY
-                date_series = pd.to_datetime(df[col], errors='coerce', dayfirst=True)
-                valid_date_count = date_series.notna().sum()
-                
-                # Use a reasonable threshold to decide if it's a date column
-                if valid_date_count > 0 and (valid_date_count / non_null_count) >= 0.4:
-                    # Format as date-only for consistency in the DB
-                    df[col] = date_series.dt.strftime('%Y-%m-%d')
-            except:
-                pass
+            inferred_type = "string"
 
-        inferred_type = infer_column_type(df[col])
+        if inferred_type is None:
+            inferred_type = infer_column_type(df[col])
+            
         new_columns_metadata.append({
             "name": col,
             "type": inferred_type
@@ -692,6 +777,9 @@ def process_dataset_data(
         ))
     
     db.commit()
+    
+    # Invalidate cache
+    global_dataset_cache.invalidate(dataset_id)
     
     return {
         "message": "Dataset optimized and normalized successfully",

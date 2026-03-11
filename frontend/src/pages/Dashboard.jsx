@@ -616,7 +616,7 @@ const Dashboard = () => {
           return capitalizeFirstLetter((file.displayName || file.name || '').replace(/\.(xlsx|xls|csv|json|txt)$/i, ''));
         }
       }
-      return 'File Viewer';
+      return 'Upload Trackers';
     }
     if (activeModule === 'project-dashboard' && selectedProjectFileId) {
       for (const proj of projectDashboardModules) {
