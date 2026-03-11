@@ -4,7 +4,7 @@ import {
   Plus, Search, X, ChevronUp, ChevronDown, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   AlertTriangle, FileText, FileSpreadsheet, Database,
   HardDrive, Archive, Check, Calendar, Save, EyeOff, User,
-  Edit2, Save as SaveIcon, Columns, Rows, CheckSquare, Square, FolderTree, Layout, Snowflake, RefreshCw, Copy, ArrowUp, ArrowDown
+  Edit2, Columns, Rows, CheckSquare, Square, FolderTree, Layout, Snowflake, RefreshCw, Copy, ArrowUp, ArrowDown
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -95,8 +95,10 @@ const FileContentViewer = ({
   const [showBulkDeletePrompt, setShowBulkDeletePrompt] = useState(false);
   const [showExportConfirmPrompt, setShowExportConfirmPrompt] = useState(null);
 
-  // Filter state
   const [columnFilter, setColumnFilter] = useState('');
+
+  // Column Virtualization State
+  const [startColumnIndex, setStartColumnIndex] = useState(0);
 
   // Freeze states
   const [frozenRows, setFrozenRows] = useState([]);
@@ -134,6 +136,8 @@ const FileContentViewer = ({
   };
 
   const handleFreezeColumnMenu = (index) => {
+    // Offset by 1 if row numbers are enabled and we are not in viewOnly mode with its own logic
+    // Actually, let's keep it simple and just use the index provided which should be the actual column index
     if (frozenColumns.includes(index)) {
       setFrozenColumns(frozenColumns.filter(idx => idx !== index));
     } else {
@@ -917,6 +921,16 @@ const FileContentViewer = ({
   };
 
   // ==========================================================================
+  // Helper to get total column count for colspan
+  // ==========================================================================
+  const getTotalColSpan = () => {
+    let count = paginatedVisibleHeaders.length;
+    if (!viewOnly) count += 1; // Checkbox column
+    count += 1; // Row number column
+    return count;
+  };
+
+  // ==========================================================================
   // FIXED: Refresh function - replaces window.location.reload()
   // ==========================================================================
   const handleRefresh = () => {
@@ -1086,6 +1100,59 @@ const FileContentViewer = ({
   `;
 
   // ==========================================================================
+  // Column Virtualization logic for the Grid View
+  // ==========================================================================
+  const { paginatedVisibleHeaders, nextColIndex, prevColIndex } = useMemo(() => {
+    const MAX_CHAR_LENGTH = 120; // Target character count per window
+    let currentLength = 0;
+    let endIndex = startColumnIndex;
+
+    while (endIndex < editedHeaders.length) {
+      const charCount = editedHeaders[endIndex].length;
+      const weight = Math.max(charCount, 20); // Base width weight
+
+      if (currentLength + weight > MAX_CHAR_LENGTH && endIndex > startColumnIndex) {
+        break;
+      }
+      currentLength += weight;
+      endIndex++;
+    }
+
+    // Window safeguard
+    endIndex = Math.min(startColumnIndex + 8, endIndex);
+
+    let pIndex = startColumnIndex - 1;
+    let prevLength = 0;
+    while (pIndex >= 0) {
+      const charCount = editedHeaders[pIndex].length;
+      const weight = Math.max(charCount, 20);
+      if (prevLength + weight > MAX_CHAR_LENGTH && pIndex < startColumnIndex - 1) {
+        break;
+      }
+      prevLength += weight;
+      pIndex--;
+    }
+    pIndex = Math.max(pIndex, startColumnIndex - 8 - 1);
+
+    return {
+      paginatedVisibleHeaders: editedHeaders.slice(startColumnIndex, endIndex).map((header, idx) => ({
+        header,
+        originalIndex: startColumnIndex + idx
+      })),
+      nextColIndex: endIndex < editedHeaders.length ? endIndex : null,
+      prevColIndex: startColumnIndex > 0 ? pIndex + 1 : null
+    };
+  }, [editedHeaders, startColumnIndex]);
+
+  const handleNextColumns = useCallback(() => {
+    if (nextColIndex !== null) setStartColumnIndex(nextColIndex);
+  }, [nextColIndex]);
+
+  const handlePrevColumns = useCallback(() => {
+    if (prevColIndex !== null) setStartColumnIndex(prevColIndex);
+  }, [prevColIndex]);
+
+  // ==========================================================================
   // Loading and Error States
   // ==========================================================================
   if (isLoading) {
@@ -1145,6 +1212,7 @@ const FileContentViewer = ({
       </div>
     );
   }
+
 
   return (
     <div className="h-full flex flex-col bg-gray-50 overflow-visible">
@@ -1557,6 +1625,7 @@ const FileContentViewer = ({
         </div>
       )}
 
+
       {/* MAIN CONTENT CONTAINER */}
       <div className="file-viewer-container p-2" style={{ overflow: 'visible' }}>
         <div className="bg-white border border-gray-200 rounded shadow-sm flex flex-col h-full overflow-visible">
@@ -1566,15 +1635,26 @@ const FileContentViewer = ({
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 
               {/* LEFT SIDE */}
-              <div className="flex flex-1 flex-col sm:flex-row gap-2 sm:gap-2 items-start sm:items-center">
+              <div className="flex flex-1 flex-col sm:flex-row gap-3 items-start sm:items-center">
+                {/* Refined Back Button */}
+                {onBack && (
+                  <button
+                    onClick={onBack}
+                    className="flex items-center gap-2 h-10 px-4 text-xs sm:text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 transition-all shadow-sm bg-white text-gray-700"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    <span>Back</span>
+                  </button>
+                )}
+
                 <div className="relative w-full sm:w-auto">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     type="text"
-                    placeholder="Search..."
+                    placeholder="Search database..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
-                    className="w-full sm:w-48 h-10 pl-9 pr-3 text-xs sm:text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black"
+                    className="w-full sm:w-64 h-10 pl-9 pr-3 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
                   />
                 </div>
               </div>
@@ -1677,60 +1757,65 @@ const FileContentViewer = ({
                   </button>
                 )}
 
-                {/* Back Button */}
-                {onBack && (
-                  <button
-                    onClick={onBack}
-                    className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50 tooltip"
-                    data-tooltip="Go back"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </button>
-                )}
               </div>
             </div>
           </div>
 
           {/* TABLE SECTION */}
-          <div className="table-container">
-            <table className="min-w-full text-base border-collapse">
+          <div className="table-container overflow-auto max-h-[calc(100vh-250px)]">
+            <table className="min-w-full text-base border-separate border-spacing-0">
               <thead>
-                <tr className="border-b border-gray-200">
-                  {/* Checkbox column */}
+                <tr className="bg-slate-50 sticky top-0 z-[30]">
+                  {/* Row Number Header - Spreadsheet Style */}
+                  <th className="py-3 px-3 border-b border-r border-slate-200 bg-slate-100 sticky left-0 z-[50] w-[50px] text-center text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                    #
+                  </th>
+
+                  {/* Checkbox Header & Column Navigation Controls */}
                   {!viewOnly && (
-                    <th
-                      className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap w-8 ${isColumnFrozen(0) ? 'frozen-column' : ''
-                        }`}
-                      style={{
-                        left: isColumnFrozen(0) ? '0' : 'auto',
-                        zIndex: isColumnFrozen(0) ? 35 : 30
-                      }}
-                    >
-                      <div className="flex items-center justify-center">
-                        <button
-                          onClick={toggleSelectAll}
-                          className="p-1 text-gray-700 hover:text-gray-900"
-                        >
-                          {selectAll ? (
-                            <CheckSquare className="h-4 w-4" />
-                          ) : (
-                            <Square className="h-4 w-4" />
-                          )}
-                        </button>
+                    <th className="py-3 px-4 border-b border-r border-slate-200 bg-slate-50 sticky left-[50px] z-[40] w-[140px]">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center pr-2 border-r border-slate-200">
+                          <input
+                            type="checkbox"
+                            checked={selectAll}
+                            onChange={handleSelectAll}
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                        </div>
+                        <div className="flex items-center space-x-1 pl-2">
+                          <button
+                            onClick={handlePrevColumns}
+                            disabled={prevColIndex === null}
+                            className={`p-1 rounded hover:bg-slate-100 transition-colors ${prevColIndex === null ? 'text-slate-300' : 'text-blue-600'}`}
+                            title="Previous Columns"
+                          >
+                            <ChevronLeft className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={handleNextColumns}
+                            disabled={nextColIndex === null}
+                            className={`p-1 rounded hover:bg-slate-100 transition-colors ${nextColIndex === null ? 'text-slate-300' : 'text-blue-600'}`}
+                            title="Next Columns"
+                          >
+                            <ChevronRight className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
                     </th>
                   )}
-                  {editedHeaders.map((header, index) => {
-                    const actualColumnIndex = viewOnly ? index : index + 1;
+                  {paginatedVisibleHeaders.map(({ header, originalIndex }) => {
+                    const actualColumnIndex = viewOnly ? originalIndex : originalIndex + 1;
                     return (
                       <th
-                        key={index}
+                        key={originalIndex}
                         scope="col"
-                        className={`text-left py-3 px-8 font-medium whitespace-nowrap group ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
+                        className={`text-left py-3 px-8 font-medium whitespace-nowrap group border-b border-r border-slate-200 ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
                           }`}
                         style={{
                           left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
-                          zIndex: isColumnFrozen(actualColumnIndex) ? 35 : 30
+                          zIndex: isColumnFrozen(actualColumnIndex) ? 35 : 30,
+                          marginLeft: !viewOnly ? '190px' : '50px' // Manual offset for sticky columns if not using getFrozenColumnLeft correctly
                         }}
                       >
                         <div className="flex items-center justify-between space-x-2">
@@ -1867,22 +1952,25 @@ const FileContentViewer = ({
                     return (
                       <tr
                         key={rowIndex}
-                        className={`border-b border-gray-200 hover:bg-gray-50 transition-colors ${!viewOnly && isSelected ? 'bg-blue-50' : ''
-                          } ${!viewOnly && isEditingThisRow ? 'bg-yellow-50' : ''
-                          } ${isRowCurrentlyFrozen ? 'frozen-row' : ''
+                        className={`border-b border-slate-200 hover:bg-blue-50/30 transition-colors ${!viewOnly && isSelected ? 'bg-blue-50/80 hover:bg-blue-100/70' :
+                          'even:bg-slate-50/30'
+                          } ${!viewOnly && isEditingThisRow ? 'bg-amber-50 hover:bg-amber-100/70' : ''} ${isRowCurrentlyFrozen ? 'frozen-row' : ''
                           }`}
                         style={{
                           top: isRowCurrentlyFrozen ? getFrozenRowTop(rowIndex) : 'auto'
                         }}
                       >
+                        {/* Row Number Cell */}
+                        <td className="py-2.5 px-3 whitespace-nowrap border-r border-slate-200 bg-slate-100 sticky left-0 z-[16] text-center text-[11px] font-bold text-slate-500">
+                          {rowIndex + 1}
+                        </td>
                         {/* Checkbox cell */}
                         {!viewOnly && (
                           <td
-                            className={`py-3 px-8 whitespace-nowrap w-4 ${isColumnFrozen(0) ? 'frozen-column' : ''
-                              }`}
+                            className={`py-2.5 px-4 whitespace-nowrap w-12 border-r border-slate-200 bg-white sticky left-[50px] z-[15]`}
                             style={{
-                              left: isColumnFrozen(0) ? '0' : 'auto',
-                              zIndex: isColumnFrozen(0) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto'
+                              left: '50px',
+                              zIndex: isRowCurrentlyFrozen ? 25 : 15
                             }}
                           >
                             <div className="flex items-center justify-center">
@@ -1895,12 +1983,13 @@ const FileContentViewer = ({
                             </div>
                           </td>
                         )}
-                        {row && row.map((cell, colIndex) => {
-                          const actualColumnIndex = viewOnly ? colIndex : colIndex + 1;
+                        {paginatedVisibleHeaders.map(({ originalIndex }) => {
+                          const cell = row[originalIndex];
+                          const actualColumnIndex = viewOnly ? originalIndex : originalIndex + 1;
                           return (
                             <td
-                              key={colIndex}
-                              className={`py-3 px-8 whitespace-nowrap min-w-[160px] text-base ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
+                              key={originalIndex}
+                              className={`py-3 px-8 whitespace-nowrap min-w-[160px] text-base border-r border-slate-200 ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
                                 }`}
                               style={{
                                 left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
@@ -1911,7 +2000,7 @@ const FileContentViewer = ({
                                 <input
                                   type="text"
                                   value={cell || ''}
-                                  onChange={(e) => handleCellChange(rowIndex, colIndex, e.target.value)}
+                                  onChange={(e) => handleCellChange(rowIndex, originalIndex, e.target.value)}
                                   className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black"
                                 />
                               ) : (
@@ -1941,7 +2030,7 @@ const FileContentViewer = ({
           </div>
 
           {/* FOOTER SECTION */}
-          <div className="px-4 py-3 border-t border-gray-200 text-xs text-gray-900 flex flex-col sm:flex-row items-center justify-between gap-2 bg-white flex-shrink-0">
+          <div className="px-4 py-3 border-t border-slate-200 text-xs text-slate-900 flex flex-col sm:flex-row items-center justify-between gap-2 bg-white flex-shrink-0">
             {/* LEFT SIDE */}
             <div className="flex items-center gap-2">
               {/* Add Row Button */}
@@ -2014,15 +2103,21 @@ const FileContentViewer = ({
             </div>
 
             {/* RIGHT SIDE */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6">
+              {/* Page Information */}
+              <div className="text-slate-600 font-medium whitespace-nowrap">
+                Showing <span className="text-slate-900">{paginatedRows.length}</span> of <span className="text-slate-900">{sortedRows.length}</span> rows
+              </div>
+
               {/* Page Size Selector */}
               {!viewOnly && totalPages > 1 && (
                 <div className="flex items-center gap-2">
-                  <span className="text-gray-600">Show:</span>
+                  <span className="text-slate-500">Rows per page:</span>
                   <select
                     value={pageSize}
                     onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-                    className="px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-gray-500"
+                    className="pl-2 pr-8 py-1 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white text-slate-700 font-medium appearance-none"
+                    style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%2364748b\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1em' }}
                   >
                     {pageSizeOptions.map(size => (
                       <option key={size} value={size}>{size}</option>
@@ -2033,37 +2128,39 @@ const FileContentViewer = ({
 
               {/* Pagination Controls */}
               {totalPages > 1 && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className={`p-1 rounded ${currentPage === 1
-                      ? 'text-gray-400 cursor-not-allowed'
-                      : 'text-gray-700 hover:bg-gray-100'
+                    className={`p-1.5 rounded-lg border border-slate-200 transition-all ${currentPage === 1
+                      ? 'text-slate-300 bg-slate-50 cursor-not-allowed'
+                      : 'text-slate-600 hover:bg-slate-50 hover:border-slate-300 active:scale-95 shadow-sm bg-white'
                       }`}
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
 
-                  {getPageNumbers().map(pageNum => (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`px-2 py-1 text-xs rounded ${currentPage === pageNum
-                        ? 'bg-gradient-to-r from-rose-400 to-amber-400 text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
-                        }`}
-                    >
-                      {pageNum}
-                    </button>
-                  ))}
+                  <div className="flex items-center gap-1 mx-1">
+                    {getPageNumbers().map(pageNum => (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`w-8 h-8 text-xs font-bold rounded-lg transition-all shadow-sm ${currentPage === pageNum
+                          ? 'bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-blue-200'
+                          : 'text-slate-600 bg-white border border-slate-200 hover:border-slate-300'
+                          }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+                  </div>
 
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className={`p-1 rounded ${currentPage === totalPages
-                      ? 'text-gray-400 cursor-not-allowed'
-                      : 'text-gray-700 hover:bg-gray-100'
+                    className={`p-1.5 rounded-lg border border-slate-200 transition-all ${currentPage === totalPages
+                      ? 'text-slate-300 bg-slate-50 cursor-not-allowed'
+                      : 'text-slate-600 hover:bg-slate-50 hover:border-slate-300 active:scale-95 shadow-sm bg-white'
                       }`}
                   >
                     <ChevronRight className="h-4 w-4" />
@@ -2071,30 +2168,15 @@ const FileContentViewer = ({
                 </div>
               )}
 
-              <span className="text-gray-600 text-sm">
-                {viewOnly ? 'Viewing' : 'Showing'} {paginatedRows.length} of {sortedRows.length} rows
-                {!viewOnly && context === 'project' && columnFilter && ` (Filtered)`}
-              </span>
-
-              {!viewOnly && selectedRows.length > 0 && (
-                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                  {selectedRows.length} selected
-                </span>
-              )}
-              {!viewOnly && isEditing && editingRowIndex !== null && (
-                <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs">
-                  Editing row {editingRowIndex + 1}
-                </span>
-              )}
-              <span className="text-gray-600 text-sm">
-                ({editedHeaders.length} columns)
-              </span>
+              {/* Freeze Indicator */}
               {!viewOnly && (frozenRows.length > 0 || frozenColumns.length > 0) && (
-                <span className="px-2 py-1 freeze-indicator rounded text-xs flex items-center gap-1">
+                <div className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 border border-blue-100 shadow-sm animate-in fade-in slide-in-from-right-2">
                   <Snowflake className="h-3 w-3" />
-                  {frozenRows.length > 0 && frozenColumns.length > 0 ? `${frozenRows.length} row(s) & ${frozenColumns.length} col(s) frozen` :
-                    frozenRows.length > 0 ? `${frozenRows.length} row(s) frozen` : `${frozenColumns.length} col(s) frozen`}
-                </span>
+                  <span>
+                    {frozenRows.length > 0 && frozenColumns.length > 0 ? `${frozenRows.length}r & ${frozenColumns.length}c frozen` :
+                      frozenRows.length > 0 ? `${frozenRows.length}r frozen` : `${frozenColumns.length}c frozen`}
+                  </span>
+                </div>
               )}
             </div>
           </div>
