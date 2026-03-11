@@ -197,7 +197,7 @@ def get_chart_data(
 
 class UpdateDatasetRequest(BaseModel):
     headers: List[str]
-    data: List[List[Any]]
+    data: List[Any]
 
 @router.put("/{dataset_id}/data")
 def update_dataset_data(
@@ -225,7 +225,15 @@ def update_dataset_data(
     if dataset.table_name:
         # Update dynamic table
         try:
-            new_df = pd.DataFrame(payload.data, columns=payload.headers)
+            # Check if data is already list of dicts or list of lists
+            if payload.data and isinstance(payload.data[0], dict):
+                new_df = pd.DataFrame(payload.data)
+                # Reorder to match headers and handle missing columns in some rows
+                cols_to_use = [h for h in payload.headers if h in new_df.columns]
+                new_df = new_df[cols_to_use]
+            else:
+                new_df = pd.DataFrame(payload.data, columns=payload.headers)
+            
             new_df.to_sql(dataset.table_name, engine, if_exists='replace', index=False)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to update table: {e}")
@@ -233,11 +241,14 @@ def update_dataset_data(
         # Legacy update
         db.query(DatasetRow).filter(DatasetRow.dataset_id == dataset_id).delete()
         new_rows = []
-        for row_data in payload.data:
-            row_dict = {}
-            for i, val in enumerate(row_data):
-                if i < len(payload.headers):
-                    row_dict[payload.headers[i]] = val
+        for row_entry in payload.data:
+            if isinstance(row_entry, dict):
+                row_dict = row_entry
+            else:
+                row_dict = {}
+                for i, val in enumerate(row_entry):
+                    if i < len(payload.headers):
+                        row_dict[payload.headers[i]] = val
             
             new_rows.append(DatasetRow(
                 dataset_id=dataset_id,
@@ -565,9 +576,6 @@ def delete_dataset(dataset_id: int, db: Session = Depends(get_db)):
     if dataset.table_name:
         try:
             # Use text() for raw SQL to drop table
-            # Sanitize or trust table_name since we generated it?
-            # We generated it, so it should be safe, but still good to be careful.
-            # However, table_name cannot be parameterized in DROP TABLE.
             db.execute(text(f'DROP TABLE IF EXISTS "{dataset.table_name}"'))
         except Exception as e:
             print(f"Error dropping table {dataset.table_name}: {e}")
@@ -580,4 +588,114 @@ def delete_dataset(dataset_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "Dataset deleted successfully"}
+
+@router.post("/{dataset_id}/process")
+def process_dataset_data(
+    dataset_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Triggers re-processing of dataset data:
+    1. Re-infers column types
+    2. Transforms data to normalized formats (e.g. dates to ISO)
+    3. Updates column metadata and underlying table/rows
+    """
+    dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+
+    df = get_dataset_df(dataset, db)
+    if df.empty:
+        raise HTTPException(status_code=400, detail="No data available to process")
+
+    # 1. Clean and Transform Data
+    # For each column, try to infer the best type and convert
+    new_columns_metadata = []
+    
+    for col in df.columns:
+        # Preprocessing: Clean up string values only, leaving actual nulls as pd.NA
+        if df[col].dtype == 'object':
+            # Handle actual nulls/empty strings first, and then strip
+            df[col] = df[col].apply(lambda x: pd.NA if pd.isna(x) or str(x).strip().lower() in ['nan', 'none', '', 'null'] else str(x).strip())
+            # Normalize common date separators
+            df[col] = df[col].apply(lambda x: x.replace('--', '-') if isinstance(x, str) else x)
+        
+        # Calculate non-null count accurately
+        non_null_mask = df[col].notna()
+        non_null_count = non_null_mask.sum()
+        
+        if non_null_count == 0:
+            new_columns_metadata.append({"name": col, "type": "string"})
+            continue
+            
+        # Try to convert to numeric if possible (handles integers and floats)
+        # Handle commas in strings like "1,234.56"
+        temp_col = df[col].apply(lambda x: x.replace(',', '') if isinstance(x, str) else x)
+        numeric_series = pd.to_numeric(temp_col, errors='coerce')
+        valid_numeric_count = numeric_series.notna().sum()
+        
+        # Threshold: if > 70% of non-null values are numeric, we treat it as numeric
+        if valid_numeric_count > 0 and (valid_numeric_count / non_null_count) >= 0.7:
+            # Check if it's all integers
+            numeric_vals = numeric_series.dropna()
+            if all(val == float(int(val)) for val in numeric_vals):
+                df[col] = numeric_series.round().astype('Int64')
+            else:
+                df[col] = numeric_series
+        else:
+            # Try to convert to datetime if it's not numeric
+            try:
+                # pandas handles "July 2026", "21-Jun-26", "21/09/2026", "2026-07-31" natively
+                # dayfirst=True is critical for DD/MM/YYYY
+                date_series = pd.to_datetime(df[col], errors='coerce', dayfirst=True)
+                valid_date_count = date_series.notna().sum()
+                
+                # Use a reasonable threshold to decide if it's a date column
+                if valid_date_count > 0 and (valid_date_count / non_null_count) >= 0.4:
+                    # Format as date-only for consistency in the DB
+                    df[col] = date_series.dt.strftime('%Y-%m-%d')
+            except:
+                pass
+
+        inferred_type = infer_column_type(df[col])
+        new_columns_metadata.append({
+            "name": col,
+            "type": inferred_type
+        })
+
+    # 2. Persist Optimized Data
+    if dataset.table_name:
+        try:
+            df.to_sql(dataset.table_name, engine, if_exists='replace', index=False)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to update table during optimize: {e}")
+    else:
+        # Legacy update
+        db.query(DatasetRow).filter(DatasetRow.dataset_id == dataset_id).delete()
+        new_rows = []
+        for _, row in df.iterrows():
+            # Handle NaN values for JSON serialization
+            processed_row = row.replace({pd.NA: None, float('nan'): None}).to_dict()
+            new_rows.append(DatasetRow(
+                dataset_id=dataset_id,
+                row_data=processed_row
+            ))
+        db.bulk_save_objects(new_rows)
+
+    # 3. Update Metadata
+    db.query(DatasetColumn).filter(DatasetColumn.dataset_id == dataset_id).delete()
+    for col_info in new_columns_metadata:
+        db.add(DatasetColumn(
+            dataset_id=dataset_id,
+            column_name=col_info["name"],
+            data_type=col_info["type"]
+        ))
+    
+    db.commit()
+    
+    return {
+        "message": "Dataset optimized and normalized successfully",
+        "columns": new_columns_metadata,
+        "rowCount": len(df)
+    }
 

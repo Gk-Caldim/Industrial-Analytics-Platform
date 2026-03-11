@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, Copy, ArrowUp, ArrowDown, Filter } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, Copy, ArrowUp, ArrowDown, Filter, Zap } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
-const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, loading, onDataUpdate }) => {
+const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, loading, onDataUpdate, onProcessData }) => {
     // Convert string array of columns to object array for consistent handling
     const [columns, setColumns] = useState(() => {
-        return initialColumns.map((col, idx) => ({
+        return (initialColumns || []).map((col, idx) => ({
             id: col,
             label: col.charAt(0).toUpperCase() + col.slice(1).replace(/_/g, ' '),
             visible: true,
@@ -16,16 +16,38 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
         }));
     });
 
+    const [hasChanges, setHasChanges] = useState(false);
+
+    // Sync columns when initialColumns prop changes
+    useEffect(() => {
+        if (initialColumns && initialColumns.length > 0) {
+            setColumns(initialColumns.map((col, idx) => ({
+                id: col,
+                label: col.charAt(0).toUpperCase() + col.slice(1).replace(/_/g, ' '),
+                visible: true,
+                sortable: true,
+                type: 'text',
+                deletable: true,
+                required: false
+            })));
+            setHasChanges(false);
+        }
+    }, [initialColumns]);
+
     // Local data state to allow Add/Edit/Delete actions purely on the client side
     const [localData, setLocalData] = useState([]);
 
     // Auto-generate stable IDs for localData to allow checkbox selection and editing if they don't exist
     useEffect(() => {
-        const enrichedData = data.map((row, idx) => ({
+        const enrichedData = (data || []).map((row, idx) => ({
             _local_id: `row_${Date.now()}_${idx}`,
             ...row
         }));
         setLocalData(enrichedData);
+        setCurrentPage(1);
+        setSelectedRows([]);
+        setSelectAll(false);
+        setHasChanges(false);
     }, [data]);
 
     const [searchTerm, setSearchTerm] = useState('');
@@ -92,13 +114,19 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
 
     // Helper to sync data back to parent
     const triggerDataUpdate = (currentData, currentColumns) => {
+        setHasChanges(true);
+    };
+
+    const handleSaveChanges = () => {
         if (onDataUpdate) {
-            const dataToSync = currentData.map(row => {
+            const dataToSync = localData.map(row => {
                 const { _local_id, ...rest } = row;
                 return rest;
             });
-            const columnsToSync = currentColumns.map(col => col.id);
+            const columnsToSync = columns.map(col => col.id);
             onDataUpdate(dataToSync, columnsToSync);
+            setHasChanges(false);
+            showNotification('Changes saved successfully!');
         }
     };
 
@@ -693,6 +721,30 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                                 </>
                             )}
                         </div>
+
+                        {hasChanges ? (
+                            <button
+                                onClick={handleSaveChanges}
+                                className="flex items-center gap-1.5 h-9 px-4 text-sm font-bold bg-green-600 text-white rounded-md hover:bg-green-700 transition shadow-sm animate-pulse"
+                                title="Save changes to database"
+                            >
+                                <Check className="h-4 w-4" />
+                                <span>Save Changes</span>
+                            </button>
+                        ) : (
+                            onProcessData && (
+                                <button
+                                    onClick={onProcessData}
+                                    disabled={loading}
+                                    className="flex items-center gap-1.5 h-9 px-3 text-sm font-medium border border-blue-300 dark:border-blue-600 rounded-md hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400 transition disabled:opacity-50 group"
+                                    title="Process & Optimize Data (Type Inference)"
+                                >
+                                    <Zap className="h-4 w-4 fill-blue-600/20 group-hover:fill-blue-600 transition-all" />
+                                    <span className="hidden sm:inline">Optimize</span>
+                                </button>
+                            )
+                        )}
+
                         {onRefresh && (
                             <button onClick={onRefresh} disabled={loading} className="flex items-center gap-1.5 h-9 px-3 text-sm font-medium border border-slate-300 dark:border-slate-600 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition disabled:opacity-50">
                                 <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
