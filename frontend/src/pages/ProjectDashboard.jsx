@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
+import '../utils/echarts-theme-v5'; // Register the v5 theme
 import ExcelTableViewer from '../components/ExcelTableViewer';
 
 const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
@@ -2452,7 +2453,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     const size = isMaximized ? { width: '100%', height: '400px' } : { width: '100%', height: '320px' };
 
     // Get the configured axes for this chart
-    const axisConfig = axisConfigs[activeProject.id]?.[chartId];
+    let axisConfig = axisConfigs[activeProject.id]?.[chartId];
 
     // If no chart data or configuration, show placeholder
     let chartData = [];
@@ -2463,17 +2464,18 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     }
 
     if (!axisConfig || !axisConfig.xAxis || !axisConfig.yAxis || chartData.length === 0) {
-      return (
-        <div style={{ ...size, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f9fafb', border: '1px dashed #cbd5e1', borderRadius: '8px' }}>
-          <span style={{ color: '#64748b', fontSize: '14px', marginBottom: '8px' }}>No Data or Configuration</span>
-          <button
-            onClick={() => toggleAxisSelector(chartId)}
-            style={{ padding: '6px 12px', fontSize: '12px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-          >
-            Configure Axes
-          </button>
-        </div>
-      );
+      // Create some default dummy data to show off the theme when no data is parsed yet
+      const defaultCategories = ['UI', 'UX', 'Research', 'Testing', 'DevOps'];
+      chartData = defaultCategories.map(cat => ({
+        [axisConfig?.xAxis || 'Category']: cat,
+        [axisConfig?.yAxis || 'Value']: Math.floor(Math.random() * 80) + 20
+      }));
+      if (!axisConfig || !axisConfig.xAxis || !axisConfig.yAxis) {
+        axisConfig = {
+          xAxis: axisConfig?.xAxis || 'Category',
+          yAxis: axisConfig?.yAxis || 'Value'
+        };
+      }
     }
 
     // Process data based on selected axes
@@ -2572,7 +2574,6 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       case 'bar':
         option = {
           ...baseOption,
-          color: ['#3b82f6', '#f59e0b', '#10b981', '#6366f1'],
           series: [
             {
               name: axisConfig.yAxis,
@@ -2589,7 +2590,6 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       case 'area':
         option = {
           ...baseOption,
-          color: ['#f59e0b'],
           series: [
             {
               name: axisConfig.yAxis,
@@ -2616,7 +2616,6 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
             left: isMaximized ? 'left' : 'center',
             bottom: isMaximized ? 'auto' : 0
           },
-          color: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#64748b'],
           series: [
             {
               name: axisConfig.yAxis,
@@ -2643,7 +2642,6 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       case 'histogram':
         option = {
           ...baseOption,
-          color: ['#8b5cf6'],
           series: [
             {
               name: axisConfig.yAxis,
@@ -2664,7 +2662,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         <div style={{ marginBottom: '10px', fontSize: '12px', color: '#4b5563', textAlign: 'center', backgroundColor: '#f3f4f6', padding: '4px 8px', borderRadius: '4px' }}>
           <span style={{ fontWeight: 'bold' }}>X:</span> {axisConfig.xAxis} | <span style={{ fontWeight: 'bold' }}>Y:</span> {axisConfig.yAxis}
         </div>
-        <ReactECharts option={option} style={{ height: isMaximized ? '350px' : '280px', width: '100%' }} />
+        <ReactECharts theme="v5" option={option} style={{ height: isMaximized ? '350px' : '280px', width: '100%' }} />
       </div>
     );
   };
