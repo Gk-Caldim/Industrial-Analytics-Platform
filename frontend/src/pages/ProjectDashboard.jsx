@@ -341,11 +341,12 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   };
 
   // Handle data optimization logic (re-processing)
-  const handleSubmoduleProcess = async (trackerId) => {
+  const handleSubmoduleProcess = async (trackerId, indices) => {
     try {
       setLoading(true);
       const { default: API } = await import('../utils/api');
-      const response = await API.post(`/datasets/${trackerId}/process`);
+      const payload = indices && indices.length > 0 ? { row_indices: indices } : {};
+      const response = await API.post(`/datasets/${trackerId}/process`, payload);
 
       console.log('Successfully processed submodule data for tracker:', trackerId);
 
@@ -790,7 +791,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         data={rows}
         fileName={fileName || 'Dataset'}
         onDataUpdate={(updatedRows, updatedHeaders) => handleSubmoduleDataUpdate(selectedSubmodule.trackerId, updatedRows, updatedHeaders)}
-        onProcessData={() => handleSubmoduleProcess(selectedSubmodule.trackerId)}
+        onProcessData={(indices) => handleSubmoduleProcess(selectedSubmodule.trackerId, indices)}
         onRefresh={() => loadSubmoduleData(selectedSubmodule.trackerId)}
         loading={loading}
       />

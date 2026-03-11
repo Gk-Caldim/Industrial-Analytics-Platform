@@ -648,9 +648,13 @@ def delete_dataset(dataset_id: int, db: Session = Depends(get_db)):
 
     return {"message": "Dataset deleted successfully"}
 
+class ProcessDatasetRequest(BaseModel):
+    row_indices: Optional[List[int]] = None
+
 @router.post("/{dataset_id}/process")
 def process_dataset_data(
     dataset_id: int,
+    payload: ProcessDatasetRequest = None,
     db: Session = Depends(get_db)
 ):
     """
@@ -658,6 +662,7 @@ def process_dataset_data(
     1. Re-infers column types
     2. Transforms data to normalized formats (e.g. dates to ISO)
     3. Updates column metadata and underlying table/rows
+    Supports partial processing via payload.row_indices
     """
     dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
     if not dataset:
@@ -668,28 +673,26 @@ def process_dataset_data(
         raise HTTPException(status_code=400, detail="No data available to process")
 
     # 1. Clean and Transform Data
-    # For each column, try to infer the best type and convert
     new_columns_metadata = []
     
+    # Identify explicit subset to process
+    subset_indices = payload.row_indices if payload and payload.row_indices else list(range(len(df)))
+    target_df = df.iloc[subset_indices].copy()
+    
     for col in df.columns:
-        # Preprocessing: Clean up string values only, leaving actual nulls as pd.NA
-        if df[col].dtype == 'object':
-            # Handle actual nulls/empty strings first, and then strip
-            df[col] = df[col].apply(lambda x: pd.NA if pd.isna(x) or str(x).strip().lower() in ['nan', 'none', '', 'null'] else str(x).strip())
-            # Normalize common date separators
-            df[col] = df[col].apply(lambda x: x.replace('--', '-') if isinstance(x, str) else x)
+        # Preprocessing: Clean up string values only on target_df
+        if target_df[col].dtype == 'object':
+            target_df[col] = target_df[col].apply(lambda x: pd.NA if pd.isna(x) or str(x).strip().lower() in ['nan', 'none', '', 'null'] else str(x).strip())
+            target_df[col] = target_df[col].apply(lambda x: x.replace('--', '-') if isinstance(x, str) else x)
         
-        # Calculate non-null count accurately
-        non_null_mask = df[col].notna()
+        non_null_mask = target_df[col].notna()
         non_null_count = non_null_mask.sum()
         
         if non_null_count == 0:
             new_columns_metadata.append({"name": col, "type": "string"})
             continue
             
-        # Try to convert to numeric if possible (handles integers and floats)
-        # Handle commas in strings like "1,234.56"
-        temp_col = df[col].apply(lambda x: x.replace(',', '') if isinstance(x, str) else x)
+        temp_col = target_df[col].apply(lambda x: x.replace(',', '') if isinstance(x, str) else x)
         numeric_series = pd.to_numeric(temp_col, errors='coerce')
         valid_numeric_count = numeric_series.notna().sum()
         
@@ -698,10 +701,10 @@ def process_dataset_data(
         # Robust Date Parsing: Try default first (which handles ISO perfectly)
         # Then try dayfirst=True (which handles DD/MM well, but breaks some ISO strings)
         # Use whichever yields more valid dates
-        date_series_default = pd.to_datetime(df[col], errors='coerce')
+        date_series_default = pd.to_datetime(target_df[col], errors='coerce')
         valid_date_count_default = date_series_default.notna().sum()
         
-        date_series_df = pd.to_datetime(df[col], errors='coerce', dayfirst=True)
+        date_series_df = pd.to_datetime(target_df[col], errors='coerce', dayfirst=True)
         valid_date_count_df = date_series_df.notna().sum()
         
         if valid_date_count_df > valid_date_count_default:
@@ -717,31 +720,29 @@ def process_dataset_data(
         # If it's mostly numeric, and doesn't look heavily like dates, check for integers
         # Only treat as date if date_ratio > num_ratio, OR date_ratio >= 0.4 and it's heavily formatted strings (like '2026-07-31' where numeric fails)
         if date_ratio >= 0.4 and date_ratio > num_ratio:
-            # Format parseable dates, keep original strings for the rest!
             formatted_dates = date_series.dt.strftime('%Y-%m-%d')
-            df[col] = formatted_dates.where(date_series.notna(), df[col])
+            target_df[col] = formatted_dates.where(date_series.notna(), target_df[col])
             inferred_type = "date"
         elif num_ratio >= 0.7:
-            # Check if it's all integers
             numeric_vals = numeric_series.dropna()
             if all(val == float(int(val)) for val in numeric_vals):
-                df[col] = numeric_series.round().astype('Int64')
+                target_df[col] = numeric_series.round().astype('Int64')
                 inferred_type = "integer"
             else:
-                df[col] = numeric_series
+                target_df[col] = numeric_series
                 inferred_type = "float"
         elif date_ratio >= 0.4:
-            # It's somewhat a date but num_ratio is also high, probably years like '2023', '2024'.
-            # Or strings that parsed as Excel dates (integers).
-            # If dates are appropriate:
             formatted_dates = date_series.dt.strftime('%Y-%m-%d')
-            df[col] = formatted_dates.where(date_series.notna(), df[col])
+            target_df[col] = formatted_dates.where(date_series.notna(), target_df[col])
             inferred_type = "date"
         else:
             inferred_type = "string"
 
         if inferred_type is None:
-            inferred_type = infer_column_type(df[col])
+            inferred_type = infer_column_type(target_df[col])
+            
+        # Apply the transformed subset back to the main dataframe
+        df.iloc[subset_indices, df.columns.get_loc(col)] = target_df[col]
             
         new_columns_metadata.append({
             "name": col,
