@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import '../utils/echarts-theme-v5'; // Register the v5 theme
 import ExcelTableViewer from '../components/ExcelTableViewer';
-import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save } from 'lucide-react';
+import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings } from 'lucide-react';
 
 const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   // Projects data
@@ -250,7 +250,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   ];
 
   // --- EDITABLE DASHBOARD DATA ---
-  
+
   // Milestones data with plan/actual
   const [milestones, setMilestones] = useState([
     {
@@ -298,7 +298,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   const [showEditIssues, setShowEditIssues] = useState(false);
   const [showEditSummary, setShowEditSummary] = useState(false);
   const [editType, setEditType] = useState(null); // 'budget', 'resource', 'quality'
-  
+
   // Form States
   const [milestoneForm, setMilestoneForm] = useState(null);
   const [issuesForm, setIssuesForm] = useState([]);
@@ -507,12 +507,12 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         setAxisConfigs(prev => ({
           ...prev,
           [activeProject.id]: {
-            design: { xAxis: 'Category', yAxis: 'Value' },
-            partDevelopment: { xAxis: 'Week', yAxis: 'Progress' },
-            build: { xAxis: 'Component', yAxis: 'Percentage' },
-            gateway: { xAxis: 'Month', yAxis: 'Performance' },
-            validation: { xAxis: 'Test Case', yAxis: 'Pass Rate' },
-            qualityIssues: { xAxis: 'Metric', yAxis: 'Score' }
+            design: { xAxis: '', yAxis: '' },
+            partDevelopment: { xAxis: '', yAxis: '' },
+            build: { xAxis: '', yAxis: '' },
+            gateway: { xAxis: '', yAxis: '' },
+            validation: { xAxis: '', yAxis: '' },
+            qualityIssues: { xAxis: '', yAxis: '' }
           }
         }));
       }
@@ -702,7 +702,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         [`${type}Inputs`]: newInputs
       }));
     }
-    
+
     // Clear search and close dropdown
     setEmployeeSearchTerm('');
     setShowEmployeeDropdown(false);
@@ -853,7 +853,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       e.preventDefault();
       if (draggedItemIndex === null) return;
       if (draggedItemIndex === index) return;
-      
+
       const newOrder = [...pdfLayoutOrder];
       const draggedItem = newOrder[draggedItemIndex];
       newOrder.splice(draggedItemIndex, 1);
@@ -861,7 +861,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       setPdfLayoutOrder(newOrder);
       setDraggedItemIndex(null);
     };
-    
+
     const handleDragEnd = () => {
       setDraggedItemIndex(null);
     };
@@ -886,61 +886,94 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     };
 
     return (
-      <div style={{
+      <div id="pdf-preview-modal-root" style={{
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', zIndex: 3000
       }}>
         <style>{`
           @media print {
+            @page {
+              margin: 15mm;
+              size: A4;
+            }
+            html, body {
+              height: auto !important;
+              overflow: visible !important;
+            }
             body * {
               visibility: hidden;
             }
-            .pdf-printable-area, .pdf-printable-area * {
-              visibility: visible;
+            #pdf-preview-modal-root, #pdf-preview-modal-root * {
+              visibility: visible !important;
             }
-            .pdf-printable-area, .pdf-printable-area * {
-              box-sizing: border-box;
+            #pdf-preview-modal-root {
+              position: static !important;
+              display: block !important;
+              background: white !important;
+              width: 100% !important;
+            }
+            /* Hide the sidebar and any no-print items */
+            .no-print, #pdf-preview-sidebar {
+              display: none !important;
+              visibility: hidden !important;
+            }
+            /* Ensure the preview container allows multi-page flow */
+            .pdf-preview-container {
+              position: static !important;
+              overflow: visible !important;
+              height: auto !important;
+              padding: 0 !important;
+              background: white !important;
+              width: 100% !important;
             }
             .pdf-printable-area {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 100%;
+              position: static !important;
+              width: 100% !important;
+              max-width: none !important;
               padding: 0 !important;
               box-shadow: none !important;
               margin: 0 !important;
               background: white !important;
+              height: auto !important;
+              overflow: visible !important;
             }
-            .no-print {
-              display: none !important;
+            .pdf-sections-grid {
+              display: block !important;
+              width: 100% !important;
+            }
+            .pdf-section {
+              break-inside: avoid;
+              page-break-inside: avoid;
+              margin-bottom: 30px;
+              width: 100% !important;
             }
           }
         `}</style>
 
         {/* Sidebar for customization */}
-        <div className="no-print" style={{ width: '320px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', height: '100%', boxShadow: '2px 0 10px rgba(0,0,0,0.2)', zIndex: 10 }}>
+        <div id="pdf-preview-sidebar" className="no-print" style={{ width: '320px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', height: '100%', boxShadow: '2px 0 10px rgba(0,0,0,0.2)', zIndex: 10 }}>
           <div style={{ padding: '20px', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 'bold', fontSize: '18px' }}>
             Customize PDF Layout
           </div>
           <div style={{ flex: 1, padding: '20px', overflowY: 'auto', backgroundColor: '#f8f9fa' }}>
             <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>Rearrange the sections to customize your PDF report.</p>
             {pdfLayoutOrder.map((section, idx) => (
-              <div 
-                key={section} 
+              <div
+                key={section}
                 draggable
                 onDragStart={(e) => handleDragStart(e, idx)}
                 onDragOver={(e) => handleDragOver(e, idx)}
                 onDrop={(e) => handleDrop(e, idx)}
                 onDragEnd={handleDragEnd}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between', 
-                  padding: '12px', 
-                  backgroundColor: draggedItemIndex === idx ? '#f3f4f6' : 'white', 
-                  border: '1px solid #e0e0e0', 
-                  marginBottom: '10px', 
-                  borderRadius: '6px', 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px',
+                  backgroundColor: draggedItemIndex === idx ? '#f3f4f6' : 'white',
+                  border: '1px solid #e0e0e0',
+                  marginBottom: '10px',
+                  borderRadius: '6px',
                   boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                   cursor: 'grab',
                   opacity: draggedItemIndex === idx ? 0.5 : 1
@@ -967,7 +1000,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         </div>
 
         {/* Preview Area (this will actually be printed!) */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '40px', backgroundColor: '#64748b' }}>
+        <div className="pdf-preview-container" style={{ flex: 1, overflowY: 'auto', padding: '40px', backgroundColor: '#64748b' }}>
           <div className="pdf-printable-area" style={{ maxWidth: '900px', margin: '0 auto', backgroundColor: 'white', minHeight: '100%', padding: '40px 60px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
 
             <div style={{ textAlign: 'center', marginBottom: '40px', borderBottom: '2px solid #1e3a5f', paddingBottom: '20px' }}>
@@ -975,18 +1008,18 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Generated: {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', alignItems: 'start' }}>
+            <div className="pdf-sections-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', alignItems: 'start' }}>
               {pdfLayoutOrder.map(section => {
                 // For charts: render original charts!
                 const isChart = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(section);
                 const fullWidth = ['milestones', 'criticalIssues', 'budget', 'resource', 'quality'].includes(section);
-                
+
                 if (isChart) {
                   const cType = chartTypes[activeProject?.id]?.[section] || 'bar';
                   return (
-                    <div key={section} style={{ 
-                      gridColumn: fullWidth ? '1 / -1' : 'auto', 
-                      marginBottom: '15px', 
+                    <div key={section} className="pdf-section" style={{
+                      gridColumn: fullWidth ? '1 / -1' : 'auto',
+                      marginBottom: '15px',
                       breakInside: 'avoid',
                       minWidth: 0,
                       overflow: 'hidden'
@@ -1001,9 +1034,9 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
                 if (section === 'milestones') {
                   return (
-                    <div key={section} style={{ 
-                      gridColumn: fullWidth ? '1 / -1' : 'auto', 
-                      marginBottom: '15px', 
+                    <div key={section} className="pdf-section" style={{
+                      gridColumn: fullWidth ? '1 / -1' : 'auto',
+                      marginBottom: '15px',
                       breakInside: 'avoid',
                       minWidth: 0
                     }}>
@@ -1052,9 +1085,9 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
                 if (section === 'criticalIssues') {
                   return (
-                    <div key={section} style={{ 
-                      gridColumn: fullWidth ? '1 / -1' : 'auto', 
-                      marginBottom: '15px', 
+                    <div key={section} className="pdf-section" style={{
+                      gridColumn: fullWidth ? '1 / -1' : 'auto',
+                      marginBottom: '15px',
                       breakInside: 'avoid',
                       minWidth: 0
                     }}>
@@ -1089,9 +1122,9 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
                 if (section === 'budget') {
                   return (
-                    <div key={section} style={{ 
-                      gridColumn: fullWidth ? '1 / -1' : 'auto', 
-                      marginBottom: '15px', 
+                    <div key={section} className="pdf-section" style={{
+                      gridColumn: fullWidth ? '1 / -1' : 'auto',
+                      marginBottom: '15px',
                       breakInside: 'avoid',
                       minWidth: 0
                     }}>
@@ -1120,9 +1153,9 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
                 if (section === 'resource') {
                   return (
-                    <div key={section} style={{ 
-                      gridColumn: fullWidth ? '1 / -1' : 'auto', 
-                      marginBottom: '15px', 
+                    <div key={section} className="pdf-section" style={{
+                      gridColumn: fullWidth ? '1 / -1' : 'auto',
+                      marginBottom: '15px',
                       breakInside: 'avoid',
                       minWidth: 0
                     }}>
@@ -1147,9 +1180,9 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
                 if (section === 'quality') {
                   return (
-                    <div key={section} style={{ 
-                      gridColumn: fullWidth ? '1 / -1' : 'auto', 
-                      marginBottom: '15px', 
+                    <div key={section} className="pdf-section" style={{
+                      gridColumn: fullWidth ? '1 / -1' : 'auto',
+                      marginBottom: '15px',
                       breakInside: 'avoid',
                       minWidth: 0
                     }}>
@@ -1177,7 +1210,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                 }
 
                 return (
-                  <div key={section} style={{ gridColumn: fullWidth ? '1 / -1' : 'auto', marginBottom: '10px', breakInside: 'avoid' }}>
+                  <div key={section} className="pdf-section" style={{ gridColumn: fullWidth ? '1 / -1' : 'auto', marginBottom: '10px', breakInside: 'avoid' }}>
                     <h2 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>{sectionTitles[section]}</h2>
                     <div style={{ padding: '15px', backgroundColor: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: '4px' }}>
                       Section data for {sectionTitles[section]} will show here.
@@ -1410,8 +1443,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
                 {showEmployeeDropdown && (
                   <>
-                    <div 
-                      onClick={() => setShowEmployeeDropdown(false)} 
+                    <div
+                      onClick={() => setShowEmployeeDropdown(false)}
                       style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}
                     />
                     <div style={{
@@ -1459,13 +1492,13 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                         </div>
                       )}
                       {allEmployees.length > 0 && allEmployees.filter(emp =>
-                          String(emp.name || '').toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
-                          String(emp.email || '').toLowerCase().includes(employeeSearchTerm.toLowerCase())
-                        ).length === 0 && (
-                        <div style={{ padding: '15px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>
-                          No matches found for "{employeeSearchTerm}"
-                        </div>
-                      )}
+                        String(emp.name || '').toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
+                        String(emp.email || '').toLowerCase().includes(employeeSearchTerm.toLowerCase())
+                      ).length === 0 && (
+                          <div style={{ padding: '15px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>
+                            No matches found for "{employeeSearchTerm}"
+                          </div>
+                        )}
                     </div>
                   </>
                 )}
@@ -1645,7 +1678,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
             alignItems: 'center',
             position: 'sticky',
             top: 0,
-            zIndex: 1
+            zIndex: 1,
+            borderRadius: '8px 8px 0 0'
           }}>
             <span>Configure Dashboard - {activeProject?.name}</span>
             <button
@@ -1860,8 +1894,18 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '10px',
+            padding: '15px 20px',
+            borderTop: '1px solid #e0e0e0',
+            backgroundColor: '#f9fafb',
+            borderRadius: '0 0 8px 8px',
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 1
+          }}>
             <button
               onClick={handleCancelConfig}
               style={{
@@ -1934,11 +1978,11 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                     <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontWeight: 'bold', backgroundColor: '#f8fafc' }}>PLAN</td>
                     {['a', 'b', 'c', 'd', 'e', 'f'].map(char => (
                       <td key={char} style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
-                        <input 
-                          type="text" 
-                          value={milestoneForm.plan[char]} 
+                        <input
+                          type="text"
+                          value={milestoneForm.plan[char]}
                           onChange={(e) => {
-                            const newForm = {...milestoneForm};
+                            const newForm = { ...milestoneForm };
                             newForm.plan[char] = e.target.value;
                             setMilestoneForm(newForm);
                           }}
@@ -1947,11 +1991,11 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                       </td>
                     ))}
                     <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
-                      <input 
-                        type="text" 
-                        value={milestoneForm.plan.implementation} 
+                      <input
+                        type="text"
+                        value={milestoneForm.plan.implementation}
                         onChange={(e) => {
-                          const newForm = {...milestoneForm};
+                          const newForm = { ...milestoneForm };
                           newForm.plan.implementation = e.target.value;
                           setMilestoneForm(newForm);
                         }}
@@ -1963,11 +2007,11 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                     <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontWeight: 'bold', backgroundColor: '#f8fafc' }}>ACTUAL</td>
                     {['a', 'b', 'c', 'd', 'e', 'f'].map(char => (
                       <td key={char} style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
-                        <input 
-                          type="text" 
-                          value={milestoneForm.actual[char]} 
+                        <input
+                          type="text"
+                          value={milestoneForm.actual[char]}
                           onChange={(e) => {
-                            const newForm = {...milestoneForm};
+                            const newForm = { ...milestoneForm };
                             newForm.actual[char] = e.target.value;
                             setMilestoneForm(newForm);
                           }}
@@ -1976,11 +2020,11 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                       </td>
                     ))}
                     <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
-                      <input 
-                        type="text" 
-                        value={milestoneForm.actual.implementation} 
+                      <input
+                        type="text"
+                        value={milestoneForm.actual.implementation}
                         onChange={(e) => {
-                          const newForm = {...milestoneForm};
+                          const newForm = { ...milestoneForm };
                           newForm.actual.implementation = e.target.value;
                           setMilestoneForm(newForm);
                         }}
@@ -2027,7 +2071,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     };
 
     const updateIssue = (id, field, value) => {
-      setIssuesForm(issuesForm.map(issue => 
+      setIssuesForm(issuesForm.map(issue =>
         issue.id === id ? { ...issue, [field]: value } : issue
       ));
     };
@@ -2061,39 +2105,39 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                   {issuesForm.map((issue) => (
                     <tr key={issue.id}>
                       <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
-                        <textarea 
-                          value={issue.issue} 
+                        <textarea
+                          value={issue.issue}
                           onChange={(e) => updateIssue(issue.id, 'issue', e.target.value)}
                           style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px', resize: 'vertical', minHeight: '40px' }}
                         />
                       </td>
                       <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
-                        <input 
-                          type="text" 
-                          value={issue.responsibility} 
+                        <input
+                          type="text"
+                          value={issue.responsibility}
                           onChange={(e) => updateIssue(issue.id, 'responsibility', e.target.value)}
                           style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px' }}
                         />
                       </td>
                       <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
-                        <input 
-                          type="text" 
-                          value={issue.function} 
+                        <input
+                          type="text"
+                          value={issue.function}
                           onChange={(e) => updateIssue(issue.id, 'function', e.target.value)}
                           style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px' }}
                         />
                       </td>
                       <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
-                        <input 
-                          type="date" 
-                          value={issue.targetDate} 
+                        <input
+                          type="date"
+                          value={issue.targetDate}
                           onChange={(e) => updateIssue(issue.id, 'targetDate', e.target.value)}
                           style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px' }}
                         />
                       </td>
                       <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
-                        <select 
-                          value={issue.status} 
+                        <select
+                          value={issue.status}
                           onChange={(e) => updateIssue(issue.id, 'status', e.target.value)}
                           style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px' }}
                         >
@@ -2175,10 +2219,10 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               {currentConfig.fields.map(field => (
                 <div key={field.key}>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#4b5563', marginBottom: '5px' }}>{field.label}</label>
-                  <input 
-                    type="text" 
-                    value={summaryForm[field.key]} 
-                    onChange={(e) => setSummaryForm({...summaryForm, [field.key]: e.target.value})}
+                  <input
+                    type="text"
+                    value={summaryForm[field.key]}
+                    onChange={(e) => setSummaryForm({ ...summaryForm, [field.key]: e.target.value })}
                     style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '14px' }}
                   />
                 </div>
@@ -2211,19 +2255,45 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       chartData = submoduleData[effectiveTrackerId].rows;
     }
 
-    if (!axisConfig || !axisConfig.xAxis || !axisConfig.yAxis || chartData.length === 0) {
-      // Create some default dummy data to show off the theme when no data is parsed yet
-      const defaultCategories = ['UI', 'UX', 'Research', 'Testing', 'DevOps'];
-      chartData = defaultCategories.map(cat => ({
-        [axisConfig?.xAxis || 'Category']: cat,
-        [axisConfig?.yAxis || 'Value']: Math.floor(Math.random() * 80) + 20
-      }));
-      if (!axisConfig || !axisConfig.xAxis || !axisConfig.yAxis) {
-        axisConfig = {
-          xAxis: axisConfig?.xAxis || 'Category',
-          yAxis: axisConfig?.yAxis || 'Value'
-        };
-      }
+    // Check if attributes are configured
+    if (!axisConfig || !axisConfig.xAxis || !axisConfig.yAxis) {
+      return (
+        <div style={{
+          ...size,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f9fafb',
+          border: '1px dashed #d1d5db',
+          borderRadius: '8px',
+          color: '#6b7280'
+        }}>
+          <Settings className="h-10 w-10 mb-3 opacity-30" />
+          <p style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>Configure Attributes</p>
+          <p style={{ fontSize: '13px', marginTop: '6px', textAlign: 'center', padding: '0 20px' }}>
+            Please select the X and Y axes in the settings to visualize this chart.
+          </p>
+        </div>
+      );
+    }
+
+    // If configured but no data
+    if (chartData.length === 0) {
+      return (
+        <div style={{
+          ...size,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f9fafb',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          color: '#6b7280'
+        }}>
+          <p style={{ fontSize: '14px', fontWeight: '500' }}>No data available for this phase</p>
+        </div>
+      );
     }
 
     // Process data based on selected axes
@@ -2980,7 +3050,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
             <div style={{
               padding: '15px 20px',
               borderBottom: '1px solid #e0e0e0',
-              backgroundColor: '#f8f9fa'
+              backgroundColor: '#f8f9fa',
+              marginBottom: '20px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -3036,14 +3107,14 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
 
             {/* Dashboard Content */}
-            <div style={{ padding: '0 25px 25px 25px' }}>
+            <div style={{ padding: '20px 25px 25px 25px' }}>
               {/* Milestones Section */}
               {visibleSections.milestones && (
                 <div style={{ marginBottom: '35px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e3a5f', color: 'white', padding: '12px 20px', fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #234574' }}>
                     <span>Milestones</span>
-                    <button 
-                      onClick={() => { setMilestoneForm({...milestones[0]}); setShowEditMilestones(true); }}
+                    <button
+                      onClick={() => { setMilestoneForm({ ...milestones[0] }); setShowEditMilestones(true); }}
                       className="no-print"
                       style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
                       title="Edit Milestones"
@@ -3142,7 +3213,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                 <div style={{ marginBottom: '35px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e3a5f', color: 'white', padding: '12px 20px', fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #234574' }}>
                     <span>Critical Issues Summary</span>
-                    <button 
+                    <button
                       onClick={() => { setIssuesForm([...criticalIssues]); setShowEditIssues(true); }}
                       className="no-print"
                       style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
@@ -3444,8 +3515,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                           alignItems: 'center'
                         }}>
                           <span>Budget Summary</span>
-                          <button 
-                            onClick={() => { setEditType('budget'); setSummaryForm({...summaryData}); setShowEditSummary(true); }}
+                          <button
+                            onClick={() => { setEditType('budget'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
                             className="no-print"
                             style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
                             title="Edit Budget Summary"
@@ -3494,8 +3565,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                           alignItems: 'center'
                         }}>
                           <span>Resource Summary</span>
-                          <button 
-                            onClick={() => { setEditType('resource'); setSummaryForm({...summaryData}); setShowEditSummary(true); }}
+                          <button
+                            onClick={() => { setEditType('resource'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
                             className="no-print"
                             style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
                             title="Edit Resource Summary"
@@ -3544,8 +3615,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                           alignItems: 'center'
                         }}>
                           <span>Quality Summary</span>
-                          <button 
-                            onClick={() => { setEditType('quality'); setSummaryForm({...summaryData}); setShowEditSummary(true); }}
+                          <button
+                            onClick={() => { setEditType('quality'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
                             className="no-print"
                             style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
                             title="Edit Quality Summary"
