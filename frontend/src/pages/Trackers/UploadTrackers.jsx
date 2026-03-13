@@ -76,7 +76,9 @@ const sidebarManager = {
       id: `upload-file-${trackerId}`,
       moduleId: `upload-file-${trackerId}`,
       name: fileName,
-      displayName: fileName.replace(/\.[^/.]+$/, ""),
+      displayName: (projectName && fileName.startsWith(projectName + "_")) 
+        ? fileName.substring(projectName.length + 1).replace(/\.[^/.]+$/, "")
+        : fileName.replace(/\.[^/.]+$/, ""),
       type: 'file',
       parentId: `upload-project-${projectId}`,
       trackerId: trackerId,
@@ -247,7 +249,9 @@ const sidebarManager = {
       id: `project-file-${trackerId}`,
       moduleId: `project-file-${trackerId}`,
       name: fileName,
-      displayName: fileName.replace(/\.[^/.]+$/, ""),
+      displayName: (projectName && fileName.startsWith(projectName + "_"))
+        ? fileName.substring(projectName.length + 1).replace(/\.[^/.]+$/, "")
+        : fileName.replace(/\.[^/.]+$/, ""),
       type: 'file',
       parentId: `project-dashboard-${projectId}`,
       trackerId: trackerId,
@@ -452,12 +456,19 @@ const sidebarManager = {
       let uploadModified = false;
 
       uploadModules.forEach(project => {
+        const projectName = project.name;
         if (project.submodules) {
           project.submodules.forEach(file => {
-            if (!file.displayName && file.name) {
-              file.displayName = file.name.replace(/\.[^/.]+$/, "");
+            // Force correct displayName (strip project prefix)
+            const correctDisplayName = (projectName && file.name.startsWith(projectName + "_")) 
+              ? file.name.substring(projectName.length + 1).replace(/\.[^/.]+$/, "")
+              : file.name.replace(/\.[^/.]+$/, "");
+            
+            if (file.displayName !== correctDisplayName) {
+              file.displayName = correctDisplayName;
               uploadModified = true;
             }
+
             const tracker = trackers.find(t => t.id === file.trackerId);
             if (tracker && (!file.metadata?.department || !file.metadata?.employeeName)) {
               if (!file.metadata) file.metadata = {};
@@ -478,12 +489,19 @@ const sidebarManager = {
       let projectModified = false;
 
       projectModules.forEach(project => {
+        const projectName = project.name;
         if (project.submodules) {
           project.submodules.forEach(file => {
-            if (!file.displayName && file.name) {
-              file.displayName = file.name.replace(/\.[^/.]+$/, "");
+            // Force correct displayName (strip project prefix)
+            const correctDisplayName = (projectName && file.name.startsWith(projectName + "_")) 
+              ? file.name.substring(projectName.length + 1).replace(/\.[^/.]+$/, "")
+              : file.name.replace(/\.[^/.]+$/, "");
+            
+            if (file.displayName !== correctDisplayName) {
+              file.displayName = correctDisplayName;
               projectModified = true;
             }
+
             const tracker = trackers.find(t => t.id === file.trackerId);
             if (tracker && (!file.metadata?.department)) {
               if (!file.metadata) file.metadata = {};
@@ -1292,25 +1310,25 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
       // 1. Add to Upload Trackers hierarchy (for management view)
       sidebarManager.addToUploadTrackers(
         uploadForm.project,
-        file.name,
+        newTracker.fileName,
         newTracker.id,
         {
           department: uploadForm.department,
           employeeName: uploadForm.employeeName,
-          fileType: file.name.split('.').pop().toUpperCase()
+          fileType: newTracker.fileType
         }
       );
 
       // 2. Add to Project Dashboard hierarchy (for project view)
       sidebarManager.addToProjectDashboard(
         uploadForm.project,
-        file.name,
+        newTracker.fileName,
         newTracker.id,
         currentUser,
         {
           department: uploadForm.department,
           uploadedBy: currentUser,
-          fileType: file.name.split('.').pop().toUpperCase()
+          fileType: newTracker.fileType
         }
       );
 
@@ -1487,10 +1505,14 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
   };
 
 
-  // Helper to remove file extension
-  const removeExtension = (fileName) => {
+  // Helper to remove project prefix and file extension
+  const getDisplayFileName = (fileName, project) => {
     if (!fileName) return '';
-    return fileName.replace(/\.[^/.]+$/, "");
+    let name = fileName;
+    if (project && name.startsWith(project + "_")) {
+      name = name.substring(project.length + 1);
+    }
+    return name.replace(/\.[^/.]+$/, "");
   };
 
   const renderCellContent = (col, value, tracker) => {
@@ -1515,7 +1537,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
         >
           <File className="h-4 w-4 text-gray-400 mr-2 group-hover/file:text-blue-500 transition-colors" />
           <span className={`font-medium ${getFileColor(tracker.fileType)} group-hover/file:text-blue-600 group-hover/file:underline transition-all`}>
-            {removeExtension(value) || '-'}
+            {getDisplayFileName(value, tracker.project) || '-'}
           </span>
         </div>
       );
@@ -1591,7 +1613,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
       setSelectedFileContent(fileData);
       setSelectedFileTrackerInfo(tracker);
       setInitialFileLoaded(true);
-      showNotification(`Opened file: ${tracker.fileName}`);
+      showNotification(`Opened file: ${getDisplayFileName(tracker.fileName, tracker.project)}`);
     } else {
       showNotification('File data not found. Please re-upload the file.', 'error');
     }
@@ -1791,7 +1813,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                     <div className="text-center">
                       <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                       <p className="text-xs sm:text-sm text-gray-600 mb-1">
-                        {uploadForm.file ? removeExtension(uploadForm.file.name) : 'Click to select file'}
+                        {uploadForm.file ? getDisplayFileName(uploadForm.file.name) : 'Click to select file'}
                       </p>
                       <p className="text-xs text-gray-500">Supports: CSV, Excel, JSON, TXT (Max 50MB)</p>
                     </div>
@@ -1902,7 +1924,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                       <File className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-medium">{removeExtension(selectedFile.name)}</span>
+                      <span className="text-sm font-medium">{getDisplayFileName(selectedFile.name)}</span>
                     </div>
                     <span className="text-xs text-gray-600">
                       {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB
@@ -2095,7 +2117,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                             <Eye className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => showDeleteConfirmation(tracker.id, tracker.fileName)}
+                            onClick={() => showDeleteConfirmation(tracker.id, getDisplayFileName(tracker.fileName, tracker.project))}
                             className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"
                             title="Delete"
                           >
