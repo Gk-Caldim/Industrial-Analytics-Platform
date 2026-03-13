@@ -3,6 +3,8 @@ import ReactECharts from 'echarts-for-react';
 import '../utils/echarts-theme-v5'; // Register the v5 theme
 import ExcelTableViewer from '../components/ExcelTableViewer';
 import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings } from 'lucide-react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   // Projects data
@@ -159,6 +161,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     ccInputs: [''],
     bccInputs: ['']
   });
+
+  const [isCapturingPdf, setIsCapturingPdf] = useState(false);
 
   // New state for dashboard visibility
   const [visibleSections, setVisibleSections] = useState({
@@ -718,42 +722,106 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   };
 
   // Handle send email
-  const handleSendEmail = () => {
+  const handleSendEmail = async () => {
     // Get all non-empty email addresses
     const toEmails = emailData.emailInputs.filter(email => email.trim() !== '');
     const ccEmails = emailData.ccInputs.filter(email => email.trim() !== '');
     const bccEmails = emailData.bccInputs.filter(email => email.trim() !== '');
+
+    if (toEmails.length === 0) {
+      alert("At least one recipient (To) is required.");
+      return;
+    }
 
     // Get selected sections
     const selectedSectionsList = Object.entries(emailData.selectedSections)
       .filter(([_, selected]) => selected)
       .map(([section]) => section);
 
-    // In a real application, this would connect to an email service
-    alert(`Email sent successfully!\n\nTo: ${toEmails.join(', ') || 'None'}\nCC: ${ccEmails.join(', ') || 'None'}\nBCC: ${bccEmails.join(', ') || 'None'}\nSelected Sections: ${selectedSectionsList.join(', ')}`);
+    try {
+      setLoading(true);
+      
+      // Ensure the layout matches selected sections before capturing
+      setPdfLayoutOrder(selectedSectionsList);
+      setIsCapturingPdf(true);
 
-    setShowEmailModal(false);
-    setEmailData({
-      to: '',
-      subject: 'Project Dashboard Report',
-      message: '',
-      selectedSections: {
-        milestones: true,
-        criticalIssues: true,
-        budget: true,
-        resource: true,
-        quality: true,
-        design: true,
-        partDevelopment: true,
-        build: true,
-        gateway: true,
-        validation: true,
-        qualityIssues: true
-      },
-      emailInputs: [''],
-      ccInputs: [''],
-      bccInputs: ['']
-    });
+      // Wait a moment for React to render the hidden PdfPreviewModal
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Capture the PDF Preview layout instead of the main dashboard
+      const dashboardContainer = document.querySelector('.pdf-printable-area');
+      let base64Pdf = null;
+      
+      if (dashboardContainer) {
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const margin = 15; // 15mm margin
+        const contentWidth = pdfWidth - (margin * 2);
+        
+        // 1) Hide everything except what we want to print, or just clone it
+        // To avoid messing with the DOM cleanly, let's grab the sections directly
+        const headerElement = dashboardContainer.children[0]; // The header
+        const sectionsContainer = dashboardContainer.children[1]; // The grid
+        const sections = Array.from(sectionsContainer.children);
+        const footerElement = dashboardContainer.children[2]; // The footer
+        
+        let currentY = margin;
+        
+        // Helper to add an element to PDF
+        const addElementToPdf = async (element) => {
+          const canvas = await html2canvas(element, { scale: 1.5, useCORS: true, logging: false });
+          const imgData = canvas.toDataURL('image/png');
+          const elHeight = (canvas.height * contentWidth) / canvas.width;
+          
+          if (currentY + elHeight > pdfHeight - margin) {
+             pdf.addPage();
+             currentY = margin;
+          }
+          pdf.addImage(imgData, 'PNG', margin, currentY, contentWidth, elHeight);
+          currentY += elHeight + 5; // 5mm spacing
+        };
+
+        // Add Header
+        if (headerElement) await addElementToPdf(headerElement);
+
+        // Add Sections
+        for (const section of sections) {
+           await addElementToPdf(section);
+        }
+
+        // Add Footer
+        if (footerElement) {
+           // Ensure footer pushes to bottom or fits
+           await addElementToPdf(footerElement);
+        }
+
+        base64Pdf = pdf.output('datauristring');
+      }
+
+      const { default: API } = await import('../utils/api');
+      
+      const payload = {
+        to: toEmails,
+        cc: ccEmails.length > 0 ? ccEmails : [],
+        bcc: bccEmails.length > 0 ? bccEmails : [],
+        subject: emailData.subject || 'Project Dashboard Report',
+        message: `${emailData.message}\n\nPlease find the attached Project Dashboard Report PDF.\n\nSelected Sections Included: ${selectedSectionsList.join(', ')}`,
+        attachment: base64Pdf
+      };
+
+      await API.post('/email/send', payload);
+      alert('Email sent successfully!');
+
+      setShowEmailModal(false);
+      setEmailData(prev => ({ ...prev, message: '' }));
+    } catch (error) {
+      console.error('Error sending email:', error);
+      alert('Failed to send email. Please try again.');
+    } finally {
+      setLoading(false);
+      setIsCapturingPdf(false);
+    }
   };
 
   // Render table for submodule data
@@ -836,7 +904,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   const PdfPreviewModal = () => {
     const [draggedItemIndex, setDraggedItemIndex] = useState(null);
 
-    if (!showPdfPreviewModal) return null;
+    // Render if we are showing the preview OR if we are currently capturing it for email
+    if (!showPdfPreviewModal && !isCapturingPdf) return null;
 
     const handleDragStart = (e, index) => {
       e.dataTransfer.effectAllowed = 'move';
@@ -887,8 +956,15 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
     return (
       <div id="pdf-preview-modal-root" style={{
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', zIndex: 3000
+        position: isCapturingPdf ? 'absolute' : 'fixed', 
+        top: isCapturingPdf ? '-9999px' : 0, 
+        left: isCapturingPdf ? '-9999px' : 0, 
+        right: isCapturingPdf ? 'auto' : 0, 
+        bottom: isCapturingPdf ? 'auto' : 0,
+        backgroundColor: showPdfPreviewModal ? 'rgba(0,0,0,0.7)' : 'white', 
+        display: 'flex', 
+        zIndex: isCapturingPdf ? -1000 : 3000,
+        width: isCapturingPdf ? '1200px' : 'auto' // ensure full width when off-screen
       }}>
         <style>{`
           @media print {
@@ -993,9 +1069,14 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               </div>
             ))}
           </div>
-          <div style={{ padding: '20px', borderTop: '1px solid #e0e0e0', display: 'flex', gap: '10px', backgroundColor: 'white' }}>
-            <button onClick={() => setShowPdfPreviewModal(false)} style={{ flex: 1, padding: '10px', backgroundColor: '#f3f4f6', border: '1px solid #d1d5db', color: '#4b5563', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Cancel</button>
-            <button onClick={handleDownloadPdf} style={{ flex: 1, padding: '10px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Print PDF</button>
+          <div style={{ padding: '20px', borderTop: '1px solid #e0e0e0', display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: 'white' }}>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setShowPdfPreviewModal(false)} style={{ flex: 1, padding: '10px', backgroundColor: '#f3f4f6', border: '1px solid #d1d5db', color: '#4b5563', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Cancel</button>
+              <button onClick={handleDownloadPdf} style={{ flex: 1, padding: '10px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Print PDF</button>
+            </div>
+            <button onClick={() => setShowEmailModal(true)} style={{ width: '100%', padding: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+              <Mail size={16} /> Send Email PDF
+            </button>
           </div>
         </div>
 
@@ -1246,7 +1327,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 2000,
+        zIndex: 4000,
         padding: '20px'
       }}>
         <div style={{
@@ -3046,6 +3127,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         ) : (
           /* Active Project Dashboard */
           <>
+            <div id="project-dashboard-main-content">
             {/* Updated Date Row with SOP Info */}
             <div style={{
               padding: '15px 20px',
@@ -3680,6 +3762,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                 </div>
               )}
             </div>
+          </div>
+          {/* End project-dashboard-main-content */}
           </>
         )}
       </div>
