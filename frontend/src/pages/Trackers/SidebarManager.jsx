@@ -62,7 +62,9 @@ const sidebarManager = {
       id: `upload-file-${trackerId}-${Date.now()}`,  // ← ADDED timestamp to make unique
       moduleId: `upload-file-${trackerId}`,
       name: fileName,
-      displayName: fileName.replace(/\.[^/.]+$/, ""),
+      displayName: (projectName && fileName.startsWith(projectName + "_")) 
+        ? fileName.substring(projectName.length + 1).replace(/\.[^/.]+$/, "")
+        : fileName.replace(/\.[^/.]+$/, ""),
       type: 'file',
       parentId: `upload-project-${projectId}`,
       trackerId: trackerId,
@@ -243,7 +245,9 @@ const sidebarManager = {
       id: `project-file-${trackerId}-${Date.now()}`,  // ← ADDED timestamp to make unique
       moduleId: `project-file-${trackerId}`,
       name: fileName,
-      displayName: fileName.replace(/\.[^/.]+$/, ""),
+      displayName: (projectName && fileName.startsWith(projectName + "_"))
+        ? fileName.substring(projectName.length + 1).replace(/\.[^/.]+$/, "")
+        : fileName.replace(/\.[^/.]+$/, ""),
       type: 'file',
       parentId: `project-dashboard-${projectId}`,
       trackerId: trackerId,
