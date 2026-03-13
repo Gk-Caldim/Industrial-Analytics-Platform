@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import ReactECharts from 'echarts-for-react';
 import '../utils/echarts-theme-v5'; // Register the v5 theme
 import ExcelTableViewer from '../components/ExcelTableViewer';
+import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings } from 'lucide-react';
 
 const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   // Projects data
@@ -132,6 +133,10 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showSimulateModal, setShowSimulateModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [allEmployees, setAllEmployees] = useState([]);
+  const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
+  const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
+  const [activeEmailField, setActiveEmailField] = useState('email'); // 'email', 'cc', 'bcc'
 
   const [emailData, setEmailData] = useState({
     to: '',
@@ -223,17 +228,19 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     });
   };
 
-  // Predefined email contacts (dummy data)
-  const emailContacts = [
-    { id: 1, name: 'John Doe', email: 'john.doe@company.com', department: 'Management' },
-    { id: 2, name: 'Jane Smith', email: 'jane.smith@company.com', department: 'Engineering' },
-    { id: 3, name: 'Mike Johnson', email: 'mike.j@company.com', department: 'QA' },
-    { id: 4, name: 'Sarah Wilson', email: 'sarah.w@company.com', department: 'Product' },
-    { id: 5, name: 'Alex Chen', email: 'alex.chen@company.com', department: 'DevOps' },
-    { id: 6, name: 'Emily Brown', email: 'emily.b@company.com', department: 'Design' },
-    { id: 7, name: 'David Lee', email: 'david.lee@company.com', department: 'Management' },
-    { id: 8, name: 'Lisa Anderson', email: 'lisa.a@company.com', department: 'Engineering' },
-  ];
+  // Load employees from API
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const { default: API } = await import('../utils/api');
+        const response = await API.get('/employees');
+        setAllEmployees(response.data || []);
+      } catch (error) {
+        console.error('Error fetching employees:', error);
+      }
+    };
+    fetchEmployees();
+  }, []);
 
   // Available columns for X and Y axis (dummy data)
   const availableColumns = [
@@ -242,57 +249,60 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     'Region', 'Sales', 'Product', 'Revenue', 'Department', 'Count'
   ];
 
+  // --- EDITABLE DASHBOARD DATA ---
+
   // Milestones data with plan/actual
-  const milestones = [
+  const [milestones, setMilestones] = useState([
     {
       plan: { a: 'April 26', b: 'May 26', c: 'Jan 26', d: 'April 26', e: 'May 26', f: 'Jan 26', implementation: 'On Track' },
       actual: { a: 'Jan 26', b: 'April 26', c: 'July 26', d: 'July 26', e: 'Jan 26', f: 'May 26', implementation: 'In Progress' }
     },
-  ];
+  ]);
 
   // SOP Data - Health and status information
-  const sopData = [
+  const [sopData, setSopData] = useState([
     {
       name: 'SOP Timeline',
       daysToGo: 20,
       status: 'Likely Delay',
       health: 'At Risk'
     }
-  ];
+  ]);
 
   // Critical issues data
-  const criticalIssues = [
+  const [criticalIssues, setCriticalIssues] = useState([
     { id: 1, issue: 'Database connection timeout in production', responsibility: 'John Doe', function: 'Backend', targetDate: '2024-03-20', status: 'Open' },
     { id: 2, issue: 'API rate limiting causing service disruption', responsibility: 'Jane Smith', function: 'API Team', targetDate: '2024-03-18', status: 'Open' },
     { id: 3, issue: 'Memory leak in payment processing service', responsibility: 'Mike Johnson', function: 'Infra', targetDate: '2024-03-19', status: 'In Progress' },
     { id: 4, issue: 'UI rendering issue on mobile devices', responsibility: 'Sarah Wilson', function: 'Frontend', targetDate: '2024-03-25', status: 'Closed' },
-    { id: 5, issue: 'Security vulnerability in authentication', responsibility: 'Security Team', function: 'Security', targetDate: '2024-03-17', status: 'Open' },
-    { id: 6, issue: 'Data sync failure between services', responsibility: 'Alex Chen', function: 'DevOps', targetDate: '2024-03-22', status: 'In Progress' },
-  ];
+  ]);
 
-  // Budget summary data
-  const budgetData = {
-    approved: '$2,500,000',
-    utilized: '$1,850,000',
-    balance: '$650,000',
-    outlook: '72%'
-  };
+  // Summary data
+  const [summaryData, setSummaryData] = useState({
+    budgetApproved: '$2,500,000',
+    budgetUtilized: '$1,850,000',
+    budgetBalance: '$650,000',
+    budgetOutlook: '72%',
+    resourceDeployed: '24',
+    resourceUtilized: '18',
+    resourceShortage: '6',
+    resourceUnderUtilized: '3',
+    qualityTotal: '42',
+    qualityCompleted: '28',
+    qualityOpen: '14',
+    qualityCritical: '7'
+  });
 
-  // Resource summary data
-  const resourceData = {
-    deployed: '24',
-    utilized: '18',
-    shortage: '6',
-    underUtilized: '3'
-  };
+  // Modal States
+  const [showEditMilestones, setShowEditMilestones] = useState(false);
+  const [showEditIssues, setShowEditIssues] = useState(false);
+  const [showEditSummary, setShowEditSummary] = useState(false);
+  const [editType, setEditType] = useState(null); // 'budget', 'resource', 'quality'
 
-  // Quality summary data
-  const qualityData = {
-    totalIssues: '42',
-    actionCompleted: '28',
-    openIssues: '14',
-    criticalIssues: '7'
-  };
+  // Form States
+  const [milestoneForm, setMilestoneForm] = useState(null);
+  const [issuesForm, setIssuesForm] = useState([]);
+  const [summaryForm, setSummaryForm] = useState({});
 
   // Get status color
   const getStatusColor = (status) => {
@@ -497,12 +507,12 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         setAxisConfigs(prev => ({
           ...prev,
           [activeProject.id]: {
-            design: { xAxis: 'Category', yAxis: 'Value' },
-            partDevelopment: { xAxis: 'Week', yAxis: 'Progress' },
-            build: { xAxis: 'Component', yAxis: 'Percentage' },
-            gateway: { xAxis: 'Month', yAxis: 'Performance' },
-            validation: { xAxis: 'Test Case', yAxis: 'Pass Rate' },
-            qualityIssues: { xAxis: 'Metric', yAxis: 'Score' }
+            design: { xAxis: '', yAxis: '' },
+            partDevelopment: { xAxis: '', yAxis: '' },
+            build: { xAxis: '', yAxis: '' },
+            gateway: { xAxis: '', yAxis: '' },
+            validation: { xAxis: '', yAxis: '' },
+            qualityIssues: { xAxis: '', yAxis: '' }
           }
         }));
       }
@@ -692,6 +702,10 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         [`${type}Inputs`]: newInputs
       }));
     }
+
+    // Clear search and close dropdown
+    setEmployeeSearchTerm('');
+    setShowEmployeeDropdown(false);
   };
 
   // Remove email input
@@ -799,7 +813,10 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     );
   };
 
-  // Enhanced PDF preview function with dashboard UI styling
+  // Handle Print Preview via React Modal
+  const [showPdfPreviewModal, setShowPdfPreviewModal] = useState(false);
+  const [pdfLayoutOrder, setPdfLayoutOrder] = useState([]);
+
   const openPrintPreview = () => {
     const selected = Object.entries(emailData.selectedSections)
       .filter(([_, selected]) => selected)
@@ -810,1018 +827,406 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       return;
     }
 
-    // Helper to render chart as SVG/HTML with enhanced styling
-    const renderChartForPDF = (chartId, chartType) => {
-      const axisConfig = activeProject ? axisConfigs[activeProject.id]?.[chartId] : { xAxis: 'Category', yAxis: 'Value' };
-      const chartColors = {
-        design: '#3b82f6',
-        partDevelopment: '#f59e0b',
-        build: '#10b981',
-        gateway: '#8b5cf6',
-        validation: '#ec4899',
-        qualityIssues: '#ef4444'
-      };
+    setPdfLayoutOrder(selected);
+    setShowPdfPreviewModal(true);
+    setShowEmailModal(false);
+  };
 
-      const chartNames = {
-        design: 'Design Progress',
-        partDevelopment: 'Part Development',
-        build: 'Build Status',
-        gateway: 'Gateway Performance',
-        validation: 'Validation Results',
-        qualityIssues: 'Quality Metrics'
-      };
+  // PDF Preview Modal for drag-and-drop customization and live charting before printing
+  const PdfPreviewModal = () => {
+    const [draggedItemIndex, setDraggedItemIndex] = useState(null);
 
-      switch (chartType) {
-        case 'bar':
-          return `
-            <div class="chart-card">
-              <div class="chart-header">
-                <span class="chart-title">${chartNames[chartId] || chartId}</span>
-                <span class="chart-axis-label">X: ${axisConfig?.xAxis || 'Category'} | Y: ${axisConfig?.yAxis || 'Value'}</span>
-              </div>
-              <div class="chart-body">
-                <div class="bar-chart">
-                  <div class="bars-container">
-                    <div class="bar-wrapper">
-                      <div class="bar" style="height: 180px; background-color: ${chartColors[chartId]};">
-                        <span class="bar-value">85%</span>
-                      </div>
-                      <span class="bar-label">UI</span>
-                    </div>
-                    <div class="bar-wrapper">
-                      <div class="bar" style="height: 130px; background-color: ${chartColors[chartId]}cc;">
-                        <span class="bar-value">62%</span>
-                      </div>
-                      <span class="bar-label">UX</span>
-                    </div>
-                    <div class="bar-wrapper">
-                      <div class="bar" style="height: 95px; background-color: ${chartColors[chartId]}99;">
-                        <span class="bar-value">45%</span>
-                      </div>
-                      <span class="bar-label">Research</span>
-                    </div>
-                    <div class="bar-wrapper">
-                      <div class="bar" style="height: 150px; background-color: ${chartColors[chartId]}b3;">
-                        <span class="bar-value">72%</span>
-                      </div>
-                      <span class="bar-label">Testing</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          `;
+    if (!showPdfPreviewModal) return null;
 
-        case 'line':
-          return `
-            <div class="chart-card">
-              <div class="chart-header">
-                <span class="chart-title">${chartNames[chartId] || chartId}</span>
-                <span class="chart-axis-label">X: ${axisConfig?.xAxis || 'Week'} | Y: ${axisConfig?.yAxis || 'Progress'}</span>
-              </div>
-              <div class="chart-body">
-                <svg width="100%" height="200" viewBox="0 0 400 200" preserveAspectRatio="none">
-                  <polyline points="50,150 120,80 190,120 260,40 330,90" 
-                    stroke="${chartColors[chartId]}" stroke-width="3" fill="none" />
-                  <circle cx="50" cy="150" r="4" fill="${chartColors[chartId]}" />
-                  <circle cx="120" cy="80" r="4" fill="${chartColors[chartId]}" />
-                  <circle cx="190" cy="120" r="4" fill="${chartColors[chartId]}" />
-                  <circle cx="260" cy="40" r="4" fill="${chartColors[chartId]}" />
-                  <circle cx="330" cy="90" r="4" fill="${chartColors[chartId]}" />
-                </svg>
-                <div class="line-labels">
-                  <span>W1</span><span>W2</span><span>W3</span><span>W4</span><span>W5</span>
-                </div>
-              </div>
-            </div>
-          `;
-
-        case 'pie':
-          return `
-            <div class="chart-card">
-              <div class="chart-header">
-                <span class="chart-title">${chartNames[chartId] || chartId}</span>
-                <span class="chart-axis-label">Distribution</span>
-              </div>
-              <div class="chart-body pie-chart">
-                <svg width="180" height="180" viewBox="0 0 32 32">
-                  <circle r="16" cx="16" cy="16" fill="${chartColors[chartId]}" />
-                  <path d="M16,16 L16,0 A16,16 0 0,1 32,16 Z" fill="${chartColors[chartId]}cc" />
-                  <path d="M16,16 L32,16 A16,16 0 0,1 16,32 Z" fill="${chartColors[chartId]}99" />
-                  <circle r="8" cx="16" cy="16" fill="white" />
-                </svg>
-                <div class="pie-legend">
-                  <div><span class="legend-dot" style="background: ${chartColors[chartId]}"></span> Complete 45%</div>
-                  <div><span class="legend-dot" style="background: ${chartColors[chartId]}cc"></span> In Progress 35%</div>
-                  <div><span class="legend-dot" style="background: ${chartColors[chartId]}99"></span> Pending 20%</div>
-                </div>
-              </div>
-            </div>
-          `;
-
-        default:
-          return `
-            <div class="chart-card">
-              <div class="chart-header">
-                <span class="chart-title">${chartNames[chartId] || chartId}</span>
-                <span class="chart-axis-label">X: ${axisConfig?.xAxis || 'Category'} | Y: ${axisConfig?.yAxis || 'Value'}</span>
-              </div>
-              <div class="chart-body">
-                <div style="text-align:center; padding:30px; color:#6b7280;">
-                  Chart: ${chartType} - Sample visualization
-                </div>
-              </div>
-            </div>
-          `;
-      }
+    const handleDragStart = (e, index) => {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', index);
+      setDraggedItemIndex(index);
     };
 
-    // Helper to build section HTML with enhanced dashboard styling
-    const buildSectionHTML = (section) => {
-      const colors = {
-        milestones: { bg: '#e6f0fa', border: '#1e3a5f' },
-        criticalIssues: { bg: '#fee2e2', border: '#991b1b' },
-        budget: { bg: '#d1fae5', border: '#065f46' },
-        resource: { bg: '#fef3c7', border: '#92400e' },
-        quality: { bg: '#dbeafe', border: '#1e40af' }
-      };
-
-      const sectionTitles = {
-        milestones: 'Project Milestones',
-        criticalIssues: 'Critical Issues Summary',
-        budget: 'Budget Overview',
-        resource: 'Resource Allocation',
-        quality: 'Quality Metrics',
-        design: 'Design Progress',
-        partDevelopment: 'Part Development',
-        build: 'Build Status',
-        gateway: 'Gateway Performance',
-        validation: 'Validation Results',
-        qualityIssues: 'Quality Issues'
-      };
-
-      // Chart sections are handled in a separate grid builder
-      if (['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(section)) {
-        return '';
-      }
-
-      // Regular sections
-      switch (section) {
-        case 'milestones':
-          return `
-            <div class="section-card" style="border-top-color: ${colors.milestones.border}">
-              <h2 class="section-title">
-                <span class="title-text">${sectionTitles[section]}</span>
-                <span class="section-badge">Timeline</span>
-              </h2>
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Plan/Actual</th>
-                    <th>Q1</th>
-                    <th>Q2</th>
-                    <th>Q3</th>
-                    <th>Q4</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr class="plan-row">
-                    <td><span class="plan-badge">Plan</span></td>
-                    <td>${milestones[0].plan.a}</td>
-                    <td>${milestones[0].plan.b}</td>
-                    <td>${milestones[0].plan.c}</td>
-                    <td>${milestones[0].plan.d}</td>
-                    <td><span class="status-badge on-track">${milestones[0].plan.implementation}</span></td>
-                  </tr>
-                  <tr class="actual-row">
-                    <td><span class="actual-badge">Actual</span></td>
-                    <td>${milestones[0].actual.a}</td>
-                    <td>${milestones[0].actual.b}</td>
-                    <td>${milestones[0].actual.c}</td>
-                    <td>${milestones[0].actual.d}</td>
-                    <td><span class="status-badge in-progress">${milestones[0].actual.implementation}</span></td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          `;
-
-        case 'criticalIssues':
-          let issuesHTML = `
-            <div class="section-card" style="border-top-color: ${colors.criticalIssues.border}">
-              <h2 class="section-title">
-                <span class="title-text">${sectionTitles[section]}</span>
-                <span class="section-badge warning">High Priority</span>
-              </h2>
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Issue</th>
-                    <th>Assignee</th>
-                    <th>Function</th>
-                    <th>Target Date</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-          `;
-
-          criticalIssues.slice(0, 4).forEach(issue => {
-            const statusClass = issue.status.toLowerCase().replace(' ', '-');
-            issuesHTML += `
-              <tr>
-                <td><span class="issue-id">#${issue.id}</span></td>
-                <td class="issue-title">${issue.issue}</td>
-                <td>${issue.responsibility}</td>
-                <td><span class="function-tag">${issue.function}</span></td>
-                <td>${issue.targetDate}</td>
-                <td><span class="status-badge ${statusClass}">${issue.status}</span></td>
-              </tr>
-            `;
-          });
-
-          issuesHTML += `
-                </tbody>
-              </table>
-              <div class="section-footer">
-                <span>Showing 4 of ${criticalIssues.length} issues</span>
-              </div>
-            </div>
-          `;
-          return issuesHTML;
-
-        case 'budget':
-          return `
-            <div class="section-card" style="border-top-color: ${colors.budget.border}">
-              <h2 class="section-title">
-                <span class="title-text">${sectionTitles[section]}</span>
-              </h2>
-              <div class="summary-grid">
-                <div class="summary-item">
-                  <span class="summary-label">Approved Budget</span>
-                  <span class="summary-value approved">${budgetData.approved}</span>
-                </div>
-                <div class="summary-item">
-                  <span class="summary-label">Utilized</span>
-                  <span class="summary-value utilized">${budgetData.utilized}</span>
-                </div>
-                <div class="summary-item">
-                  <span class="summary-label">Remaining</span>
-                  <span class="summary-value remaining">${budgetData.balance}</span>
-                </div>
-                <div class="summary-item">
-                  <span class="summary-label">Utilization</span>
-                  <span class="summary-value percentage">${budgetData.outlook}</span>
-                </div>
-              </div>
-              <div class="progress-bar">
-                <div class="progress-fill" style="width: 72%"></div>
-              </div>
-            </div>
-          `;
-
-        case 'resource':
-          return `
-            <div class="section-card" style="border-top-color: ${colors.resource.border}">
-              <h2 class="section-title">
-                <span class="title-text">${sectionTitles[section]}</span>
-              </h2>
-              <div class="resource-grid">
-                <div class="resource-stat">
-                  <span class="stat-value">${resourceData.deployed}</span>
-                  <span class="stat-label">Deployed</span>
-                </div>
-                <div class="resource-stat">
-                  <span class="stat-value">${resourceData.utilized}</span>
-                  <span class="stat-label">Utilized</span>
-                </div>
-                <div class="resource-stat warning">
-                  <span class="stat-value">${resourceData.shortage}</span>
-                  <span class="stat-label">Shortage</span>
-                </div>
-                <div class="resource-stat caution">
-                  <span class="stat-value">${resourceData.underUtilized}</span>
-                  <span class="stat-label">Under Utilized</span>
-                </div>
-              </div>
-            </div>
-          `;
-
-        case 'quality':
-          return `
-            <div class="section-card" style="border-top-color: ${colors.quality.border}">
-              <h2 class="section-title">
-                <span class="title-text">${sectionTitles[section]}</span>
-              </h2>
-              <div class="quality-metrics">
-                <div class="metric-item">
-                  <span class="metric-label">Total Issues</span>
-                  <span class="metric-value">${qualityData.totalIssues}</span>
-                </div>
-                <div class="metric-item success">
-                  <span class="metric-label">Completed</span>
-                  <span class="metric-value">${qualityData.actionCompleted}</span>
-                </div>
-                <div class="metric-item warning">
-                  <span class="metric-label">Open Issues</span>
-                  <span class="metric-value">${qualityData.openIssues}</span>
-                </div>
-                <div class="metric-item critical">
-                  <span class="metric-label">Critical</span>
-                  <span class="metric-value">${qualityData.criticalIssues}</span>
-                </div>
-              </div>
-            </div>
-          `;
-
-        default:
-          return '';
-      }
+    const handleDragOver = (e, index) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
     };
 
-    // Helper to build metrics grid
-    const buildMetricsGridHTML = (selectedSections) => {
-      const metricKeys = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
-      const selectedMetrics = selectedSections.filter(s => metricKeys.includes(s));
+    const handleDrop = (e, index) => {
+      e.preventDefault();
+      if (draggedItemIndex === null) return;
+      if (draggedItemIndex === index) return;
 
-      if (selectedMetrics.length === 0) return '';
-
-      const chartTypesMap = {
-        design: chartTypes[activeProject.id]?.design || 'bar',
-        partDevelopment: chartTypes[activeProject.id]?.partDevelopment || 'line',
-        build: chartTypes[activeProject.id]?.build || 'pie',
-        gateway: chartTypes[activeProject.id]?.gateway || 'area',
-        validation: chartTypes[activeProject.id]?.validation || 'bar',
-        qualityIssues: chartTypes[activeProject.id]?.qualityIssues || 'gauge'
-      };
-
-      return `
-        <div class="metrics-grid-header">
-          <h2 class="metrics-main-title">Project Metrics Summary</h2>
-        </div>
-        <div class="metrics-grid">
-          ${selectedMetrics.map(m => renderChartForPDF(m, chartTypesMap[m])).join('')}
-        </div>
-      `;
+      const newOrder = [...pdfLayoutOrder];
+      const draggedItem = newOrder[draggedItemIndex];
+      newOrder.splice(draggedItemIndex, 1);
+      newOrder.splice(index, 0, draggedItem);
+      setPdfLayoutOrder(newOrder);
+      setDraggedItemIndex(null);
     };
 
+    const handleDragEnd = () => {
+      setDraggedItemIndex(null);
+    };
 
-    // Build complete HTML with enhanced dashboard styling
-    const printContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>${activeProject?.name} - Project Dashboard Report</title>
-          <style>
-            * {
-              margin: 0;
-              padding: 0;
-              box-sizing: border-box;
+    const sectionTitles = {
+      milestones: 'Project Milestones',
+      criticalIssues: 'Critical Issues Summary',
+      budget: 'Budget Overview',
+      resource: 'Resource Allocation',
+      quality: 'Quality Metrics',
+      design: 'Design Progress',
+      partDevelopment: 'Part Development',
+      build: 'Build Status',
+      gateway: 'Gateway Performance',
+      validation: 'Validation Results',
+      qualityIssues: 'Quality Issues',
+      sopTables: 'SOP Tables'
+    };
+
+    const handleDownloadPdf = () => {
+      window.print();
+    };
+
+    return (
+      <div id="pdf-preview-modal-root" style={{
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', zIndex: 3000
+      }}>
+        <style>{`
+          @media print {
+            @page {
+              margin: 15mm;
+              size: A4;
             }
-            
-            body {
-              font-family: 'Segoe UI', Arial, sans-serif;
-              background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-              padding: 30px;
-              color: #1e293b;
+            html, body {
+              height: auto !important;
+              overflow: visible !important;
             }
-            
-            .report-container {
-              max-width: 1200px;
-              margin: 0 auto;
-              background: white;
-              border-radius: 20px;
-              box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-              overflow: hidden;
+            body * {
+              visibility: hidden;
             }
-            
-            .report-header {
-              background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);
-              color: white;
-              padding: 30px;
-              position: relative;
-              overflow: hidden;
+            #pdf-preview-modal-root, #pdf-preview-modal-root * {
+              visibility: visible !important;
             }
-            
-            .report-header::before {
-              content: '';
-              position: absolute;
-              top: -50%;
-              right: -50%;
-              width: 200%;
-              height: 200%;
-              background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-              transform: rotate(45deg);
+            #pdf-preview-modal-root {
+              position: static !important;
+              display: block !important;
+              background: white !important;
+              width: 100% !important;
             }
-            
-            .header-content {
-              position: relative;
-              z-index: 1;
+            /* Hide the sidebar and any no-print items */
+            .no-print, #pdf-preview-sidebar {
+              display: none !important;
+              visibility: hidden !important;
             }
-            
-            .report-title {
-              font-size: 32px;
-              font-weight: bold;
-              margin-bottom: 10px;
-              display: flex;
-              align-items: center;
-              gap: 15px;
+            /* Ensure the preview container allows multi-page flow */
+            .pdf-preview-container {
+              position: static !important;
+              overflow: visible !important;
+              height: auto !important;
+              padding: 0 !important;
+              background: white !important;
+              width: 100% !important;
             }
-            
-            .project-badge {
-              background: rgba(255,255,255,0.2);
-              padding: 8px 16px;
-              border-radius: 30px;
-              font-size: 14px;
-              font-weight: normal;
-              border: 1px solid rgba(255,255,255,0.3);
+            .pdf-printable-area {
+              position: static !important;
+              width: 100% !important;
+              max-width: none !important;
+              padding: 0 !important;
+              box-shadow: none !important;
+              margin: 0 !important;
+              background: white !important;
+              height: auto !important;
+              overflow: visible !important;
             }
-            
-            .report-meta {
-              display: flex;
-              gap: 30px;
-              margin-top: 15px;
-              font-size: 14px;
-              color: #e2e8f0;
+            .pdf-sections-grid {
+              display: block !important;
+              width: 100% !important;
             }
-            
-            .meta-item {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-            }
-            
-            .meta-label {
-              font-weight: 300;
-            }
-            
-            .meta-value {
-              font-weight: 600;
-              background: rgba(255,255,255,0.1);
-              padding: 4px 10px;
-              border-radius: 20px;
-            }
-            
-            .sop-indicator {
-              display: inline-flex;
-              align-items: center;
-              gap: 10px;
-              background: rgba(255,255,255,0.1);
-              padding: 8px 16px;
-              border-radius: 30px;
-              margin-top: 15px;
-            }
-            
-            .sop-days {
-              background: #fbbf24;
-              color: #1e3a5f;
-              padding: 4px 12px;
-              border-radius: 20px;
-              font-weight: bold;
-            }
-            
-            .sop-status {
-              color: #fbbf24;
-              font-weight: 600;
-            }
-            
-            .content-section {
-              padding: 30px;
-            }
-            
-            .section-card {
-              background: white;
-              border-radius: 16px;
-              padding: 25px;
+            .pdf-section {
+              break-inside: avoid;
+              page-break-inside: avoid;
               margin-bottom: 30px;
-              box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-              border-top: 4px solid #1e3a5f;
-              transition: transform 0.2s;
+              width: 100% !important;
             }
-            
-            .section-card:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-            }
-            
-            .section-title {
-              font-size: 20px;
-              font-weight: bold;
-              color: #1e3a5f;
-              margin-bottom: 20px;
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              border-bottom: 2px solid #e2e8f0;
-              padding-bottom: 10px;
-            }
-            
-            .title-text {
-              display: flex;
-              align-items: center;
-              gap: 10px;
-            }
-            
-            .section-badge {
-              background: #1e3a5f;
-              color: white;
-              padding: 4px 12px;
-              border-radius: 20px;
-              font-size: 12px;
-              font-weight: 600;
-            }
-            
-            .section-badge.warning {
-              background: #dc2626;
-            }
-            
-            .data-table {
-              width: 100%;
-              border-collapse: collapse;
-              font-size: 14px;
-            }
-            
-            .data-table th {
-              background: #f8fafc;
-              color: #1e3a5f;
-              font-weight: 600;
-              padding: 12px;
-              text-align: left;
-              border-bottom: 2px solid #e2e8f0;
-            }
-            
-            .data-table td {
-              padding: 12px;
-              border-bottom: 1px solid #e2e8f0;
-            }
-            
-            .data-table tr:hover {
-              background: #f8fafc;
-            }
-            
-            .plan-row {
-              background: #e6f0fa;
-            }
-            
-            .actual-row {
-              background: #d1fae5;
-            }
-            
-            .plan-badge, .actual-badge {
-              display: inline-block;
-              padding: 4px 8px;
-              border-radius: 4px;
-              font-size: 12px;
-              font-weight: 600;
-            }
-            
-            .plan-badge {
-              background: #1e3a5f;
-              color: white;
-            }
-            
-            .actual-badge {
-              background: #059669;
-              color: white;
-            }
-            
-            .status-badge {
-              display: inline-block;
-              padding: 6px 12px;
-              border-radius: 30px;
-              font-size: 12px;
-              font-weight: 600;
-            }
-            
-            .status-badge.on-track {
-              background: #d1fae5;
-              color: #065f46;
-            }
-            
-            .status-badge.in-progress {
-              background: #dbeafe;
-              color: #1e40af;
-            }
-            
-            .status-badge.open {
-              background: #fee2e2;
-              color: #991b1b;
-            }
-            
-            .status-badge.closed {
-              background: #d1fae5;
-              color: #065f46;
-            }
-            
-            .issue-id {
-              font-weight: 600;
-              color: #1e3a5f;
-            }
-            
-            .issue-title {
-              font-weight: 500;
-              max-width: 300px;
-            }
-            
-            .function-tag {
-              background: #e2e8f0;
-              padding: 4px 8px;
-              border-radius: 4px;
-              font-size: 11px;
-              font-weight: 600;
-            }
-            
-            .metrics-grid-header {
-              margin-bottom: 15px;
-            }
-            
-            .metrics-main-title {
-              font-size: 20px;
-              font-weight: bold;
-              color: #1e3a5f;
-            }
-            
-            .metrics-grid {
-              display: grid;
-              grid-template-columns: repeat(2, 1fr);
-              gap: 15px;
-              margin-bottom: 30px;
-            }
-            
-            .summary-grid {
-              display: grid;
-              grid-template-columns: repeat(4, 1fr);
-              gap: 20px;
-              margin-bottom: 20px;
-            }
-            
-            .summary-item {
-              text-align: center;
-              padding: 15px;
-              background: #f8fafc;
-              border-radius: 12px;
-            }
-            
-            .summary-label {
-              display: block;
-              font-size: 12px;
-              color: #64748b;
-              margin-bottom: 8px;
-            }
-            
-            .summary-value {
-              font-size: 20px;
-              font-weight: bold;
-            }
-            
-            .summary-value.approved {
-              color: #1e3a5f;
-            }
-            
-            .summary-value.utilized {
-              color: #059669;
-            }
-            
-            .summary-value.remaining {
-              color: #dc2626;
-            }
-            
-            .summary-value.percentage {
-              color: #f59e0b;
-            }
-            
-            .progress-bar {
-              width: 100%;
-              height: 8px;
-              background: #e2e8f0;
-              border-radius: 4px;
-              overflow: hidden;
-            }
-            
-            .progress-fill {
-              height: 100%;
-              background: linear-gradient(90deg, #1e3a5f, #2c5282);
-              border-radius: 4px;
-            }
-            
-            .resource-grid {
-              display: grid;
-              grid-template-columns: repeat(4, 1fr);
-              gap: 20px;
-            }
-            
-            .resource-stat {
-              text-align: center;
-              padding: 20px;
-              background: #f8fafc;
-              border-radius: 12px;
-            }
-            
-            .resource-stat.warning .stat-value {
-              color: #dc2626;
-            }
-            
-            .resource-stat.caution .stat-value {
-              color: #f59e0b;
-            }
-            
-            .stat-value {
-              display: block;
-              font-size: 28px;
-              font-weight: bold;
-              color: #1e3a5f;
-              margin-bottom: 5px;
-            }
-            
-            .stat-label {
-              font-size: 12px;
-              color: #64748b;
-            }
-            
-            .quality-metrics {
-              display: grid;
-              grid-template-columns: repeat(4, 1fr);
-              gap: 20px;
-            }
-            
-            .metric-item {
-              padding: 15px;
-              background: #f8fafc;
-              border-radius: 12px;
-              text-align: center;
-            }
-            
-            .metric-item.success .metric-value {
-              color: #059669;
-            }
-            
-            .metric-item.warning .metric-value {
-              color: #f59e0b;
-            }
-            
-            .metric-item.critical .metric-value {
-              color: #dc2626;
-            }
-            
-            .metric-label {
-              display: block;
-              font-size: 12px;
-              color: #64748b;
-              margin-bottom: 5px;
-            }
-            
-            .metric-value {
-              font-size: 24px;
-              font-weight: bold;
-              color: #1e3a5f;
-            }
-            
-            .chart-card {
-              background: white;
-              border-radius: 12px;
-              padding: 20px;
-              margin-bottom: 20px;
-              border: 1px solid #e2e8f0;
-            }
-            
-            .chart-header {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              margin-bottom: 15px;
-              padding-bottom: 10px;
-              border-bottom: 2px solid #e2e8f0;
-            }
-            
-            .chart-title {
-              font-size: 16px;
-              font-weight: 600;
-              color: #1e3a5f;
-            }
-            
-            .chart-axis-label {
-              font-size: 12px;
-              color: #64748b;
-              background: #f1f5f9;
-              padding: 4px 10px;
-              border-radius: 20px;
-            }
-            
-            .chart-body {
-              min-height: 200px;
-            }
-            
-            .bars-container {
-              display: flex;
-              align-items: flex-end;
-              justify-content: center;
-              gap: 30px;
-              height: 200px;
-            }
-            
-            .bar-wrapper {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              gap: 10px;
-            }
-            
-            .bar {
-              width: 50px;
-              border-radius: 8px 8px 0 0;
-              position: relative;
-              transition: height 0.3s;
-            }
-            
-            .bar-value {
-              position: absolute;
-              top: -25px;
-              left: 50%;
-              transform: translateX(-50%);
-              font-size: 12px;
-              font-weight: 600;
-              color: #1e293b;
-            }
-            
-            .bar-label {
-              font-size: 12px;
-              font-weight: 600;
-              color: #64748b;
-            }
-            
-            .line-labels {
-              display: flex;
-              justify-content: space-around;
-              margin-top: 10px;
-              font-size: 12px;
-              color: #64748b;
-            }
-            
-            .pie-chart {
-              display: flex;
-              align-items: center;
-              gap: 30px;
-            }
-            
-            .pie-legend {
-              flex: 1;
-            }
-            
-            .pie-legend div {
-              margin-bottom: 10px;
-              display: flex;
-              align-items: center;
-              gap: 10px;
-              font-size: 13px;
-            }
-            
-            .legend-dot {
-              width: 12px;
-              height: 12px;
-              border-radius: 50%;
-              display: inline-block;
-            }
-            
-            .section-footer {
-              margin-top: 15px;
-              padding-top: 15px;
-              border-top: 1px solid #e2e8f0;
-              font-size: 12px;
-              color: #64748b;
-              text-align: right;
-            }
-            
-            .report-footer {
-              background: #1e293b;
-              color: #94a3b8;
-              padding: 20px 30px;
-              text-align: center;
-              font-size: 12px;
-            }
-            
-            .footer-links {
-              display: flex;
-              justify-content: center;
-              gap: 20px;
-              margin-top: 10px;
-            }
-            
-            @media print {
-              @page {
-                size: A4;
-                margin: 10mm;
-              }
-              
-              body {
-                background: white;
-                padding: 0;
-                font-size: 10pt;
-              }
-              
-              .report-container {
-                box-shadow: none;
-                border-radius: 0;
-                max-width: 100%;
-                margin: 0;
-              }
-              
-              .section-card {
-                break-inside: avoid;
-                margin-bottom: 15px;
-                padding: 15px;
-              }
+          }
+        `}</style>
 
-              .chart-card {
-                break-inside: avoid;
-                margin-bottom: 10px;
-                padding: 10px;
-              }
-              
-              .report-header {
-                padding: 15px;
-              }
-              
-              .content-section {
-                padding: 15px;
-              }
-
-              /* Force 2 column grid in print */
-              .metrics-grid {
-                display: block;
-              }
-              .chart-card {
-                width: 48%;
-                display: inline-block;
-                vertical-align: top;
-                margin-right: 1%;
-              }
-
-              .report-title {
-                font-size: 24px;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="report-container">
-            <div class="report-header">
-              <div class="header-content">
-                <div class="report-title">
-                  ${activeProject?.name} Dashboard Report
-                  <span class="project-badge">Project Overview</span>
-                </div>
-                
-                <div class="report-meta">
-                  <div class="meta-item">
-                    <span class="meta-label">Generated:</span>
-                    <span class="meta-value">${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</span>
+        {/* Sidebar for customization */}
+        <div id="pdf-preview-sidebar" className="no-print" style={{ width: '320px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', height: '100%', boxShadow: '2px 0 10px rgba(0,0,0,0.2)', zIndex: 10 }}>
+          <div style={{ padding: '20px', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 'bold', fontSize: '18px' }}>
+            Customize PDF Layout
+          </div>
+          <div style={{ flex: 1, padding: '20px', overflowY: 'auto', backgroundColor: '#f8f9fa' }}>
+            <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>Rearrange the sections to customize your PDF report.</p>
+            {pdfLayoutOrder.map((section, idx) => (
+              <div
+                key={section}
+                draggable
+                onDragStart={(e) => handleDragStart(e, idx)}
+                onDragOver={(e) => handleDragOver(e, idx)}
+                onDrop={(e) => handleDrop(e, idx)}
+                onDragEnd={handleDragEnd}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px',
+                  backgroundColor: draggedItemIndex === idx ? '#f3f4f6' : 'white',
+                  border: '1px solid #e0e0e0',
+                  marginBottom: '10px',
+                  borderRadius: '6px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  cursor: 'grab',
+                  opacity: draggedItemIndex === idx ? 0.5 : 1
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ color: '#9ca3af', cursor: 'grab', display: 'flex' }}>
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                      <path d="M4 4h2v2H4V4zm4 0h2v2H8V4zm4 0h2v2h-2V4zM4 8h2v2H4V8zm4 0h2v2H8V8zm4 0h2v2h-2V8zM4 12h2v2H4v-2zm4 0h2v2H8v-2zm4 0h2v2h-2v-2z" />
+                    </svg>
                   </div>
-                  <div class="meta-item">
-                    <span class="meta-label">Report ID:</span>
-                    <span class="meta-value">DR-${Math.floor(Math.random() * 10000)}</span>
-                  </div>
+                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>{idx + 1}. {sectionTitles[section] || section}</span>
                 </div>
-                
-                <div class="sop-indicator">
-                  <span>SOP Timeline:</span>
-                  <span class="sop-days">${sopData[0].daysToGo} days to go</span>
-                  <span class="sop-status">${sopData[0].status}</span>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <span style={{ fontSize: '12px', color: '#9ca3af', cursor: 'grab' }}>:::</span>
                 </div>
               </div>
-            </div>
-            
-            <div class="content-section">
-              ${selected.map(section => buildSectionHTML(section)).filter(html => html !== '').join('<div style="margin-bottom: 20px;"></div>')}
-              ${buildMetricsGridHTML(selected)}
+            ))}
+          </div>
+          <div style={{ padding: '20px', borderTop: '1px solid #e0e0e0', display: 'flex', gap: '10px', backgroundColor: 'white' }}>
+            <button onClick={() => setShowPdfPreviewModal(false)} style={{ flex: 1, padding: '10px', backgroundColor: '#f3f4f6', border: '1px solid #d1d5db', color: '#4b5563', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Cancel</button>
+            <button onClick={handleDownloadPdf} style={{ flex: 1, padding: '10px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Print PDF</button>
+          </div>
+        </div>
+
+        {/* Preview Area (this will actually be printed!) */}
+        <div className="pdf-preview-container" style={{ flex: 1, overflowY: 'auto', padding: '40px', backgroundColor: '#64748b' }}>
+          <div className="pdf-printable-area" style={{ maxWidth: '900px', margin: '0 auto', backgroundColor: 'white', minHeight: '100%', padding: '40px 60px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+
+            <div style={{ textAlign: 'center', marginBottom: '40px', borderBottom: '2px solid #1e3a5f', paddingBottom: '20px' }}>
+              <h1 style={{ color: '#1e3a5f', fontSize: '32px', margin: '0 0 10px 0' }}>{activeProject?.name || 'Project'} Dashboard Report</h1>
+              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Generated: {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</p>
             </div>
 
-            
-            <div class="report-footer">
-              <p>© ${new Date().getFullYear()} Project Dashboard. All rights reserved.</p>
-              <p class="footer-links">
-                <span>Confidential</span> • 
-                <span>Generated for internal use</span> • 
-                <span>Version 1.0</span>
-              </p>
+            <div className="pdf-sections-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', alignItems: 'start' }}>
+              {pdfLayoutOrder.map(section => {
+                // For charts: render original charts!
+                const isChart = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(section);
+                const fullWidth = ['milestones', 'criticalIssues', 'budget', 'resource', 'quality'].includes(section);
+
+                if (isChart) {
+                  const cType = chartTypes[activeProject?.id]?.[section] || 'bar';
+                  return (
+                    <div key={section} className="pdf-section" style={{
+                      gridColumn: fullWidth ? '1 / -1' : 'auto',
+                      marginBottom: '15px',
+                      breakInside: 'avoid',
+                      minWidth: 0,
+                      overflow: 'hidden'
+                    }}>
+                      <h2 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>{sectionTitles[section]}</h2>
+                      <div style={{ border: '1px solid #e0e0e0', padding: '15px', borderRadius: '8px' }}>
+                        {renderChart(section, cType, false, getTrackerForPhase(section)?.trackerId)}
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (section === 'milestones') {
+                  return (
+                    <div key={section} className="pdf-section" style={{
+                      gridColumn: fullWidth ? '1 / -1' : 'auto',
+                      marginBottom: '15px',
+                      breakInside: 'avoid',
+                      minWidth: 0
+                    }}>
+                      <h2 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>{sectionTitles[section]}</h2>
+                      <div style={{ overflowX: 'auto', border: '1px solid #e0e0e0', borderRadius: '4px' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '600px' }}>
+                          <thead>
+                            <tr style={{ backgroundColor: '#1e3a5f', color: 'white' }}>
+                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>Categories</th>
+                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>A</th>
+                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>B</th>
+                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>C</th>
+                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>D</th>
+                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>E</th>
+                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>F</th>
+                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0', fontWeight: 'bold' }}>Plan</td>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].plan.a}</td>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].plan.b}</td>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].plan.c}</td>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].plan.d}</td>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].plan.e}</td>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].plan.f}</td>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].plan.implementation}</td>
+                            </tr>
+                            <tr>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0', fontWeight: 'bold' }}>Actual</td>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].actual.a}</td>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].actual.b}</td>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].actual.c}</td>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].actual.d}</td>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].actual.e}</td>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].actual.f}</td>
+                              <td style={{ padding: '10px', border: '1px solid #e0e0e0', color: milestones[0].actual.implementation === 'In Progress' ? '#1e40af' : '#065f46', fontWeight: 'bold' }}>{milestones[0].actual.implementation}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (section === 'criticalIssues') {
+                  return (
+                    <div key={section} className="pdf-section" style={{
+                      gridColumn: fullWidth ? '1 / -1' : 'auto',
+                      marginBottom: '15px',
+                      breakInside: 'avoid',
+                      minWidth: 0
+                    }}>
+                      <h2 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>{sectionTitles[section]}</h2>
+                      <div style={{ overflowX: 'auto', border: '1px solid #e0e0e0', borderRadius: '4px' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '700px' }}>
+                          <thead>
+                            <tr style={{ backgroundColor: '#1e3a5f', color: 'white' }}>
+                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>Issue</th>
+                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>Function</th>
+                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>Responsibility</th>
+                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>Target Date</th>
+                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {criticalIssues.slice(0, 5).map(issue => (
+                              <tr key={issue.id} style={{ borderBottom: '1px solid #e0e0e0' }}>
+                                <td style={{ padding: '10px', border: '1px solid #e0e0e0', fontWeight: '500' }}>{issue.issue}</td>
+                                <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{issue.function}</td>
+                                <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{issue.responsibility}</td>
+                                <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{issue.targetDate}</td>
+                                <td style={{ padding: '10px', border: '1px solid #e0e0e0', fontWeight: 'bold', color: issue.status === 'Open' ? '#dc2626' : (issue.status === 'In Progress' ? '#1e40af' : '#059669') }}>{issue.status}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (section === 'budget') {
+                  return (
+                    <div key={section} className="pdf-section" style={{
+                      gridColumn: fullWidth ? '1 / -1' : 'auto',
+                      marginBottom: '15px',
+                      breakInside: 'avoid',
+                      minWidth: 0
+                    }}>
+                      <h2 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>{sectionTitles[section]}</h2>
+                      <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Approved</div>
+                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetApproved}</div>
+                        </div>
+                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Utilized</div>
+                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetUtilized}</div>
+                        </div>
+                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Balance</div>
+                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#10b981' }}>{summaryData.budgetBalance}</div>
+                        </div>
+                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Outlook</div>
+                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetOutlook}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (section === 'resource') {
+                  return (
+                    <div key={section} className="pdf-section" style={{
+                      gridColumn: fullWidth ? '1 / -1' : 'auto',
+                      marginBottom: '15px',
+                      breakInside: 'avoid',
+                      minWidth: 0
+                    }}>
+                      <h2 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>{sectionTitles[section]}</h2>
+                      <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>
+                          <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.resourceDeployed}</span>
+                          <span style={{ display: 'block', fontSize: '11px', color: '#64748b', marginTop: '5px' }}>Deployed</span>
+                        </div>
+                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>
+                          <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.resourceUtilized}</span>
+                          <span style={{ display: 'block', fontSize: '11px', color: '#64748b', marginTop: '5px' }}>Utilized</span>
+                        </div>
+                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', textAlign: 'center' }}>
+                          <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#dc2626' }}>{summaryData.resourceShortage}</span>
+                          <span style={{ display: 'block', fontSize: '11px', color: '#64748b', marginTop: '5px' }}>Shortage</span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                if (section === 'quality') {
+                  return (
+                    <div key={section} className="pdf-section" style={{
+                      gridColumn: fullWidth ? '1 / -1' : 'auto',
+                      marginBottom: '15px',
+                      breakInside: 'avoid',
+                      minWidth: 0
+                    }}>
+                      <h2 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>{sectionTitles[section]}</h2>
+                      <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Total Issues</div>
+                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.qualityTotal}</div>
+                        </div>
+                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Completed</div>
+                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.qualityCompleted}</div>
+                        </div>
+                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Open</div>
+                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#f59e0b' }}>{summaryData.qualityOpen}</div>
+                        </div>
+                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', textAlign: 'center' }}>
+                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Critical</div>
+                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#ef4444' }}>{summaryData.qualityCritical}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div key={section} className="pdf-section" style={{ gridColumn: fullWidth ? '1 / -1' : 'auto', marginBottom: '10px', breakInside: 'avoid' }}>
+                    <h2 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>{sectionTitles[section]}</h2>
+                    <div style={{ padding: '15px', backgroundColor: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: '4px' }}>
+                      Section data for {sectionTitles[section]} will show here.
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ textAlign: 'center', marginTop: '60px', paddingTop: '20px', borderTop: '1px solid #e2e8f0', color: '#94a3b8', fontSize: '12px' }}>
+              <p>Confidential • Generated for internal use • Project Dashboard</p>
             </div>
           </div>
-          
-          <script>
-            window.onload = function() { 
-              setTimeout(() => { 
-                window.print(); 
-              }, 500); 
-            };
-          </script>
-        </body>
-      </html>
-    `;
-
-    const previewWindow = window.open('', '_blank');
-    previewWindow.document.write(printContent);
-    previewWindow.document.close();
+        </div>
+      </div>
+    );
   };
 
   // Email Modal Component
@@ -1893,6 +1298,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                     type="email"
                     value={email}
                     onChange={(e) => handleEmailInputChange(index, e.target.value, 'email')}
+                    onFocus={() => setActiveEmailField('email')}
                     placeholder="Enter email address"
                     style={{
                       flex: 1,
@@ -1930,6 +1336,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                     type="email"
                     value={email}
                     onChange={(e) => handleEmailInputChange(index, e.target.value, 'cc')}
+                    onFocus={() => setActiveEmailField('cc')}
                     placeholder="Enter email address"
                     style={{
                       flex: 1,
@@ -1967,6 +1374,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                     type="email"
                     value={email}
                     onChange={(e) => handleEmailInputChange(index, e.target.value, 'bcc')}
+                    onFocus={() => setActiveEmailField('bcc')}
                     placeholder="Enter email address"
                     style={{
                       flex: 1,
@@ -1996,29 +1404,108 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               ))}
             </div>
 
-            {/* Quick contacts */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#1e3a5f' }}>Quick Contacts:</label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {emailContacts.map(contact => (
-                  <button
-                    key={contact.id}
-                    onClick={() => addContactFromList(contact.email, 'email')}
-                    style={{
-                      padding: '6px 12px',
-                      backgroundColor: '#f0f2f5',
-                      border: '1px solid #c0c0c0',
-                      borderRadius: '20px',
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                      color: '#1e3a5f',
-                      fontWeight: '500'
-                    }}
-                  >
-                    {contact.name}
-                  </button>
-                ))}
+            {/* Employee Search and Selection Dropdown */}
+            <div style={{ marginBottom: '25px', position: 'relative' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#1e3a5f' }}>Choose Employees:</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  value={employeeSearchTerm}
+                  onChange={(e) => {
+                    setEmployeeSearchTerm(e.target.value);
+                    setShowEmployeeDropdown(true);
+                  }}
+                  onFocus={() => setShowEmployeeDropdown(true)}
+                  placeholder="Type name or email to search employees..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #c0c0c0',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    boxShadow: showEmployeeDropdown ? '0 0 0 2px rgba(30, 58, 95, 0.1)' : 'none',
+                    transition: 'all 0.2s',
+                    position: 'relative',
+                    zIndex: showEmployeeDropdown ? 15 : 1
+                  }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: '#9ca3af',
+                  pointerEvents: 'none'
+                }}>
+                  ▼
+                </div>
+
+                {showEmployeeDropdown && (
+                  <>
+                    <div
+                      onClick={() => setShowEmployeeDropdown(false)}
+                      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}
+                    />
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      right: 0,
+                      backgroundColor: 'white',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '4px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      marginTop: '4px',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      zIndex: 20
+                    }}>
+                      {allEmployees
+                        .filter(emp =>
+                          String(emp.name || '').toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
+                          String(emp.email || '').toLowerCase().includes(employeeSearchTerm.toLowerCase())
+                        )
+                        .slice(0, 50)
+                        .map(contact => (
+                          <div
+                            key={contact.id}
+                            onClick={() => addContactFromList(contact.email, activeEmailField)}
+                            style={{
+                              padding: '10px 15px',
+                              cursor: 'pointer',
+                              borderBottom: '1px solid #f3f4f6',
+                              transition: 'background-color 0.2s',
+                              display: 'flex',
+                              flexDirection: 'column'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f7ff'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                          >
+                            <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#1e3a5f' }}>{contact.name || 'Unknown Name'}</span>
+                            <span style={{ fontSize: '12px', color: '#6b7280' }}>{contact.email} • {contact.department || 'No Dept'}</span>
+                          </div>
+                        ))}
+                      {allEmployees.length === 0 && (
+                        <div style={{ padding: '15px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>
+                          No employees loaded.
+                        </div>
+                      )}
+                      {allEmployees.length > 0 && allEmployees.filter(emp =>
+                        String(emp.name || '').toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
+                        String(emp.email || '').toLowerCase().includes(employeeSearchTerm.toLowerCase())
+                      ).length === 0 && (
+                          <div style={{ padding: '15px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>
+                            No matches found for "{employeeSearchTerm}"
+                          </div>
+                        )}
+                    </div>
+                  </>
+                )}
               </div>
+              <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
+                * Click to add to the <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{activeEmailField.toUpperCase()}</span> field.
+              </p>
             </div>
 
             {/* Subject */}
@@ -2191,7 +1678,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
             alignItems: 'center',
             position: 'sticky',
             top: 0,
-            zIndex: 1
+            zIndex: 1,
+            borderRadius: '8px 8px 0 0'
           }}>
             <span>Configure Dashboard - {activeProject?.name}</span>
             <button
@@ -2210,235 +1698,539 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
           </div>
 
           <div style={{ padding: '20px' }}>
-            <div style={{ marginBottom: '20px' }}>
-              <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '15px' }}>
-                Select which sections to display in the {activeProject?.name} dashboard. Unchecked sections will be hidden.
-              </p>
+            <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '15px' }}>
+              Select which sections to display in the {activeProject?.name} dashboard. Unchecked sections will be hidden.
+            </p>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f' }}>Dashboard Sections:</h3>
-                <button
-                  onClick={handleSelectAllVisibility}
-                  style={{
-                    padding: '6px 12px',
-                    fontSize: '13px',
-                    borderRadius: '4px',
-                    border: '1px solid #1e3a5f',
-                    backgroundColor: allSelected ? '#1e3a5f' : 'white',
-                    color: allSelected ? 'white' : '#1e3a5f',
-                    cursor: 'pointer',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  {allSelected ? 'Deselect All' : 'Select All'}
-                </button>
-              </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f' }}>Dashboard Sections:</h3>
+              <button
+                onClick={handleSelectAllVisibility}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '13px',
+                  borderRadius: '4px',
+                  border: '1px solid #1e3a5f',
+                  backgroundColor: allSelected ? '#1e3a5f' : 'white',
+                  color: allSelected ? 'white' : '#1e3a5f',
+                  cursor: 'pointer',
+                  fontWeight: 'bold'
+                }}
+              >
+                {allSelected ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px' }}>
-                {/* Project Overview */}
-                <div>
-                  <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Project Overview</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.milestones}
-                        onChange={() => handleSectionVisibilityToggle('milestones')}
-                      />
-                      Milestones
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.criticalIssues}
-                        onChange={() => handleSectionVisibilityToggle('criticalIssues')}
-                      />
-                      Critical Issues
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.sopTables}
-                        onChange={() => handleSectionVisibilityToggle('sopTables')}
-                      />
-                      SOP Tables
-                    </label>
-                  </div>
-                </div>
-
-                {/* Summary Cards */}
-                <div>
-                  <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Summary Cards</h4>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.budget}
-                        onChange={() => handleSectionVisibilityToggle('budget')}
-                      />
-                      Budget Summary
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.resource}
-                        onChange={() => handleSectionVisibilityToggle('resource')}
-                      />
-                      Resource Summary
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                      <input
-                        type="checkbox"
-                        checked={visibleSections.quality}
-                        onChange={() => handleSectionVisibilityToggle('quality')}
-                      />
-                      Quality Summary
-                    </label>
-                  </div>
-                </div>
-
-                {/* Project Metrics */}
-                <div style={{ gridColumn: 'span 2' }}>
-                  <h4 style={{ margin: '10px 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Project Metrics Charts</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                    {availablePhases.design && (
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={visibleSections.design}
-                          onChange={() => handleSectionVisibilityToggle('design')}
-                        />
-                        Design
-                      </label>
-                    )}
-                    {availablePhases.partDevelopment && (
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={visibleSections.partDevelopment}
-                          onChange={() => handleSectionVisibilityToggle('partDevelopment')}
-                        />
-                        Part Development
-                      </label>
-                    )}
-                    {availablePhases.build && (
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={visibleSections.build}
-                          onChange={() => handleSectionVisibilityToggle('build')}
-                        />
-                        Build
-                      </label>
-                    )}
-                    {availablePhases.gateway && (
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={visibleSections.gateway}
-                          onChange={() => handleSectionVisibilityToggle('gateway')}
-                        />
-                        Gateway
-                      </label>
-                    )}
-                    {availablePhases.validation && (
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={visibleSections.validation}
-                          onChange={() => handleSectionVisibilityToggle('validation')}
-                        />
-                        Validation
-                      </label>
-                    )}
-                    {availablePhases.qualityCheck && (
-                      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                        <input
-                          type="checkbox"
-                          checked={visibleSections.qualityCheck}
-                          onChange={() => handleSectionVisibilityToggle('qualityCheck')}
-                        />
-                        Quality Check
-                      </label>
-                    )}
-                    {(!availablePhases.design && !availablePhases.partDevelopment && !availablePhases.build && !availablePhases.gateway && !availablePhases.validation && !availablePhases.qualityCheck) && (
-                      <div style={{ color: '#9ca3af', fontSize: '13px', gridColumn: 'span 3' }}>No project metrics available based on uploaded files.</div>
-                    )}
-                  </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px' }}>
+              {/* Project Overview */}
+              <div>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Project Overview</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={visibleSections.milestones}
+                      onChange={() => handleSectionVisibilityToggle('milestones')}
+                    />
+                    Milestones
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={visibleSections.criticalIssues}
+                      onChange={() => handleSectionVisibilityToggle('criticalIssues')}
+                    />
+                    Critical Issues
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={visibleSections.sopTables}
+                      onChange={() => handleSectionVisibilityToggle('sopTables')}
+                    />
+                    SOP Tables
+                  </label>
                 </div>
               </div>
 
-              {/* Preview of visible sections */}
-              <div style={{
-                marginTop: '20px',
-                backgroundColor: '#f8f9fa',
-                padding: '15px',
-                borderRadius: '6px',
-                border: '1px solid #e0e0e0'
-              }}>
-                <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Dashboard Preview:</h4>
-                <div style={{ fontSize: '13px', color: '#4b5563' }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {Object.entries(visibleSections)
-                      .filter(([_, selected]) => selected)
-                      .map(([section]) => (
-                        <span key={section} style={{
-                          padding: '4px 10px',
-                          backgroundColor: '#dbeafe',
-                          color: '#1e40af',
-                          borderRadius: '16px',
-                          fontSize: '12px',
-                          fontWeight: 'bold'
-                        }}>
-                          {section === 'sopTables' ? 'SOP Tables' :
-                            section.charAt(0).toUpperCase() + section.slice(1).replace(/([A-Z])/g, ' $1')}
-                        </span>
-                      ))}
-                  </div>
-                  {Object.values(visibleSections).filter(v => v).length === 0 && (
-                    <div style={{ color: '#9ca3af', textAlign: 'center', padding: '10px' }}>
-                      No sections selected - dashboard will be empty
-                    </div>
+              {/* Summary Cards */}
+              <div>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Summary Cards</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={visibleSections.budget}
+                      onChange={() => handleSectionVisibilityToggle('budget')}
+                    />
+                    Budget Summary
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={visibleSections.resource}
+                      onChange={() => handleSectionVisibilityToggle('resource')}
+                    />
+                    Resource Summary
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={visibleSections.quality}
+                      onChange={() => handleSectionVisibilityToggle('quality')}
+                    />
+                    Quality Summary
+                  </label>
+                </div>
+              </div>
+
+              {/* Project Metrics */}
+              <div style={{ gridColumn: 'span 2' }}>
+                <h4 style={{ margin: '10px 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Project Metrics Charts</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                  {availablePhases.design && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={visibleSections.design}
+                        onChange={() => handleSectionVisibilityToggle('design')}
+                      />
+                      Design
+                    </label>
                   )}
-                </div>
-                <div style={{ marginTop: '10px', fontSize: '12px', color: '#1e3a5f', fontWeight: 'bold' }}>
-                  Total visible sections: {Object.values(visibleSections).filter(v => v).length}
+                  {availablePhases.partDevelopment && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={visibleSections.partDevelopment}
+                        onChange={() => handleSectionVisibilityToggle('partDevelopment')}
+                      />
+                      Part Development
+                    </label>
+                  )}
+                  {availablePhases.build && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={visibleSections.build}
+                        onChange={() => handleSectionVisibilityToggle('build')}
+                      />
+                      Build
+                    </label>
+                  )}
+                  {availablePhases.gateway && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={visibleSections.gateway}
+                        onChange={() => handleSectionVisibilityToggle('gateway')}
+                      />
+                      Gateway
+                    </label>
+                  )}
+                  {availablePhases.validation && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={visibleSections.validation}
+                        onChange={() => handleSectionVisibilityToggle('validation')}
+                      />
+                      Validation
+                    </label>
+                  )}
+                  {availablePhases.qualityCheck && (
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={visibleSections.qualityCheck}
+                        onChange={() => handleSectionVisibilityToggle('qualityCheck')}
+                      />
+                      Quality Check
+                    </label>
+                  )}
+                  {(!availablePhases.design && !availablePhases.partDevelopment && !availablePhases.build && !availablePhases.gateway && !availablePhases.validation && !availablePhases.qualityCheck) && (
+                    <div style={{ color: '#9ca3af', fontSize: '13px', gridColumn: 'span 3' }}>No project metrics available based on uploaded files.</div>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons */}
+            {/* Preview of visible sections */}
+            <div style={{
+              marginTop: '20px',
+              backgroundColor: '#f8f9fa',
+              padding: '15px',
+              borderRadius: '6px',
+              border: '1px solid #e0e0e0'
+            }}>
+              <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Dashboard Preview:</h4>
+              <div style={{ fontSize: '13px', color: '#4b5563' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                  {Object.entries(visibleSections)
+                    .filter(([_, selected]) => selected)
+                    .map(([section]) => (
+                      <span key={section} style={{
+                        padding: '4px 10px',
+                        backgroundColor: '#dbeafe',
+                        color: '#1e40af',
+                        borderRadius: '16px',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}>
+                        {section === 'sopTables' ? 'SOP Tables' :
+                          section.charAt(0).toUpperCase() + section.slice(1).replace(/([A-Z])/g, ' $1')}
+                      </span>
+                    ))}
+                </div>
+                {Object.values(visibleSections).filter(v => v).length === 0 && (
+                  <div style={{ color: '#9ca3af', textAlign: 'center', padding: '10px' }}>
+                    No sections selected - dashboard will be empty
+                  </div>
+                )}
+              </div>
+              <div style={{ marginTop: '10px', fontSize: '12px', color: '#1e3a5f', fontWeight: 'bold' }}>
+                Total visible sections: {Object.values(visibleSections).filter(v => v).length}
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            gap: '10px',
+            padding: '15px 20px',
+            borderTop: '1px solid #e0e0e0',
+            backgroundColor: '#f9fafb',
+            borderRadius: '0 0 8px 8px',
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 1
+          }}>
+            <button
+              onClick={handleCancelConfig}
+              style={{
+                padding: '10px 20px',
+                fontSize: '14px',
+                borderRadius: '4px',
+                border: '1px solid #c0c0c0',
+                backgroundColor: 'white',
+                color: '#4b5563',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleApplyDashboardConfig}
+              style={{
+                padding: '10px 20px',
+                fontSize: '14px',
+                borderRadius: '4px',
+                border: 'none',
+                backgroundColor: '#1e3a5f',
+                color: 'white',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              Apply to {activeProject?.name}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Edit Milestones Modal
+  const EditMilestonesModal = () => {
+    if (!showEditMilestones) return null;
+
+    const handleSave = () => {
+      setMilestones([milestoneForm]);
+      setShowEditMilestones(false);
+    };
+
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '20px' }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '8px', width: '900px', maxWidth: '100%', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+          <div style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '15px 20px', fontSize: '18px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
+            <span>Edit Project Milestones</span>
+            <button onClick={() => setShowEditMilestones(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>×</button>
+          </div>
+          <div style={{ padding: '20px' }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', fontSize: '12px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f1f5f9' }}>
+                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', width: '80px' }}>Type</th>
+                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0' }}>Gate 1</th>
+                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0' }}>Gate 2</th>
+                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0' }}>Gate 3</th>
+                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0' }}>Gate 4</th>
+                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0' }}>Gate 5</th>
+                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0' }}>Gate 6</th>
+                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0' }}>Implementation</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontWeight: 'bold', backgroundColor: '#f8fafc' }}>PLAN</td>
+                    {['a', 'b', 'c', 'd', 'e', 'f'].map(char => (
+                      <td key={char} style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
+                        <input
+                          type="text"
+                          value={milestoneForm.plan[char]}
+                          onChange={(e) => {
+                            const newForm = { ...milestoneForm };
+                            newForm.plan[char] = e.target.value;
+                            setMilestoneForm(newForm);
+                          }}
+                          style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                        />
+                      </td>
+                    ))}
+                    <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
+                      <input
+                        type="text"
+                        value={milestoneForm.plan.implementation}
+                        onChange={(e) => {
+                          const newForm = { ...milestoneForm };
+                          newForm.plan.implementation = e.target.value;
+                          setMilestoneForm(newForm);
+                        }}
+                        style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                      />
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontWeight: 'bold', backgroundColor: '#f8fafc' }}>ACTUAL</td>
+                    {['a', 'b', 'c', 'd', 'e', 'f'].map(char => (
+                      <td key={char} style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
+                        <input
+                          type="text"
+                          value={milestoneForm.actual[char]}
+                          onChange={(e) => {
+                            const newForm = { ...milestoneForm };
+                            newForm.actual[char] = e.target.value;
+                            setMilestoneForm(newForm);
+                          }}
+                          style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                        />
+                      </td>
+                    ))}
+                    <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
+                      <input
+                        type="text"
+                        value={milestoneForm.actual.implementation}
+                        onChange={(e) => {
+                          const newForm = { ...milestoneForm };
+                          newForm.actual.implementation = e.target.value;
+                          setMilestoneForm(newForm);
+                        }}
+                        style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                      />
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '15px' }}>
+              <button onClick={() => setShowEditMilestones(false)} style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSave} style={{ padding: '8px 16px', borderRadius: '4px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Edit Issues Modal
+  const EditIssuesModal = () => {
+    if (!showEditIssues) return null;
+
+    const handleSave = () => {
+      setCriticalIssues(issuesForm);
+      setShowEditIssues(false);
+    };
+
+    const addIssue = () => {
+      const newIssue = {
+        id: Date.now(),
+        issue: 'New Issue',
+        responsibility: '',
+        function: '',
+        targetDate: new Date().toISOString().split('T')[0],
+        status: 'Open'
+      };
+      setIssuesForm([...issuesForm, newIssue]);
+    };
+
+    const removeIssue = (id) => {
+      setIssuesForm(issuesForm.filter(issue => issue.id !== id));
+    };
+
+    const updateIssue = (id, field, value) => {
+      setIssuesForm(issuesForm.map(issue =>
+        issue.id === id ? { ...issue, [field]: value } : issue
+      ));
+    };
+
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '20px' }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '8px', width: '900px', maxWidth: '100%', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+          <div style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '15px 20px', fontSize: '18px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
+            <span>Edit Critical Issues</span>
+            <button onClick={() => setShowEditIssues(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>×</button>
+          </div>
+          <div style={{ padding: '20px' }}>
+            <div style={{ marginBottom: '15px' }}>
+              <button onClick={addIssue} style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '6px 12px', fontSize: '13px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
+                <Plus className="h-4 w-4" /> Add Issue
+              </button>
+            </div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px', fontSize: '12px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f1f5f9' }}>
+                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0' }}>Issue Description</th>
+                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', width: '120px' }}>Responsibility</th>
+                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', width: '120px' }}>Function</th>
+                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', width: '100px' }}>Target Date</th>
+                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', width: '100px' }}>Status</th>
+                    <th style={{ padding: '10px', textAlign: 'center', border: '1px solid #e2e8f0', width: '50px' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {issuesForm.map((issue) => (
+                    <tr key={issue.id}>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
+                        <textarea
+                          value={issue.issue}
+                          onChange={(e) => updateIssue(issue.id, 'issue', e.target.value)}
+                          style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px', resize: 'vertical', minHeight: '40px' }}
+                        />
+                      </td>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
+                        <input
+                          type="text"
+                          value={issue.responsibility}
+                          onChange={(e) => updateIssue(issue.id, 'responsibility', e.target.value)}
+                          style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px' }}
+                        />
+                      </td>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
+                        <input
+                          type="text"
+                          value={issue.function}
+                          onChange={(e) => updateIssue(issue.id, 'function', e.target.value)}
+                          style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px' }}
+                        />
+                      </td>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
+                        <input
+                          type="date"
+                          value={issue.targetDate}
+                          onChange={(e) => updateIssue(issue.id, 'targetDate', e.target.value)}
+                          style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '11px' }}
+                        />
+                      </td>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0' }}>
+                        <select
+                          value={issue.status}
+                          onChange={(e) => updateIssue(issue.id, 'status', e.target.value)}
+                          style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '12px' }}
+                        >
+                          <option value="Open">Open</option>
+                          <option value="In Progress">In Progress</option>
+                          <option value="Closed">Closed</option>
+                        </select>
+                      </td>
+                      <td style={{ padding: '5px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                        <button onClick={() => removeIssue(issue.id)} style={{ color: '#ef4444', border: 'none', background: 'none', cursor: 'pointer' }}>
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '15px' }}>
+              <button onClick={() => setShowEditIssues(false)} style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSave} style={{ padding: '8px 16px', borderRadius: '4px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Edit Summary Modal
+  const EditSummaryModal = () => {
+    if (!showEditSummary) return null;
+
+    const handleSave = () => {
+      setSummaryData(summaryForm);
+      setShowEditSummary(false);
+    };
+
+    const config = {
+      budget: {
+        title: 'Budget Summary',
+        fields: [
+          { key: 'budgetApproved', label: 'Approved amount' },
+          { key: 'budgetUtilized', label: 'Utilized amount' },
+          { key: 'budgetBalance', label: 'Balance amount' },
+          { key: 'budgetOutlook', label: 'Outlook (%)' }
+        ]
+      },
+      resource: {
+        title: 'Resource Summary',
+        fields: [
+          { key: 'resourceDeployed', label: 'Deployed' },
+          { key: 'resourceUtilized', label: 'Utilized' },
+          { key: 'resourceShortage', label: 'Shortage' },
+          { key: 'resourceUnderUtilized', label: 'Under-utilized' }
+        ]
+      },
+      quality: {
+        title: 'Quality Summary',
+        fields: [
+          { key: 'qualityTotal', label: 'Total issues' },
+          { key: 'qualityCompleted', label: 'Completed' },
+          { key: 'qualityOpen', label: 'Open' },
+          { key: 'qualityCritical', label: 'Critical' }
+        ]
+      }
+    };
+
+    const currentConfig = config[editType] || config.budget;
+
+    return (
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '20px' }}>
+        <div style={{ backgroundColor: 'white', borderRadius: '8px', width: '400px', maxWidth: '100%', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+          <div style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '15px 20px', fontSize: '18px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Edit {currentConfig.title}</span>
+            <button onClick={() => setShowEditSummary(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>×</button>
+          </div>
+          <div style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '20px' }}>
+              {currentConfig.fields.map(field => (
+                <div key={field.key}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#4b5563', marginBottom: '5px' }}>{field.label}</label>
+                  <input
+                    type="text"
+                    value={summaryForm[field.key]}
+                    onChange={(e) => setSummaryForm({ ...summaryForm, [field.key]: e.target.value })}
+                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '14px' }}
+                  />
+                </div>
+              ))}
+            </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button
-                onClick={handleCancelConfig}
-                style={{
-                  padding: '10px 20px',
-                  fontSize: '14px',
-                  borderRadius: '4px',
-                  border: '1px solid #c0c0c0',
-                  backgroundColor: 'white',
-                  color: '#4b5563',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleApplyDashboardConfig}
-                style={{
-                  padding: '10px 20px',
-                  fontSize: '14px',
-                  borderRadius: '4px',
-                  border: 'none',
-                  backgroundColor: '#1e3a5f',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                Apply to {activeProject?.name}
-              </button>
+              <button onClick={() => setShowEditSummary(false)} style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSave} style={{ padding: '8px 16px', borderRadius: '4px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Save Changes</button>
             </div>
           </div>
         </div>
@@ -2453,7 +2245,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     const size = isMaximized ? { width: '100%', height: '400px' } : { width: '100%', height: '320px' };
 
     // Get the configured axes for this chart
-    let axisConfig = axisConfigs[activeProject.id]?.[chartId];
+    let axisConfig = axisConfigs[activeProject.id]?.[chartId] || { xAxis: '', yAxis: '' };
 
     // If no chart data or configuration, show placeholder
     let chartData = [];
@@ -2463,19 +2255,45 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       chartData = submoduleData[effectiveTrackerId].rows;
     }
 
-    if (!axisConfig || !axisConfig.xAxis || !axisConfig.yAxis || chartData.length === 0) {
-      // Create some default dummy data to show off the theme when no data is parsed yet
-      const defaultCategories = ['UI', 'UX', 'Research', 'Testing', 'DevOps'];
-      chartData = defaultCategories.map(cat => ({
-        [axisConfig?.xAxis || 'Category']: cat,
-        [axisConfig?.yAxis || 'Value']: Math.floor(Math.random() * 80) + 20
-      }));
-      if (!axisConfig || !axisConfig.xAxis || !axisConfig.yAxis) {
-        axisConfig = {
-          xAxis: axisConfig?.xAxis || 'Category',
-          yAxis: axisConfig?.yAxis || 'Value'
-        };
-      }
+    // Check if attributes are configured
+    if (!axisConfig || !axisConfig.xAxis || !axisConfig.yAxis) {
+      return (
+        <div style={{
+          ...size,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f9fafb',
+          border: '1px dashed #d1d5db',
+          borderRadius: '8px',
+          color: '#6b7280'
+        }}>
+          <Settings className="h-10 w-10 mb-3 opacity-30" />
+          <p style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>Configure Attributes</p>
+          <p style={{ fontSize: '13px', marginTop: '6px', textAlign: 'center', padding: '0 20px' }}>
+            Please select the X and Y axes in the settings to visualize this chart.
+          </p>
+        </div>
+      );
+    }
+
+    // If configured but no data
+    if (chartData.length === 0) {
+      return (
+        <div style={{
+          ...size,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f9fafb',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          color: '#6b7280'
+        }}>
+          <p style={{ fontSize: '14px', fontWeight: '500' }}>No data available for this phase</p>
+        </div>
+      );
     }
 
     // Process data based on selected axes
@@ -2580,7 +2398,14 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               type: 'bar',
               barWidth: '60%',
               data: yValues,
-              itemStyle: { borderRadius: [4, 4, 0, 0] }
+              itemStyle: { borderRadius: [4, 4, 0, 0] },
+              label: {
+                show: true,
+                position: 'top',
+                color: '#1e3a5f',
+                fontSize: 10,
+                fontWeight: 'bold'
+              }
             }
           ]
         };
@@ -2596,7 +2421,14 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               type: 'line',
               smooth: true,
               data: yValues,
-              areaStyle: chartType === 'area' ? { opacity: 0.3 } : undefined
+              areaStyle: chartType === 'area' ? { opacity: 0.3 } : undefined,
+              label: {
+                show: true,
+                position: 'top',
+                color: '#1e3a5f',
+                fontSize: 10,
+                fontWeight: 'bold'
+              }
             }
           ]
         };
@@ -2628,7 +2460,14 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                 borderColor: '#fff',
                 borderWidth: 2
               },
-              label: { show: false, position: 'center' },
+              label: {
+                show: true,
+                position: 'outside',
+                formatter: '{b}: {c}',
+                fontSize: 12,
+                fontWeight: 'bold',
+                color: '#1e3a5f'
+              },
               emphasis: {
                 label: { show: true, fontSize: 16, fontWeight: 'bold' }
               },
@@ -2648,6 +2487,13 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               type: 'bar',
               barWidth: '99%',
               data: yValues,
+              label: {
+                show: true,
+                position: 'top',
+                color: '#1e3a5f',
+                fontSize: 10,
+                fontWeight: 'bold'
+              }
             }
           ]
         };
@@ -2662,7 +2508,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         <div style={{ marginBottom: '10px', fontSize: '12px', color: '#4b5563', textAlign: 'center', backgroundColor: '#f3f4f6', padding: '4px 8px', borderRadius: '4px' }}>
           <span style={{ fontWeight: 'bold' }}>X:</span> {axisConfig.xAxis} | <span style={{ fontWeight: 'bold' }}>Y:</span> {axisConfig.yAxis}
         </div>
-        <ReactECharts theme="v5" option={option} style={{ height: isMaximized ? '350px' : '280px', width: '100%' }} />
+        <ReactECharts theme="v5" option={option} style={{ height: isMaximized ? '350px' : '280px', width: '100%' }} notMerge={true} />
       </div>
     );
   };
@@ -2972,11 +2818,19 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       padding: '20px',
       fontFamily: 'Arial, sans-serif'
     }}>
+      {/* PDF Preview Modal */}
+      <PdfPreviewModal />
+
       {/* Email Modal */}
       <EmailModal />
 
       {/* Simulate Modal */}
       <SimulateModal />
+
+      {/* Edit Modals */}
+      <EditMilestonesModal />
+      <EditIssuesModal />
+      <EditSummaryModal />
 
       {/* Maximized Chart Modal */}
       <MaximizedChartModal />
@@ -3118,7 +2972,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                    e.currentTarget.style.boxShadow = '0 44px 12px rgba(0,0,0,0.1)';
                     e.currentTarget.style.borderColor = '#1e3a5f';
                   }}
                   onMouseLeave={(e) => {
@@ -3196,7 +3050,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
             <div style={{
               padding: '15px 20px',
               borderBottom: '1px solid #e0e0e0',
-              backgroundColor: '#f8f9fa'
+              backgroundColor: '#f8f9fa',
+              marginBottom: '20px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
@@ -3252,19 +3107,21 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
 
             {/* Dashboard Content */}
-            <div style={{ padding: '0 25px 25px 25px' }}>
+            <div style={{ padding: '20px 25px 25px 25px' }}>
               {/* Milestones Section */}
               {visibleSections.milestones && (
                 <div style={{ marginBottom: '35px' }}>
-                  <h2 style={{
-                    fontSize: '20px',
-                    fontWeight: 'bold',
-                    color: '#1e3a5f',
-                    marginBottom: '15px',
-                    marginTop: 0
-                  }}>
-                    Milestones
-                  </h2>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e3a5f', color: 'white', padding: '12px 20px', fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #234574' }}>
+                    <span>Milestones</span>
+                    <button
+                      onClick={() => { setMilestoneForm({ ...milestones[0] }); setShowEditMilestones(true); }}
+                      className="no-print"
+                      style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
+                      title="Edit Milestones"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                  </div>
 
                   <div style={{
                     border: '1px solid #e0e0e0',
@@ -3354,15 +3211,17 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
               {/* Critical Issues Section */}
               {visibleSections.criticalIssues && (
                 <div style={{ marginBottom: '35px' }}>
-                  <h2 style={{
-                    fontSize: '20px',
-                    fontWeight: 'bold',
-                    color: '#1e3a5f',
-                    marginBottom: '15px',
-                    marginTop: 0
-                  }}>
-                    Critical Issues Summary
-                  </h2>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e3a5f', color: 'white', padding: '12px 20px', fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #234574' }}>
+                    <span>Critical Issues Summary</span>
+                    <button
+                      onClick={() => { setIssuesForm([...criticalIssues]); setShowEditIssues(true); }}
+                      className="no-print"
+                      style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
+                      title="Edit Critical Issues"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </button>
+                  </div>
 
                   <div style={{
                     border: '1px solid #e0e0e0',
@@ -3650,26 +3509,37 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                           padding: '12px 15px',
                           fontSize: '16px',
                           fontWeight: 'bold',
-                          borderBottom: '1px solid #2c4c7c'
+                          borderBottom: '1px solid #2c4c7c',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
                         }}>
-                          Budget Summary
+                          <span>Budget Summary</span>
+                          <button
+                            onClick={() => { setEditType('budget'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
+                            className="no-print"
+                            style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
+                            title="Edit Budget Summary"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
                         </div>
                         <div style={{ padding: '15px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
                             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Approved:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{budgetData.approved}</span>
+                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetApproved}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
                             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Utilized:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{budgetData.utilized}</span>
+                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetUtilized}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
                             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Balance:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{budgetData.balance}</span>
+                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetBalance}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Utilization Outlook:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#10b981' }}>{budgetData.outlook}</span>
+                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#10b981' }}>{summaryData.budgetOutlook}</span>
                           </div>
                         </div>
                       </div>
@@ -3689,26 +3559,37 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                           padding: '12px 15px',
                           fontSize: '16px',
                           fontWeight: 'bold',
-                          borderBottom: '1px solid #2c4c7c'
+                          borderBottom: '1px solid #2c4c7c',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
                         }}>
-                          Resource Summary
+                          <span>Resource Summary</span>
+                          <button
+                            onClick={() => { setEditType('resource'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
+                            className="no-print"
+                            style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
+                            title="Edit Resource Summary"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
                         </div>
                         <div style={{ padding: '15px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
                             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Deployed:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{resourceData.deployed}</span>
+                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.resourceDeployed}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
                             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Utilized:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{resourceData.utilized}</span>
+                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.resourceUtilized}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
                             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Shortage:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#ef4444' }}>{resourceData.shortage}</span>
+                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#ef4444' }}>{summaryData.resourceShortage}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Under Utilized:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#f59e0b' }}>{resourceData.underUtilized}</span>
+                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#f59e0b' }}>{summaryData.resourceUnderUtilized}</span>
                           </div>
                         </div>
                       </div>
@@ -3728,26 +3609,37 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                           padding: '12px 15px',
                           fontSize: '16px',
                           fontWeight: 'bold',
-                          borderBottom: '1px solid #2c4c7c'
+                          borderBottom: '1px solid #2c4c7c',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
                         }}>
-                          Quality Summary
+                          <span>Quality Summary</span>
+                          <button
+                            onClick={() => { setEditType('quality'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
+                            className="no-print"
+                            style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
+                            title="Edit Quality Summary"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
                         </div>
                         <div style={{ padding: '15px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
                             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Total Issues:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{qualityData.totalIssues}</span>
+                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.qualityTotal}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
                             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Action Completed:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#10b981' }}>{qualityData.actionCompleted}</span>
+                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#10b981' }}>{summaryData.qualityCompleted}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
                             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Open Issues:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#ef4444' }}>{qualityData.openIssues}</span>
+                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#ef4444' }}>{summaryData.qualityOpen}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                             <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>No of Critical Issues:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#ef4444' }}>{qualityData.criticalIssues}</span>
+                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#ef4444' }}>{summaryData.qualityCritical}</span>
                           </div>
                         </div>
                       </div>
