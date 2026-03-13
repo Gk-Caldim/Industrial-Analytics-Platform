@@ -6,28 +6,48 @@ import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
-const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
-  // Helper to get display name without project prefix
-  const getDisplayFileName = (fileName, projectName) => {
-    if (!fileName) return '';
-    let name = fileName;
-    
-    // Try to remove project prefix (both with underscores and spaces)
-    if (projectName) {
-      const projectPrefixUnderscore = projectName.replace(/\s+/g, '_') + '_';
-      if (name.toLowerCase().startsWith(projectPrefixUnderscore.toLowerCase())) {
-        name = name.substring(projectPrefixUnderscore.length);
-      } else {
-        const projectPrefixSpace = projectName + '_';
-        if (name.toLowerCase().startsWith(projectPrefixSpace.toLowerCase())) {
-          name = name.substring(projectPrefixSpace.length);
-        }
+// Helper to get display name without project prefix
+const getDisplayFileName = (fileName, projectName) => {
+  if (!fileName) return '';
+  let name = fileName;
+  
+  // Try to remove project prefix (both with underscores and spaces)
+  if (projectName) {
+    const projectPrefixUnderscore = projectName.replace(/\s+/g, '_') + '_';
+    if (name.toLowerCase().startsWith(projectPrefixUnderscore.toLowerCase())) {
+      name = name.substring(projectPrefixUnderscore.length);
+    } else {
+      const projectPrefixSpace = projectName + '_';
+      if (name.toLowerCase().startsWith(projectPrefixSpace.toLowerCase())) {
+        name = name.substring(projectPrefixSpace.length);
       }
     }
-    
-    // Remove extension
-    return name.replace(/\.[^/.]+$/, "");
-  };
+  }
+  
+  // Remove extension
+  return name.replace(/\.[^/.]+$/, "");
+};
+
+// Get status color
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'Open': return { bg: '#fee2e2', text: '#991b1b' };
+    case 'Closed': return { bg: '#d1fae5', text: '#065f46' };
+    case 'In Progress': return { bg: '#dbeafe', text: '#1e40af' };
+    case 'On Track':
+    case 'Active':
+    case 'Complete':
+    case 'Good': return { bg: '#d1fae5', text: '#065f46' };
+    case 'Ahead of timeline': return { bg: '#d1fae5', text: '#065f46' };
+    case 'At Risk':
+    case 'Under Review': return { bg: '#fed7aa', text: '#9a3412' };
+    case 'Pending':
+    case 'Not Started': return { bg: '#f3f4f6', text: '#4b5563' };
+    default: return { bg: '#f3f4f6', text: '#1f2937' };
+  }
+};
+
+const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
   // Projects data
   const [projects, setProjects] = useState([]);
@@ -330,24 +350,6 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
   const [issuesForm, setIssuesForm] = useState([]);
   const [summaryForm, setSummaryForm] = useState({});
 
-  // Get status color
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'Open': return { bg: '#fee2e2', text: '#991b1b' };
-      case 'Closed': return { bg: '#d1fae5', text: '#065f46' };
-      case 'In Progress': return { bg: '#dbeafe', text: '#1e40af' };
-      case 'On Track':
-      case 'Active':
-      case 'Complete':
-      case 'Good': return { bg: '#d1fae5', text: '#065f46' };
-      case 'Ahead of timeline': return { bg: '#d1fae5', text: '#065f46' };
-      case 'At Risk':
-      case 'Under Review': return { bg: '#fed7aa', text: '#9a3412' };
-      case 'Pending':
-      case 'Not Started': return { bg: '#f3f4f6', text: '#4b5563' };
-      default: return { bg: '#f3f4f6', text: '#1f2937' };
-    }
-  };
 
   // Load submodule data from API
   const loadSubmoduleData = async (trackerId) => {
@@ -922,421 +924,9 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     setShowEmailModal(false);
   };
 
-  // PDF Preview Modal for drag-and-drop customization and live charting before printing
-  const PdfPreviewModal = () => {
-    const [draggedItemIndex, setDraggedItemIndex] = useState(null);
-
-    // Render if we are showing the preview OR if we are currently capturing it for email
+  // PDF Preview Modal Component
+  const renderPdfPreviewModal = () => {
     if (!showPdfPreviewModal && !isCapturingPdf) return null;
-
-    const handleDragStart = (e, index) => {
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', index);
-      setDraggedItemIndex(index);
-    };
-
-    const handleDragOver = (e, index) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-    };
-
-    const handleDrop = (e, index) => {
-      e.preventDefault();
-      if (draggedItemIndex === null) return;
-      if (draggedItemIndex === index) return;
-
-      const newOrder = [...pdfLayoutOrder];
-      const draggedItem = newOrder[draggedItemIndex];
-      newOrder.splice(draggedItemIndex, 1);
-      newOrder.splice(index, 0, draggedItem);
-      setPdfLayoutOrder(newOrder);
-      setDraggedItemIndex(null);
-    };
-
-    const handleDragEnd = () => {
-      setDraggedItemIndex(null);
-    };
-
-    const sectionTitles = {
-      milestones: 'Project Milestones',
-      criticalIssues: 'Critical Issues Summary',
-      budget: 'Budget Overview',
-      resource: 'Resource Allocation',
-      quality: 'Quality Metrics',
-      design: 'Design Progress',
-      partDevelopment: 'Part Development',
-      build: 'Build Status',
-      gateway: 'Gateway Performance',
-      validation: 'Validation Results',
-      qualityIssues: 'Quality Issues',
-      sopTables: 'SOP Tables'
-    };
-
-    const handleDownloadPdf = () => {
-      window.print();
-    };
-
-    return (
-      <div id="pdf-preview-modal-root" style={{
-        position: isCapturingPdf ? 'absolute' : 'fixed', 
-        top: isCapturingPdf ? '-9999px' : 0, 
-        left: isCapturingPdf ? '-9999px' : 0, 
-        right: isCapturingPdf ? 'auto' : 0, 
-        bottom: isCapturingPdf ? 'auto' : 0,
-        backgroundColor: showPdfPreviewModal ? 'rgba(0,0,0,0.7)' : 'white', 
-        display: 'flex', 
-        zIndex: isCapturingPdf ? -1000 : 3000,
-        width: isCapturingPdf ? '1200px' : 'auto' // ensure full width when off-screen
-      }}>
-        <style>{`
-          @media print {
-            @page {
-              margin: 15mm;
-              size: A4;
-            }
-            html, body {
-              height: auto !important;
-              overflow: visible !important;
-            }
-            body * {
-              visibility: hidden;
-            }
-            #pdf-preview-modal-root, #pdf-preview-modal-root * {
-              visibility: visible !important;
-            }
-            #pdf-preview-modal-root {
-              position: static !important;
-              display: block !important;
-              background: white !important;
-              width: 100% !important;
-            }
-            /* Hide the sidebar and any no-print items */
-            .no-print, #pdf-preview-sidebar {
-              display: none !important;
-              visibility: hidden !important;
-            }
-            /* Ensure the preview container allows multi-page flow */
-            .pdf-preview-container {
-              position: static !important;
-              overflow: visible !important;
-              height: auto !important;
-              padding: 0 !important;
-              background: white !important;
-              width: 100% !important;
-            }
-            .pdf-printable-area {
-              position: static !important;
-              width: 100% !important;
-              max-width: none !important;
-              padding: 0 !important;
-              box-shadow: none !important;
-              margin: 0 !important;
-              background: white !important;
-              height: auto !important;
-              overflow: visible !important;
-            }
-            .pdf-sections-grid {
-              display: block !important;
-              width: 100% !important;
-            }
-            .pdf-section {
-              break-inside: avoid;
-              page-break-inside: avoid;
-              margin-bottom: 30px;
-              width: 100% !important;
-            }
-          }
-        `}</style>
-
-        {/* Sidebar for customization */}
-        <div id="pdf-preview-sidebar" className="no-print" style={{ width: '320px', backgroundColor: 'white', display: 'flex', flexDirection: 'column', height: '100%', boxShadow: '2px 0 10px rgba(0,0,0,0.2)', zIndex: 10 }}>
-          <div style={{ padding: '20px', backgroundColor: '#1e3a5f', color: 'white', fontWeight: 'bold', fontSize: '18px' }}>
-            Customize PDF Layout
-          </div>
-          <div style={{ flex: 1, padding: '20px', overflowY: 'auto', backgroundColor: '#f8f9fa' }}>
-            <p style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>Rearrange the sections to customize your PDF report.</p>
-            {pdfLayoutOrder.map((section, idx) => (
-              <div
-                key={section}
-                draggable
-                onDragStart={(e) => handleDragStart(e, idx)}
-                onDragOver={(e) => handleDragOver(e, idx)}
-                onDrop={(e) => handleDrop(e, idx)}
-                onDragEnd={handleDragEnd}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '12px',
-                  backgroundColor: draggedItemIndex === idx ? '#f3f4f6' : 'white',
-                  border: '1px solid #e0e0e0',
-                  marginBottom: '10px',
-                  borderRadius: '6px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                  cursor: 'grab',
-                  opacity: draggedItemIndex === idx ? 0.5 : 1
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ color: '#9ca3af', cursor: 'grab', display: 'flex' }}>
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                      <path d="M4 4h2v2H4V4zm4 0h2v2H8V4zm4 0h2v2h-2V4zM4 8h2v2H4V8zm4 0h2v2H8V8zm4 0h2v2h-2V8zM4 12h2v2H4v-2zm4 0h2v2H8v-2zm4 0h2v2h-2v-2z" />
-                    </svg>
-                  </div>
-                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>{idx + 1}. {sectionTitles[section] || section}</span>
-                </div>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  <span style={{ fontSize: '12px', color: '#9ca3af', cursor: 'grab' }}>:::</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{ padding: '20px', borderTop: '1px solid #e0e0e0', display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: 'white' }}>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setShowPdfPreviewModal(false)} style={{ flex: 1, padding: '10px', backgroundColor: '#f3f4f6', border: '1px solid #d1d5db', color: '#4b5563', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Cancel</button>
-              <button onClick={handleDownloadPdf} style={{ flex: 1, padding: '10px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Print PDF</button>
-            </div>
-            <button onClick={() => setShowEmailModal(true)} style={{ width: '100%', padding: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-              <Mail size={16} /> Send Email PDF
-            </button>
-          </div>
-        </div>
-
-        {/* Preview Area (this will actually be printed!) */}
-        <div className="pdf-preview-container" style={{ flex: 1, overflowY: 'auto', padding: '40px', backgroundColor: '#64748b' }}>
-          <div className="pdf-printable-area" style={{ maxWidth: '900px', margin: '0 auto', backgroundColor: 'white', minHeight: '100%', padding: '40px 60px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-
-            <div style={{ textAlign: 'center', marginBottom: '40px', borderBottom: '2px solid #1e3a5f', paddingBottom: '20px' }}>
-              <h1 style={{ color: '#1e3a5f', fontSize: '32px', margin: '0 0 10px 0' }}>{activeProject?.name || 'Project'} Dashboard Report</h1>
-              <p style={{ color: '#6b7280', margin: 0, fontSize: '14px' }}>Generated: {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}</p>
-            </div>
-
-            <div className="pdf-sections-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '20px', alignItems: 'start' }}>
-              {pdfLayoutOrder.map(section => {
-                // For charts: render original charts!
-                const isChart = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(section);
-                const fullWidth = ['milestones', 'criticalIssues', 'budget', 'resource', 'quality'].includes(section);
-
-                if (isChart) {
-                  const cType = chartTypes[activeProject?.id]?.[section] || 'bar';
-                  return (
-                    <div key={section} className="pdf-section" style={{
-                      gridColumn: fullWidth ? '1 / -1' : 'auto',
-                      marginBottom: '15px',
-                      breakInside: 'avoid',
-                      minWidth: 0,
-                      overflow: 'hidden'
-                    }}>
-                      <h2 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>{sectionTitles[section]}</h2>
-                      <div style={{ border: '1px solid #e0e0e0', padding: '15px', borderRadius: '8px' }}>
-                        {renderChart(section, cType, false, getTrackerForPhase(section)?.trackerId)}
-                      </div>
-                    </div>
-                  );
-                }
-
-                if (section === 'milestones') {
-                  return (
-                    <div key={section} className="pdf-section" style={{
-                      gridColumn: fullWidth ? '1 / -1' : 'auto',
-                      marginBottom: '15px',
-                      breakInside: 'avoid',
-                      minWidth: 0
-                    }}>
-                      <h2 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>{sectionTitles[section]}</h2>
-                      <div style={{ overflowX: 'auto', border: '1px solid #e0e0e0', borderRadius: '4px' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '600px' }}>
-                          <thead>
-                            <tr style={{ backgroundColor: '#1e3a5f', color: 'white' }}>
-                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>Categories</th>
-                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>A</th>
-                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>B</th>
-                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>C</th>
-                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>D</th>
-                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>E</th>
-                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>F</th>
-                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <tr>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0', fontWeight: 'bold' }}>Plan</td>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].plan.a}</td>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].plan.b}</td>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].plan.c}</td>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].plan.d}</td>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].plan.e}</td>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].plan.f}</td>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].plan.implementation}</td>
-                            </tr>
-                            <tr>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0', fontWeight: 'bold' }}>Actual</td>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].actual.a}</td>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].actual.b}</td>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].actual.c}</td>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].actual.d}</td>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].actual.e}</td>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{milestones[0].actual.f}</td>
-                              <td style={{ padding: '10px', border: '1px solid #e0e0e0', color: milestones[0].actual.implementation === 'In Progress' ? '#1e40af' : '#065f46', fontWeight: 'bold' }}>{milestones[0].actual.implementation}</td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  );
-                }
-
-                if (section === 'criticalIssues') {
-                  return (
-                    <div key={section} className="pdf-section" style={{
-                      gridColumn: fullWidth ? '1 / -1' : 'auto',
-                      marginBottom: '15px',
-                      breakInside: 'avoid',
-                      minWidth: 0
-                    }}>
-                      <h2 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>{sectionTitles[section]}</h2>
-                      <div style={{ overflowX: 'auto', border: '1px solid #e0e0e0', borderRadius: '4px' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '700px' }}>
-                          <thead>
-                            <tr style={{ backgroundColor: '#1e3a5f', color: 'white' }}>
-                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>Issue</th>
-                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>Function</th>
-                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>Responsibility</th>
-                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>Target Date</th>
-                              <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e0e0e0' }}>Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {criticalIssues.slice(0, 5).map(issue => (
-                              <tr key={issue.id} style={{ borderBottom: '1px solid #e0e0e0' }}>
-                                <td style={{ padding: '10px', border: '1px solid #e0e0e0', fontWeight: '500' }}>{issue.issue}</td>
-                                <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{issue.function}</td>
-                                <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{issue.responsibility}</td>
-                                <td style={{ padding: '10px', border: '1px solid #e0e0e0' }}>{issue.targetDate}</td>
-                                <td style={{ padding: '10px', border: '1px solid #e0e0e0', fontWeight: 'bold', color: issue.status === 'Open' ? '#dc2626' : (issue.status === 'In Progress' ? '#1e40af' : '#059669') }}>{issue.status}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  );
-                }
-
-                if (section === 'budget') {
-                  return (
-                    <div key={section} className="pdf-section" style={{
-                      gridColumn: fullWidth ? '1 / -1' : 'auto',
-                      marginBottom: '15px',
-                      breakInside: 'avoid',
-                      minWidth: 0
-                    }}>
-                      <h2 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>{sectionTitles[section]}</h2>
-                      <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>
-                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Approved</div>
-                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetApproved}</div>
-                        </div>
-                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>
-                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Utilized</div>
-                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetUtilized}</div>
-                        </div>
-                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>
-                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Balance</div>
-                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#10b981' }}>{summaryData.budgetBalance}</div>
-                        </div>
-                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>
-                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Outlook</div>
-                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetOutlook}</div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
-                if (section === 'resource') {
-                  return (
-                    <div key={section} className="pdf-section" style={{
-                      gridColumn: fullWidth ? '1 / -1' : 'auto',
-                      marginBottom: '15px',
-                      breakInside: 'avoid',
-                      minWidth: 0
-                    }}>
-                      <h2 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>{sectionTitles[section]}</h2>
-                      <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>
-                          <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.resourceDeployed}</span>
-                          <span style={{ display: 'block', fontSize: '11px', color: '#64748b', marginTop: '5px' }}>Deployed</span>
-                        </div>
-                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>
-                          <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.resourceUtilized}</span>
-                          <span style={{ display: 'block', fontSize: '11px', color: '#64748b', marginTop: '5px' }}>Utilized</span>
-                        </div>
-                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', textAlign: 'center' }}>
-                          <span style={{ fontSize: '22px', fontWeight: 'bold', color: '#dc2626' }}>{summaryData.resourceShortage}</span>
-                          <span style={{ display: 'block', fontSize: '11px', color: '#64748b', marginTop: '5px' }}>Shortage</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
-                if (section === 'quality') {
-                  return (
-                    <div key={section} className="pdf-section" style={{
-                      gridColumn: fullWidth ? '1 / -1' : 'auto',
-                      marginBottom: '15px',
-                      breakInside: 'avoid',
-                      minWidth: 0
-                    }}>
-                      <h2 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>{sectionTitles[section]}</h2>
-                      <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', textAlign: 'center' }}>
-                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Total Issues</div>
-                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.qualityTotal}</div>
-                        </div>
-                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', textAlign: 'center' }}>
-                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Completed</div>
-                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.qualityCompleted}</div>
-                        </div>
-                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', textAlign: 'center' }}>
-                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Open</div>
-                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#f59e0b' }}>{summaryData.qualityOpen}</div>
-                        </div>
-                        <div style={{ flex: '1 1 180px', padding: '15px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', textAlign: 'center' }}>
-                          <div style={{ fontSize: '10px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '2px' }}>Critical</div>
-                          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#ef4444' }}>{summaryData.qualityCritical}</div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div key={section} className="pdf-section" style={{ gridColumn: fullWidth ? '1 / -1' : 'auto', marginBottom: '10px', breakInside: 'avoid' }}>
-                    <h2 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px', borderBottom: '1px solid #e2e8f0', paddingBottom: '6px' }}>{sectionTitles[section]}</h2>
-                    <div style={{ padding: '15px', backgroundColor: '#f8f9fa', border: '1px solid #e0e0e0', borderRadius: '4px' }}>
-                      Section data for {sectionTitles[section]} will show here.
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div style={{ textAlign: 'center', marginTop: '60px', paddingTop: '20px', borderTop: '1px solid #e2e8f0', color: '#94a3b8', fontSize: '12px' }}>
-              <p>Confidential • Generated for internal use • Project Dashboard</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // Email Modal Component
-  const EmailModal = () => {
-    if (!showEmailModal) return null;
-
-    const allSelected = Object.values(emailData.selectedSections).every(value => value);
 
     return (
       <div style={{
@@ -1345,403 +935,204 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.85)',
+        zIndex: 5000,
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 4000,
-        padding: '20px'
+        padding: '30px',
+        overflowY: 'auto'
       }}>
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          width: '800px',
-          maxWidth: '100%',
-          maxHeight: '90vh',
-          overflow: 'auto',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
-        }}>
-          <div style={{
-            backgroundColor: '#1e3a5f',
-            color: 'white',
-            padding: '15px 20px',
-            fontSize: '18px',
-            fontWeight: 'bold',
-            borderBottom: '1px solid #2c4c7c',
+        {/* Controls Bar - Hidden during capture */}
+        {!isCapturingPdf && (
+           <div style={{
+             width: '100%',
+             maxWidth: '1200px',
+             backgroundColor: 'white',
+             borderRadius: '8px',
+             padding: '20px',
+             marginBottom: '20px',
+             display: 'flex',
+             flexDirection: 'column',
+             gap: '20px',
+             boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+           }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+               <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold', color: '#1e3a5f' }}>PDF Report Preview</h2>
+               <div style={{ display: 'flex', gap: '10px' }}>
+                 <button
+                   onClick={() => setShowPdfPreviewModal(false)}
+                   style={{
+                     padding: '8px 16px',
+                     backgroundColor: '#f3f4f6',
+                     border: '1px solid #d1d5db',
+                     borderRadius: '4px',
+                     cursor: 'pointer',
+                     fontWeight: 'bold'
+                   }}
+                 >
+                   Close Preview
+                 </button>
+                 <button
+                   onClick={handleSendEmail}
+                   style={{
+                     padding: '8px 20px',
+                     backgroundColor: '#1e3a5f',
+                     color: 'white',
+                     border: 'none',
+                     borderRadius: '4px',
+                     cursor: 'pointer',
+                     fontWeight: 'bold'
+                   }}
+                 >
+                   Send as Email
+                 </button>
+               </div>
+             </div>
+
+             {/* Email Fields in Preview */}
+             <div style={{
+               display: 'grid',
+               gridTemplateColumns: 'repeat(2, 1fr)',
+               gap: '20px',
+               borderTop: '1px solid #e5e7eb',
+               paddingTop: '15px'
+             }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#374151', marginBottom: '5px' }}>Subject:</label>
+                  <input 
+                    type="text" 
+                    value={emailData.subject} 
+                    onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
+                    style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#374151', marginBottom: '5px' }}>Message:</label>
+                  <textarea 
+                    value={emailData.message} 
+                    onChange={(e) => setEmailData(prev => ({ ...prev, message: e.target.value }))}
+                    rows="1"
+                    style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', resize: 'vertical' }}
+                  />
+                </div>
+             </div>
+           </div>
+        )}
+
+        {/* The Actual Printable Content */}
+        <div 
+          className="pdf-printable-area" 
+          style={{ 
+            backgroundColor: 'white', 
+            width: '210mm', 
+            minHeight: '297mm',
+            padding: '20mm',
+            boxShadow: isCapturingPdf ? 'none' : '0 10px 30px rgba(0,0,0,0.5)',
+            position: 'relative',
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            position: 'sticky',
-            top: 0,
-            zIndex: 1
-          }}>
-            <span>Send Dashboard Report - {activeProject?.name}</span>
-            <button
-              onClick={() => setShowEmailModal(false)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'white',
-                fontSize: '20px',
-                cursor: 'pointer',
-                padding: '0 5px'
-              }}
-            >
-              ×
-            </button>
+            flexDirection: 'column',
+            gap: '20px'
+          }}
+        >
+          {/* Header */}
+          <div className="pdf-header" style={{ borderBottom: '2px solid #1e3a5f', paddingBottom: '15px', marginBottom: '10px' }}>
+            <h1 style={{ margin: 0, color: '#1e3a5f', fontSize: '24px' }}>Project Dashboard Report</h1>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '12px', color: '#4b5563' }}>
+              <span>Project: {activeProject?.name}</span>
+              <span>Date: {new Date().toLocaleDateString()}</span>
+            </div>
           </div>
 
-          <div style={{ padding: '20px' }}>
-            {/* To, CC, BCC fields */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#1e3a5f' }}>To:</label>
-              {emailData.emailInputs.map((email, index) => (
-                <div key={`to-${index}`} style={{ display: 'flex', marginBottom: '8px', gap: '8px' }}>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => handleEmailInputChange(index, e.target.value, 'email')}
-                    onFocus={() => setActiveEmailField('email')}
-                    placeholder="Enter email address"
-                    style={{
-                      flex: 1,
-                      padding: '8px',
-                      border: '1px solid #c0c0c0',
-                      borderRadius: '4px',
-                      fontSize: '13px'
-                    }}
-                  />
-                  {index < emailData.emailInputs.length - 1 && (
-                    <button
-                      onClick={() => removeEmailInput(index, 'email')}
-                      style={{
-                        padding: '8px 12px',
-                        backgroundColor: '#fee2e2',
-                        border: 'none',
-                        borderRadius: '4px',
-                        color: '#991b1b',
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      ×
-                    </button>
+          {/* Dynamic Grid of Sections */}
+          <div className="pdf-sections-grid" style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+            {pdfLayoutOrder.map((sectionKey) => {
+              // Map sectionKey to display and components
+              const title = sectionKey === 'sopTables' ? 'SOP Tables' : 
+                          sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1).replace(/([A-Z])/g, ' $1');
+              
+              const isMetric = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(sectionKey);
+
+              return (
+                <div key={sectionKey} style={{ breakInside: 'avoid', marginBottom: '15px' }}>
+                  <div style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '8px 15px', fontSize: '14px', fontWeight: 'bold', marginBottom: '10px' }}>
+                    {title}
+                  </div>
+                  
+                  {sectionKey === 'milestones' && (
+                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                       <thead>
+                         <tr style={{ backgroundColor: '#f3f4f6' }}>
+                           <th style={{ padding: '8px', border: '1px solid #e5e7eb', textAlign: 'left' }}>Status</th>
+                           <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>A</th>
+                           <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>B</th>
+                           <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>C</th>
+                           <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>D</th>
+                           <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>E</th>
+                           <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>F</th>
+                         </tr>
+                       </thead>
+                       <tbody>
+                         <tr>
+                           <td style={{ padding: '8px', border: '1px solid #e5e7eb', fontWeight: 'bold' }}>Plan</td>
+                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.a}</td>
+                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.b}</td>
+                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.c}</td>
+                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.d}</td>
+                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.e}</td>
+                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.f}</td>
+                         </tr>
+                         <tr>
+                           <td style={{ padding: '8px', border: '1px solid #e5e7eb', fontWeight: 'bold' }}>Actual</td>
+                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.a}</td>
+                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.b}</td>
+                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.c}</td>
+                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.d}</td>
+                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.e}</td>
+                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.f}</td>
+                         </tr>
+                       </tbody>
+                     </table>
                   )}
-                </div>
-              ))}
-            </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#1e3a5f' }}>CC:</label>
-              {emailData.ccInputs.map((email, index) => (
-                <div key={`cc-${index}`} style={{ display: 'flex', marginBottom: '8px', gap: '8px' }}>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => handleEmailInputChange(index, e.target.value, 'cc')}
-                    onFocus={() => setActiveEmailField('cc')}
-                    placeholder="Enter email address"
-                    style={{
-                      flex: 1,
-                      padding: '8px',
-                      border: '1px solid #c0c0c0',
-                      borderRadius: '4px',
-                      fontSize: '13px'
-                    }}
-                  />
-                  {index < emailData.ccInputs.length - 1 && (
-                    <button
-                      onClick={() => removeEmailInput(index, 'cc')}
-                      style={{
-                        padding: '8px 12px',
-                        backgroundColor: '#fee2e2',
-                        border: 'none',
-                        borderRadius: '4px',
-                        color: '#991b1b',
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#1e3a5f' }}>BCC:</label>
-              {emailData.bccInputs.map((email, index) => (
-                <div key={`bcc-${index}`} style={{ display: 'flex', marginBottom: '8px', gap: '8px' }}>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => handleEmailInputChange(index, e.target.value, 'bcc')}
-                    onFocus={() => setActiveEmailField('bcc')}
-                    placeholder="Enter email address"
-                    style={{
-                      flex: 1,
-                      padding: '8px',
-                      border: '1px solid #c0c0c0',
-                      borderRadius: '4px',
-                      fontSize: '13px'
-                    }}
-                  />
-                  {index < emailData.bccInputs.length - 1 && (
-                    <button
-                      onClick={() => removeEmailInput(index, 'bcc')}
-                      style={{
-                        padding: '8px 12px',
-                        backgroundColor: '#fee2e2',
-                        border: 'none',
-                        borderRadius: '4px',
-                        color: '#991b1b',
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      ×
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* Employee Search and Selection Dropdown */}
-            <div style={{ marginBottom: '25px', position: 'relative' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#1e3a5f' }}>Choose Employees:</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type="text"
-                  value={employeeSearchTerm}
-                  onChange={(e) => {
-                    setEmployeeSearchTerm(e.target.value);
-                    setShowEmployeeDropdown(true);
-                  }}
-                  onFocus={() => setShowEmployeeDropdown(true)}
-                  placeholder="Type name or email to search employees..."
-                  style={{
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #c0c0c0',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    outline: 'none',
-                    boxShadow: showEmployeeDropdown ? '0 0 0 2px rgba(30, 58, 95, 0.1)' : 'none',
-                    transition: 'all 0.2s',
-                    position: 'relative',
-                    zIndex: showEmployeeDropdown ? 15 : 1
-                  }}
-                />
-                <div style={{
-                  position: 'absolute',
-                  right: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: '#9ca3af',
-                  pointerEvents: 'none'
-                }}>
-                  ▼
-                </div>
-
-                {showEmployeeDropdown && (
-                  <>
-                    <div
-                      onClick={() => setShowEmployeeDropdown(false)}
-                      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}
-                    />
-                    <div style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      right: 0,
-                      backgroundColor: 'white',
-                      border: '1px solid #e0e0e0',
-                      borderRadius: '4px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                      marginTop: '4px',
-                      maxHeight: '200px',
-                      overflowY: 'auto',
-                      zIndex: 20
-                    }}>
-                      {allEmployees
-                        .filter(emp =>
-                          String(emp.name || '').toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
-                          String(emp.email || '').toLowerCase().includes(employeeSearchTerm.toLowerCase())
-                        )
-                        .slice(0, 50)
-                        .map(contact => (
-                          <div
-                            key={contact.id}
-                            onClick={() => addContactFromList(contact.email, activeEmailField)}
-                            style={{
-                              padding: '10px 15px',
-                              cursor: 'pointer',
-                              borderBottom: '1px solid #f3f4f6',
-                              transition: 'background-color 0.2s',
-                              display: 'flex',
-                              flexDirection: 'column'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f7ff'}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
-                          >
-                            <span style={{ fontWeight: 'bold', fontSize: '13px', color: '#1e3a5f' }}>{contact.name || 'Unknown Name'}</span>
-                            <span style={{ fontSize: '12px', color: '#6b7280' }}>{contact.email} • {contact.department || 'No Dept'}</span>
-                          </div>
-                        ))}
-                      {allEmployees.length === 0 && (
-                        <div style={{ padding: '15px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>
-                          No employees loaded.
-                        </div>
-                      )}
-                      {allEmployees.length > 0 && allEmployees.filter(emp =>
-                        String(emp.name || '').toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
-                        String(emp.email || '').toLowerCase().includes(employeeSearchTerm.toLowerCase())
-                      ).length === 0 && (
-                          <div style={{ padding: '15px', textAlign: 'center', color: '#9ca3af', fontSize: '13px' }}>
-                            No matches found for "{employeeSearchTerm}"
-                          </div>
-                        )}
+                  {sectionKey === 'sopTables' && (
+                    <div style={{ display: 'flex', gap: '20px' }}>
+                       <div style={{ flex: 1, padding: '10px', border: '1px solid #e5e7eb' }}>
+                          <div style={{ fontSize: '12px', fontWeight: 'bold' }}>SOP Timeline</div>
+                          <div style={{ fontSize: '20px', color: '#1e3a5f' }}>{sopData[0].daysToGo} days</div>
+                       </div>
+                       <div style={{ flex: 1, padding: '10px', border: '1px solid #e5e7eb' }}>
+                          <div style={{ fontSize: '12px', fontWeight: 'bold' }}>Status</div>
+                          <div style={{ fontSize: '14px', color: '#9a3412' }}>{sopData[0].status}</div>
+                       </div>
                     </div>
-                  </>
-                )}
-              </div>
-              <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '8px' }}>
-                * Click to add to the <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{activeEmailField.toUpperCase()}</span> field.
-              </p>
-            </div>
+                  )}
 
-            {/* Subject */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#1e3a5f' }}>Subject:</label>
-              <input
-                type="text"
-                value={emailData.subject}
-                onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #c0c0c0',
-                  borderRadius: '4px',
-                  fontSize: '13px'
-                }}
-              />
-            </div>
+                  {isMetric && (
+                    <div style={{ height: '300px', width: '100%' }}>
+                      {renderChart(sectionKey, chartTypes[activeProject.id]?.[sectionKey], false, getTrackerForPhase(sectionKey)?.trackerId)}
+                    </div>
+                  )}
 
-            {/* Message */}
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', color: '#1e3a5f' }}>Message (Optional):</label>
-              <textarea
-                value={emailData.message}
-                onChange={(e) => setEmailData(prev => ({ ...prev, message: e.target.value }))}
-                rows="3"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  border: '1px solid #c0c0c0',
-                  borderRadius: '4px',
-                  fontSize: '13px',
-                  resize: 'vertical'
-                }}
-                placeholder="Add a message..."
-              />
-            </div>
+                  {!['milestones', 'sopTables', 'design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(sectionKey) && (
+                    <div style={{ padding: '10px', color: '#6b7280', fontSize: '12px', textAlign: 'center' }}>
+                      Section content for {sectionKey} to be rendered here.
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
-            {/* Section selection */}
-            <div style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                <label style={{ fontWeight: 'bold', color: '#1e3a5f' }}>Select Sections to Include:</label>
-                <button
-                  onClick={handleSelectAll}
-                  style={{
-                    padding: '4px 10px',
-                    fontSize: '12px',
-                    borderRadius: '4px',
-                    border: '1px solid #1e3a5f',
-                    backgroundColor: allSelected ? '#1e3a5f' : 'white',
-                    color: allSelected ? 'white' : '#1e3a5f',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {allSelected ? 'Deselect All' : 'Select All'}
-                </button>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                {Object.keys(emailData.selectedSections).filter(section => {
-                  const metricKeys = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityCheck'];
-                  if (metricKeys.includes(section)) return availablePhases[section];
-                  return true;
-                }).map(section => (
-                  <label key={section} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={emailData.selectedSections[section]}
-                      onChange={() => handleSectionToggle(section)}
-                    />
-                    {section === 'sopTables' ? 'SOP Tables' :
-                      section.charAt(0).toUpperCase() + section.slice(1).replace(/([A-Z])/g, ' $1')}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Action buttons */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid #e0e0e0', paddingTop: '20px' }}>
-              <button
-                onClick={() => setShowEmailModal(false)}
-                style={{
-                  padding: '10px 20px',
-                  fontSize: '14px',
-                  borderRadius: '4px',
-                  border: '1px solid #c0c0c0',
-                  backgroundColor: 'white',
-                  color: '#4b5563',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={openPrintPreview}
-                style={{
-                  padding: '10px 20px',
-                  fontSize: '14px',
-                  borderRadius: '4px',
-                  border: '1px solid #f59e0b',
-                  backgroundColor: '#f59e0b',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                Preview PDF
-              </button>
-              <button
-                onClick={handleSendEmail}
-                style={{
-                  padding: '10px 20px',
-                  fontSize: '14px',
-                  borderRadius: '4px',
-                  border: 'none',
-                  backgroundColor: '#1e3a5f',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
-              >
-                Send Email
-              </button>
-            </div>
+          {/* Footer */}
+          <div className="pdf-footer" style={{ marginTop: 'auto', borderTop: '1px solid #e5e7eb', paddingTop: '10px', fontSize: '10px', color: '#9ca3af', textAlign: 'center' }}>
+            Generated by Industrial Analytics Platform • {new Date().toLocaleString()}
           </div>
         </div>
       </div>
     );
   };
-
-  // Simulate Dashboard Modal Component
-  const SimulateModal = () => {
+  const renderSimulateModal = () => {
     if (!showSimulateModal) return null;
 
     const allSelected = Object.values(visibleSections).every(value => value);
@@ -2045,8 +1436,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     );
   };
 
-  // Edit Milestones Modal
-  const EditMilestonesModal = () => {
+  // Edit Milestones Modal Component
+  const renderEditMilestonesModal = () => {
     if (!showEditMilestones) return null;
 
     const handleSave = () => {
@@ -2148,8 +1539,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     );
   };
 
-  // Edit Issues Modal
-  const EditIssuesModal = () => {
+  // Edit Issues Modal Component
+  const renderEditIssuesModal = () => {
     if (!showEditIssues) return null;
 
     const handleSave = () => {
@@ -2269,8 +1660,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     );
   };
 
-  // Edit Summary Modal
-  const EditSummaryModal = () => {
+  // Edit Summary Modal Component
+  const renderEditSummaryModal = () => {
     if (!showEditSummary) return null;
 
     const handleSave = () => {
@@ -2616,143 +2007,10 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
     );
   };
 
-  // Axis Selector Modal
 
-  // Axis Selector Modal
-  const AxisSelectorModal = ({ chartId, onClose }) => {
-    if (!activeProject) return null;
 
-    const config = axisConfigs[activeProject.id]?.[chartId] || { xAxis: '', yAxis: '' };
-    const [localConfig, setLocalConfig] = useState(config);
-
-    // Compute dynamic dynamicAvailableColumns based on prefetched data
-    const dynamicAvailableColumns = useMemo(() => {
-      const tracker = getTrackerForPhase(chartId);
-      if (tracker) {
-        const data = submoduleData[tracker.trackerId];
-        if (data && data.headers) {
-          return data.headers;
-        }
-      }
-      return availableColumns; // Fallback to dummy data
-    }, [activeProject, submoduleData, chartId]);
-
-    const handleApply = () => {
-      handleAxisChange(chartId, 'xAxis', localConfig.xAxis);
-      handleAxisChange(chartId, 'yAxis', localConfig.yAxis);
-      onClose();
-    };
-
-    return (
-      <div style={{
-        position: 'absolute',
-        top: '100%',
-        right: '0',
-        backgroundColor: 'white',
-        border: '1px solid #e0e0e0',
-        borderRadius: '6px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        padding: '12px',
-        zIndex: 100,
-        width: '240px',
-        marginTop: '8px'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #e0e0e0', paddingBottom: '8px' }}>
-          <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Configure Axes</h3>
-          <button
-            onClick={onClose}
-            style={{
-              border: 'none',
-              background: '#f3f4f6',
-              cursor: 'pointer',
-              fontSize: '12px',
-              width: '22px',
-              height: '22px',
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#4b5563',
-              fontWeight: 'bold'
-            }}
-          >
-            ✕
-          </button>
-        </div>
-
-        <div style={{ marginBottom: '10px' }}>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '4px' }}>
-            Attribute 1
-          </label>
-          <select
-            value={localConfig.xAxis}
-            onChange={(e) => setLocalConfig(prev => ({ ...prev, xAxis: e.target.value }))}
-            style={{
-              width: '100%',
-              padding: '6px',
-              fontSize: '12px',
-              borderRadius: '4px',
-              border: '1px solid #c0c0c0',
-              backgroundColor: 'white',
-              cursor: 'pointer',
-              outline: 'none',
-              color: '#1e3a5f'
-            }}
-          >
-            {dynamicAvailableColumns.map(col => (
-              <option key={col} value={col} style={{ color: '#1e3a5f', padding: '6px' }}>{col}</option>
-            ))}
-          </select>
-        </div>
-
-        <div style={{ marginBottom: '10px' }}>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '4px' }}>
-            Attribute 2
-          </label>
-          <select
-            value={localConfig.yAxis}
-            onChange={(e) => setLocalConfig(prev => ({ ...prev, yAxis: e.target.value }))}
-            style={{
-              width: '100%',
-              padding: '6px',
-              fontSize: '12px',
-              borderRadius: '4px',
-              border: '1px solid #c0c0c0',
-              backgroundColor: 'white',
-              cursor: 'pointer',
-              outline: 'none',
-              color: '#1e3a5f'
-            }}
-          >
-            {dynamicAvailableColumns.map(col => (
-              <option key={col} value={col} style={{ color: '#1e3a5f', padding: '6px' }}>{col}</option>
-            ))}
-          </select>
-        </div>
-
-        <button
-          onClick={handleApply}
-          style={{
-            width: '100%',
-            padding: '8px',
-            backgroundColor: '#1e3a5f',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            fontSize: '13px',
-            marginTop: '4px'
-          }}
-        >
-          Apply
-        </button>
-      </div>
-    );
-  };
-
-  // Chart options component
-  const ChartOptions = ({ chartId, currentType }) => (
+  // Chart options render function
+  const renderChartOptions = (chartId, currentType) => (
     <div style={{ display: 'flex', gap: '6px', alignItems: 'center', position: 'relative' }}>
       <select
         value={currentType}
@@ -2812,13 +2070,23 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       </button>
 
       {showAxisSelector === chartId && (
-        <AxisSelectorModal chartId={chartId} onClose={() => setShowAxisSelector(null)} />
+        <AxisSelectorModal 
+          chartId={chartId} 
+          onClose={() => setShowAxisSelector(null)}
+          activeProject={activeProject}
+          axisConfigs={axisConfigs}
+          submoduleData={submoduleData}
+          tracker={getTrackerForPhase(chartId)}
+          availableColumns={availableColumns}
+          handleAxisChange={handleAxisChange}
+        />
       )}
     </div>
   );
 
   // Maximized Chart Modal
-  const MaximizedChartModal = () => {
+  // Maximized Chart Modal Component
+  const renderMaximizedChartModal = () => {
     if (!maximizedChart || !activeProject) return null;
 
     const chartNames = {
@@ -2922,21 +2190,40 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       fontFamily: 'Arial, sans-serif'
     }}>
       {/* PDF Preview Modal */}
-      <PdfPreviewModal />
+      {renderPdfPreviewModal()}
 
       {/* Email Modal */}
-      <EmailModal />
+      <EmailModal
+        show={showEmailModal}
+        onClose={() => setShowEmailModal(false)}
+        activeProject={activeProject}
+        emailData={emailData}
+        setEmailData={setEmailData}
+        allEmployees={allEmployees}
+        employeeSearchTerm={employeeSearchTerm}
+        setEmployeeSearchTerm={setEmployeeSearchTerm}
+        showEmployeeDropdown={showEmployeeDropdown}
+        setShowEmployeeDropdown={setShowEmployeeDropdown}
+        activeEmailField={activeEmailField}
+        setActiveEmailField={setActiveEmailField}
+        addContactFromList={addContactFromList}
+        handleEmailInputChange={handleEmailInputChange}
+        removeEmailInput={removeEmailInput}
+        availablePhases={availablePhases}
+        openPrintPreview={openPrintPreview}
+        handleSendEmail={handleSendEmail}
+      />
 
       {/* Simulate Modal */}
-      <SimulateModal />
+      {renderSimulateModal()}
 
       {/* Edit Modals */}
-      <EditMilestonesModal />
-      <EditIssuesModal />
-      <EditSummaryModal />
+      {renderEditMilestonesModal()}
+      {renderEditIssuesModal()}
+      {renderEditSummaryModal()}
 
       {/* Maximized Chart Modal */}
-      <MaximizedChartModal />
+      {renderMaximizedChartModal()}
 
       {/* Main Dashboard Container */}
       <div style={{
@@ -3419,7 +2706,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                             alignItems: 'center'
                           }}>
                             <span>Design</span>
-                            <ChartOptions chartId="design" currentType={chartTypes[activeProject.id]?.design || 'bar'} />
+                            {renderChartOptions("design", chartTypes[activeProject.id]?.design || 'bar')}
                           </div>
                           <div style={{ padding: '15px' }}>
                             {renderChart('design', chartTypes[activeProject.id]?.design || 'bar', false, getTrackerForPhase('design')?.trackerId)}
@@ -3451,7 +2738,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                             alignItems: 'center'
                           }}>
                             <span>Part Development</span>
-                            <ChartOptions chartId="partDevelopment" currentType={chartTypes[activeProject.id]?.partDevelopment || 'line'} />
+                            {renderChartOptions("partDevelopment", chartTypes[activeProject.id]?.partDevelopment || 'line')}
                           </div>
                           <div style={{ padding: '15px' }}>
                             {renderChart('partDevelopment', chartTypes[activeProject.id]?.partDevelopment || 'line', false, getTrackerForPhase('partDevelopment')?.trackerId)}
@@ -3483,7 +2770,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                             alignItems: 'center'
                           }}>
                             <span>Build</span>
-                            <ChartOptions chartId="build" currentType={chartTypes[activeProject.id]?.build || 'pie'} />
+                            {renderChartOptions("build", chartTypes[activeProject.id]?.build || 'pie')}
                           </div>
                           <div style={{ padding: '15px' }}>
                             {renderChart('build', chartTypes[activeProject.id]?.build || 'pie', false, getTrackerForPhase('build')?.trackerId)}
@@ -3515,7 +2802,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                             alignItems: 'center'
                           }}>
                             <span>Gateway</span>
-                            <ChartOptions chartId="gateway" currentType={chartTypes[activeProject.id]?.gateway || 'area'} />
+                            {renderChartOptions("gateway", chartTypes[activeProject.id]?.gateway || 'area')}
                           </div>
                           <div style={{ padding: '15px' }}>
                             {renderChart('gateway', chartTypes[activeProject.id]?.gateway || 'area', false, getTrackerForPhase('gateway')?.trackerId)}
@@ -3547,7 +2834,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                             alignItems: 'center'
                           }}>
                             <span>Validation</span>
-                            <ChartOptions chartId="validation" currentType={chartTypes[activeProject.id]?.validation || 'bar'} />
+                            {renderChartOptions("validation", chartTypes[activeProject.id]?.validation || 'bar')}
                           </div>
                           <div style={{ padding: '15px' }}>
                             {renderChart('validation', chartTypes[activeProject.id]?.validation || 'bar', false, getTrackerForPhase('validation')?.trackerId)}
@@ -3579,7 +2866,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                             alignItems: 'center'
                           }}>
                             <span>Quality Issues</span>
-                            <ChartOptions chartId="qualityIssues" currentType={chartTypes[activeProject.id]?.qualityIssues || 'bar'} />
+                            {renderChartOptions("qualityIssues", chartTypes[activeProject.id]?.qualityIssues || 'bar')}
                           </div>
                           <div style={{ padding: '15px' }}>
                             {renderChart('qualityIssues', chartTypes[activeProject.id]?.qualityIssues || 'bar', false, getTrackerForPhase('qualityIssues')?.trackerId)}
@@ -3789,6 +3076,612 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
           </>
         )}
       </div>
+    </div>
+  );
+};
+
+// Email Modal Component
+const EmailModal = ({
+  show,
+  onClose,
+  activeProject,
+  emailData,
+  setEmailData,
+  allEmployees,
+  employeeSearchTerm,
+  setEmployeeSearchTerm,
+  showEmployeeDropdown,
+  setShowEmployeeDropdown,
+  activeEmailField,
+  setActiveEmailField,
+  addContactFromList,
+  handleEmailInputChange,
+  removeEmailInput,
+  availablePhases,
+  openPrintPreview,
+  handleSendEmail
+}) => {
+  if (!show) return null;
+
+  const allSelected = Object.values(emailData.selectedSections).every(value => value);
+
+  const handleSelectAll = () => {
+    const newState = !allSelected;
+    const updatedSections = {};
+    Object.keys(emailData.selectedSections).forEach(key => {
+      updatedSections[key] = newState;
+    });
+    setEmailData(prev => ({ ...prev, selectedSections: updatedSections }));
+  };
+
+  const handleSectionToggle = (section) => {
+    setEmailData(prev => ({
+      ...prev,
+      selectedSections: {
+        ...prev.selectedSections,
+        [section]: !prev.selectedSections[section]
+      }
+    }));
+  };
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 2000,
+      padding: '20px'
+    }}>
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        width: '700px',
+        maxWidth: '100%',
+        maxHeight: '90vh',
+        display: 'flex',
+        flexDirection: 'column',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+        overflow: 'hidden'
+      }}>
+        {/* Header */}
+        <div style={{
+          backgroundColor: '#1e3a5f',
+          color: 'white',
+          padding: '15px 20px',
+          fontSize: '18px',
+          fontWeight: 'bold',
+          borderBottom: '1px solid #2c4c7c',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexShrink: 0
+        }}>
+          <span>Send Project Dashboard Summary</span>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'white',
+              fontSize: '20px',
+              cursor: 'pointer',
+              padding: '0 5px'
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Scrollable Content */}
+        <div style={{
+          padding: '20px',
+          overflowY: 'auto',
+          flex: 1
+        }}>
+          <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '15px' }}>
+            Email the dashboard summary for <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{activeProject?.name}</span>.
+          </p>
+
+          {/* Employee Search/Selection - PLACED AT TOP AS REQUESTED */}
+          <div style={{
+            marginBottom: '20px',
+            padding: '15px',
+            backgroundColor: '#f8fafc',
+            borderRadius: '6px',
+            border: '1px solid #e2e8f0'
+          }}>
+            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>Choose Employees:</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                value={employeeSearchTerm}
+                onChange={(e) => {
+                  setEmployeeSearchTerm(e.target.value);
+                  setShowEmployeeDropdown(true);
+                }}
+                onFocus={() => setShowEmployeeDropdown(true)}
+                placeholder="Type name or email to search employees..."
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #c0c0c0',
+                  borderRadius: '4px',
+                  fontSize: '13px',
+                  outline: 'none',
+                  boxShadow: showEmployeeDropdown ? '0 0 0 2px rgba(30, 58, 95, 0.1)' : 'none',
+                  transition: 'all 0.2s',
+                  position: 'relative',
+                  zIndex: showEmployeeDropdown ? 15 : 1
+                }}
+              />
+              <div style={{
+                position: 'absolute',
+                right: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#9ca3af',
+                pointerEvents: 'none',
+                fontSize: '12px'
+              }}>
+                ▼
+              </div>
+
+              {showEmployeeDropdown && (
+                <>
+                  <div
+                    onClick={() => setShowEmployeeDropdown(false)}
+                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'white',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '4px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    marginTop: '4px',
+                    maxHeight: '180px',
+                    overflowY: 'auto',
+                    zIndex: 20
+                  }}>
+                    {allEmployees
+                      ?.filter(emp =>
+                        String(emp.name || '').toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
+                        String(emp.email || '').toLowerCase().includes(employeeSearchTerm.toLowerCase())
+                      )
+                      .slice(0, 50)
+                      .map(contact => (
+                        <div
+                          key={contact.id}
+                          onClick={() => addContactFromList(contact.email, activeEmailField)}
+                          style={{
+                            padding: '8px 15px',
+                            cursor: 'pointer',
+                            borderBottom: '1px solid #f3f4f6',
+                            transition: 'background-color 0.2s',
+                            display: 'flex',
+                            flexDirection: 'column'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f7ff'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                        >
+                          <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#1e3a5f' }}>{contact.name || 'Unknown Name'}</span>
+                          <span style={{ fontSize: '11px', color: '#6b7280' }}>{contact.email} • {contact.department || 'No Dept'}</span>
+                        </div>
+                      ))}
+                    {allEmployees?.length === 0 && (
+                      <div style={{ padding: '15px', textAlign: 'center', color: '#9ca3af', fontSize: '12px' }}>
+                        No employees loaded.
+                      </div>
+                    )}
+                    {allEmployees?.length > 0 && allEmployees.filter(emp =>
+                      String(emp.name || '').toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
+                      String(emp.email || '').toLowerCase().includes(employeeSearchTerm.toLowerCase())
+                    ).length === 0 && (
+                      <div style={{ padding: '15px', textAlign: 'center', color: '#9ca3af', fontSize: '12px' }}>
+                        No matches found for "{employeeSearchTerm}"
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+            <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px', marginBottom: 0 }}>
+              * Click to add to the <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{activeEmailField.toUpperCase()}</span> field.
+            </p>
+          </div>
+
+          {/* To, CC, BCC fields */}
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>To:</label>
+            {emailData.emailInputs.map((email, index) => (
+              <div key={`to-${index}`} style={{ display: 'flex', marginBottom: '4px', gap: '8px' }}>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => handleEmailInputChange(index, e.target.value, 'email')}
+                  onFocus={() => setActiveEmailField('email')}
+                  placeholder="Enter email address"
+                  style={{
+                    flex: 1,
+                    padding: '6px 8px',
+                    border: '1px solid #c0c0c0',
+                    borderRadius: '4px',
+                    fontSize: '13px'
+                  }}
+                />
+                {index < emailData.emailInputs.length - 1 && (
+                  <button
+                    onClick={() => removeEmailInput(index, 'email')}
+                    style={{
+                      padding: '4px 8px',
+                      backgroundColor: '#fee2e2',
+                      border: 'none',
+                      borderRadius: '4px',
+                      color: '#991b1b',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '14px'
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>CC:</label>
+            {emailData.ccInputs.map((email, index) => (
+              <div key={`cc-${index}`} style={{ display: 'flex', marginBottom: '4px', gap: '8px' }}>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => handleEmailInputChange(index, e.target.value, 'cc')}
+                  onFocus={() => setActiveEmailField('cc')}
+                  placeholder="Enter email address"
+                  style={{
+                    flex: 1,
+                    padding: '6px 8px',
+                    border: '1px solid #c0c0c0',
+                    borderRadius: '4px',
+                    fontSize: '13px'
+                  }}
+                />
+                {index < emailData.ccInputs.length - 1 && (
+                  <button
+                    onClick={() => removeEmailInput(index, 'cc')}
+                    style={{
+                      padding: '4px 8px',
+                      backgroundColor: '#fee2e2',
+                      border: 'none',
+                      borderRadius: '4px',
+                      color: '#991b1b',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '14px'
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>BCC:</label>
+            {emailData.bccInputs.map((email, index) => (
+              <div key={`bcc-${index}`} style={{ display: 'flex', marginBottom: '4px', gap: '8px' }}>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => handleEmailInputChange(index, e.target.value, 'bcc')}
+                  onFocus={() => setActiveEmailField('bcc')}
+                  placeholder="Enter email address"
+                  style={{
+                    flex: 1,
+                    padding: '6px 8px',
+                    border: '1px solid #c0c0c0',
+                    borderRadius: '4px',
+                    fontSize: '13px'
+                  }}
+                />
+                {index < emailData.bccInputs.length - 1 && (
+                  <button
+                    onClick={() => removeEmailInput(index, 'bcc')}
+                    style={{
+                      padding: '4px 8px',
+                      backgroundColor: '#fee2e2',
+                      border: 'none',
+                      borderRadius: '4px',
+                      color: '#991b1b',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '14px'
+                    }}
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+
+          {/* Subject */}
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>Subject:</label>
+            <input
+              type="text"
+              value={emailData.subject}
+              onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '6px 8px',
+                border: '1px solid #c0c0c0',
+                borderRadius: '4px',
+                fontSize: '13px'
+              }}
+            />
+          </div>
+
+          {/* Message */}
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>Message (Optional):</label>
+            <textarea
+              value={emailData.message}
+              onChange={(e) => setEmailData(prev => ({ ...prev, message: e.target.value }))}
+              rows="2"
+              style={{
+                width: '100%',
+                padding: '6px 8px',
+                border: '1px solid #c0c0c0',
+                borderRadius: '4px',
+                fontSize: '13px',
+                resize: 'vertical'
+              }}
+              placeholder="Add a message..."
+            />
+          </div>
+
+          {/* Section selection */}
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+              <label style={{ fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>Select Sections to Include:</label>
+              <button
+                onClick={handleSelectAll}
+                style={{
+                  padding: '2px 8px',
+                  fontSize: '11px',
+                  borderRadius: '4px',
+                  border: '1px solid #1e3a5f',
+                  backgroundColor: allSelected ? '#1e3a5f' : 'white',
+                  color: allSelected ? 'white' : '#1e3a5f',
+                  cursor: 'pointer'
+                }}
+              >
+                {allSelected ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+              {Object.keys(emailData.selectedSections).filter(section => {
+                const metricKeys = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityCheck'];
+                if (metricKeys.includes(section)) return availablePhases[section];
+                return true;
+              }).map(section => (
+                <label key={section} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={emailData.selectedSections[section]}
+                    onChange={() => handleSectionToggle(section)}
+                  />
+                  {section === 'sopTables' ? 'SOP Tables' :
+                    section.charAt(0).toUpperCase() + section.slice(1).replace(/([A-Z])/g, ' $1')}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid #e0e0e0', paddingTop: '15px' }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '10px 20px',
+                fontSize: '14px',
+                borderRadius: '4px',
+                border: '1px solid #c0c0c0',
+                backgroundColor: 'white',
+                color: '#4b5563',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={openPrintPreview}
+              style={{
+                padding: '10px 20px',
+                fontSize: '14px',
+                borderRadius: '4px',
+                border: '1px solid #f59e0b',
+                backgroundColor: '#f59e0b',
+                color: 'white',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              Preview PDF
+            </button>
+            <button
+              onClick={handleSendEmail}
+              style={{
+                padding: '10px 20px',
+                fontSize: '14px',
+                borderRadius: '4px',
+                border: 'none',
+                backgroundColor: '#1e3a5f',
+                color: 'white',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}
+            >
+              Send Email
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Axis Selector Modal Component
+const AxisSelectorModal = ({ 
+  chartId, 
+  onClose, 
+  activeProject, 
+  axisConfigs, 
+  submoduleData, 
+  tracker, 
+  availableColumns, 
+  handleAxisChange 
+}) => {
+  const config = axisConfigs[activeProject.id]?.[chartId] || { xAxis: '', yAxis: '' };
+  const [localConfig, setLocalConfig] = useState(config);
+
+  // Compute dynamic availableColumns based on prefetched data
+  const dynamicAvailableColumns = useMemo(() => {
+    if (tracker) {
+      const data = submoduleData[tracker.trackerId];
+      if (data && data.headers) {
+        return data.headers;
+      }
+    }
+    return availableColumns; // Fallback to dummy data
+  }, [tracker, submoduleData, availableColumns]);
+
+  const handleApply = () => {
+    handleAxisChange(chartId, 'xAxis', localConfig.xAxis);
+    handleAxisChange(chartId, 'yAxis', localConfig.yAxis);
+    onClose();
+  };
+
+  return (
+    <div style={{
+      position: 'absolute',
+      top: '100%',
+      right: '0',
+      backgroundColor: 'white',
+      border: '1px solid #e0e0e0',
+      borderRadius: '6px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      padding: '12px',
+      zIndex: 100,
+      width: '240px',
+      marginTop: '8px'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #e0e0e0', paddingBottom: '8px' }}>
+        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Configure Axes</h3>
+        <button
+          onClick={onClose}
+          style={{
+            border: 'none',
+            background: '#f3f4f6',
+            cursor: 'pointer',
+            fontSize: '12px',
+            width: '22px',
+            height: '22px',
+            borderRadius: '4px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#4b5563',
+            fontWeight: 'bold'
+          }}
+        >
+          ✕
+        </button>
+      </div>
+
+      <div style={{ marginBottom: '10px' }}>
+        <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '4px' }}>
+          Attribute 1
+        </label>
+        <select
+          value={localConfig.xAxis}
+          onChange={(e) => setLocalConfig(prev => ({ ...prev, xAxis: e.target.value }))}
+          style={{
+            width: '100%',
+            padding: '6px',
+            fontSize: '12px',
+            borderRadius: '4px',
+            border: '1px solid #c0c0c0',
+            backgroundColor: 'white',
+            cursor: 'pointer',
+            outline: 'none',
+            color: '#1e3a5f'
+          }}
+        >
+          {dynamicAvailableColumns.map(col => (
+            <option key={col} value={col} style={{ color: '#1e3a5f', padding: '6px' }}>{col}</option>
+          ))}
+        </select>
+      </div>
+
+      <div style={{ marginBottom: '10px' }}>
+        <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '4px' }}>
+          Attribute 2
+        </label>
+        <select
+          value={localConfig.yAxis}
+          onChange={(e) => setLocalConfig(prev => ({ ...prev, yAxis: e.target.value }))}
+          style={{
+            width: '100%',
+            padding: '6px',
+            fontSize: '12px',
+            borderRadius: '4px',
+            border: '1px solid #c0c0c0',
+            backgroundColor: 'white',
+            cursor: 'pointer',
+            outline: 'none',
+            color: '#1e3a5f'
+          }}
+        >
+          {dynamicAvailableColumns.map(col => (
+            <option key={col} value={col} style={{ color: '#1e3a5f', padding: '6px' }}>{col}</option>
+          ))}
+        </select>
+      </div>
+
+      <button
+        onClick={handleApply}
+        style={{
+          width: '100%',
+          padding: '8px',
+          backgroundColor: '#1e3a5f',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontWeight: 'bold',
+          fontSize: '13px',
+          marginTop: '4px'
+        }}
+      >
+        Apply
+      </button>
     </div>
   );
 };
