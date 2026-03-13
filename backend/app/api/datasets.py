@@ -138,7 +138,7 @@ def get_excel_view(dataset_id: int, db: Session = Depends(get_db)):
     else:
         data = []
 
-    return {
+    result = {
         "id": dataset.id,
         "name": dataset.name,
         "type": dataset.file_type,

@@ -4,7 +4,7 @@ import {
   Plus, Search, X, ChevronUp, ChevronDown, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   AlertTriangle, FileText, FileSpreadsheet, Database,
   HardDrive, Archive, Check, Calendar, EyeOff, User,
-  Edit2, Save, Columns, Rows, CheckSquare, Square, FolderTree, Layout
+  Edit2, Save, Columns, Rows, CheckSquare, Square, FolderTree, Layout, RefreshCw
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
@@ -72,13 +72,25 @@ const sidebarManager = {
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '');
 
+    // Robust prefix stripping
+    let cleanedName = fileName;
+    if (projectName) {
+      const prefixUnderscore = projectName.replace(/\s+/g, '_') + '_';
+      if (cleanedName.toLowerCase().startsWith(prefixUnderscore.toLowerCase())) {
+        cleanedName = cleanedName.substring(prefixUnderscore.length);
+      } else {
+        const prefixSpace = projectName + '_';
+        if (cleanedName.toLowerCase().startsWith(prefixSpace.toLowerCase())) {
+          cleanedName = cleanedName.substring(prefixSpace.length);
+        }
+      }
+    }
+
     return {
       id: `upload-file-${trackerId}`,
       moduleId: `upload-file-${trackerId}`,
       name: fileName,
-      displayName: (projectName && fileName.startsWith(projectName + "_")) 
-        ? fileName.substring(projectName.length + 1).replace(/\.[^/.]+$/, "")
-        : fileName.replace(/\.[^/.]+$/, ""),
+      displayName: cleanedName.replace(/\.[^/.]+$/, ""),
       type: 'file',
       parentId: `upload-project-${projectId}`,
       trackerId: trackerId,
@@ -869,19 +881,9 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
         setSelectedFileTrackerInfo(tracker);
       }
 
-      const fileData = uploadedFilesData[selectedFileId];
-      if (fileData) {
-        setSelectedFileContent(fileData);
-        setInitialFileLoaded(true); // ← ADDED
-      } else {
-        const allFilesData = JSON.parse(localStorage.getItem('uploaded_files_data') || '{}');
-        if (allFilesData[selectedFileId]) {
-          setSelectedFileContent(allFilesData[selectedFileId]);
-          setInitialFileLoaded(true); // ← ADDED
-        } else {
-          setSelectedFileContent(null);
-          showNotification('File data not found. Please re-upload the file.', 'error');
-        }
+      const trackerId = parseInt(selectedFileId, 10);
+      if (!initialFileLoaded || selectedFileTrackerInfo?.id !== trackerId) {
+        openFileDirectly(trackerId);
       }
     } else {
       setSelectedFileContent(null);
@@ -1866,6 +1868,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
       {/* MAIN CONTENT */}
       {shouldShowFileContent ? (
         <FileContentViewer
+          key={selectedFileTrackerInfo?.id || selectedFileId || 'none'}
           fileData={selectedFileContent}
           trackerInfo={selectedFileTrackerInfo}
           onBack={() => {
@@ -2105,12 +2108,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                       <td className="py-3 px-4 whitespace-nowrap text-left">
                         <div className="flex items-center space-x-2">
                           <button
-                            onClick={() => {
-                              showExcelViewer(tracker);
-                              setSelectedFileContent(uploadedFilesData[tracker.id]);
-                              setSelectedFileTrackerInfo(tracker);
-                              setInitialFileLoaded(true);
-                            }}
+                            onClick={() => openFileDirectly(tracker.id)}
                             className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
                             title="View File"
                           >

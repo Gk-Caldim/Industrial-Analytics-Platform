@@ -7,6 +7,28 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
 const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
+  // Helper to get display name without project prefix
+  const getDisplayFileName = (fileName, projectName) => {
+    if (!fileName) return '';
+    let name = fileName;
+    
+    // Try to remove project prefix (both with underscores and spaces)
+    if (projectName) {
+      const projectPrefixUnderscore = projectName.replace(/\s+/g, '_') + '_';
+      if (name.toLowerCase().startsWith(projectPrefixUnderscore.toLowerCase())) {
+        name = name.substring(projectPrefixUnderscore.length);
+      } else {
+        const projectPrefixSpace = projectName + '_';
+        if (name.toLowerCase().startsWith(projectPrefixSpace.toLowerCase())) {
+          name = name.substring(projectPrefixSpace.length);
+        }
+      }
+    }
+    
+    // Remove extension
+    return name.replace(/\.[^/.]+$/, "");
+  };
+
   // Projects data
   const [projects, setProjects] = useState([]);
 
@@ -43,7 +65,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                 id: `project-file-${dataset.id}`,
                 trackerId: dataset.id,
                 name: dataset.fileName,
-                displayName: (dataset.fileName || '').replace(/\.[^/.]+$/, ""),
+                displayName: getDisplayFileName(dataset.fileName, capitalizedName),
                 department: dataset.department, // Add department field
                 type: 'file',
                 projectName: capitalizedName
@@ -2962,7 +2984,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
           <div style={{ textAlign: 'center', flex: 2 }}>
             {selectedSubmodule ? (
-              <span>{String(selectedSubmodule.displayName || selectedSubmodule.name).replace(/\.(xlsx|xls|csv|pdf|docx|txt|json)$/i, "")}</span>
+              <span>{getDisplayFileName(selectedSubmodule.name, selectedSubmodule.projectName)}</span>
             ) : activeProject ? (
               <span>{activeProject.name} Dashboard</span>
             ) : (
@@ -3122,7 +3144,7 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
         ) : selectedSubmodule ? (
           /* Submodule Detail View */
           <div style={{ padding: '0 25px 25px 25px' }}>
-            {renderSubmoduleTable(submoduleData[selectedSubmodule.trackerId], String(selectedSubmodule.displayName || selectedSubmodule.name).replace(/\.(xlsx|xls|csv|pdf|docx|txt|json)$/i, ""))}
+            {renderSubmoduleTable(submoduleData[selectedSubmodule.trackerId], getDisplayFileName(selectedSubmodule.name, selectedSubmodule.projectName))}
           </div>
         ) : (
           /* Active Project Dashboard */
