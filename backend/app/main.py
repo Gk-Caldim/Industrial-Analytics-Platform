@@ -99,3 +99,7 @@ async def test_db(db=Depends(get_db)):
 @app.get("/healthz")
 def health_check():
     return {"status": "ok"}
+
+@app.get("/")
+def root():
+    return {"message": "Backend is running successfully  - Welcome to the Industrial Analytics Platform API"}
