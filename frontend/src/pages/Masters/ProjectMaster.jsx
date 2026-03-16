@@ -10,9 +10,9 @@ import SearchableDropdown from "../../components/SearchableDropdown";
 const ProjectMaster = () => {
   // Fixed columns matching backend Project model
   const initialColumns = [
-    { id: 'id', label: 'ID', visible: true, sortable: true, type: 'text', required: true },
+    { id: 'project_id', label: 'Project ID', visible: true, sortable: true, type: 'text', required: true },
     { id: 'name', label: 'Project Name', visible: true, sortable: true, type: 'text', required: true },
-    { id: 'manager', label: 'Project Manager', visible: true, sortable: true, type: 'select', options: [], required: true },
+    { id: 'manager', label: 'Project Manager', visible: true, sortable: true, type: 'manager_select', options: [], required: true },
     { id: 'employee_id', label: 'Employee ID', visible: true, sortable: true, type: 'employee_id', required: false },
     { id: 'employee_name', label: 'Employee Name', visible: true, sortable: true, type: 'employee_name', required: false },
     { id: 'status', label: 'Status', visible: true, sortable: true, type: 'select', required: true },
@@ -51,7 +51,7 @@ const ProjectMaster = () => {
 
   // Load columns from localStorage
   const [columns, setColumns] = useState(() => {
-    const savedColumns = localStorage.getItem('project_columns_v3');
+    const savedColumns = localStorage.getItem('project_columns_v4');
     return savedColumns ? JSON.parse(savedColumns) : initialColumns;
   });
 
@@ -201,7 +201,7 @@ const ProjectMaster = () => {
 
   // Save columns to localStorage
   useEffect(() => {
-    localStorage.setItem('project_columns_v3', JSON.stringify(columns));
+    localStorage.setItem('project_columns_v4', JSON.stringify(columns));
   }, [columns]);
 
   // Checkbox Functions
@@ -869,14 +869,36 @@ const ProjectMaster = () => {
       <div>
         <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
         <select
-          value={value || 'Planning'}
+          value={value || (col.id === 'status' ? 'Planning' : '')}
           onChange={e => onChange(col.id, e.target.value)}
           className={inputClass}
         >
-          {statusOptions.map(option => (
-            <option key={option} value={option}>{option}</option>
-          ))}
+          {col.id === 'status' ? (
+            statusOptions.map(option => (
+              <option key={option} value={option}>{option}</option>
+            ))
+          ) : (
+            <>
+              <option value="">Select {col.label}</option>
+              {(col.options || []).map(option => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </>
+          )}
         </select>
+        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      </div>
+    );
+
+    if (col.type === 'manager_select') return (
+      <div>
+        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
+        <SearchableDropdown
+          options={employeeList.map(e => e.name)}
+          value={value}
+          onChange={(val) => onChange(col.id, val)}
+          placeholder="Select Project Manager"
+        />
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
     );
@@ -885,12 +907,12 @@ const ProjectMaster = () => {
       <div>
         <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
         <SearchableDropdown
-          options={employeeList.map(e => e.id)}
+          options={employeeList.map(e => String(e.employee_id || e.id))}
           value={value}
           onChange={(val) => {
             onChange(col.id, val);
             // Optionally auto-populate name
-            const emp = employeeList.find(e => e.id === val);
+            const emp = employeeList.find(e => String(e.employee_id || e.id) === val);
             if (emp) {
               onChange('employee_name', emp.name);
             }
@@ -912,7 +934,7 @@ const ProjectMaster = () => {
             // Optionally auto-populate ID
             const emp = employeeList.find(e => e.name === val);
             if (emp) {
-              onChange('employee_id', emp.id);
+              onChange('employee_id', String(emp.employee_id || emp.id));
             }
           }}
           placeholder="Select Employee Name"
@@ -973,7 +995,7 @@ const ProjectMaster = () => {
     if (col.id === 'budget') {
       return <span className="text-sm text-slate-700">${(parseFloat(value) || 0).toLocaleString()}</span>;
     }
-    if (col.id === 'id') {
+    if (col.id === 'project_id') {
       return <span className="text-[13px] text-slate-500 font-mono tracking-tight">{value}</span>;
     }
     return <span className="text-sm text-slate-700">{value || '-'}</span>;
@@ -1717,7 +1739,7 @@ const ProjectMaster = () => {
                             }}
                           >
                             <div className="flex items-center justify-between space-x-2">
-                              <div className="flex items-center space-x-1.5 cursor-pointer flex-1" onClick={() => col.sortable && handleSort(col.id)}>
+                              <div className="flex items-center space-x-1.5 flex-1">
                                 <span className="font-medium text-[13px]">{col.label}</span>
                                 {col.required && <span className="text-red-400">*</span>}
                               </div>

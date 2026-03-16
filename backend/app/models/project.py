@@ -7,6 +7,7 @@ class Project(Base):
     __tablename__ = "projects"
 
     id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(String, unique=True, nullable=True)
     name = Column(String, nullable=False)
     manager = Column(String, nullable=False)
     status = Column(String, default="Planning")

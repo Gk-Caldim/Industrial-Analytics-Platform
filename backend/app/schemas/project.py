@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Any, Dict, Optional
 
 class ProjectBase(BaseModel):
+    project_id: Optional[str] = None
     name: str
     manager: str
     status: str = "Planning"

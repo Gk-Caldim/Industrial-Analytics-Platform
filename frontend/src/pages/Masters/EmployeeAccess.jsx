@@ -11,7 +11,7 @@ import axios from 'axios';
 const EmployeeAccess = () => {
   // Initial columns configuration
   const initialColumns = [
-    { id: 'id', label: 'ID', visible: true, sortable: true, type: 'text', required: true, deletable: false },
+    { id: 'employee_id', label: 'Employee ID', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'name', label: 'Name', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'email', label: 'Email', visible: true, sortable: true, type: 'email', required: true, deletable: false },
     { id: 'role', label: 'Role', visible: true, sortable: true, type: 'text', required: true, deletable: false },
@@ -39,7 +39,7 @@ const EmployeeAccess = () => {
 
   // Load columns from localStorage
   const [columns, setColumns] = useState(() => {
-    const savedColumns = localStorage.getItem('access_columns_v2');
+    const savedColumns = localStorage.getItem('access_columns_v3');
     return savedColumns ? JSON.parse(savedColumns) : initialColumns;
   });
 
@@ -184,7 +184,7 @@ const EmployeeAccess = () => {
       const displayEmail = rule.employee_email || empDetails.email || rule.email || 'Unknown';
 
       return {
-        id: displayId,
+        employee_id: displayId,
         accessRuleId: rule.id,
         employeeId: rule.employee_id,
         name: displayName,
@@ -362,7 +362,7 @@ const EmployeeAccess = () => {
 
   // Save columns to localStorage
   useEffect(() => {
-    localStorage.setItem('access_columns_v2', JSON.stringify(columns));
+    localStorage.setItem('access_columns_v3', JSON.stringify(columns));
   }, [columns]);
 
   // Filter access rules
@@ -1902,7 +1902,7 @@ const EmployeeAccess = () => {
                           >
                             <div className="flex items-center justify-between space-x-2">
                               {/* Left side: label and required star */}
-                              <div className="flex items-center space-x-1.5 cursor-pointer flex-1" onClick={() => col.sortable && handleSort(col.id)}>
+                              <div className="flex items-center space-x-1.5 flex-1">
                                 <span className="font-medium text-[13px]">{col.label}</span>
                                 {col.required && <span className="text-red-400">*</span>}
                               </div>

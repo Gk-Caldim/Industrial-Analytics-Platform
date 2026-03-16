@@ -5,7 +5,7 @@ import axios from 'axios';
 const EmployeeMaster = () => {
   // Fixed columns - Simplified un-grouped structure with SaaS styling
   const initialColumns = [
-    { id: 'id', label: 'ID', visible: true, sortable: true, type: 'text', required: true, deletable: false },
+    { id: 'employee_id', label: 'Employee ID', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'name', label: 'Name', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'email', label: 'Email', visible: true, sortable: true, type: 'email', required: true, deletable: false },
     { id: 'department', label: 'Department', visible: true, sortable: true, type: 'text', required: true, deletable: false },
@@ -31,7 +31,7 @@ const EmployeeMaster = () => {
 
   // Load columns from localStorage
   const [columns, setColumns] = useState(() => {
-    const savedColumns = localStorage.getItem('employee_columns_v3');
+    const savedColumns = localStorage.getItem('employee_columns_v4');
     return savedColumns ? JSON.parse(savedColumns) : initialColumns;
   });
 
@@ -295,7 +295,7 @@ const EmployeeMaster = () => {
 
   // Save columns to localStorage
   useEffect(() => {
-    localStorage.setItem('employee_columns_v3', JSON.stringify(columns));
+    localStorage.setItem('employee_columns_v4', JSON.stringify(columns));
   }, [columns]);
 
   // Filter employees
@@ -1543,7 +1543,7 @@ const EmployeeMaster = () => {
                           >
                             <div className="flex items-center justify-between space-x-2">
                               {/* Left side, label and required star */}
-                              <div className="flex items-center space-x-1.5 cursor-pointer flex-1" onClick={() => col.sortable && handleSort(col.id)}>
+                              <div className="flex items-center space-x-1.5 flex-1">
                                 <span className="font-medium text-[13px]">{col.label}</span>
                                 {col.required && <span className="text-red-400">*</span>}
                               </div>
