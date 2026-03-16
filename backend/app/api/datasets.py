@@ -138,7 +138,7 @@ def get_excel_view(dataset_id: int, db: Session = Depends(get_db)):
     else:
         data = []
 
-    return {
+    result = {
         "id": dataset.id,
         "name": dataset.name,
         "type": dataset.file_type,
@@ -475,19 +475,6 @@ async def upload_dataset(
     Returns dataset metadata compatible with frontend.
     """
 
-    # 0️⃣ Check for duplicates
-    # "one department cannot upload duplicate tracker(excel)"
-    if department:
-        existing = db.query(Dataset).filter(
-            Dataset.department == department, 
-            Dataset.name == file.filename
-        ).first()
-        if existing:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Dataset '{file.filename}' already uploaded for department '{department}'."
-            )
-
     # 1️⃣ Read file into DataFrame
     try:
         contents = await file.read()
@@ -503,14 +490,36 @@ async def upload_dataset(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to read file: {e}")
 
+    # 1.5 Construct new filename: ProjectName_FileName (without extension)
+    # Aggressively strip multiple extensions if present
+    base_filename = file.filename
+    while '.' in base_filename:
+        base_filename = base_filename.rsplit('.', 1)[0]
+        
+    new_filename = f"{project}_{base_filename}" if project else base_filename
+    file_extension = file.filename.split(".")[-1].upper()
+
+    # 0️⃣ Check for duplicates with the new filename
+    # "one department cannot upload duplicate tracker(excel)"
+    if department:
+        existing = db.query(Dataset).filter(
+            Dataset.department == department, 
+            Dataset.name == new_filename
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Dataset '{new_filename}' already uploaded for department '{department}'."
+            )
+
     # 2️⃣ Store dataset metadata
     dataset = Dataset(
-        name=file.filename,
+        name=new_filename,
         industry=industry,
         project=project,
         department=department,
         uploaded_by=employeeName,
-        file_type=file.filename.split(".")[-1].upper(),
+        file_type=file_extension,
         row_count=len(df)
     )
     db.add(dataset)
@@ -518,8 +527,12 @@ async def upload_dataset(
     db.refresh(dataset)
 
     # 3️⃣ Create Dynamic Table and Insert Data
-    sanitized_name = re.sub(r'[^a-zA-Z0-9_]', '_', file.filename.split('.')[0]).lower()
-    table_name = f"tracker_{dataset.id}_{sanitized_name}"[:63] # Postgres limit 63 chars
+    sanitized_project = re.sub(r'[^a-zA-Z0-9_]', '_', project).lower() if project else ""
+    sanitized_file = re.sub(r'[^a-zA-Z0-9_]', '_', base_filename).lower()
+    
+    # User requested: project name_filename at the start, id at the end for technical uniqueness
+    table_name_base = f"{sanitized_project}_{sanitized_file}" if sanitized_project else sanitized_file
+    table_name = f"{table_name_base}_{dataset.id}"[:63] # Postgres limit 63 chars
 
     try:
         # Create table and insert data

@@ -29,6 +29,7 @@ from app.api import part as part_router
 from app.api import project as project_router
 from app.api import department as department_router
 from app.api.datasets import router as datasets_router
+from app.api.email import router as email_router  # Added email router
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI(
@@ -82,6 +83,7 @@ app.include_router(part_router.router, prefix=API_PREFIX)
 app.include_router(project_router.router, prefix=API_PREFIX)
 app.include_router(department_router.router, prefix=API_PREFIX)
 app.include_router(datasets_router, prefix=API_PREFIX)
+app.include_router(email_router, prefix=f"{API_PREFIX}/email", tags=["Email"]) # Added email route
 
 #testing routes
 @app.get("/test-db")
@@ -97,3 +99,7 @@ async def test_db(db=Depends(get_db)):
 @app.get("/healthz")
 def health_check():
     return {"status": "ok"}
+
+@app.get("/")
+def root():
+    return {"message": "Backend is running successfully  - Welcome to the Industrial Analytics Platform API"}

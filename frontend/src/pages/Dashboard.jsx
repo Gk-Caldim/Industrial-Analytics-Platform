@@ -202,6 +202,20 @@ const Dashboard = () => {
         const projectName = capitalizeFirstLetter(dataset.project || 'Uncategorized');
         const projectId = projectName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
+        // NEW: Helper to get clean display name by stripping project prefix
+        const getCleanDisplayName = (fileName, project) => {
+          if (!fileName) return '';
+          let name = fileName;
+          // Strip project prefix if it exists
+          if (project && name.toLowerCase().startsWith(project.toLowerCase() + "_")) {
+            name = name.substring(project.length + 1);
+          }
+          // Remove extension and capitalize
+          return capitalizeFirstLetter(name.replace(/\.[^/.]+$/, ""));
+        };
+
+        const cleanDisplayName = getCleanDisplayName(dataset.fileName, dataset.project);
+
         // --- Dashboard / Project Context ---
         if (!dashProjectsMap.has(projectName)) {
           dashProjectsMap.set(projectName, {
@@ -224,7 +238,7 @@ const Dashboard = () => {
             moduleId: `project-file-${dataset.id}`,
             trackerId: dataset.id,
             name: dataset.fileName,
-            displayName: capitalizeFirstLetter(dataset.fileName.replace(/\.[^/.]+$/, "")),
+            displayName: cleanDisplayName,
             type: 'file',
             projectName: projectName,
             context: 'project-dashboard'
@@ -253,7 +267,7 @@ const Dashboard = () => {
             moduleId: `upload-file-${dataset.id}`,
             trackerId: dataset.id,
             name: dataset.fileName,
-            displayName: capitalizeFirstLetter(dataset.fileName.replace(/\.[^/.]+$/, "")),
+            displayName: cleanDisplayName,
             type: 'file',
             projectName: projectName,
             context: 'upload-management'
@@ -613,7 +627,8 @@ const Dashboard = () => {
       for (const proj of uploadTrackerModules) {
         const file = proj.submodules?.find(s => s.trackerId === selectedUploadFileId);
         if (file) {
-          return capitalizeFirstLetter((file.displayName || file.name || '').replace(/\.(xlsx|xls|csv|json|txt)$/i, ''));
+          // Use displayName which is now cleaned in loadDynamicModules
+          return file.displayName || capitalizeFirstLetter((file.name || '').replace(/\.(xlsx|xls|csv|json|txt)$/i, ''));
         }
       }
       return 'Upload Trackers';
@@ -622,7 +637,8 @@ const Dashboard = () => {
       for (const proj of projectDashboardModules) {
         const file = proj.submodules?.find(s => s.trackerId === selectedProjectFileId);
         if (file) {
-          return capitalizeFirstLetter((file.displayName || file.name || '').replace(/\.(xlsx|xls|csv|json|txt)$/i, ''));
+          // Use displayName which is now cleaned in loadDynamicModules
+          return file.displayName || capitalizeFirstLetter((file.name || '').replace(/\.(xlsx|xls|csv|json|txt)$/i, ''));
         }
       }
     }
