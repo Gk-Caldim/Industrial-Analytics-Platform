@@ -10,7 +10,7 @@ import jsPDF from 'jspdf';
 const getDisplayFileName = (fileName, projectName) => {
   if (!fileName) return '';
   let name = fileName;
-  
+
   // Try to remove project prefix (both with underscores and spaces)
   if (projectName) {
     const projectPrefixUnderscore = projectName.replace(/\s+/g, '_') + '_';
@@ -23,7 +23,7 @@ const getDisplayFileName = (fileName, projectName) => {
       }
     }
   }
-  
+
   // Remove extension
   return name.replace(/\.[^/.]+$/, "");
 };
@@ -764,43 +764,43 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
     try {
       setLoading(true);
-      
+
       // Ensure the layout matches selected sections before capturing
       setPdfLayoutOrder(selectedSectionsList);
       setIsCapturingPdf(true);
 
       // Wait a moment for React to render the hidden PdfPreviewModal
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // Capture the PDF Preview layout instead of the main dashboard
       const dashboardContainer = document.querySelector('.pdf-printable-area');
       let base64Pdf = null;
-      
+
       if (dashboardContainer) {
         const pdf = new jsPDF('p', 'mm', 'a4');
         const pdfWidth = pdf.internal.pageSize.getWidth();
         const pdfHeight = pdf.internal.pageSize.getHeight();
         const margin = 15; // 15mm margin
         const contentWidth = pdfWidth - (margin * 2);
-        
+
         // 1) Hide everything except what we want to print, or just clone it
         // To avoid messing with the DOM cleanly, let's grab the sections directly
         const headerElement = dashboardContainer.children[0]; // The header
         const sectionsContainer = dashboardContainer.children[1]; // The grid
         const sections = Array.from(sectionsContainer.children);
         const footerElement = dashboardContainer.children[2]; // The footer
-        
+
         let currentY = margin;
-        
+
         // Helper to add an element to PDF
         const addElementToPdf = async (element) => {
           const canvas = await html2canvas(element, { scale: 1.5, useCORS: true, logging: false });
           const imgData = canvas.toDataURL('image/png');
           const elHeight = (canvas.height * contentWidth) / canvas.width;
-          
+
           if (currentY + elHeight > pdfHeight - margin) {
-             pdf.addPage();
-             currentY = margin;
+            pdf.addPage();
+            currentY = margin;
           }
           pdf.addImage(imgData, 'PNG', margin, currentY, contentWidth, elHeight);
           currentY += elHeight + 5; // 5mm spacing
@@ -811,20 +811,20 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
 
         // Add Sections
         for (const section of sections) {
-           await addElementToPdf(section);
+          await addElementToPdf(section);
         }
 
         // Add Footer
         if (footerElement) {
-           // Ensure footer pushes to bottom or fits
-           await addElementToPdf(footerElement);
+          // Ensure footer pushes to bottom or fits
+          await addElementToPdf(footerElement);
         }
 
         base64Pdf = pdf.output('datauristring');
       }
 
       const { default: API } = await import('../utils/api');
-      
+
       const payload = {
         to: toEmails,
         cc: ccEmails.length > 0 ? ccEmails : [],
@@ -945,87 +945,87 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       }}>
         {/* Controls Bar - Hidden during capture */}
         {!isCapturingPdf && (
-           <div style={{
-             width: '100%',
-             maxWidth: '1200px',
-             backgroundColor: 'white',
-             borderRadius: '8px',
-             padding: '20px',
-             marginBottom: '20px',
-             display: 'flex',
-             flexDirection: 'column',
-             gap: '20px',
-             boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
-           }}>
-             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-               <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold', color: '#1e3a5f' }}>PDF Report Preview</h2>
-               <div style={{ display: 'flex', gap: '10px' }}>
-                 <button
-                   onClick={() => setShowPdfPreviewModal(false)}
-                   style={{
-                     padding: '8px 16px',
-                     backgroundColor: '#f3f4f6',
-                     border: '1px solid #d1d5db',
-                     borderRadius: '4px',
-                     cursor: 'pointer',
-                     fontWeight: 'bold'
-                   }}
-                 >
-                   Close Preview
-                 </button>
-                 <button
-                   onClick={handleSendEmail}
-                   style={{
-                     padding: '8px 20px',
-                     backgroundColor: '#1e3a5f',
-                     color: 'white',
-                     border: 'none',
-                     borderRadius: '4px',
-                     cursor: 'pointer',
-                     fontWeight: 'bold'
-                   }}
-                 >
-                   Send as Email
-                 </button>
-               </div>
-             </div>
+          <div style={{
+            width: '100%',
+            maxWidth: '1200px',
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            padding: '20px',
+            marginBottom: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.3)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 'bold', color: '#1e3a5f' }}>PDF Report Preview</h2>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => setShowPdfPreviewModal(false)}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#f3f4f6',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Close Preview
+                </button>
+                <button
+                  onClick={handleSendEmail}
+                  style={{
+                    padding: '8px 20px',
+                    backgroundColor: '#1e3a5f',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  Send as Email
+                </button>
+              </div>
+            </div>
 
-             {/* Email Fields in Preview */}
-             <div style={{
-               display: 'grid',
-               gridTemplateColumns: 'repeat(2, 1fr)',
-               gap: '20px',
-               borderTop: '1px solid #e5e7eb',
-               paddingTop: '15px'
-             }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#374151', marginBottom: '5px' }}>Subject:</label>
-                  <input 
-                    type="text" 
-                    value={emailData.subject} 
-                    onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#374151', marginBottom: '5px' }}>Message:</label>
-                  <textarea 
-                    value={emailData.message} 
-                    onChange={(e) => setEmailData(prev => ({ ...prev, message: e.target.value }))}
-                    rows="1"
-                    style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', resize: 'vertical' }}
-                  />
-                </div>
-             </div>
-           </div>
+            {/* Email Fields in Preview */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: '20px',
+              borderTop: '1px solid #e5e7eb',
+              paddingTop: '15px'
+            }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#374151', marginBottom: '5px' }}>Subject:</label>
+                <input
+                  type="text"
+                  value={emailData.subject}
+                  onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
+                  style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#374151', marginBottom: '5px' }}>Message:</label>
+                <textarea
+                  value={emailData.message}
+                  onChange={(e) => setEmailData(prev => ({ ...prev, message: e.target.value }))}
+                  rows="1"
+                  style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', resize: 'vertical' }}
+                />
+              </div>
+            </div>
+          </div>
         )}
 
         {/* The Actual Printable Content */}
-        <div 
-          className="pdf-printable-area" 
-          style={{ 
-            backgroundColor: 'white', 
-            width: '210mm', 
+        <div
+          className="pdf-printable-area"
+          style={{
+            backgroundColor: 'white',
+            width: '210mm',
             minHeight: '297mm',
             padding: '20mm',
             boxShadow: isCapturingPdf ? 'none' : '0 10px 30px rgba(0,0,0,0.5)',
@@ -1048,9 +1048,9 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
           <div className="pdf-sections-grid" style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
             {pdfLayoutOrder.map((sectionKey) => {
               // Map sectionKey to display and components
-              const title = sectionKey === 'sopTables' ? 'SOP Tables' : 
-                          sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1).replace(/([A-Z])/g, ' $1');
-              
+              const title = sectionKey === 'sopTables' ? 'SOP Tables' :
+                sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1).replace(/([A-Z])/g, ' $1');
+
               const isMetric = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(sectionKey);
 
               return (
@@ -1058,53 +1058,53 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                   <div style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '8px 15px', fontSize: '14px', fontWeight: 'bold', marginBottom: '10px' }}>
                     {title}
                   </div>
-                  
+
                   {sectionKey === 'milestones' && (
-                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-                       <thead>
-                         <tr style={{ backgroundColor: '#f3f4f6' }}>
-                           <th style={{ padding: '8px', border: '1px solid #e5e7eb', textAlign: 'left' }}>Status</th>
-                           <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>A</th>
-                           <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>B</th>
-                           <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>C</th>
-                           <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>D</th>
-                           <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>E</th>
-                           <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>F</th>
-                         </tr>
-                       </thead>
-                       <tbody>
-                         <tr>
-                           <td style={{ padding: '8px', border: '1px solid #e5e7eb', fontWeight: 'bold' }}>Plan</td>
-                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.a}</td>
-                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.b}</td>
-                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.c}</td>
-                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.d}</td>
-                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.e}</td>
-                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.f}</td>
-                         </tr>
-                         <tr>
-                           <td style={{ padding: '8px', border: '1px solid #e5e7eb', fontWeight: 'bold' }}>Actual</td>
-                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.a}</td>
-                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.b}</td>
-                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.c}</td>
-                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.d}</td>
-                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.e}</td>
-                           <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.f}</td>
-                         </tr>
-                       </tbody>
-                     </table>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                      <thead>
+                        <tr style={{ backgroundColor: '#f3f4f6' }}>
+                          <th style={{ padding: '8px', border: '1px solid #e5e7eb', textAlign: 'left' }}>Status</th>
+                          <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>A</th>
+                          <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>B</th>
+                          <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>C</th>
+                          <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>D</th>
+                          <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>E</th>
+                          <th style={{ padding: '8px', border: '1px solid #e5e7eb' }}>F</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td style={{ padding: '8px', border: '1px solid #e5e7eb', fontWeight: 'bold' }}>Plan</td>
+                          <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.a}</td>
+                          <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.b}</td>
+                          <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.c}</td>
+                          <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.d}</td>
+                          <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.e}</td>
+                          <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].plan.f}</td>
+                        </tr>
+                        <tr>
+                          <td style={{ padding: '8px', border: '1px solid #e5e7eb', fontWeight: 'bold' }}>Actual</td>
+                          <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.a}</td>
+                          <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.b}</td>
+                          <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.c}</td>
+                          <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.d}</td>
+                          <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.e}</td>
+                          <td style={{ padding: '8px', border: '1px solid #e5e7eb' }}>{milestones[0].actual.f}</td>
+                        </tr>
+                      </tbody>
+                    </table>
                   )}
 
                   {sectionKey === 'sopTables' && (
                     <div style={{ display: 'flex', gap: '20px' }}>
-                       <div style={{ flex: 1, padding: '10px', border: '1px solid #e5e7eb' }}>
-                          <div style={{ fontSize: '12px', fontWeight: 'bold' }}>SOP Timeline</div>
-                          <div style={{ fontSize: '20px', color: '#1e3a5f' }}>{sopData[0].daysToGo} days</div>
-                       </div>
-                       <div style={{ flex: 1, padding: '10px', border: '1px solid #e5e7eb' }}>
-                          <div style={{ fontSize: '12px', fontWeight: 'bold' }}>Status</div>
-                          <div style={{ fontSize: '14px', color: '#9a3412' }}>{sopData[0].status}</div>
-                       </div>
+                      <div style={{ flex: 1, padding: '10px', border: '1px solid #e5e7eb' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 'bold' }}>SOP Timeline</div>
+                        <div style={{ fontSize: '20px', color: '#1e3a5f' }}>{sopData[0].daysToGo} days</div>
+                      </div>
+                      <div style={{ flex: 1, padding: '10px', border: '1px solid #e5e7eb' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 'bold' }}>Status</div>
+                        <div style={{ fontSize: '14px', color: '#9a3412' }}>{sopData[0].status}</div>
+                      </div>
                     </div>
                   )}
 
@@ -2070,8 +2070,8 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
       </button>
 
       {showAxisSelector === chartId && (
-        <AxisSelectorModal 
-          chartId={chartId} 
+        <AxisSelectorModal
+          chartId={chartId}
           onClose={() => setShowAxisSelector(null)}
           activeProject={activeProject}
           axisConfigs={axisConfigs}
@@ -2437,439 +2437,601 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
           /* Active Project Dashboard */
           <>
             <div id="project-dashboard-main-content">
-            {/* Updated Date Row with SOP Info */}
-            <div style={{
-              padding: '15px 20px',
-              borderBottom: '1px solid #e0e0e0',
-              backgroundColor: '#f8f9fa',
-              marginBottom: '20px'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Report date:</span>
-                  <span style={{ fontSize: '14px', color: '#4b5563' }}>March 15, 2024</span>
-                </div>
-
-                {/* SOP Info */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>SOP Date:</span>
-                    <span style={{ fontSize: '14px', color: '#4b5563', backgroundColor: '#e6f0fa', padding: '4px 10px', borderRadius: '20px', fontWeight: 'bold' }}>
-                      {sopData[0].daysToGo} days to go
-                    </span>
+              {/* Updated Date Row with SOP Info */}
+              <div style={{
+                padding: '15px 20px',
+                borderBottom: '1px solid #e0e0e0',
+                backgroundColor: '#f8f9fa',
+                marginBottom: '20px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Report date:</span>
+                    <span style={{ fontSize: '14px', color: '#4b5563' }}>March 15, 2024</span>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Status:</span>
-                    <span style={{
-                      fontSize: '14px',
-                      padding: '4px 12px',
-                      borderRadius: '20px',
-                      backgroundColor: '#fed7aa',
-                      color: '#9a3412',
-                      fontWeight: 'bold'
-                    }}>
-                      {sopData[0].status}
-                    </span>
-                  </div>
-                </div>
+                  {/* SOP Info */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>SOP Date:</span>
+                      <span style={{ fontSize: '14px', color: '#4b5563', backgroundColor: '#e6f0fa', padding: '4px 10px', borderRadius: '20px', fontWeight: 'bold' }}>
+                        {sopData[0].daysToGo} days to go
+                      </span>
+                    </div>
 
-                {/* Overall Project Health */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                  <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Overall Project Health:</span>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
-                      <span style={{ fontSize: '12px', color: '#4b5563' }}>On Track</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Status:</span>
+                      <span style={{
+                        fontSize: '14px',
+                        padding: '4px 12px',
+                        borderRadius: '20px',
+                        backgroundColor: '#fed7aa',
+                        color: '#9a3412',
+                        fontWeight: 'bold'
+                      }}>
+                        {sopData[0].status}
+                      </span>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></div>
-                      <span style={{ fontSize: '12px', color: '#4b5563' }}>At Risk</span>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                      <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#ef4444' }}></div>
-                      <span style={{ fontSize: '12px', color: '#4b5563' }}>Critical</span>
+                  </div>
+
+                  {/* Overall Project Health */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Overall Project Health:</span>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                        <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
+                        <span style={{ fontSize: '12px', color: '#4b5563' }}>On Track</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                        <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></div>
+                        <span style={{ fontSize: '12px', color: '#4b5563' }}>At Risk</span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                        <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#ef4444' }}></div>
+                        <span style={{ fontSize: '12px', color: '#4b5563' }}>Critical</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
 
 
-            {/* Dashboard Content */}
-            <div style={{ padding: '20px 25px 25px 25px' }}>
-              {/* Milestones Section */}
-              {visibleSections.milestones && (
-                <div style={{ marginBottom: '35px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e3a5f', color: 'white', padding: '12px 20px', fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #234574' }}>
-                    <span>Milestones</span>
-                    <button
-                      onClick={() => { setMilestoneForm({ ...milestones[0] }); setShowEditMilestones(true); }}
-                      className="no-print"
-                      style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
-                      title="Edit Milestones"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <div style={{
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '4px',
-                    overflow: 'hidden'
-                  }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px' }}>
-                      <thead>
-                        <tr style={{ backgroundColor: '#1e3a5f' }}>
-                          <th style={{ width: '100px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>Categories</th>
-                          <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>A</th>
-                          <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>B</th>
-                          <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>C</th>
-                          <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>D</th>
-                          <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>E</th>
-                          <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>F</th>
-                          <th style={{ width: '120px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold' }}>Implementation</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {milestones.map((item, idx) => (
-                          <React.Fragment key={idx}>
-                            <tr style={{ backgroundColor: idx % 2 === 0 ? 'white' : '#f8f9fa', borderBottom: '1px solid #e0e0e0' }}>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', fontWeight: 'bold', color: '#1e3a5f', whiteSpace: 'nowrap' }}>Plan</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.a}</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.b}</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.c}</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.d}</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.e}</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.f}</td>
-                              <td style={{ padding: '10px 15px' }}>
-                                <span style={{
-                                  display: 'inline-block',
-                                  padding: '4px 10px',
-                                  borderRadius: '20px',
-                                  fontSize: '12px',
-                                  fontWeight: 'bold',
-                                  backgroundColor:
-                                    item.plan.implementation === 'On Track' ? '#d1fae5' :
-                                      item.plan.implementation === 'In Progress' ? '#dbeafe' :
-                                        item.plan.implementation === 'At Risk' ? '#fee2e2' : '#f3f4f6',
-                                  color:
-                                    item.plan.implementation === 'On Track' ? '#065f46' :
-                                      item.plan.implementation === 'In Progress' ? '#1e40af' :
-                                        item.plan.implementation === 'At Risk' ? '#991b1b' : '#1f2937'
-                                }}>
-                                  {item.plan.implementation}
-                                </span>
-                              </td>
-                            </tr>
-                            <tr style={{ backgroundColor: idx % 2 === 0 ? '#f0f7ff' : '#e6f0fa', borderBottom: '1px solid #e0e0e0' }}>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', fontWeight: 'bold', color: '#047857', whiteSpace: 'nowrap' }}>Actual/Outlook</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.a}</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.b}</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.c}</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.d}</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.e}</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.f}</td>
-                              <td style={{ padding: '10px 15px' }}>
-                                <span style={{
-                                  display: 'inline-block',
-                                  padding: '4px 10px',
-                                  borderRadius: '20px',
-                                  fontSize: '12px',
-                                  fontWeight: 'bold',
-                                  backgroundColor:
-                                    item.actual.implementation === 'On Track' ? '#d1fae5' :
-                                      item.actual.implementation === 'In Progress' ? '#dbeafe' :
-                                        item.actual.implementation === 'At Risk' ? '#fee2e2' : '#f3f4f6',
-                                  color:
-                                    item.actual.implementation === 'On Track' ? '#065f46' :
-                                      item.actual.implementation === 'In Progress' ? '#1e40af' :
-                                        item.actual.implementation === 'At Risk' ? '#991b1b' : '#1f2937'
-                                }}>
-                                  {item.actual.implementation}
-                                </span>
-                              </td>
-                            </tr>
-                          </React.Fragment>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Critical Issues Section */}
-              {visibleSections.criticalIssues && (
-                <div style={{ marginBottom: '35px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e3a5f', color: 'white', padding: '12px 20px', fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #234574' }}>
-                    <span>Critical Issues Summary</span>
-                    <button
-                      onClick={() => { setIssuesForm([...criticalIssues]); setShowEditIssues(true); }}
-                      className="no-print"
-                      style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
-                      title="Edit Critical Issues"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </button>
-                  </div>
-
-                  <div style={{
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '4px',
-                    overflow: 'hidden'
-                  }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px' }}>
-                      <thead>
-                        <tr style={{ backgroundColor: '#1e3a5f' }}>
-                          <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>S.No</th>
-                          <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>List of Top Critical Issues</th>
-                          <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>Responsibility</th>
-                          <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>Function</th>
-                          <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>Target date for Closure</th>
-                          <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold' }}>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {criticalIssues.map((item, index) => {
-                          const colors = getStatusColor(item.status);
-
-                          return (
-                            <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa', borderBottom: '1px solid #e0e0e0' }}>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', fontWeight: 'bold' }}>{item.id}</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0' }}>{item.issue}</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0' }}>{item.responsibility}</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0' }}>{item.function}</td>
-                              <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0' }}>{item.targetDate}</td>
-                              <td style={{ padding: '10px 15px' }}>
-                                <span style={{
-                                  display: 'inline-block',
-                                  padding: '4px 10px',
-                                  borderRadius: '20px',
-                                  fontSize: '12px',
-                                  fontWeight: 'bold',
-                                  backgroundColor: colors.bg,
-                                  color: colors.text
-                                }}>
-                                  {item.status}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-
-              {/* Project Metrics Charts */}
-              {((visibleSections.design && availablePhases.design) || (visibleSections.partDevelopment && availablePhases.partDevelopment) || (visibleSections.build && availablePhases.build) ||
-                (visibleSections.gateway && availablePhases.gateway) || (visibleSections.validation && availablePhases.validation) || (visibleSections.qualityIssues && availablePhases.qualityIssues)) && (
+              {/* Dashboard Content */}
+              <div style={{ padding: '20px 25px 25px 25px' }}>
+                {/* Milestones Section */}
+                {visibleSections.milestones && (
                   <div style={{ marginBottom: '35px' }}>
-                    <h2 style={{
-                      fontSize: '20px',
-                      fontWeight: 'bold',
-                      color: '#1e3a5f',
-                      marginBottom: '15px',
-                      marginTop: 0
-                    }}>
-                      Project Metrics Summary
-                    </h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e3a5f', color: 'white', padding: '12px 20px', fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #234574' }}>
+                      <span>Milestones</span>
+                      <button
+                        onClick={() => { setMilestoneForm({ ...milestones[0] }); setShowEditMilestones(true); }}
+                        className="no-print"
+                        style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
+                        title="Edit Milestones"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    </div>
 
                     <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(3, 1fr)',
-                      gap: '15px'
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '4px',
+                      overflow: 'hidden'
                     }}>
-                      {/* Design */}
-                      {(visibleSections.design && availablePhases.design) && (
-                        <div
-                          style={{
-                            border: '1px solid #e0e0e0',
-                            borderRadius: '6px',
-                            overflow: 'hidden',
-                            backgroundColor: 'white',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                            position: 'relative'
-                          }}
-                        >
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: '#1e3a5f' }}>
+                            <th style={{ width: '100px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>Categories</th>
+                            <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>A</th>
+                            <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>B</th>
+                            <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>C</th>
+                            <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>D</th>
+                            <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>E</th>
+                            <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>F</th>
+                            <th style={{ width: '120px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold' }}>Implementation</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {milestones.map((item, idx) => (
+                            <React.Fragment key={idx}>
+                              <tr style={{ backgroundColor: idx % 2 === 0 ? 'white' : '#f8f9fa', borderBottom: '1px solid #e0e0e0' }}>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', fontWeight: 'bold', color: '#1e3a5f', whiteSpace: 'nowrap' }}>Plan</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.a}</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.b}</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.c}</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.d}</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.e}</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.f}</td>
+                                <td style={{ padding: '10px 15px' }}>
+                                  <span style={{
+                                    display: 'inline-block',
+                                    padding: '4px 10px',
+                                    borderRadius: '20px',
+                                    fontSize: '12px',
+                                    fontWeight: 'bold',
+                                    backgroundColor:
+                                      item.plan.implementation === 'On Track' ? '#d1fae5' :
+                                        item.plan.implementation === 'In Progress' ? '#dbeafe' :
+                                          item.plan.implementation === 'At Risk' ? '#fee2e2' : '#f3f4f6',
+                                    color:
+                                      item.plan.implementation === 'On Track' ? '#065f46' :
+                                        item.plan.implementation === 'In Progress' ? '#1e40af' :
+                                          item.plan.implementation === 'At Risk' ? '#991b1b' : '#1f2937'
+                                  }}>
+                                    {item.plan.implementation}
+                                  </span>
+                                </td>
+                              </tr>
+                              <tr style={{ backgroundColor: idx % 2 === 0 ? '#f0f7ff' : '#e6f0fa', borderBottom: '1px solid #e0e0e0' }}>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', fontWeight: 'bold', color: '#047857', whiteSpace: 'nowrap' }}>Actual/Outlook</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.a}</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.b}</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.c}</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.d}</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.e}</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.f}</td>
+                                <td style={{ padding: '10px 15px' }}>
+                                  <span style={{
+                                    display: 'inline-block',
+                                    padding: '4px 10px',
+                                    borderRadius: '20px',
+                                    fontSize: '12px',
+                                    fontWeight: 'bold',
+                                    backgroundColor:
+                                      item.actual.implementation === 'On Track' ? '#d1fae5' :
+                                        item.actual.implementation === 'In Progress' ? '#dbeafe' :
+                                          item.actual.implementation === 'At Risk' ? '#fee2e2' : '#f3f4f6',
+                                    color:
+                                      item.actual.implementation === 'On Track' ? '#065f46' :
+                                        item.actual.implementation === 'In Progress' ? '#1e40af' :
+                                          item.actual.implementation === 'At Risk' ? '#991b1b' : '#1f2937'
+                                  }}>
+                                    {item.actual.implementation}
+                                  </span>
+                                </td>
+                              </tr>
+                            </React.Fragment>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Critical Issues Section */}
+                {visibleSections.criticalIssues && (
+                  <div style={{ marginBottom: '35px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e3a5f', color: 'white', padding: '12px 20px', fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #234574' }}>
+                      <span>Critical Issues Summary</span>
+                      <button
+                        onClick={() => { setIssuesForm([...criticalIssues]); setShowEditIssues(true); }}
+                        className="no-print"
+                        style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
+                        title="Edit Critical Issues"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    </div>
+
+                    <div style={{
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '4px',
+                      overflow: 'hidden'
+                    }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px' }}>
+                        <thead>
+                          <tr style={{ backgroundColor: '#1e3a5f' }}>
+                            <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>S.No</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>List of Top Critical Issues</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>Responsibility</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>Function</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>Target date for Closure</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold' }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {criticalIssues.map((item, index) => {
+                            const colors = getStatusColor(item.status);
+
+                            return (
+                              <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa', borderBottom: '1px solid #e0e0e0' }}>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', fontWeight: 'bold' }}>{item.id}</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0' }}>{item.issue}</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0' }}>{item.responsibility}</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0' }}>{item.function}</td>
+                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0' }}>{item.targetDate}</td>
+                                <td style={{ padding: '10px 15px' }}>
+                                  <span style={{
+                                    display: 'inline-block',
+                                    padding: '4px 10px',
+                                    borderRadius: '20px',
+                                    fontSize: '12px',
+                                    fontWeight: 'bold',
+                                    backgroundColor: colors.bg,
+                                    color: colors.text
+                                  }}>
+                                    {item.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Project Metrics Charts */}
+                {((visibleSections.design && availablePhases.design) || (visibleSections.partDevelopment && availablePhases.partDevelopment) || (visibleSections.build && availablePhases.build) ||
+                  (visibleSections.gateway && availablePhases.gateway) || (visibleSections.validation && availablePhases.validation) || (visibleSections.qualityIssues && availablePhases.qualityIssues)) && (
+                    <div style={{ marginBottom: '35px' }}>
+                      <h2 style={{
+                        fontSize: '20px',
+                        fontWeight: 'bold',
+                        color: '#1e3a5f',
+                        marginBottom: '15px',
+                        marginTop: 0
+                      }}>
+                        Project Metrics Summary
+                      </h2>
+
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '15px'
+                      }}>
+                        {/* Design */}
+                        {(visibleSections.design && availablePhases.design) && (
+                          <div
+                            style={{
+                              border: '1px solid #e0e0e0',
+                              borderRadius: '6px',
+                              overflow: 'hidden',
+                              backgroundColor: 'white',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                              position: 'relative'
+                            }}
+                          >
+                            <div style={{
+                              backgroundColor: '#1e3a5f',
+                              color: 'white',
+                              padding: '12px 15px',
+                              fontSize: '15px',
+                              fontWeight: 'bold',
+                              borderBottom: '1px solid #2c4c7c',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
+                            }}>
+                              <span>Design</span>
+                              {renderChartOptions("design", chartTypes[activeProject.id]?.design || 'bar')}
+                            </div>
+                            <div style={{ padding: '15px' }}>
+                              {renderChart('design', chartTypes[activeProject.id]?.design || 'bar', false, getTrackerForPhase('design')?.trackerId)}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Part Development */}
+                        {(visibleSections.partDevelopment && availablePhases.partDevelopment) && (
+                          <div
+                            style={{
+                              border: '1px solid #e0e0e0',
+                              borderRadius: '6px',
+                              overflow: 'hidden',
+                              backgroundColor: 'white',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                              position: 'relative'
+                            }}
+                          >
+                            <div style={{
+                              backgroundColor: '#1e3a5f',
+                              color: 'white',
+                              padding: '12px 15px',
+                              fontSize: '15px',
+                              fontWeight: 'bold',
+                              borderBottom: '1px solid #2c4c7c',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
+                            }}>
+                              <span>Part Development</span>
+                              {renderChartOptions("partDevelopment", chartTypes[activeProject.id]?.partDevelopment || 'line')}
+                            </div>
+                            <div style={{ padding: '15px' }}>
+                              {renderChart('partDevelopment', chartTypes[activeProject.id]?.partDevelopment || 'line', false, getTrackerForPhase('partDevelopment')?.trackerId)}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Build */}
+                        {(visibleSections.build && availablePhases.build) && (
+                          <div
+                            style={{
+                              border: '1px solid #e0e0e0',
+                              borderRadius: '6px',
+                              overflow: 'hidden',
+                              backgroundColor: 'white',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                              position: 'relative'
+                            }}
+                          >
+                            <div style={{
+                              backgroundColor: '#1e3a5f',
+                              color: 'white',
+                              padding: '12px 15px',
+                              fontSize: '15px',
+                              fontWeight: 'bold',
+                              borderBottom: '1px solid #2c4c7c',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
+                            }}>
+                              <span>Build</span>
+                              {renderChartOptions("build", chartTypes[activeProject.id]?.build || 'pie')}
+                            </div>
+                            <div style={{ padding: '15px' }}>
+                              {renderChart('build', chartTypes[activeProject.id]?.build || 'pie', false, getTrackerForPhase('build')?.trackerId)}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Gateway */}
+                        {(visibleSections.gateway && availablePhases.gateway) && (
+                          <div
+                            style={{
+                              border: '1px solid #e0e0e0',
+                              borderRadius: '6px',
+                              overflow: 'hidden',
+                              backgroundColor: 'white',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                              position: 'relative'
+                            }}
+                          >
+                            <div style={{
+                              backgroundColor: '#1e3a5f',
+                              color: 'white',
+                              padding: '12px 15px',
+                              fontSize: '15px',
+                              fontWeight: 'bold',
+                              borderBottom: '1px solid #2c4c7c',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
+                            }}>
+                              <span>Gateway</span>
+                              {renderChartOptions("gateway", chartTypes[activeProject.id]?.gateway || 'area')}
+                            </div>
+                            <div style={{ padding: '15px' }}>
+                              {renderChart('gateway', chartTypes[activeProject.id]?.gateway || 'area', false, getTrackerForPhase('gateway')?.trackerId)}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Validation */}
+                        {(visibleSections.validation && availablePhases.validation) && (
+                          <div
+                            style={{
+                              border: '1px solid #e0e0e0',
+                              borderRadius: '6px',
+                              overflow: 'hidden',
+                              backgroundColor: 'white',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                              position: 'relative'
+                            }}
+                          >
+                            <div style={{
+                              backgroundColor: '#1e3a5f',
+                              color: 'white',
+                              padding: '12px 15px',
+                              fontSize: '15px',
+                              fontWeight: 'bold',
+                              borderBottom: '1px solid #2c4c7c',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
+                            }}>
+                              <span>Validation</span>
+                              {renderChartOptions("validation", chartTypes[activeProject.id]?.validation || 'bar')}
+                            </div>
+                            <div style={{ padding: '15px' }}>
+                              {renderChart('validation', chartTypes[activeProject.id]?.validation || 'bar', false, getTrackerForPhase('validation')?.trackerId)}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Quality Issues */}
+                        {(visibleSections.qualityIssues && availablePhases.qualityIssues) && (
+                          <div
+                            style={{
+                              border: '1px solid #e0e0e0',
+                              borderRadius: '6px',
+                              overflow: 'hidden',
+                              backgroundColor: 'white',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+                              position: 'relative'
+                            }}
+                          >
+                            <div style={{
+                              backgroundColor: '#1e3a5f',
+                              color: 'white',
+                              padding: '12px 15px',
+                              fontSize: '15px',
+                              fontWeight: 'bold',
+                              borderBottom: '1px solid #2c4c7c',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
+                            }}>
+                              <span>Quality Issues</span>
+                              {renderChartOptions("qualityIssues", chartTypes[activeProject.id]?.qualityIssues || 'bar')}
+                            </div>
+                            <div style={{ padding: '15px' }}>
+                              {renderChart('qualityIssues', chartTypes[activeProject.id]?.qualityIssues || 'bar', false, getTrackerForPhase('qualityIssues')?.trackerId)}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                {/* Summary Cards */}
+                {(visibleSections.budget || visibleSections.resource || visibleSections.quality) && (
+                  <div style={{ marginBottom: '35px' }}>
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: (visibleSections.budget && visibleSections.resource && visibleSections.quality) ? '1fr 1fr 1fr' :
+                        (visibleSections.budget && visibleSections.resource) || (visibleSections.budget && visibleSections.quality) || (visibleSections.resource && visibleSections.quality) ? '1fr 1fr' : '1fr',
+                      gap: '20px'
+                    }}>
+                      {/* Budget Summary */}
+                      {visibleSections.budget && (
+                        <div style={{
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '6px',
+                          overflow: 'hidden',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                        }}>
                           <div style={{
                             backgroundColor: '#1e3a5f',
                             color: 'white',
                             padding: '12px 15px',
-                            fontSize: '15px',
+                            fontSize: '16px',
                             fontWeight: 'bold',
                             borderBottom: '1px solid #2c4c7c',
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center'
                           }}>
-                            <span>Design</span>
-                            {renderChartOptions("design", chartTypes[activeProject.id]?.design || 'bar')}
+                            <span>Budget Summary</span>
+                            <button
+                              onClick={() => { setEditType('budget'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
+                              className="no-print"
+                              style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
+                              title="Edit Budget Summary"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
                           </div>
                           <div style={{ padding: '15px' }}>
-                            {renderChart('design', chartTypes[activeProject.id]?.design || 'bar', false, getTrackerForPhase('design')?.trackerId)}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
+                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Approved:</span>
+                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetApproved}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
+                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Utilized:</span>
+                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetUtilized}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
+                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Balance:</span>
+                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetBalance}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Utilization Outlook:</span>
+                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#10b981' }}>{summaryData.budgetOutlook}</span>
+                            </div>
                           </div>
                         </div>
                       )}
 
-                      {/* Part Development */}
-                      {(visibleSections.partDevelopment && availablePhases.partDevelopment) && (
-                        <div
-                          style={{
-                            border: '1px solid #e0e0e0',
-                            borderRadius: '6px',
-                            overflow: 'hidden',
-                            backgroundColor: 'white',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                            position: 'relative'
-                          }}
-                        >
+                      {/* Resource Summary */}
+                      {visibleSections.resource && (
+                        <div style={{
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '6px',
+                          overflow: 'hidden',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                        }}>
                           <div style={{
                             backgroundColor: '#1e3a5f',
                             color: 'white',
                             padding: '12px 15px',
-                            fontSize: '15px',
+                            fontSize: '16px',
                             fontWeight: 'bold',
                             borderBottom: '1px solid #2c4c7c',
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center'
                           }}>
-                            <span>Part Development</span>
-                            {renderChartOptions("partDevelopment", chartTypes[activeProject.id]?.partDevelopment || 'line')}
+                            <span>Resource Summary</span>
+                            <button
+                              onClick={() => { setEditType('resource'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
+                              className="no-print"
+                              style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
+                              title="Edit Resource Summary"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
                           </div>
                           <div style={{ padding: '15px' }}>
-                            {renderChart('partDevelopment', chartTypes[activeProject.id]?.partDevelopment || 'line', false, getTrackerForPhase('partDevelopment')?.trackerId)}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
+                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Deployed:</span>
+                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.resourceDeployed}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
+                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Utilized:</span>
+                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.resourceUtilized}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
+                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Shortage:</span>
+                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#ef4444' }}>{summaryData.resourceShortage}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Under Utilized:</span>
+                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#f59e0b' }}>{summaryData.resourceUnderUtilized}</span>
+                            </div>
                           </div>
                         </div>
                       )}
 
-                      {/* Build */}
-                      {(visibleSections.build && availablePhases.build) && (
-                        <div
-                          style={{
-                            border: '1px solid #e0e0e0',
-                            borderRadius: '6px',
-                            overflow: 'hidden',
-                            backgroundColor: 'white',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                            position: 'relative'
-                          }}
-                        >
+                      {/* Quality Summary */}
+                      {visibleSections.quality && (
+                        <div style={{
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '6px',
+                          overflow: 'hidden',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                        }}>
                           <div style={{
                             backgroundColor: '#1e3a5f',
                             color: 'white',
                             padding: '12px 15px',
-                            fontSize: '15px',
+                            fontSize: '16px',
                             fontWeight: 'bold',
                             borderBottom: '1px solid #2c4c7c',
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center'
                           }}>
-                            <span>Build</span>
-                            {renderChartOptions("build", chartTypes[activeProject.id]?.build || 'pie')}
+                            <span>Quality Summary</span>
+                            <button
+                              onClick={() => { setEditType('quality'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
+                              className="no-print"
+                              style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
+                              title="Edit Quality Summary"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
                           </div>
                           <div style={{ padding: '15px' }}>
-                            {renderChart('build', chartTypes[activeProject.id]?.build || 'pie', false, getTrackerForPhase('build')?.trackerId)}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Gateway */}
-                      {(visibleSections.gateway && availablePhases.gateway) && (
-                        <div
-                          style={{
-                            border: '1px solid #e0e0e0',
-                            borderRadius: '6px',
-                            overflow: 'hidden',
-                            backgroundColor: 'white',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                            position: 'relative'
-                          }}
-                        >
-                          <div style={{
-                            backgroundColor: '#1e3a5f',
-                            color: 'white',
-                            padding: '12px 15px',
-                            fontSize: '15px',
-                            fontWeight: 'bold',
-                            borderBottom: '1px solid #2c4c7c',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
-                          }}>
-                            <span>Gateway</span>
-                            {renderChartOptions("gateway", chartTypes[activeProject.id]?.gateway || 'area')}
-                          </div>
-                          <div style={{ padding: '15px' }}>
-                            {renderChart('gateway', chartTypes[activeProject.id]?.gateway || 'area', false, getTrackerForPhase('gateway')?.trackerId)}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Validation */}
-                      {(visibleSections.validation && availablePhases.validation) && (
-                        <div
-                          style={{
-                            border: '1px solid #e0e0e0',
-                            borderRadius: '6px',
-                            overflow: 'hidden',
-                            backgroundColor: 'white',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                            position: 'relative'
-                          }}
-                        >
-                          <div style={{
-                            backgroundColor: '#1e3a5f',
-                            color: 'white',
-                            padding: '12px 15px',
-                            fontSize: '15px',
-                            fontWeight: 'bold',
-                            borderBottom: '1px solid #2c4c7c',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
-                          }}>
-                            <span>Validation</span>
-                            {renderChartOptions("validation", chartTypes[activeProject.id]?.validation || 'bar')}
-                          </div>
-                          <div style={{ padding: '15px' }}>
-                            {renderChart('validation', chartTypes[activeProject.id]?.validation || 'bar', false, getTrackerForPhase('validation')?.trackerId)}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Quality Issues */}
-                      {(visibleSections.qualityIssues && availablePhases.qualityIssues) && (
-                        <div
-                          style={{
-                            border: '1px solid #e0e0e0',
-                            borderRadius: '6px',
-                            overflow: 'hidden',
-                            backgroundColor: 'white',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                            position: 'relative'
-                          }}
-                        >
-                          <div style={{
-                            backgroundColor: '#1e3a5f',
-                            color: 'white',
-                            padding: '12px 15px',
-                            fontSize: '15px',
-                            fontWeight: 'bold',
-                            borderBottom: '1px solid #2c4c7c',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
-                          }}>
-                            <span>Quality Issues</span>
-                            {renderChartOptions("qualityIssues", chartTypes[activeProject.id]?.qualityIssues || 'bar')}
-                          </div>
-                          <div style={{ padding: '15px' }}>
-                            {renderChart('qualityIssues', chartTypes[activeProject.id]?.qualityIssues || 'bar', false, getTrackerForPhase('qualityIssues')?.trackerId)}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
+                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Total Issues:</span>
+                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.qualityTotal}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
+                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Action Completed:</span>
+                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#10b981' }}>{summaryData.qualityCompleted}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
+                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Open Issues:</span>
+                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#ef4444' }}>{summaryData.qualityOpen}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>No of Critical Issues:</span>
+                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#ef4444' }}>{summaryData.qualityCritical}</span>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -2877,202 +3039,40 @@ const ProjectTitleDashboard = ({ selectedFileId, onClearSelection }) => {
                   </div>
                 )}
 
-              {/* Summary Cards */}
-              {(visibleSections.budget || visibleSections.resource || visibleSections.quality) && (
-                <div style={{ marginBottom: '35px' }}>
+                {/* Empty state when no sections are selected */}
+                {Object.values(visibleSections).filter(v => v).length === 0 && (
                   <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: (visibleSections.budget && visibleSections.resource && visibleSections.quality) ? '1fr 1fr 1fr' :
-                      (visibleSections.budget && visibleSections.resource) || (visibleSections.budget && visibleSections.quality) || (visibleSections.resource && visibleSections.quality) ? '1fr 1fr' : '1fr',
-                    gap: '20px'
+                    textAlign: 'center',
+                    padding: '50px',
+                    backgroundColor: '#f9fafb',
+                    borderRadius: '8px',
+                    border: '2px dashed #e0e0e0'
                   }}>
-                    {/* Budget Summary */}
-                    {visibleSections.budget && (
-                      <div style={{
-                        border: '1px solid #e0e0e0',
-                        borderRadius: '6px',
-                        overflow: 'hidden',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                      }}>
-                        <div style={{
-                          backgroundColor: '#1e3a5f',
-                          color: 'white',
-                          padding: '12px 15px',
-                          fontSize: '16px',
-                          fontWeight: 'bold',
-                          borderBottom: '1px solid #2c4c7c',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                        }}>
-                          <span>Budget Summary</span>
-                          <button
-                            onClick={() => { setEditType('budget'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
-                            className="no-print"
-                            style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
-                            title="Edit Budget Summary"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                        </div>
-                        <div style={{ padding: '15px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Approved:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetApproved}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Utilized:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetUtilized}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Balance:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetBalance}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Utilization Outlook:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#10b981' }}>{summaryData.budgetOutlook}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Resource Summary */}
-                    {visibleSections.resource && (
-                      <div style={{
-                        border: '1px solid #e0e0e0',
-                        borderRadius: '6px',
-                        overflow: 'hidden',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                      }}>
-                        <div style={{
-                          backgroundColor: '#1e3a5f',
-                          color: 'white',
-                          padding: '12px 15px',
-                          fontSize: '16px',
-                          fontWeight: 'bold',
-                          borderBottom: '1px solid #2c4c7c',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                        }}>
-                          <span>Resource Summary</span>
-                          <button
-                            onClick={() => { setEditType('resource'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
-                            className="no-print"
-                            style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
-                            title="Edit Resource Summary"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                        </div>
-                        <div style={{ padding: '15px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Deployed:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.resourceDeployed}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Utilized:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.resourceUtilized}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Shortage:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#ef4444' }}>{summaryData.resourceShortage}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Under Utilized:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#f59e0b' }}>{summaryData.resourceUnderUtilized}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Quality Summary */}
-                    {visibleSections.quality && (
-                      <div style={{
-                        border: '1px solid #e0e0e0',
-                        borderRadius: '6px',
-                        overflow: 'hidden',
-                        boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
-                      }}>
-                        <div style={{
-                          backgroundColor: '#1e3a5f',
-                          color: 'white',
-                          padding: '12px 15px',
-                          fontSize: '16px',
-                          fontWeight: 'bold',
-                          borderBottom: '1px solid #2c4c7c',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                        }}>
-                          <span>Quality Summary</span>
-                          <button
-                            onClick={() => { setEditType('quality'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
-                            className="no-print"
-                            style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
-                            title="Edit Quality Summary"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                        </div>
-                        <div style={{ padding: '15px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Total Issues:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.qualityTotal}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Action Completed:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#10b981' }}>{summaryData.qualityCompleted}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Open Issues:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#ef4444' }}>{summaryData.qualityOpen}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>No of Critical Issues:</span>
-                            <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#ef4444' }}>{summaryData.qualityCritical}</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    <div style={{ fontSize: '48px', marginBottom: '20px' }}>📊</div>
+                    <h3 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px' }}>No Sections Selected</h3>
+                    <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '20px' }}>
+                      Click the "Configure Dashboard" button to select which sections to display for {activeProject.name}.
+                    </p>
+                    <button
+                      onClick={() => setShowSimulateModal(true)}
+                      style={{
+                        padding: '10px 20px',
+                        fontSize: '14px',
+                        borderRadius: '4px',
+                        border: 'none',
+                        backgroundColor: '#1e3a5f',
+                        color: 'white',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Configure Dashboard
+                    </button>
                   </div>
-                </div>
-              )}
-
-              {/* Empty state when no sections are selected */}
-              {Object.values(visibleSections).filter(v => v).length === 0 && (
-                <div style={{
-                  textAlign: 'center',
-                  padding: '50px',
-                  backgroundColor: '#f9fafb',
-                  borderRadius: '8px',
-                  border: '2px dashed #e0e0e0'
-                }}>
-                  <div style={{ fontSize: '48px', marginBottom: '20px' }}>📊</div>
-                  <h3 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px' }}>No Sections Selected</h3>
-                  <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '20px' }}>
-                    Click the "Configure Dashboard" button to select which sections to display for {activeProject.name}.
-                  </p>
-                  <button
-                    onClick={() => setShowSimulateModal(true)}
-                    style={{
-                      padding: '10px 20px',
-                      fontSize: '14px',
-                      borderRadius: '4px',
-                      border: 'none',
-                      backgroundColor: '#1e3a5f',
-                      color: 'white',
-                      cursor: 'pointer',
-                      fontWeight: 'bold'
-                    }}
-                  >
-                    Configure Dashboard
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-          {/* End project-dashboard-main-content */}
+            {/* End project-dashboard-main-content */}
           </>
         )}
       </div>
@@ -3286,10 +3286,10 @@ const EmailModal = ({
                       String(emp.name || '').toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
                       String(emp.email || '').toLowerCase().includes(employeeSearchTerm.toLowerCase())
                     ).length === 0 && (
-                      <div style={{ padding: '15px', textAlign: 'center', color: '#9ca3af', fontSize: '12px' }}>
-                        No matches found for "{employeeSearchTerm}"
-                      </div>
-                    )}
+                        <div style={{ padding: '15px', textAlign: 'center', color: '#9ca3af', fontSize: '12px' }}>
+                          No matches found for "{employeeSearchTerm}"
+                        </div>
+                      )}
                   </div>
                 </>
               )}
@@ -3548,15 +3548,15 @@ const EmailModal = ({
 };
 
 // Axis Selector Modal Component
-const AxisSelectorModal = ({ 
-  chartId, 
-  onClose, 
-  activeProject, 
-  axisConfigs, 
-  submoduleData, 
-  tracker, 
-  availableColumns, 
-  handleAxisChange 
+const AxisSelectorModal = ({
+  chartId,
+  onClose,
+  activeProject,
+  axisConfigs,
+  submoduleData,
+  tracker,
+  availableColumns,
+  handleAxisChange
 }) => {
   const config = axisConfigs[activeProject.id]?.[chartId] || { xAxis: '', yAxis: '' };
   const [localConfig, setLocalConfig] = useState(config);

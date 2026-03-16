@@ -11,6 +11,8 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import API from '../../utils/api';
 import FileContentViewer from './FileContentViewer';
+import { getEmployees } from '../../utils/employeeApi';
+import SearchableDropdown from '../../components/SearchableDropdown';
 
 // ============================================================================
 // DUAL SIDEBAR MANAGER - Two Independent Hierarchies
@@ -472,10 +474,10 @@ const sidebarManager = {
         if (project.submodules) {
           project.submodules.forEach(file => {
             // Force correct displayName (strip project prefix)
-            const correctDisplayName = (projectName && file.name.startsWith(projectName + "_")) 
+            const correctDisplayName = (projectName && file.name.startsWith(projectName + "_"))
               ? file.name.substring(projectName.length + 1).replace(/\.[^/.]+$/, "")
               : file.name.replace(/\.[^/.]+$/, "");
-            
+
             if (file.displayName !== correctDisplayName) {
               file.displayName = correctDisplayName;
               uploadModified = true;
@@ -505,10 +507,10 @@ const sidebarManager = {
         if (project.submodules) {
           project.submodules.forEach(file => {
             // Force correct displayName (strip project prefix)
-            const correctDisplayName = (projectName && file.name.startsWith(projectName + "_")) 
+            const correctDisplayName = (projectName && file.name.startsWith(projectName + "_"))
               ? file.name.substring(projectName.length + 1).replace(/\.[^/.]+$/, "")
               : file.name.replace(/\.[^/.]+$/, "");
-            
+
             if (file.displayName !== correctDisplayName) {
               file.displayName = correctDisplayName;
               projectModified = true;
@@ -743,6 +745,8 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
 
   // Load trackers from API
   const [trackers, setTrackers] = useState([]);
+  const [employeeList, setEmployeeList] = useState([]);
+  const [projectList, setProjectList] = useState([]);
 
   useEffect(() => {
     const fetchTrackers = async () => {
@@ -754,7 +758,28 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
         showNotification('Failed to load upload history', 'error');
       }
     };
+
+    const fetchProjects = async () => {
+      try {
+        const response = await API.get('/projects/');
+        setProjectList(response.data || []);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      }
+    };
+
+    const fetchEmployees = async () => {
+      try {
+        const response = await getEmployees();
+        setEmployeeList(response.data || []);
+      } catch (error) {
+        console.error('Error fetching employees:', error);
+      }
+    };
+
     fetchTrackers();
+    fetchProjects();
+    fetchEmployees();
   }, []);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -1750,16 +1775,14 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
               {/* Project */}
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Project *</label>
-                <input
-                  type="text"
-                  placeholder="Enter project name"
+                <SearchableDropdown
+                  options={projectList.map(p => p.name)}
                   value={uploadForm.project}
-                  onChange={(e) => {
-                    setUploadForm({ ...uploadForm, project: e.target.value });
+                  onChange={(val) => {
+                    setUploadForm({ ...uploadForm, project: val });
                     if (uploadFormErrors.project) setUploadFormErrors({ ...uploadFormErrors, project: '' });
                   }}
-                  className={`w-full px-3 py-2 text-xs sm:text-sm border rounded ${uploadFormErrors.project ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                  placeholder="Select project"
                 />
                 {uploadFormErrors.project && <p className="mt-1 text-xs text-red-600">{uploadFormErrors.project}</p>}
               </div>
@@ -1767,36 +1790,29 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
               {/* Department */}
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Department *</label>
-                <select
+                <SearchableDropdown
+                  options={[...new Set([...departmentOptions, ...(employeeList.map(e => e.department).filter(Boolean))])]}
                   value={uploadForm.department}
-                  onChange={(e) => {
-                    setUploadForm({ ...uploadForm, department: e.target.value });
+                  onChange={(val) => {
+                    setUploadForm({ ...uploadForm, department: val });
                     if (uploadFormErrors.department) setUploadFormErrors({ ...uploadFormErrors, department: '' });
                   }}
-                  className={`w-full px-3 py-2 text-xs sm:text-sm border rounded ${uploadFormErrors.department ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                >
-                  <option value="">Select department</option>
-                  {departmentOptions.map(dept => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
-                </select>
+                  placeholder="Select department"
+                />
                 {uploadFormErrors.department && <p className="mt-1 text-xs text-red-600">{uploadFormErrors.department}</p>}
               </div>
 
               {/* Employee Name */}
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Employee Name *</label>
-                <input
-                  type="text"
-                  placeholder="Enter employee name"
+                <SearchableDropdown
+                  options={employeeList.map(e => e.name)}
                   value={uploadForm.employeeName}
-                  onChange={(e) => {
-                    setUploadForm({ ...uploadForm, employeeName: e.target.value });
+                  onChange={(val) => {
+                    setUploadForm({ ...uploadForm, employeeName: val });
                     if (uploadFormErrors.employeeName) setUploadFormErrors({ ...uploadFormErrors, employeeName: '' });
                   }}
-                  className={`w-full px-3 py-2 text-xs sm:text-sm border rounded ${uploadFormErrors.employeeName ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                  placeholder="Select employee name"
                 />
                 {uploadFormErrors.employeeName && <p className="mt-1 text-xs text-red-600">{uploadFormErrors.employeeName}</p>}
               </div>
@@ -1818,6 +1834,7 @@ const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
                         {uploadForm.file ? getDisplayFileName(uploadForm.file.name) : 'Click to select file'}
                       </p>
                       <p className="text-xs text-gray-500">Supports: CSV, Excel, JSON, TXT (Max 50MB)</p>
+                      <p className="text-xs font-semibold text-blue-600 mt-2 italic">Please ensure Department name and file name are exact</p>
                     </div>
                   </label>
                 </div>

@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
 from app.core.database import Base
 
@@ -12,4 +13,9 @@ class Project(Base):
     budget = Column(Float, default=0.0)
     timeline = Column(String, nullable=True)
     teamSize = Column(Integer, default=0)
+    employee_id = Column(String, ForeignKey("employees.employee_id"), nullable=True)
+    employee_name = Column(String, nullable=True)
     custom_fields = Column(JSONB, default={})
+
+    # Relationship to Employee model
+    employee = relationship("Employee", foreign_keys=[employee_id], primaryjoin="Project.employee_id == Employee.employee_id")

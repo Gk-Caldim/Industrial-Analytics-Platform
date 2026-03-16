@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { getEmployees } from "../../utils/employeeApi";
+import SearchableDropdown from "../../components/SearchableDropdown";
 
 const ProjectMaster = () => {
   // Fixed columns matching backend Project model
@@ -12,6 +13,8 @@ const ProjectMaster = () => {
     { id: 'id', label: 'ID', visible: true, sortable: true, type: 'text', required: true },
     { id: 'name', label: 'Project Name', visible: true, sortable: true, type: 'text', required: true },
     { id: 'manager', label: 'Project Manager', visible: true, sortable: true, type: 'select', options: [], required: true },
+    { id: 'employee_id', label: 'Employee ID', visible: true, sortable: true, type: 'employee_id', required: false },
+    { id: 'employee_name', label: 'Employee Name', visible: true, sortable: true, type: 'employee_name', required: false },
     { id: 'status', label: 'Status', visible: true, sortable: true, type: 'select', required: true },
     { id: 'budget', label: 'Budget', visible: true, sortable: true, type: 'number', required: true },
     { id: 'timeline', label: 'Timeline', visible: true, sortable: true, type: 'text', required: false },
@@ -48,7 +51,7 @@ const ProjectMaster = () => {
 
   // Load columns from localStorage
   const [columns, setColumns] = useState(() => {
-    const savedColumns = localStorage.getItem('project_columns_v2');
+    const savedColumns = localStorage.getItem('project_columns_v3');
     return savedColumns ? JSON.parse(savedColumns) : initialColumns;
   });
 
@@ -90,12 +93,14 @@ const ProjectMaster = () => {
   const [tempFrozenRows, setTempFrozenRows] = useState([]);
   const [tempFrozenColumns, setTempFrozenColumns] = useState([]);
 
+  const [employeeList, setEmployeeList] = useState([]);
+
   const [validationErrors, setValidationErrors] = useState({});
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
   const API_URL = `${API_BASE_URL}/projects`;
 
-  const fixedColumnIds = ['id', 'name', 'manager', 'status', 'budget', 'timeline', 'teamSize', 'created_at', 'updated_at'];
+  const fixedColumnIds = ['id', 'name', 'manager', 'status', 'budget', 'timeline', 'teamSize', 'employee_id', 'employee_name', 'created_at', 'updated_at'];
 
   // Helper to flatten API response
   const transformProjectFromApi = (apiProject) => {
@@ -112,6 +117,8 @@ const ProjectMaster = () => {
       budget: parseFloat(projectData.budget) || 0,
       timeline: projectData.timeline || '',
       teamSize: parseInt(projectData.teamSize) || 0,
+      employee_id: projectData.employee_id || null,
+      employee_name: projectData.employee_name || null,
       custom_fields: {}
     };
 
@@ -155,7 +162,9 @@ const ProjectMaster = () => {
   const fetchEmployees = () => {
     getEmployees()
       .then(res => {
-        const employeeNames = res.data.map(e => e.name);
+        const employees = res.data || [];
+        setEmployeeList(employees);
+        const employeeNames = employees.map(e => e.name);
         setColumns(prev => prev.map(col => {
           if (col.id === 'manager') {
             return { ...col, options: employeeNames };
@@ -192,7 +201,7 @@ const ProjectMaster = () => {
 
   // Save columns to localStorage
   useEffect(() => {
-    localStorage.setItem('project_columns_v2', JSON.stringify(columns));
+    localStorage.setItem('project_columns_v3', JSON.stringify(columns));
   }, [columns]);
 
   // Checkbox Functions
@@ -871,6 +880,47 @@ const ProjectMaster = () => {
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
     );
+
+    if (col.type === 'employee_id') return (
+      <div>
+        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
+        <SearchableDropdown
+          options={employeeList.map(e => e.id)}
+          value={value}
+          onChange={(val) => {
+            onChange(col.id, val);
+            // Optionally auto-populate name
+            const emp = employeeList.find(e => e.id === val);
+            if (emp) {
+              onChange('employee_name', emp.name);
+            }
+          }}
+          placeholder="Select Employee ID"
+        />
+        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      </div>
+    );
+
+    if (col.type === 'employee_name') return (
+      <div>
+        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
+        <SearchableDropdown
+          options={employeeList.map(e => e.name)}
+          value={value}
+          onChange={(val) => {
+            onChange(col.id, val);
+            // Optionally auto-populate ID
+            const emp = employeeList.find(e => e.name === val);
+            if (emp) {
+              onChange('employee_id', emp.id);
+            }
+          }}
+          placeholder="Select Employee Name"
+        />
+        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      </div>
+    );
+
     if (col.type === 'number') return (
       <div>
         <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
