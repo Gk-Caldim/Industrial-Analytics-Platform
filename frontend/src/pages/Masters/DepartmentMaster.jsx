@@ -4,11 +4,13 @@ import API from '../../utils/api';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { getEmployees } from "../../utils/employeeApi";
+import SearchableDropdown from "../../components/SearchableDropdown";
 
 const DepartmentMaster = () => {
   // Fixed columns matching backend Department model
   const initialColumns = [
-    { id: 'id', label: 'ID', visible: true, sortable: true, type: 'text', required: true, deletable: false },
+    { id: 'department_id', label: 'Department ID', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'name', label: 'Department Name', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'head', label: 'Department Head', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'employees', label: 'Employees', visible: true, sortable: true, type: 'number', required: true, deletable: false },
@@ -46,7 +48,7 @@ const DepartmentMaster = () => {
 
   // Load columns from localStorage
   const [columns, setColumns] = useState(() => {
-    const savedColumns = localStorage.getItem('department_columns_v2');
+    const savedColumns = localStorage.getItem('department_columns_v3');
     return savedColumns ? JSON.parse(savedColumns) : initialColumns;
   });
 
@@ -88,6 +90,7 @@ const DepartmentMaster = () => {
   // Temporary states for modal selections
   const [tempFrozenRows, setTempFrozenRows] = useState([]);
   const [tempFrozenColumns, setTempFrozenColumns] = useState([]);
+  const [employeeList, setEmployeeList] = useState([]);
 
   // Show notification
   const showNotification = (message, type = 'success') => {
@@ -100,7 +103,17 @@ const DepartmentMaster = () => {
   // Fetch data on mount
   useEffect(() => {
     fetchData();
+    fetchEmployees();
   }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      const res = await getEmployees();
+      setEmployeeList(res.data);
+    } catch (err) {
+      console.error("Error fetching employees", err);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -118,7 +131,7 @@ const DepartmentMaster = () => {
 
   const fetchDepartments = async () => {
     try {
-      const res = await API.get('/departments');
+      const res = await API.get('/departments/');
       if (Array.isArray(res.data)) {
         const transformedDepts = res.data.map(dept => {
           const { custom_fields, ...rest } = dept;
@@ -149,7 +162,7 @@ const DepartmentMaster = () => {
 
   // Save columns to localStorage
   useEffect(() => {
-    localStorage.setItem('department_columns_v2', JSON.stringify(columns));
+    localStorage.setItem('department_columns_v3', JSON.stringify(columns));
   }, [columns]);
 
   // Checkbox Functions
@@ -269,7 +282,7 @@ const DepartmentMaster = () => {
 
   const handleDeleteColumn = (columnId) => {
     const column = columns.find(col => col.id === columnId);
-    const isFixedColumn = ['id', 'name', 'head', 'employees', 'budget', 'location', 'status', 'email'].includes(columnId);
+    const isFixedColumn = ['department_id', 'name', 'head', 'employees', 'budget', 'location', 'status', 'email'].includes(columnId);
 
     if (isFixedColumn) {
       setShowDeleteColumnPrompt({
@@ -425,7 +438,7 @@ const DepartmentMaster = () => {
 
   // Transform department for API save
   const transformDeptForSave = (deptData) => {
-    const fixedColumnIds = ['id', 'name', 'head', 'employees', 'budget', 'location', 'status', 'email'];
+    const fixedColumnIds = ['department_id', 'name', 'head', 'employees', 'budget', 'location', 'status', 'email'];
 
     const payload = {
       name: deptData.name || '',
@@ -810,6 +823,19 @@ const DepartmentMaster = () => {
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
     );
+    if (col.id === 'name') return (
+      <div>
+        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
+        <SearchableDropdown
+          options={Array.from(new Set(employeeList.map(e => e.department).filter(Boolean)))}
+          value={value}
+          onChange={(val) => onChange(col.id, val)}
+          placeholder="Select or enter Department Name"
+        />
+        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      </div>
+    );
+
     return (
       <div>
         <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
@@ -936,7 +962,7 @@ const DepartmentMaster = () => {
     if (column.id === 'budget') {
       return <span className="text-sm text-slate-700">${(parseFloat(value) || 0).toLocaleString()}</span>;
     }
-    if (column.id === 'id') {
+    if (column.id === 'department_id') {
       return <span className="text-[13px] text-slate-500 font-mono tracking-tight">{value}</span>;
     }
     return <span className="text-sm text-slate-700">{value || '-'}</span>;
@@ -1325,7 +1351,7 @@ const DepartmentMaster = () => {
               <h4 className="text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Available Columns</h4>
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {columns.map((column) => {
-                  const isFixedColumn = ['id', 'name', 'head', 'employees', 'budget', 'location', 'status', 'email'].includes(column.id);
+                  const isFixedColumn = ['department_id', 'name', 'head', 'employees', 'budget', 'location', 'status', 'email'].includes(column.id);
                   const isEditing = editingColumn === column.id;
 
                   return (
@@ -1705,10 +1731,11 @@ const DepartmentMaster = () => {
                           }}
                         >
                           <div className="flex items-center justify-between space-x-2">
-                            <div className="flex items-center space-x-1.5 cursor-pointer flex-1" onClick={() => col.sortable && handleSort(col.id)}>
-                              <span className="font-medium text-[13px]">{col.label}</span>
-                              {col.required && <span className="text-red-400">*</span>}
-                            </div>
+                              {/* Left side, label and star */}
+                              <div className="flex items-center space-x-1.5 flex-1">
+                                <span className="font-medium text-[13px]">{col.label}</span>
+                                {col.required && <span className="text-red-400">*</span>}
+                              </div>
                             <div className="flex items-center space-x-1 relative">
                               <button
                                 onClick={(e) => {

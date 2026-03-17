@@ -1,49 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import ReactDOM from 'react-dom';
-import { useAuth } from '../contexts/AuthContext';
 import {
-  LogOut,
-  Users,
-  Shield,
-  FolderKanban,
-  Package,
-  Building,
-  Upload,
-  Settings,
-  Database,
-  MessageSquare,
-  ChevronLeft,
-  ChevronRight as ChevronRightIcon,
-  Home,
-  FileText,
-  ChevronDown,
-  ChevronRight,
-  Bell,
-  Search,
-  Calendar,
-  Clock,
-  User,
-  Briefcase,
-  Layout,
-  Layers,
-  Grid,
-  FolderTree,
-  FileUp,
-  FileCog,
-  BarChart3
+  setActiveModule,
+  setExpandedModules,
+  toggleModuleExpansion as toggleExpansion,
+  setSelectedProjectFileId,
+  setSelectedUploadFileId,
+  setActiveProjectName
+} from '../store/slices/navSlice';
+import { logout } from '../store/slices/authSlice';
+import {
+  Layout as LayoutIcon, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings,
+  Users, Shield, FolderKanban, Package, Building, Database, FileUp, LogOut, Menu, User as UserIcon, Bell, ChevronRight, Projector, FileText, Globe, Clock, BarChart3, PieChart, LineChart,
+  MessageSquare, Layers, FolderTree
 } from 'lucide-react';
 
-import EmployeeMaster from "../pages/Masters/EmployeeMaster";
-import EmployeeAccess from "../pages/Masters/EmployeeAccess";
-import ProjectMaster from "../pages/Masters/ProjectMaster";
-import PartMaster from "../pages/Masters/PartMaster";
-import DepartmentMaster from "../pages/Masters/DepartmentMaster";
-import Masters from "../pages/Masters/Masters";
-import ProjectDashboard from "./ProjectDashboard";
-import UploadTrackers from "../pages/Trackers/UploadTrackers";
-import SystemSettings from "../pages/Settings/SystemSettings";
-import MOMModule from "../pages/mom/MOMModule";
 import API from "../utils/api";
 
 // ============================================================================
@@ -73,16 +46,20 @@ const sidebarManager = {
 };
 
 const Dashboard = () => {
-  const { user, logout } = useAuth();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
   const location = useLocation();
 
-  // ==========================================================================
-  // DEFAULT STATE - PROJECT DASHBOARD SELECTED, ALL SUBMODULES CLOSED
-  // ==========================================================================
-  const [activeModule, setActiveModule] = useState(() => {
-    const saved = localStorage.getItem('active_module');
-    return saved || 'project-dashboard';
-  });
+  // Get state from Redux
+  const user = useSelector(state => state.auth.user);
+  const {
+    activeModule,
+    expandedModules,
+    selectedProjectFileId,
+    selectedUploadFileId,
+    activeProjectName,
+    sidebarCollapsed
+  } = useSelector(state => state.nav);
 
   const [currentTime, setCurrentTime] = useState('');
   const [currentDate, setCurrentDate] = useState('');
@@ -91,58 +68,10 @@ const Dashboard = () => {
   const [uploadTrackerModules, setUploadTrackerModules] = useState([]);
   const [projectDashboardModules, setProjectDashboardModules] = useState([]);
 
-  // ==========================================================================
-  // EXPANDED MODULES STATE - ALL CLOSED BY DEFAULT
-  // ==========================================================================
-  const [expandedModules, setExpandedModules] = useState(() => {
-    // Try to load from sessionStorage otherwise use defaults
-    const saved = sessionStorage.getItem('expanded_modules');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Error parsing expanded modules:', e);
-      }
-    }
-    return {
-      'project-dashboard': false,
-      'masters': false,
-      'upload-trackers': false
-    };
-  });
-
-  // ==========================================================================
-  // FIXED: SEPARATE SELECTION STATE FOR EACH CONTEXT
-  // ==========================================================================
-  const [selectedUploadFileId, setSelectedUploadFileId] = useState(() => {
-    const saved = localStorage.getItem('selected_upload_file_id');
-    try {
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      return saved;
-    }
-  });
-
-  const [selectedProjectFileId, setSelectedProjectFileId] = useState(() => {
-    const saved = localStorage.getItem('selected_project_file_id');
-    try {
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) {
-      return saved;
-    }
-  });
-
-  const [activeProjectName, setActiveProjectName] = useState(null);
-
-  // ==========================================================================
-  // MODIFIED: Sidebar hover state - always collapsed by default, expands on hover
-  // ==========================================================================
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(true); // Always start collapsed
-  const [isHoveringSidebar, setIsHoveringSidebar] = useState(false);
-
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notifications] = useState(3);
   const [hoveredModule, setHoveredModule] = useState(null);
+  const [isHoveringSidebar, setIsHoveringSidebar] = useState(false);
 
   const profileMenuRef = useRef(null);
   const sidebarRef = useRef(null);
@@ -307,82 +236,15 @@ const Dashboard = () => {
     };
   }, []);
 
-  // Save expanded state to sessionStorage
+  // Sync with URL on route changes
   useEffect(() => {
-    sessionStorage.setItem('expanded_modules', JSON.stringify(expandedModules));
-  }, [expandedModules]);
-
-  // Save active module to localStorage
-  useEffect(() => {
-    localStorage.setItem('active_module', activeModule);
-  }, [activeModule]);
-
-  // ==========================================================================
-  // FIXED: Save selected file IDs separately
-  // ==========================================================================
-  useEffect(() => {
-    if (selectedUploadFileId !== null) {
-      localStorage.setItem('selected_upload_file_id', JSON.stringify(selectedUploadFileId));
-    } else {
-      localStorage.removeItem('selected_upload_file_id');
-    }
-  }, [selectedUploadFileId]);
-
-  useEffect(() => {
-    if (selectedProjectFileId !== null) {
-      localStorage.setItem('selected_project_file_id', JSON.stringify(selectedProjectFileId));
-    } else {
-      localStorage.removeItem('selected_project_file_id');
-    }
-  }, [selectedProjectFileId]);
-
-  useEffect(() => {
-    if (activeProjectName !== null) {
-      localStorage.setItem('active_project_name', activeProjectName);
-    } else {
-      localStorage.removeItem('active_project_name');
-    }
-  }, [activeProjectName]);
-
-  // Listen for back/close events from child modules
-  useEffect(() => {
-    const handleCloseProjectFile = () => {
-      setSelectedProjectFileId(null);
-      setActiveModule('project-dashboard');
-    };
-    const handleReturnToDashboard = (e) => {
-      const from = e?.detail?.from;
-      if (from === 'uploadTrackers') {
-        setSelectedUploadFileId(null);
-        setActiveModule('upload-trackers');
-        setExpandedModules(prev => ({ ...prev, 'upload-trackers': true }));
-      } else if (from === 'projectDashboard') {
-        setSelectedProjectFileId(null);
-        setActiveModule('project-dashboard');
-        setExpandedModules(prev => ({ ...prev, 'project-dashboard': true }));
-      }
-    };
-    window.addEventListener('closeProjectDashboardFile', handleCloseProjectFile);
-    window.addEventListener('returnToDashboard', handleReturnToDashboard);
-    return () => {
-      window.removeEventListener('closeProjectDashboardFile', handleCloseProjectFile);
-      window.removeEventListener('returnToDashboard', handleReturnToDashboard);
-    };
-  }, []);
-
-  // Handle module selection via navigation state
-  useEffect(() => {
-    const targetModule = location.state && location.state.module;
-    if (targetModule && ['project-dashboard', 'upload-trackers', 'masters-main', 'mom-module', 'system-settings'].includes(targetModule)) {
-      setActiveModule(targetModule);
-      if (targetModule === 'project-dashboard') {
-        setExpandedModules(prev => ({ ...prev, 'project-dashboard': true }));
-      }
-      if (targetModule === 'upload-trackers') {
-        setExpandedModules(prev => ({ ...prev, 'upload-trackers': true }));
-      }
-    }
-  }, [location.state]);
+    const path = location.pathname;
+    if (path.includes('/dashboard/projects')) dispatch(setActiveModule('project-dashboard'));
+    else if (path.includes('/dashboard/trackers')) dispatch(setActiveModule('upload-trackers'));
+    else if (path.includes('/dashboard/masters')) dispatch(setActiveModule('masters-main'));
+    else if (path.includes('/dashboard/mom')) dispatch(setActiveModule('mom-module'));
+    else if (path.includes('/dashboard/settings')) dispatch(setActiveModule('system-settings'));
+  }, [location.pathname, dispatch]);
 
   // DateTime
   useEffect(() => {
@@ -443,17 +305,22 @@ const Dashboard = () => {
     return () => window.removeEventListener('resize', handleResize);
   }, [profileMenuOpen]);
 
+  const handleLogout = () => {
+    dispatch(logout());
+    navigate('/login');
+  };
+
   // Open master submodule
   useEffect(() => {
     const handleOpenMasterSubmodule = (event) => {
       const { masterModuleId } = event.detail;
       handleModuleClick(masterModuleId);
-      setExpandedModules(prev => ({ ...prev, 'masters': true }));
+      dispatch(setExpandedModules({ 'masters': true }));
     };
 
     window.addEventListener('openMasterSubmodule', handleOpenMasterSubmodule);
     return () => window.removeEventListener('openMasterSubmodule', handleOpenMasterSubmodule);
-  }, []);
+  }, [dispatch]);
 
   // ==========================================================================
   // FIXED: Handle project dashboard file open events with better state management
@@ -471,7 +338,7 @@ const Dashboard = () => {
       }
 
       // Ensure project dashboard is expanded
-      setExpandedModules(prev => ({ ...prev, 'project-dashboard': true }));
+      dispatch(setExpandedModules({ 'project-dashboard': true }));
 
       // Find and expand the parent project module
       if (fileModule && fileModule.projectName) {
@@ -483,8 +350,7 @@ const Dashboard = () => {
 
         if (project) {
           const projectKey = project.id || project.projectId || project.name;
-          setExpandedModules(prev => ({
-            ...prev,
+          dispatch(setExpandedModules({
             [`project-dashboard-${projectKey}`]: true
           }));
         }
@@ -507,7 +373,7 @@ const Dashboard = () => {
     };
 
     const handleResetProjectDashboardMain = () => {
-      setActiveProjectName(null);
+      dispatch(setActiveProjectName(null));
     };
 
     window.addEventListener('openProjectDashboardMain', handleOpenProjectDashboardMain);
@@ -530,8 +396,7 @@ const Dashboard = () => {
         const file = project.submodules?.find(s => s.trackerId === selectedProjectFileId);
         if (file) {
           const projectKey = project.id || project.projectId || project.name;
-          setExpandedModules(prev => ({
-            ...prev,
+          dispatch(setExpandedModules({
             'project-dashboard': true,
             [`project-dashboard-${projectKey}`]: true
           }));
@@ -539,36 +404,33 @@ const Dashboard = () => {
         }
       }
     }
-  }, [activeModule, selectedProjectFileId, projectDashboardModules]);
+  }, [activeModule, selectedProjectFileId, projectDashboardModules, dispatch]);
 
   // Masters submodules
-  const mastersSubmodules = [
-    { id: 'employee-master', name: 'Employee Master', component: <EmployeeMaster />, icon: <Users className="h-5 w-5" />, color: '#000000' },
-    { id: 'employee-access', name: 'Employee Access', component: <EmployeeAccess />, icon: <Shield className="h-5 w-5" />, color: '#1a1a1a' },
-    { id: 'project-master', name: 'Project Master', component: <ProjectMaster />, icon: <FolderKanban className="h-5 w-5" />, color: '#333333' },
-    { id: 'part-master', name: 'Part Master', component: <PartMaster />, icon: <Package className="h-5 w-5" />, color: '#4d4d4d' },
-    { id: 'department-master', name: 'Department Master', component: <DepartmentMaster />, icon: <Building className="h-5 w-5" />, color: '#666666' },
-  ];
+  const mastersSubmodules = useMemo(() => [
+    { id: 'employee-master', name: 'Employee Master', path: 'masters/employees', icon: <Users className="h-5 w-5" />, color: '#000000' },
+    { id: 'employee-access', name: 'Employee Access', path: 'masters/access', icon: <Shield className="h-5 w-5" />, color: '#1a1a1a' },
+    { id: 'project-master', name: 'Project Master', path: 'masters/project-master', icon: <FolderKanban className="h-5 w-5" />, color: '#333333' },
+    { id: 'part-master', name: 'Part Master', path: 'masters/parts', icon: <Package className="h-5 w-5" />, color: '#4d4d4d' },
+    { id: 'department-master', name: 'Department Master', path: 'masters/departments', icon: <Building className="h-5 w-5" />, color: '#666666' },
+  ], []);
 
-  const mastersModules = [
-    { id: 'masters-main', name: 'Masters', component: <Masters />, icon: <Database className="h-5 w-5" /> },
-  ];
+  const mastersModules = useMemo(() => [
+    { id: 'masters-main', name: 'Masters', path: 'masters', icon: <Database className="h-5 w-5" /> },
+  ], []);
 
   // ==========================================================================
   // FIXED: Pass the correct selected file ID to each component
   // ==========================================================================
-  const otherModules = [
+  const otherModules = useMemo(() => [
     {
       id: 'upload-trackers',
       name: 'Upload Trackers',
-      component: <UploadTrackers
-        selectedFileId={selectedUploadFileId}
-        onClearSelection={() => setSelectedUploadFileId(null)}
-      />,
+      path: 'trackers',
       icon: <FileUp className="h-5 w-5" />
     },
-    { id: 'system-settings', name: 'Settings', component: <SystemSettings />, icon: <Settings className="h-5 w-5" /> },
-  ];
+    { id: 'system-settings', name: 'Settings', path: 'settings', icon: <Settings className="h-5 w-5" /> },
+  ], []);
 
   // Helper functions
   const getUserInitial = () => {
@@ -584,29 +446,6 @@ const Dashboard = () => {
 
   const getAvatarColor = () => {
     return 'bg-black';
-  };
-
-  const getActiveComponent = () => {
-    // Check masters submodules first
-    const mastersSubmodule = mastersSubmodules.find(m => m.id === activeModule);
-    if (mastersSubmodule) return mastersSubmodule.component;
-
-    // Check masters main module
-    const masterModule = mastersModules.find(m => m.id === activeModule);
-    if (masterModule) return masterModule.component;
-
-    // Check other modules
-    const otherModule = otherModules.find(m => m.id === activeModule);
-    if (otherModule) return otherModule.component;
-
-    // Check MOM module
-    if (activeModule === 'mom-module') return <MOMModule />;
-
-    // Default to Project Dashboard - pass the project-specific selected file ID
-    return <ProjectDashboard
-      selectedFileId={selectedProjectFileId}
-      onClearSelection={() => setSelectedProjectFileId(null)}
-    />;
   };
 
   const getActiveModuleName = () => {
@@ -652,43 +491,37 @@ const Dashboard = () => {
   // HANDLE MODULE CLICK - UPDATED to match Masters behavior
   // ==========================================================================
   const handleModuleClick = (moduleId) => {
-    setActiveModule(moduleId);
+    dispatch(setActiveModule(moduleId));
+    
+    // Build path
+    let path = 'projects';
+    const allModules = [...mastersModules, ...mastersSubmodules, ...otherModules];
+    const module = allModules.find(m => m.id === moduleId);
+    if (module) path = module.path;
+    else if (moduleId === 'mom-module') path = 'mom';
+    
+    navigate(`/dashboard/${path}`);
 
-    // ==========================================================================
-    // FIXED: Only clear the selected file for the module we're leaving
-    // ==========================================================================
     if (moduleId !== 'project-dashboard') {
-      // Clear project file selection when leaving project dashboard
-      setSelectedProjectFileId(null);
+      dispatch(setSelectedProjectFileId(null));
     } else {
-      // If clicking on project dashboard, reset the grid view
-      setSelectedProjectFileId(null);
+      dispatch(setSelectedProjectFileId(null));
       window.dispatchEvent(new CustomEvent('resetProjectDashboardMain'));
     }
 
     if (moduleId !== 'upload-trackers') {
-      // Clear upload file selection when leaving upload trackers
-      setSelectedUploadFileId(null);
+      dispatch(setSelectedUploadFileId(null));
     }
 
-    // For main modules with submodules, handle expansion differently
     if (moduleId === 'project-dashboard') {
-      // Only expand if it has content and is currently closed
-      // Don't toggle - just ensure it's expanded when clicked
       if (projectDashboardModules.length > 0 && !expandedModules['project-dashboard']) {
-        setExpandedModules(prev => ({ ...prev, 'project-dashboard': true }));
+        dispatch(setExpandedModules({ 'project-dashboard': true }));
       }
-      // If it's already expanded, keep it expanded (don't collapse)
     } else if (moduleId === 'masters-main') {
-      // Masters - toggle expansion (has submodules) - KEEP ORIGINAL BEHAVIOR
-      setExpandedModules(prev => ({
-        ...prev,
-        'masters': !prev['masters']
-      }));
+      dispatch(toggleExpansion('masters'));
     } else if (moduleId === 'upload-trackers') {
-      // Upload Trackers - match Project Dashboard behavior
       if (uploadTrackerModules.length > 0 && !expandedModules['upload-trackers']) {
-        setExpandedModules(prev => ({ ...prev, 'upload-trackers': true }));
+        dispatch(setExpandedModules({ 'upload-trackers': true }));
       }
     }
   };
@@ -700,18 +533,16 @@ const Dashboard = () => {
     if (e) {
       e.stopPropagation();
     }
-    setExpandedModules(prev => ({
-      ...prev,
-      [moduleId]: !prev[moduleId]
-    }));
+    dispatch(toggleExpansion(moduleId));
   };
 
   // ==========================================================================
   // FIXED: Use context-specific file click handlers
   // ==========================================================================
   const handleFileModuleClick = (fileModule) => {
-    setActiveModule('upload-trackers');
-    setSelectedUploadFileId(fileModule.trackerId);
+    dispatch(setActiveModule('upload-trackers'));
+    dispatch(setSelectedUploadFileId(fileModule.trackerId));
+    navigate('/dashboard/trackers');
   };
 
   // ==========================================================================
@@ -719,15 +550,15 @@ const Dashboard = () => {
   // ==========================================================================
   const handleProjectFileClick = (fileModule) => {
     // Set the project-specific selected file ID
-    setSelectedProjectFileId(fileModule.trackerId);
+    dispatch(setSelectedProjectFileId(fileModule.trackerId));
 
     // Ensure we're on project dashboard
     if (activeModule !== 'project-dashboard') {
-      setActiveModule('project-dashboard');
+      dispatch(setActiveModule('project-dashboard'));
     }
 
     // Ensure project dashboard is expanded
-    setExpandedModules(prev => ({ ...prev, 'project-dashboard': true }));
+    dispatch(setExpandedModules({ 'project-dashboard': true }));
 
     // Also expand the parent project module
     if (fileModule.projectName) {
@@ -738,12 +569,13 @@ const Dashboard = () => {
 
       if (project) {
         const projectKey = project.id || project.projectId || project.name;
-        setExpandedModules(prev => ({
-          ...prev,
+        dispatch(setExpandedModules({
           [`project-dashboard-${projectKey}`]: true
         }));
       }
     }
+
+    navigate('/dashboard/projects');
 
     // Dispatch event for ProjectDashboard to handle
     window.dispatchEvent(new CustomEvent('openProjectDashboardFile', {
@@ -1120,7 +952,7 @@ const Dashboard = () => {
   };
 
   // Determine if sidebar should be expanded
-  const isSidebarExpanded = isHoveringSidebar;
+  const isSidebarExpanded = isHoveringSidebar || !sidebarCollapsed;
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-white">
@@ -1268,7 +1100,7 @@ const Dashboard = () => {
                       {/* Menu Items */}
                       <div className="py-2 border-t border-gray-100">
                         <button className="w-full px-5 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-3">
-                          <User className="h-5 w-5 text-gray-500" />
+                          <UserIcon className="h-5 w-5 text-gray-500" />
                           <span className="font-medium">Profile Settings</span>
                         </button>
                         <button className="w-full px-5 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-3">
@@ -1280,7 +1112,7 @@ const Dashboard = () => {
                       <div className="border-t border-gray-100 py-2">
                         <button
                           onClick={() => {
-                            logout();
+                            handleLogout();
                             setProfileMenuOpen(false);
                           }}
                           className="w-full px-5 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-3"
@@ -1300,7 +1132,7 @@ const Dashboard = () => {
           <main className="flex-1 min-h-0 overflow-hidden bg-white">
             <div className={activeModule === 'project-dashboard' ? 'pl-6 pr-0.5 py-6 h-full' : 'p-6 h-full'}>
               <div className="bg-white rounded-lg h-full overflow-auto">
-                {getActiveComponent()}
+                <Outlet />
               </div>
             </div>
           </main>

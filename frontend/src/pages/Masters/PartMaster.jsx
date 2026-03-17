@@ -43,7 +43,7 @@ const PartMaster = () => {
 
   // Load columns from localStorage
   const [columns, setColumns] = useState(() => {
-    const savedColumns = localStorage.getItem('part_columns_v2');
+    const savedColumns = localStorage.getItem('part_columns_v3');
     return savedColumns ? JSON.parse(savedColumns) : initialColumns;
   });
 
@@ -182,7 +182,7 @@ const PartMaster = () => {
 
   // Save columns to localStorage
   useEffect(() => {
-    localStorage.setItem('part_columns_v2', JSON.stringify(columns));
+    localStorage.setItem('part_columns_v3', JSON.stringify(columns));
   }, [columns]);
 
   // Checkbox Functions
@@ -1696,10 +1696,10 @@ const PartMaster = () => {
                             }}
                           >
                             <div className="flex items-center justify-between space-x-2">
-                              <div className="flex items-center space-x-1.5 cursor-pointer flex-1" onClick={() => col.sortable && handleSort(col.id)}>
-                                <span className="font-medium text-[13px]">{col.label}</span>
-                                {col.required && <span className="text-red-400">*</span>}
-                              </div>
+                               <div className="flex items-center space-x-1.5 flex-1">
+                                 <span className="font-medium text-[13px]">{col.label}</span>
+                                 {col.required && <span className="text-red-400">*</span>}
+                               </div>
                               <div className="flex items-center space-x-1 relative">
                                 <button
                                   onClick={(e) => {
