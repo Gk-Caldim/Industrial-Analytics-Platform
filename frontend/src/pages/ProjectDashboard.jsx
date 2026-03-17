@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { setProjects, updateProjectConfig } from '../store/slices/projectSlice';
 import { setSelectedProjectFileId } from '../store/slices/navSlice';
 import ReactECharts from 'echarts-for-react';
 import '../utils/echarts-theme-v5'; // Register the v5 theme
@@ -50,12 +52,13 @@ const getStatusColor = (status) => {
 };
 
 const ProjectTitleDashboard = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useDispatch();
   const selectedFileId = useSelector(state => state.nav.selectedProjectFileId);
   const onClearSelection = () => dispatch(setSelectedProjectFileId(null));
 
   // Projects data
-  const [projects, setProjects] = useState([]);
+  const projects = useSelector(state => state.project.projects);
 
   useEffect(() => {
     const loadProjects = async () => {
@@ -64,7 +67,7 @@ const ProjectTitleDashboard = () => {
         const response = await API.get('/datasets/');
         const datasets = response.data;
 
-        setProjects(prevProjects => {
+        const newProjects = (() => {
           const uniqueProjectsMap = new Map();
 
           datasets.forEach((dataset, index) => {
@@ -73,14 +76,14 @@ const ProjectTitleDashboard = () => {
             const capitalizedName = projectName.charAt(0).toUpperCase() + projectName.slice(1);
 
             if (!uniqueProjectsMap.has(capitalizedName)) {
-              const existing = prevProjects.find(p => p.name === capitalizedName || p.name === projectName);
               uniqueProjectsMap.set(capitalizedName, {
-                id: existing ? existing.id : `project-dashboard-${capitalizedName.toLowerCase().replace(/\\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`,
+                id: `project-dashboard-${capitalizedName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`,
                 name: capitalizedName,
-                code: capitalizedName.substring(0, 4).toUpperCase(),
-                active: existing ? existing.active : false,
-                dashboardConfig: existing ? existing.dashboardConfig : null,
-                submodules: []
+                code: capitalizedName.substring(0, 4).toUpperCase(), // Default code, can be updated later
+                status: 'In Progress', // Default status
+                submodules: [],
+                active: false,
+                dashboardConfig: null // Let Redux slice handle merging from sessionStorage
               });
             }
 
@@ -99,7 +102,9 @@ const ProjectTitleDashboard = () => {
           });
 
           return Array.from(uniqueProjectsMap.values());
-        });
+        })();
+
+        dispatch(setProjects(newProjects));
       } catch (error) {
         console.error('Error loading project dashboard modules:', error);
       }
@@ -125,7 +130,7 @@ const ProjectTitleDashboard = () => {
 
       const selectedProject = projects.find(p => p.id === projectId || p.name === projectId);
       if (selectedProject) {
-        setActiveProject(selectedProject);
+        setSearchParams({ projectId: selectedProject.id });
         if (selectedProject.dashboardConfig) {
           setVisibleSections(selectedProject.dashboardConfig.visibleSections || {});
           setShowSimulateModal(false);
@@ -136,7 +141,7 @@ const ProjectTitleDashboard = () => {
     };
 
     const handleResetDashboardProject = () => {
-      setActiveProject(null);
+      setSearchParams({});
       setVisibleSections({
         milestones: false,
         criticalIssues: false,
@@ -162,11 +167,19 @@ const ProjectTitleDashboard = () => {
     };
   }, [projects, onClearSelection]);
 
-  // Current active project
-  const [activeProject, setActiveProject] = useState(null);
+  // Derived state from searchParams
+  const projectId = searchParams.get('projectId');
+  const submoduleId = searchParams.get('submoduleId');
 
-  // Selected submodule for detailed view
-  const [selectedSubmodule, setSelectedSubmodule] = useState(null);
+  const activeProject = useMemo(() => {
+    if (!projectId) return null;
+    return projects.find(p => p.id === projectId || p.name === projectId);
+  }, [projectId, projects]);
+
+  const selectedSubmodule = useMemo(() => {
+    if (!activeProject || !submoduleId) return null;
+    return activeProject.submodules?.find(s => s.id === submoduleId || s.trackerId === submoduleId || `project-file-${s.trackerId}` === submoduleId);
+  }, [activeProject, submoduleId]);
 
   // Submodule data (from uploaded Excel)
   const [submoduleData, setSubmoduleData] = useState({});
@@ -180,7 +193,20 @@ const ProjectTitleDashboard = () => {
   const [maximizedChart, setMaximizedChart] = useState(null);
   const [showAxisSelector, setShowAxisSelector] = useState(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
-  const [showSimulateModal, setShowSimulateModal] = useState(false);
+  const showSimulateModal = searchParams.get('configure') === 'true';
+  const setShowSimulateModal = (show) => {
+    if (show) {
+      setSearchParams(prev => {
+        prev.set('configure', 'true');
+        return prev;
+      });
+    } else {
+      setSearchParams(prev => {
+        prev.delete('configure');
+        return prev;
+      }, { replace: true }); // Use replace when closing modal to avoid history loops
+    }
+  };
   const [loading, setLoading] = useState(false);
   const [allEmployees, setAllEmployees] = useState([]);
   const [employeeSearchTerm, setEmployeeSearchTerm] = useState('');
@@ -249,6 +275,53 @@ const ProjectTitleDashboard = () => {
     qualityIssues: false,
     sopTables: false
   });
+
+  // BUFFER STATE for Dashboard Configuration Modal
+  const [tempVisibleSections, setTempVisibleSections] = useState({ ...visibleSections });
+
+  // Sync buffer when modal opens
+  useEffect(() => {
+    if (showSimulateModal) {
+      setTempVisibleSections({ ...visibleSections });
+    }
+  }, [showSimulateModal, visibleSections]);
+
+  // Sync live state with persisted config on mount or project switch
+  useEffect(() => {
+    if (activeProject?.dashboardConfig) {
+      if (activeProject.dashboardConfig.visibleSections) {
+        setVisibleSections(activeProject.dashboardConfig.visibleSections);
+      }
+      if (activeProject.dashboardConfig.chartTypes) {
+        setChartTypes(prev => ({
+          ...prev,
+          [activeProject.id]: activeProject.dashboardConfig.chartTypes
+        }));
+      }
+      if (activeProject.dashboardConfig.axisConfigs) {
+        setAxisConfigs(prev => ({
+          ...prev,
+          [activeProject.id]: activeProject.dashboardConfig.axisConfigs
+        }));
+      }
+    } else {
+      // Reset to default (all false) if no config found or no active project
+      setVisibleSections({
+        milestones: false,
+        criticalIssues: false,
+        budget: false,
+        resource: false,
+        quality: false,
+        design: false,
+        partDevelopment: false,
+        build: false,
+        gateway: false,
+        validation: false,
+        qualityIssues: false,
+        sopTables: false
+      });
+    }
+  }, [activeProject]);
 
   // Helper to determine which phases are available based on uploaded files
   const availablePhases = useMemo(() => {
@@ -470,10 +543,20 @@ const ProjectTitleDashboard = () => {
       alert('Failed to save changes to the database. Please try again.');
     }
   };
-  // Handle selected file ID prop from Dashboard
+  // Handle submodule data loading from URL
+  useEffect(() => {
+    if (submoduleId && activeProject) {
+      const sub = activeProject.submodules?.find(s => s.id === submoduleId || s.trackerId === submoduleId || `project-file-${s.trackerId}` === submoduleId);
+      if (sub && !submoduleData[sub.trackerId]) {
+        loadSubmoduleData(sub.trackerId);
+      }
+    }
+  }, [submoduleId, activeProject, submoduleData]);
+
+  // Handle selected file ID prop from Dashboard (Sidebar)
   useEffect(() => {
     if (selectedFileId && projects.length > 0) {
-      // Find the project containing this file
+      // Find the project and submodule
       for (const project of projects) {
         const fileMatch = project.submodules?.find(s =>
           s.trackerId === selectedFileId ||
@@ -482,47 +565,48 @@ const ProjectTitleDashboard = () => {
         );
 
         if (fileMatch) {
-          // Set active project if not already set or different
-          if (!activeProject || activeProject.id !== project.id) {
-            setActiveProject(project);
-            if (project.dashboardConfig) {
-              setVisibleSections(project.dashboardConfig.visibleSections || {});
-              setShowSimulateModal(false);
-            }
-          }
-
-          // Set active file
-          setSelectedSubmodule(fileMatch);
-          loadSubmoduleData(fileMatch.trackerId);
+          setSearchParams(prev => {
+            prev.set('projectId', project.id);
+            prev.set('submoduleId', fileMatch.id || fileMatch.trackerId);
+            prev.delete('configure');
+            prev.delete('preview');
+            return prev;
+          });
           break;
         }
       }
     }
-  }, [selectedFileId, projects, activeProject]);
+  }, [selectedFileId, projects, setSearchParams]);
 
   // Handle submodule click
   const handleSubmoduleClick = (submodule) => {
-    setSelectedSubmodule(submodule);
+    setSearchParams(prev => {
+      prev.set('submoduleId', submodule.id || submodule.trackerId);
+      return prev;
+    });
     loadSubmoduleData(submodule.trackerId);
   };
 
   // Handle back to project dashboard
   const handleBackToProjectDashboard = () => {
-    setSelectedSubmodule(null);
+    setSearchParams(prev => {
+      prev.delete('submoduleId');
+      return prev;
+    });
   };
 
   // Handle project selection
-  // Handle project selection
   const handleProjectSelect = (projectId) => {
-    const selectedProject = projects.find(p => p.id === projectId);
-    setActiveProject(selectedProject);
-    setSelectedSubmodule(null); // Reset submodule selection
-
+    // Look up by ID or Name for robustness
+    const selectedProject = projects.find(p => p.id === projectId || p.name === projectId);
+    
     if (selectedProject?.dashboardConfig) {
+      setSearchParams({ projectId: selectedProject.id });
       setVisibleSections(selectedProject.dashboardConfig.visibleSections || {});
-      setShowSimulateModal(false);
-    } else {
-      setShowSimulateModal(true);
+    } else if (selectedProject) {
+      // If no config, go straight to configure modal
+      // We use push here because it's a new "page" transition from the list
+      setSearchParams({ projectId: selectedProject.id, configure: 'true' });
     }
   };
 
@@ -540,21 +624,15 @@ const ProjectTitleDashboard = () => {
   // Handle apply dashboard configuration
   const handleApplyDashboardConfig = () => {
     if (activeProject) {
-      // Update project with dashboard config
-      setProjects(prev => prev.map(p =>
-        p.id === activeProject.id
-          ? {
-            ...p,
-            active: true,
-            dashboardConfig: { visibleSections }
-          }
-          : p
-      ));
-
-      setActiveProject(prev => ({
-        ...prev,
-        dashboardConfig: { visibleSections }
+      // Update project with dashboard config in global store
+      dispatch(updateProjectConfig({
+        projectId: activeProject.id,
+        config: { visibleSections: tempVisibleSections }
       }));
+
+
+      // Commit buffer to live state
+      setVisibleSections(tempVisibleSections);
 
       // Initialize chart types and axis configs for this project if not exists
       const currentChartTypes = { ...chartTypes[activeProject.id] };
@@ -596,6 +674,15 @@ const ProjectTitleDashboard = () => {
           ...prev,
           [activeProject.id]: currentAxisConfigs
         }));
+
+        // Persist defaults to Redux
+        dispatch(updateProjectConfig({
+          projectId: activeProject.id,
+          config: { 
+            chartTypes: currentChartTypes,
+            axisConfigs: currentAxisConfigs
+          }
+        }));
       }
 
       setShowSimulateModal(false);
@@ -604,8 +691,7 @@ const ProjectTitleDashboard = () => {
 
   // Handle back to projects list
   const handleBackToProjects = () => {
-    setActiveProject(null);
-    setSelectedSubmodule(null); // Reset submodule selection
+    setSearchParams({}); // Clear all params to go back to list
     // Reset visible sections to empty state
     setVisibleSections({
       milestones: false,
@@ -637,28 +723,45 @@ const ProjectTitleDashboard = () => {
   // Handle chart type change
   const handleChartTypeChange = (chartId, type) => {
     if (activeProject) {
+      const updatedTypes = {
+        ...chartTypes[activeProject.id],
+        [chartId]: type
+      };
+
       setChartTypes(prev => ({
         ...prev,
-        [activeProject.id]: {
-          ...prev[activeProject.id],
-          [chartId]: type
-        }
+        [activeProject.id]: updatedTypes
+      }));
+
+      // Persist to Redux
+      dispatch(updateProjectConfig({
+        projectId: activeProject.id,
+        config: { chartTypes: updatedTypes }
       }));
     }
   };
 
   // Handle axis configuration change
-  const handleAxisChange = (chartId, axis, value) => {
+  const handleAxesUpdate = (chartId, xAxis, yAxis) => {
     if (activeProject) {
+      const projectAxes = axisConfigs[activeProject.id] || {};
+      const updatedAxes = {
+        ...projectAxes,
+        [chartId]: {
+          xAxis,
+          yAxis
+        }
+      };
+
       setAxisConfigs(prev => ({
         ...prev,
-        [activeProject.id]: {
-          ...prev[activeProject.id],
-          [chartId]: {
-            ...prev[activeProject.id]?.[chartId],
-            [axis]: value
-          }
-        }
+        [activeProject.id]: updatedAxes
+      }));
+
+      // Persist to Redux
+      dispatch(updateProjectConfig({
+        projectId: activeProject.id,
+        config: { axisConfigs: updatedAxes }
       }));
     }
   };
@@ -678,9 +781,9 @@ const ProjectTitleDashboard = () => {
     setShowAxisSelector(showAxisSelector === chartId ? null : chartId);
   };
 
-  // Handle section visibility toggle
+  // Handle section visibility toggle - MODIFIED to use buffer
   const handleSectionVisibilityToggle = (section) => {
-    setVisibleSections(prev => ({
+    setTempVisibleSections(prev => ({
       ...prev,
       [section]: !prev[section]
     }));
@@ -701,12 +804,12 @@ const ProjectTitleDashboard = () => {
       return true;
     });
 
-    const allSelected = availableSectionKeys.every(key => visibleSections[key]);
+    const allSelected = availableSectionKeys.every(key => tempVisibleSections[key]);
     const setTarget = !allSelected;
 
     // Create new object, taking care to not turn on unavailable ones
-    const newVisibleSections = { ...visibleSections };
-    Object.keys(visibleSections).forEach(key => {
+    const newVisibleSections = { ...tempVisibleSections };
+    Object.keys(tempVisibleSections).forEach(key => {
       if (availableSectionKeys.includes(key)) {
         newVisibleSections[key] = setTarget;
       } else {
@@ -725,7 +828,7 @@ const ProjectTitleDashboard = () => {
       }
     });
 
-    setVisibleSections(newVisibleSections);
+    setTempVisibleSections(newVisibleSections);
   };
 
   // Handle section selection for email
@@ -940,8 +1043,21 @@ const ProjectTitleDashboard = () => {
     );
   };
 
-  // Handle Print Preview via React Modal
-  const [showPdfPreviewModal, setShowPdfPreviewModal] = useState(false);
+  // Handle Print Preview via Search Params
+  const showPdfPreviewModal = searchParams.get('preview') === 'pdf';
+  const setShowPdfPreviewModal = (show) => {
+    if (show) {
+      setSearchParams(prev => {
+        prev.set('preview', 'pdf');
+        return prev;
+      });
+    } else {
+      setSearchParams(prev => {
+        prev.delete('preview');
+        return prev;
+      });
+    }
+  };
   const [pdfLayoutOrder, setPdfLayoutOrder] = useState([]);
 
   const openPrintPreview = () => {
@@ -1526,7 +1642,7 @@ const ProjectTitleDashboard = () => {
   const renderSimulateModal = () => {
     if (!showSimulateModal) return null;
 
-    const allSelected = Object.values(visibleSections).every(value => value);
+    const allSelected = Object.values(tempVisibleSections).every(value => value);
 
     return (
       <div style={{
@@ -1614,7 +1730,7 @@ const ProjectTitleDashboard = () => {
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
-                      checked={visibleSections.milestones}
+                      checked={tempVisibleSections.milestones}
                       onChange={() => handleSectionVisibilityToggle('milestones')}
                     />
                     Milestones
@@ -1622,7 +1738,7 @@ const ProjectTitleDashboard = () => {
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
-                      checked={visibleSections.criticalIssues}
+                      checked={tempVisibleSections.criticalIssues}
                       onChange={() => handleSectionVisibilityToggle('criticalIssues')}
                     />
                     Critical Issues
@@ -1630,7 +1746,7 @@ const ProjectTitleDashboard = () => {
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
-                      checked={visibleSections.sopTables}
+                      checked={tempVisibleSections.sopTables}
                       onChange={() => handleSectionVisibilityToggle('sopTables')}
                     />
                     SOP Tables
@@ -1645,7 +1761,7 @@ const ProjectTitleDashboard = () => {
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
-                      checked={visibleSections.budget}
+                      checked={tempVisibleSections.budget}
                       onChange={() => handleSectionVisibilityToggle('budget')}
                     />
                     Budget Summary
@@ -1653,7 +1769,7 @@ const ProjectTitleDashboard = () => {
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
-                      checked={visibleSections.resource}
+                      checked={tempVisibleSections.resource}
                       onChange={() => handleSectionVisibilityToggle('resource')}
                     />
                     Resource Summary
@@ -1661,7 +1777,7 @@ const ProjectTitleDashboard = () => {
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
-                      checked={visibleSections.quality}
+                      checked={tempVisibleSections.quality}
                       onChange={() => handleSectionVisibilityToggle('quality')}
                     />
                     Quality Summary
@@ -1685,7 +1801,7 @@ const ProjectTitleDashboard = () => {
                     <label key={phase.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
                       <input
                         type="checkbox"
-                        checked={visibleSections[phase.id]}
+                        checked={tempVisibleSections[phase.id]}
                         onChange={() => handleSectionVisibilityToggle(phase.id)}
                       />
                       {phase.label}
@@ -1706,7 +1822,7 @@ const ProjectTitleDashboard = () => {
                     <label key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
                       <input
                         type="checkbox"
-                        checked={visibleSections[sub.id]}
+                        checked={tempVisibleSections[sub.id]}
                         onChange={() => handleSectionVisibilityToggle(sub.id)}
                       />
                       {sub.displayName || sub.name}
@@ -1726,7 +1842,7 @@ const ProjectTitleDashboard = () => {
               <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Dashboard Preview:</h4>
               <div style={{ fontSize: '13px', color: '#4b5563' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {Object.entries(visibleSections)
+                  {Object.entries(tempVisibleSections)
                     .filter(([_, selected]) => selected)
                     .map(([section]) => (
                       <span key={section} style={{
@@ -1744,14 +1860,14 @@ const ProjectTitleDashboard = () => {
                       </span>
                     ))}
                 </div>
-                {Object.values(visibleSections).filter(v => v).length === 0 && (
+                {Object.values(tempVisibleSections).filter(v => v).length === 0 && (
                   <div style={{ color: '#9ca3af', textAlign: 'center', padding: '10px' }}>
                     No sections selected - dashboard will be empty
                   </div>
                 )}
               </div>
               <div style={{ marginTop: '10px', fontSize: '12px', color: '#1e3a5f', fontWeight: 'bold' }}>
-                Total visible sections: {Object.values(visibleSections).filter(v => v).length}
+                Total visible sections: {Object.values(tempVisibleSections).filter(v => v).length}
               </div>
             </div>
           </div>
@@ -2446,7 +2562,7 @@ const ProjectTitleDashboard = () => {
           submoduleData={submoduleData}
           tracker={getTrackerForPhase(chartId)}
           availableColumns={availableColumns}
-          handleAxisChange={handleAxisChange}
+          handleAxesUpdate={handleAxesUpdate}
         />
       )}
     </div>
@@ -3841,7 +3957,7 @@ const AxisSelectorModal = ({
   submoduleData,
   tracker,
   availableColumns,
-  handleAxisChange
+  handleAxesUpdate
 }) => {
   const config = axisConfigs[activeProject.id]?.[chartId] || { xAxis: '', yAxis: '' };
   const [localConfig, setLocalConfig] = useState(config);
@@ -3850,16 +3966,27 @@ const AxisSelectorModal = ({
   const dynamicAvailableColumns = useMemo(() => {
     if (tracker) {
       const data = submoduleData[tracker.trackerId];
-      if (data && data.headers) {
+      if (data && data.headers && data.headers.length > 0) {
         return data.headers;
       }
     }
     return availableColumns; // Fallback to dummy data
   }, [tracker, submoduleData, availableColumns]);
 
+  // Set defaults if localConfig is empty but columns are available
+  useEffect(() => {
+    if (dynamicAvailableColumns.length > 0) {
+      if (!localConfig.xAxis || !dynamicAvailableColumns.includes(localConfig.xAxis)) {
+        setLocalConfig(prev => ({ ...prev, xAxis: dynamicAvailableColumns[0] }));
+      }
+      if (!localConfig.yAxis || !dynamicAvailableColumns.includes(localConfig.yAxis)) {
+        setLocalConfig(prev => ({ ...prev, yAxis: dynamicAvailableColumns.length > 1 ? dynamicAvailableColumns[1] : dynamicAvailableColumns[0] }));
+      }
+    }
+  }, [dynamicAvailableColumns]);
+
   const handleApply = () => {
-    handleAxisChange(chartId, 'xAxis', localConfig.xAxis);
-    handleAxisChange(chartId, 'yAxis', localConfig.yAxis);
+    handleAxesUpdate(chartId, localConfig.xAxis, localConfig.yAxis);
     onClose();
   };
 
