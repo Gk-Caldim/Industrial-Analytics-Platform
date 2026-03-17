@@ -4,6 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { setProjects, updateProjectConfig } from '../store/slices/projectSlice';
 import { setSelectedProjectFileId } from '../store/slices/navSlice';
 import ReactECharts from 'echarts-for-react';
+import * as echarts from 'echarts';
 import '../utils/echarts-theme-v5'; // Register the v5 theme
 import ExcelTableViewer from '../components/ExcelTableViewer';
 import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings } from 'lucide-react';
@@ -50,6 +51,45 @@ const getStatusColor = (status) => {
     default: return { bg: '#f3f4f6', text: '#1f2937' };
   }
 };
+
+// Humanize raw field names
+const humanizeLabel = (label) => {
+  if (!label) return '';
+  return label
+    .replace(/_/g, ' ')
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, (str) => str.toUpperCase())
+    .trim();
+};
+
+// Format X-axis values (dates, numbers)
+const formatXAxisValue = (val) => {
+  if (val === null || val === undefined) return '';
+  const strVal = String(val);
+  
+  // Try to detect common date formats
+  if (strVal.match(/^\d{4}-\d{2}-\d{2}/) || strVal.match(/^\d{1,2}\/\d{1,2}\/\d{2,4}/)) {
+    const date = new Date(val);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
+    }
+  }
+  
+  // Large numbers
+  if (!isNaN(parseFloat(val)) && parseFloat(val) > 1000) {
+    return new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 1 }).format(val);
+  }
+
+  return strVal;
+};
+
+// Diverse color palette for differentiation
+const getDiversePalette = () => [
+  "#5470c6", "#91cc75", "#fac858", "#ee6666", "#73c0de", 
+  "#3ba272", "#fc8452", "#9a60b4", "#ea7ccc", "#5ae3f1",
+  "#ff9f7f", "#fb7293", "#e79068", "#e690d1", "#e062ae",
+  "#67e0e3", "#ffdb5c", "#37a2da", "#32c5e9", "#9fe6b8"
+];
 
 const ProjectTitleDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -2331,7 +2371,17 @@ const ProjectTitleDashboard = () => {
     const baseOption = {
       tooltip: {
         trigger: 'axis',
-        axisPointer: { type: 'shadow' }
+        axisPointer: { type: 'shadow' },
+        formatter: (params) => {
+          let html = `<div style="font-weight: bold; margin-bottom: 5px;">${formatXAxisValue(params[0].axisValue)}</div>`;
+          params.forEach(p => {
+            html += `<div style="display: flex; justify-content: space-between; gap: 20px;">
+              <span><span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${p.color};"></span>${humanizeLabel(p.seriesName)}</span>
+              <span style="font-weight: bold;">${p.value}</span>
+            </div>`;
+          });
+          return html;
+        }
       },
       toolbox: isMaximized ? {
         right: '20px',
@@ -2347,7 +2397,7 @@ const ProjectTitleDashboard = () => {
       grid: {
         left: '5%',
         right: '5%',
-        bottom: xLabels.length > 10 ? '25%' : '15%',
+        bottom: xLabels.length > 10 ? '30%' : '15%',
         top: '15%',
         containLabel: true
       },
@@ -2356,11 +2406,19 @@ const ProjectTitleDashboard = () => {
         data: xLabels,
         axisLabel: {
           interval: 0,
-          rotate: xLabels.length > 5 ? 30 : 0
-        }
+          rotate: xLabels.length > 5 ? 35 : 0,
+          formatter: formatXAxisValue,
+          fontSize: 10,
+          color: '#64748b'
+        },
+        axisLine: { lineStyle: { color: '#e2e8f0' } }
       },
       yAxis: {
-        type: 'value'
+        type: 'value',
+        name: humanizeLabel(axisConfig.yAxis),
+        nameTextStyle: { color: '#64748b', fontSize: 11, fontWeight: 'bold' },
+        axisLabel: { color: '#64748b', fontSize: 10 },
+        splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }
       }
     };
 
@@ -2374,15 +2432,22 @@ const ProjectTitleDashboard = () => {
             {
               name: axisConfig.yAxis,
               type: 'bar',
-              barWidth: '60%',
+              barWidth: '50%',
               data: yValues,
-              itemStyle: { borderRadius: [4, 4, 0, 0] },
+              itemStyle: { 
+                borderRadius: [6, 6, 0, 0],
+                color: (params) => {
+                  const palette = getDiversePalette();
+                  return palette[params.dataIndex % palette.length];
+                }
+              },
               label: {
                 show: true,
                 position: 'top',
                 color: '#1e3a5f',
                 fontSize: 10,
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                formatter: (p) => p.value > 0 ? p.value : ''
               }
             }
           ]
@@ -2398,8 +2463,17 @@ const ProjectTitleDashboard = () => {
               name: axisConfig.yAxis,
               type: 'line',
               smooth: true,
+              showSymbol: true,
+              symbolSize: 8,
               data: yValues,
-              areaStyle: chartType === 'area' ? { opacity: 0.3 } : undefined,
+              lineStyle: { width: 3, color: '#3b82f6' },
+              itemStyle: { color: '#3b82f6', borderWidth: 2, borderColor: '#fff' },
+              areaStyle: chartType === 'area' ? { 
+                color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                  { offset: 0, color: 'rgba(59, 130, 246, 0.5)' },
+                  { offset: 1, color: 'rgba(59, 130, 246, 0.01)' }
+                ])
+              } : undefined,
               label: {
                 show: true,
                 position: 'top',
@@ -2413,44 +2487,161 @@ const ProjectTitleDashboard = () => {
         break;
 
       case 'pie':
-        const pieData = xLabels.map((label, index) => ({
+        let pieData = xLabels.map((label, index) => ({
           name: label,
           value: yValues[index]
         }));
+        
+        // Smart Default: If too many segments in a Pie, it's better as a Bar
+        if (pieData.length > 15 && !isMaximized) {
+           return renderChart(chartId, 'bar', isMaximized, trackerId);
+        }
+
+        // Clutter management for Pie Chart: Group small slices into "Others"
+        // Reducing topN to 6 for better readability in high-density dashboards
+        if (pieData.length > 7) {
+          const sortedData = [...pieData].sort((a, b) => b.value - a.value);
+          const topN = sortedData.slice(0, 6);
+          const others = sortedData.slice(6).reduce((acc, curr) => acc + curr.value, 0);
+          if (others > 0) {
+            pieData = [...topN, { name: 'Others', value: others }];
+          }
+        }
+
         option = {
+          color: getDiversePalette(),
           tooltip: {
-            trigger: 'item'
+            trigger: 'item',
+            formatter: (p) => `<b>${formatXAxisValue(p.name)}</b>: ${p.value} (${p.percent}%)`
           },
           legend: {
-            orient: isMaximized ? 'vertical' : 'horizontal',
-            left: isMaximized ? 'left' : 'center',
-            bottom: isMaximized ? 'auto' : 0
+            type: 'scroll',
+            orient: 'horizontal',
+            bottom: 0,
+            itemWidth: 10,
+            itemHeight: 10,
+            textStyle: { fontSize: 10, color: '#64748b' },
+            padding: [0, 20]
           },
           series: [
             {
-              name: axisConfig.yAxis,
+              name: humanizeLabel(axisConfig.yAxis),
               type: 'pie',
-              radius: ['40%', '70%'],
-              center: ['50%', isMaximized ? '50%' : '45%'],
-              avoidLabelOverlap: false,
+              radius: isMaximized ? ['40%', '70%'] : ['40%', '65%'],
+              center: ['50%', '40%'],
+              avoidLabelOverlap: true,
               itemStyle: {
-                borderRadius: 10,
+                borderRadius: 8,
                 borderColor: '#fff',
                 borderWidth: 2
               },
               label: {
                 show: true,
                 position: 'outside',
-                formatter: '{b}: {c}',
-                fontSize: 12,
-                fontWeight: 'bold',
-                color: '#1e3a5f'
+                // Only show labels for slices > 3% to avoid collision
+                formatter: (p) => p.percent > 3 ? `${formatXAxisValue(p.name)}\n${p.value} (${p.percent}%)` : '',
+                fontSize: 10,
+                fontWeight: '600',
+                color: '#1e3a5f',
+                alignTo: 'edge', // Key for avoiding overlap
+                margin: 20,
+                distanceToLabelLine: 5
               },
+              labelLine: {
+                show: true,
+                length: 20, // Increased length
+                length2: 25, // Increased length
+                smooth: true,
+                lineStyle: { 
+                  width: 1.5,
+                  color: '#e2e8f0'
+                }
+              },
+              minAngle: 15, // Ensure slice is large enough to see
               emphasis: {
-                label: { show: true, fontSize: 16, fontWeight: 'bold' }
+                label: { show: true, fontSize: 12, fontWeight: 'bold' },
+                itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.2)' }
               },
-              labelLine: { show: false },
               data: pieData
+            }
+          ]
+        };
+        break;
+
+      case 'bar-horizontal':
+        option = {
+          ...baseOption,
+          xAxis: {
+            type: 'value',
+            axisLabel: { color: '#64748b', fontSize: 10 },
+            splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }
+          },
+          yAxis: {
+            type: 'category',
+            data: xLabels,
+            axisLabel: {
+              interval: 0,
+              fontSize: 10,
+              color: '#64748b'
+            }
+          },
+          series: [
+            {
+              name: axisConfig.yAxis,
+              type: 'bar',
+              data: yValues,
+              itemStyle: {
+                borderRadius: [0, 6, 6, 0],
+                color: (params) => {
+                  const palette = getDiversePalette();
+                  return palette[params.dataIndex % palette.length];
+                }
+              },
+              label: {
+                show: true,
+                position: 'right',
+                color: '#1e3a5f',
+                fontSize: 10,
+                fontWeight: 'bold'
+              }
+            }
+          ]
+        };
+        break;
+
+      case 'bar-rotated':
+        option = {
+          ...baseOption,
+          grid: { ...baseOption.grid, bottom: '25%' },
+          xAxis: {
+            ...baseOption.xAxis,
+            axisLabel: {
+              ...baseOption.xAxis.axisLabel,
+              rotate: 45,
+              interval: 0,
+              hideOverlap: true
+            }
+          },
+          series: [
+            {
+              name: axisConfig.yAxis,
+              type: 'bar',
+              barWidth: '60%',
+              data: yValues,
+              itemStyle: {
+                borderRadius: [4, 4, 0, 0],
+                color: (params) => {
+                  const palette = getDiversePalette();
+                  return palette[params.dataIndex % palette.length];
+                }
+              },
+              label: {
+                show: true,
+                position: 'top',
+                color: '#1e3a5f',
+                fontSize: 9,
+                fontWeight: 'bold'
+              }
             }
           ]
         };
@@ -2463,14 +2654,67 @@ const ProjectTitleDashboard = () => {
             {
               name: axisConfig.yAxis,
               type: 'bar',
-              barWidth: '99%',
+              barWidth: '95%', // Histogram style: narrow gaps
               data: yValues,
+              itemStyle: { 
+                color: '#6366f1',
+                opacity: 0.8,
+                borderColor: '#4338ca',
+                borderWidth: 1
+              },
               label: {
                 show: true,
                 position: 'top',
-                color: '#1e3a5f',
-                fontSize: 10,
-                fontWeight: 'bold'
+                fontSize: 10
+              }
+            }
+          ]
+        };
+        break;
+
+      case 'timeline':
+        // Timeline optimized for date sequence
+        option = {
+          ...baseOption,
+          tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'shadow' }
+          },
+          xAxis: {
+            ...baseOption.xAxis,
+            type: 'category',
+            boundaryGap: true
+          },
+          yAxis: {
+            ...baseOption.yAxis,
+            splitLine: { show: true, lineStyle: { type: 'solid', color: '#f1f5f9' } }
+          },
+          series: [
+            {
+              name: axisConfig.yAxis,
+              type: 'line',
+              step: 'middle', // Better for timeline changes
+              symbol: 'circle',
+              symbolSize: 10,
+              data: yValues,
+              lineStyle: { width: 4, color: '#10b981' },
+              itemStyle: { color: '#059669', borderWidth: 2, borderColor: '#fff' },
+              areaStyle: {
+                color: {
+                  type: 'linear',
+                  x: 0, y: 0, x2: 0, y2: 1,
+                  colorStops: [
+                    { offset: 0, color: 'rgba(16, 185, 129, 0.3)' },
+                    { offset: 1, color: 'rgba(16, 185, 129, 0)' }
+                  ]
+                }
+              },
+              label: {
+                show: true,
+                position: 'top',
+                formatter: (p) => p.value,
+                fontWeight: 'bold',
+                color: '#047857'
               }
             }
           ]
@@ -2483,8 +2727,8 @@ const ProjectTitleDashboard = () => {
 
     return (
       <div style={size}>
-        <div style={{ marginBottom: '10px', fontSize: '12px', color: '#4b5563', textAlign: 'center', backgroundColor: '#f3f4f6', padding: '4px 8px', borderRadius: '4px' }}>
-          <span style={{ fontWeight: 'bold' }}>X:</span> {axisConfig.xAxis} | <span style={{ fontWeight: 'bold' }}>Y:</span> {axisConfig.yAxis}
+        <div style={{ marginBottom: '10px', fontSize: '11px', color: '#64748b', textAlign: 'center', backgroundColor: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+          <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>X:</span> {humanizeLabel(axisConfig.xAxis)} <span style={{ mx: 2, opacity: 0.3 }}>|</span> <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>Y:</span> {humanizeLabel(axisConfig.yAxis)}
         </div>
         <ReactECharts theme="v5" option={option} style={{ height: isMaximized ? '350px' : '280px', width: '100%' }} notMerge={true} />
       </div>
@@ -2495,62 +2739,73 @@ const ProjectTitleDashboard = () => {
 
   // Chart options render function
   const renderChartOptions = (chartId, currentType) => (
-    <div style={{ display: 'flex', gap: '6px', alignItems: 'center', position: 'relative' }}>
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', position: 'relative' }}>
       <select
         value={currentType}
         onChange={(e) => handleChartTypeChange(chartId, e.target.value)}
         style={{
-          padding: '6px 10px',
-          fontSize: '12px',
-          borderRadius: '4px',
-          border: '1px solid white',
-          backgroundColor: 'rgba(255, 255, 255, 0.3)',
-          color: 'white',
+          padding: '4px 8px',
+          fontSize: '11px',
+          borderRadius: '6px',
+          border: '1px solid #cbd5e1',
+          backgroundColor: '#f8fafc',
+          color: '#1e3a5f',
           cursor: 'pointer',
           fontWeight: 'bold',
-          outline: 'none'
+          outline: 'none',
+          minWidth: '100px'
         }}
       >
-        <option value="bar" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Bar</option>
-        <option value="line" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Line</option>
-        <option value="pie" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Pie</option>
-        <option value="area" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Area</option>
-        <option value="histogram" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Histogram</option>
+        <option value="bar">Bar Chart</option>
+        <option value="line">Line Chart</option>
+        <option value="pie">Pie Chart</option>
+        <option value="area">Area Chart</option>
+        <option value="histogram">Histogram</option>
+        <option value="bar-horizontal">Horizontal Bar</option>
+        <option value="bar-rotated">Rotated Bar</option>
+        <option value="timeline">Timeline</option>
       </select>
 
       <button
         onClick={() => toggleAxisSelector(chartId)}
+        title="Configure Axes"
         style={{
-          padding: '6px 10px',
-          fontSize: '12px',
-          borderRadius: '4px',
-          border: '1px solid white',
-          backgroundColor: showAxisSelector === chartId ? 'white' : 'rgba(255, 255, 255, 0.3)',
-          color: showAxisSelector === chartId ? '#1e3a5f' : 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '28px',
+          height: '28px',
+          borderRadius: '6px',
+          border: '1px solid #cbd5e1',
+          backgroundColor: showAxisSelector === chartId ? '#1e3a5f' : '#f8fafc',
+          color: showAxisSelector === chartId ? 'white' : '#1e3a5f',
           cursor: 'pointer',
-          fontWeight: 'bold',
-          outline: 'none',
-          transition: 'all 0.2s'
+          transition: 'all 0.2s',
+          padding: 0
         }}
       >
-        Configure
+        <Settings size={14} />
       </button>
 
       <button
         onClick={() => handleMaximize(chartId)}
+        title="Maximize Chart"
         style={{
-          padding: '6px 10px',
-          fontSize: '12px',
-          borderRadius: '4px',
-          border: '1px solid white',
-          backgroundColor: 'rgba(255, 255, 255, 0.3)',
-          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '28px',
+          height: '28px',
+          borderRadius: '6px',
+          border: '1px solid #cbd5e1',
+          backgroundColor: '#f8fafc',
+          color: '#1e3a5f',
           cursor: 'pointer',
-          fontWeight: 'bold',
-          outline: 'none'
+          transition: 'all 0.2s',
+          padding: 0
         }}
       >
-        Max
+        <Maximize2 size={14} />
       </button>
 
       {showAxisSelector === chartId && (
@@ -2568,7 +2823,6 @@ const ProjectTitleDashboard = () => {
     </div>
   );
 
-  // Maximized Chart Modal
   // Maximized Chart Modal Component
   const renderMaximizedChartModal = () => {
     if (!maximizedChart || !activeProject) return null;
@@ -2582,6 +2836,11 @@ const ProjectTitleDashboard = () => {
       qualityIssues: 'Quality Issues'
     };
 
+    const phaseLabel = chartNames[maximizedChart] || 
+                      (activeProject?.submodules || []).find(sub => sub.id === maximizedChart)?.displayName || 
+                      (activeProject?.submodules || []).find(sub => sub.id === maximizedChart)?.name || 
+                      maximizedChart;
+
     return (
       <div style={{
         position: 'fixed',
@@ -2589,77 +2848,87 @@ const ProjectTitleDashboard = () => {
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.7)',
+        backgroundColor: 'rgba(15, 23, 42, 0.85)',
+        backdropFilter: 'blur(8px)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1000,
+        zIndex: 10000,
         padding: '30px'
       }}>
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '8px',
-          width: '90%',
-          maxWidth: '1000px',
+          borderRadius: '16px',
+          width: '95%',
+          maxWidth: '1200px',
           maxHeight: '90vh',
-          overflow: 'auto',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+          display: 'flex',
+          flexDirection: 'column',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          overflow: 'hidden'
         }}>
           <div style={{
             backgroundColor: '#1e3a5f',
             color: 'white',
-            padding: '15px 20px',
+            padding: '20px 25px',
             fontSize: '18px',
             fontWeight: 'bold',
-            borderBottom: '1px solid #2c4c7c',
             display: 'flex',
             justifyContent: 'space-between',
-            alignItems: 'center'
+            alignItems: 'center',
+            borderBottom: '1px solid #2c4c7c'
           }}>
-            <span>
-              {activeProject.name} - {chartNames[maximizedChart]} (Maximized View)
-            </span>
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+               <div style={{ backgroundColor: '#3b82f6', width: '4px', height: '24px', borderRadius: '2px' }} />
+               <span>{humanizeLabel(phaseLabel)} - Analysis</span>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <select
-                value={chartTypes[activeProject.id]?.[maximizedChart]}
+                value={chartTypes[activeProject.id]?.[maximizedChart] || 'bar'}
                 onChange={(e) => handleChartTypeChange(maximizedChart, e.target.value)}
                 style={{
-                  padding: '8px 12px',
+                  padding: '8px 15px',
                   fontSize: '14px',
-                  borderRadius: '4px',
-                  border: '1px solid white',
-                  backgroundColor: 'rgba(255, 255, 255, 0.3)',
+                  borderRadius: '6px',
+                  border: '1px solid rgba(255,255,255,0.4)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
                   color: 'white',
                   cursor: 'pointer',
                   fontWeight: 'bold',
                   outline: 'none'
                 }}
               >
-                <option value="bar" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Bar</option>
-                <option value="line" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Line</option>
-                <option value="pie" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Pie</option>
-                <option value="area" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Area</option>
-                <option value="histogram" style={{ color: '#1e3a5f', backgroundColor: 'white' }}>Histogram</option>
+                <option value="bar" style={{ color: '#1e3a5f' }}>Bar</option>
+                <option value="line" style={{ color: '#1e3a5f' }}>Line</option>
+                <option value="pie" style={{ color: '#1e3a5f' }}>Pie</option>
+                <option value="area" style={{ color: '#1e3a5f' }}>Area</option>
+                <option value="histogram" style={{ color: '#1e3a5f' }}>Histogram</option>
+                <option value="bar-horizontal" style={{ color: '#1e3a5f' }}>Horizontal Bar</option>
+                <option value="bar-rotated" style={{ color: '#1e3a5f' }}>Rotated Bar</option>
+                <option value="timeline" style={{ color: '#1e3a5f' }}>Timeline</option>
               </select>
               <button
                 onClick={handleCloseMaximize}
                 style={{
-                  padding: '8px 16px',
+                  padding: '8px 20px',
                   fontSize: '14px',
-                  borderRadius: '4px',
+                  borderRadius: '6px',
                   border: 'none',
                   backgroundColor: '#ef4444',
                   color: 'white',
                   cursor: 'pointer',
-                  fontWeight: 'bold'
+                  fontWeight: 'bolder',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                 }}
               >
                 Close
               </button>
             </div>
           </div>
-          <div style={{ padding: '30px' }}>
-            {renderChart(maximizedChart, chartTypes[activeProject.id]?.[maximizedChart], true, getTrackerForPhase(maximizedChart)?.trackerId)}
+          <div style={{ padding: '40px', flex: 1, overflowY: 'auto', backgroundColor: '#f8fafc' }}>
+            <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
+               {renderChart(maximizedChart, chartTypes[activeProject.id]?.[maximizedChart] || 'bar', true, getTrackerForPhase(maximizedChart)?.trackerId)}
+            </div>
           </div>
         </div>
       </div>
@@ -3007,91 +3276,90 @@ const ProjectTitleDashboard = () => {
               <div style={{ padding: '20px 25px 25px 25px' }}>
                 {/* Milestones Section */}
                 {visibleSections.milestones && (
-                  <div style={{ marginBottom: '35px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e3a5f', color: 'white', padding: '12px 20px', fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #234574' }}>
-                      <span>Milestones</span>
-                      <button
-                        onClick={() => { setMilestoneForm({ ...milestones[0] }); setShowEditMilestones(true); }}
-                        className="no-print"
-                        style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
-                        title="Edit Milestones"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                    </div>
-
                     <div style={{
-                      border: '1px solid #e0e0e0',
-                      borderRadius: '4px',
+                      backgroundColor: 'white',
+                      borderRadius: '12px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                       overflow: 'hidden'
                     }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px' }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        backgroundColor: '#f8fafc',
+                        padding: '12px 20px',
+                        borderBottom: '1px solid #e2e8f0'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ backgroundColor: '#1e3a5f', width: '4px', height: '18px', borderRadius: '2px' }} />
+                          <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Project Timeline</span>
+                        </div>
+                        <button
+                          onClick={() => { setMilestoneForm({ ...milestones[0] }); setShowEditMilestones(true); }}
+                          className="no-print"
+                          style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '4px' }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                         <thead>
-                          <tr style={{ backgroundColor: '#1e3a5f' }}>
-                            <th style={{ width: '100px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>Categories</th>
-                            <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>A</th>
-                            <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>B</th>
-                            <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>C</th>
-                            <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>D</th>
-                            <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>E</th>
-                            <th style={{ width: '90px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>F</th>
-                            <th style={{ width: '120px', padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold' }}>Implementation</th>
+                          <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                            <th style={{ width: '120px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Category</th>
+                            <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>A</th>
+                            <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>B</th>
+                            <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>C</th>
+                            <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>D</th>
+                            <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>E</th>
+                            <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>F</th>
+                            <th style={{ width: '140px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Status</th>
                           </tr>
                         </thead>
                         <tbody>
                           {milestones.map((item, idx) => (
                             <React.Fragment key={idx}>
-                              <tr style={{ backgroundColor: idx % 2 === 0 ? 'white' : '#f8f9fa', borderBottom: '1px solid #e0e0e0' }}>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', fontWeight: 'bold', color: '#1e3a5f', whiteSpace: 'nowrap' }}>Plan</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.a}</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.b}</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.c}</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.d}</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.e}</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.plan.f}</td>
-                                <td style={{ padding: '10px 15px' }}>
+                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '12px 15px', fontWeight: 'bold', color: '#1e3a5f', whiteSpace: 'nowrap' }}>Plan</td>
+                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.a)}</td>
+                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.b)}</td>
+                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.c)}</td>
+                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.d)}</td>
+                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.e)}</td>
+                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.f)}</td>
+                                <td style={{ padding: '12px 15px' }}>
                                   <span style={{
                                     display: 'inline-block',
-                                    padding: '4px 10px',
-                                    borderRadius: '20px',
-                                    fontSize: '12px',
+                                    padding: '4px 12px',
+                                    borderRadius: '6px',
+                                    fontSize: '11px',
                                     fontWeight: 'bold',
-                                    backgroundColor:
-                                      item.plan.implementation === 'On Track' ? '#d1fae5' :
-                                        item.plan.implementation === 'In Progress' ? '#dbeafe' :
-                                          item.plan.implementation === 'At Risk' ? '#fee2e2' : '#f3f4f6',
-                                    color:
-                                      item.plan.implementation === 'On Track' ? '#065f46' :
-                                        item.plan.implementation === 'In Progress' ? '#1e40af' :
-                                          item.plan.implementation === 'At Risk' ? '#991b1b' : '#1f2937'
+                                    backgroundColor: item.plan.implementation === 'On Track' ? '#ecfdf5' : item.plan.implementation === 'In Progress' ? '#eff6ff' : '#fff1f2',
+                                    color: item.plan.implementation === 'On Track' ? '#059669' : item.plan.implementation === 'In Progress' ? '#2563eb' : '#dc2626',
+                                    border: `1px solid ${item.plan.implementation === 'On Track' ? '#10b981' : item.plan.implementation === 'In Progress' ? '#3b82f6' : '#f43f5e'}33`
                                   }}>
                                     {item.plan.implementation}
                                   </span>
                                 </td>
                               </tr>
-                              <tr style={{ backgroundColor: idx % 2 === 0 ? '#f0f7ff' : '#e6f0fa', borderBottom: '1px solid #e0e0e0' }}>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', fontWeight: 'bold', color: '#047857', whiteSpace: 'nowrap' }}>Actual/Outlook</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.a}</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.b}</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.c}</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.d}</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.e}</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', whiteSpace: 'nowrap' }}>{item.actual.f}</td>
-                                <td style={{ padding: '10px 15px' }}>
+                              <tr style={{ backgroundColor: '#fcfdff', borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '12px 15px', fontWeight: 'bold', color: '#047857', whiteSpace: 'nowrap' }}>Actual</td>
+                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.a)}</td>
+                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.b)}</td>
+                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.c)}</td>
+                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.d)}</td>
+                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.e)}</td>
+                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.f)}</td>
+                                <td style={{ padding: '12px 15px' }}>
                                   <span style={{
                                     display: 'inline-block',
-                                    padding: '4px 10px',
-                                    borderRadius: '20px',
-                                    fontSize: '12px',
+                                    padding: '4px 12px',
+                                    borderRadius: '6px',
+                                    fontSize: '11px',
                                     fontWeight: 'bold',
-                                    backgroundColor:
-                                      item.actual.implementation === 'On Track' ? '#d1fae5' :
-                                        item.actual.implementation === 'In Progress' ? '#dbeafe' :
-                                          item.actual.implementation === 'At Risk' ? '#fee2e2' : '#f3f4f6',
-                                    color:
-                                      item.actual.implementation === 'On Track' ? '#065f46' :
-                                        item.actual.implementation === 'In Progress' ? '#1e40af' :
-                                          item.actual.implementation === 'At Risk' ? '#991b1b' : '#1f2937'
+                                    backgroundColor: item.actual.implementation === 'On Track' ? '#ecfdf5' : item.actual.implementation === 'In Progress' ? '#eff6ff' : '#fff1f2',
+                                    color: item.actual.implementation === 'On Track' ? '#059669' : item.actual.implementation === 'In Progress' ? '#2563eb' : '#dc2626',
+                                    border: `1px solid ${item.actual.implementation === 'On Track' ? '#10b981' : item.actual.implementation === 'In Progress' ? '#3b82f6' : '#f43f5e'}33`
                                   }}>
                                     {item.actual.implementation}
                                   </span>
@@ -3102,38 +3370,46 @@ const ProjectTitleDashboard = () => {
                         </tbody>
                       </table>
                     </div>
-                  </div>
                 )}
 
                 {/* Critical Issues Section */}
                 {visibleSections.criticalIssues && (
-                  <div style={{ marginBottom: '35px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e3a5f', color: 'white', padding: '12px 20px', fontSize: '16px', fontWeight: 'bold', borderBottom: '2px solid #234574' }}>
-                      <span>Critical Issues Summary</span>
-                      <button
-                        onClick={() => { setIssuesForm([...criticalIssues]); setShowEditIssues(true); }}
-                        className="no-print"
-                        style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
-                        title="Edit Critical Issues"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                    </div>
-
                     <div style={{
-                      border: '1px solid #e0e0e0',
-                      borderRadius: '4px',
+                      backgroundColor: 'white',
+                      borderRadius: '12px',
+                      border: '1px solid #e2e8f0',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                       overflow: 'hidden'
                     }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '15px' }}>
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        backgroundColor: '#f8fafc',
+                        padding: '12px 20px',
+                        borderBottom: '1px solid #e2e8f0'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <div style={{ backgroundColor: '#ef4444', width: '4px', height: '18px', borderRadius: '2px' }} />
+                          <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Top Critical Issues</span>
+                        </div>
+                        <button
+                          onClick={() => { setIssuesForm([...criticalIssues]); setShowEditIssues(true); }}
+                          className="no-print"
+                          style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '4px' }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
                         <thead>
-                          <tr style={{ backgroundColor: '#1e3a5f' }}>
-                            <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>S.No</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>List of Top Critical Issues</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>Responsibility</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>Function</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold', borderRight: '1px solid #2c4c7c' }}>Target date for Closure</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'left', color: 'white', fontWeight: 'bold' }}>Status</th>
+                          <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                            <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>#</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Issue Description</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Owner</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Function</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Target Date</th>
+                            <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Status</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -3141,21 +3417,22 @@ const ProjectTitleDashboard = () => {
                             const colors = getStatusColor(item.status);
 
                             return (
-                              <tr key={item.id} style={{ backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa', borderBottom: '1px solid #e0e0e0' }}>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0', fontWeight: 'bold' }}>{item.id}</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0' }}>{item.issue}</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0' }}>{item.responsibility}</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0' }}>{item.function}</td>
-                                <td style={{ padding: '10px 15px', borderRight: '1px solid #e0e0e0' }}>{item.targetDate}</td>
-                                <td style={{ padding: '10px 15px' }}>
+                              <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                <td style={{ padding: '12px 15px', fontWeight: 'bold', color: '#64748b' }}>{item.id}</td>
+                                <td style={{ padding: '12px 15px', color: '#1e3a5f', fontWeight: '500' }}>{item.issue}</td>
+                                <td style={{ padding: '12px 15px', color: '#445164' }}>{item.responsibility}</td>
+                                <td style={{ padding: '12px 15px', color: '#445164' }}>{item.function}</td>
+                                <td style={{ padding: '12px 15px', color: '#445164' }}>{formatXAxisValue(item.targetDate)}</td>
+                                <td style={{ padding: '12px 15px' }}>
                                   <span style={{
                                     display: 'inline-block',
-                                    padding: '4px 10px',
-                                    borderRadius: '20px',
-                                    fontSize: '12px',
+                                    padding: '4px 12px',
+                                    borderRadius: '6px',
+                                    fontSize: '11px',
                                     fontWeight: 'bold',
                                     backgroundColor: colors.bg,
-                                    color: colors.text
+                                    color: colors.text,
+                                    border: `1px solid ${colors.text}33`
                                   }}>
                                     {item.status}
                                   </span>
@@ -3166,7 +3443,6 @@ const ProjectTitleDashboard = () => {
                         </tbody>
                       </table>
                     </div>
-                  </div>
                 )}
 
                 {/* Project Metrics Charts */}
@@ -3176,21 +3452,19 @@ const ProjectTitleDashboard = () => {
                       (activeProject?.submodules || []).some(sub => sub.id === key)
                   )
                 )) && (
-                    <div style={{ marginBottom: '35px' }}>
-                      <h2 style={{
-                        fontSize: '20px',
-                        fontWeight: 'bold',
-                        color: '#1e3a5f',
-                        marginBottom: '15px',
-                        marginTop: 0
-                      }}>
+                  <div style={{ marginBottom: '40px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+                      <div style={{ backgroundColor: '#3b82f6', width: '4px', height: '24px', borderRadius: '2px' }} />
+                      <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#1e3a5f', margin: 0, letterSpacing: '-0.02em' }}>
                         Project Metrics Summary
                       </h2>
+                    </div>
 
                       <div style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: '15px'
+                        gap: '24px',
+                        width: '100%'
                       }}>
                         {/* Iterate through all possible phases and submodules */}
                         {[
@@ -3214,29 +3488,28 @@ const ProjectTitleDashboard = () => {
                           <div
                             key={phase.id}
                             style={{
-                              border: '1px solid #e0e0e0',
-                              borderRadius: '6px',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '12px',
                               overflow: 'hidden',
                               backgroundColor: 'white',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-                              position: 'relative'
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                              position: 'relative',
+                              transition: 'transform 0.2s, box-shadow 0.2s'
                             }}
+                            className="hover:shadow-lg"
                           >
                             <div style={{
-                              backgroundColor: '#1e3a5f',
-                              color: 'white',
+                              backgroundColor: '#f8fafc',
                               padding: '12px 15px',
-                              fontSize: '15px',
-                              fontWeight: 'bold',
-                              borderBottom: '1px solid #2c4c7c',
+                              borderBottom: '1px solid #e2e8f0',
                               display: 'flex',
                               justifyContent: 'space-between',
                               alignItems: 'center'
                             }}>
-                              <span>{phase.label}</span>
+                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f', letterSpacing: '-0.01em' }}>{humanizeLabel(phase.label)}</span>
                               {renderChartOptions(phase.id, chartTypes[activeProject.id]?.[phase.id] || phase.defaultType || 'bar')}
                             </div>
-                            <div style={{ padding: '15px' }}>
+                            <div style={{ padding: '20px' }}>
                               {renderChart(phase.id, chartTypes[activeProject.id]?.[phase.id] || phase.defaultType || 'bar', false, getTrackerForPhase(phase.id)?.trackerId)}
                             </div>
                           </div>
@@ -3257,48 +3530,52 @@ const ProjectTitleDashboard = () => {
                       {/* Budget Summary */}
                       {visibleSections.budget && (
                         <div style={{
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '6px',
+                          backgroundColor: 'white',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0',
                           overflow: 'hidden',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                          display: 'flex',
+                          flexDirection: 'column'
                         }}>
                           <div style={{
-                            backgroundColor: '#1e3a5f',
-                            color: 'white',
-                            padding: '12px 15px',
-                            fontSize: '16px',
-                            fontWeight: 'bold',
-                            borderBottom: '1px solid #2c4c7c',
+                            padding: '16px 20px',
+                            backgroundColor: '#eff6ff',
+                            borderBottom: '1px solid #dbeafe',
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center'
                           }}>
-                            <span>Budget Summary</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{ backgroundColor: '#3b82f6', color: 'white', padding: '6px', borderRadius: '8px' }}>
+                                <Maximize2 size={16} /> {/* Using icon as placeholder */}
+                              </div>
+                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Budget</span>
+                            </div>
                             <button
                               onClick={() => { setEditType('budget'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
                               className="no-print"
-                              style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
-                              title="Edit Budget Summary"
+                              style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '4px' }}
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                           </div>
-                          <div style={{ padding: '15px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Approved:</span>
-                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetApproved}</span>
+                          <div style={{ padding: '20px', display: 'grid', gap: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Approved</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#1e3a5f' }}>{summaryData.budgetApproved}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Utilized:</span>
-                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetUtilized}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Utilized</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#3b82f6' }}>{summaryData.budgetUtilized}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Balance:</span>
-                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetBalance}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Utilization Outlook:</span>
-                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#10b981' }}>{summaryData.budgetOutlook}</span>
+                            <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '4px 0' }} />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Outlook</span>
+                              <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: '18px', fontWeight: '900', color: '#10b981' }}>{summaryData.budgetOutlook}</span>
+                                <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 'bold' }}>EXPENDITURE</div>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -3307,48 +3584,52 @@ const ProjectTitleDashboard = () => {
                       {/* Resource Summary */}
                       {visibleSections.resource && (
                         <div style={{
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '6px',
+                          backgroundColor: 'white',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0',
                           overflow: 'hidden',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                          display: 'flex',
+                          flexDirection: 'column'
                         }}>
                           <div style={{
-                            backgroundColor: '#1e3a5f',
-                            color: 'white',
-                            padding: '12px 15px',
-                            fontSize: '16px',
-                            fontWeight: 'bold',
-                            borderBottom: '1px solid #2c4c7c',
+                            padding: '16px 20px',
+                            backgroundColor: '#f0fdf4',
+                            borderBottom: '1px solid #dcfce7',
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center'
                           }}>
-                            <span>Resource Summary</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{ backgroundColor: '#22c55e', color: 'white', padding: '6px', borderRadius: '8px' }}>
+                                <Check size={16} />
+                              </div>
+                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Resource</span>
+                            </div>
                             <button
                               onClick={() => { setEditType('resource'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
                               className="no-print"
-                              style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
-                              title="Edit Resource Summary"
+                              style={{ background: 'none', border: 'none', color: '#22c55e', cursor: 'pointer', padding: '4px' }}
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                           </div>
-                          <div style={{ padding: '15px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Deployed:</span>
-                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.resourceDeployed}</span>
+                          <div style={{ padding: '20px', display: 'grid', gap: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Deployed</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#1e3a5f' }}>{summaryData.resourceDeployed}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Utilized:</span>
-                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.resourceUtilized}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Shortage</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#ef4444' }}>{summaryData.resourceShortage}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Shortage:</span>
-                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#ef4444' }}>{summaryData.resourceShortage}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Under Utilized:</span>
-                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#f59e0b' }}>{summaryData.resourceUnderUtilized}</span>
+                            <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '4px 0' }} />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Status</span>
+                              <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: '18px', fontWeight: '900', color: '#f59e0b' }}>{summaryData.resourceUtilized}/{summaryData.resourceDeployed}</span>
+                                <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 'bold' }}>UTILIZATION</div>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -3357,48 +3638,52 @@ const ProjectTitleDashboard = () => {
                       {/* Quality Summary */}
                       {visibleSections.quality && (
                         <div style={{
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '6px',
+                          backgroundColor: 'white',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0',
                           overflow: 'hidden',
-                          boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                          display: 'flex',
+                          flexDirection: 'column'
                         }}>
                           <div style={{
-                            backgroundColor: '#1e3a5f',
-                            color: 'white',
-                            padding: '12px 15px',
-                            fontSize: '16px',
-                            fontWeight: 'bold',
-                            borderBottom: '1px solid #2c4c7c',
+                            padding: '16px 20px',
+                            backgroundColor: '#fff7ed',
+                            borderBottom: '1px solid #ffedd5',
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center'
                           }}>
-                            <span>Quality Summary</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{ backgroundColor: '#f59e0b', color: 'white', padding: '6px', borderRadius: '8px' }}>
+                                <Filter size={16} />
+                              </div>
+                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Quality</span>
+                            </div>
                             <button
                               onClick={() => { setEditType('quality'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
                               className="no-print"
-                              style={{ background: 'none', border: 'none', color: '#60a5fa', cursor: 'pointer', padding: '0', display: 'flex', alignItems: 'center' }}
-                              title="Edit Quality Summary"
+                              style={{ background: 'none', border: 'none', color: '#f59e0b', cursor: 'pointer', padding: '4px' }}
                             >
                               <Edit className="h-4 w-4" />
                             </button>
                           </div>
-                          <div style={{ padding: '15px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Total Issues:</span>
-                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.qualityTotal}</span>
+                          <div style={{ padding: '20px', display: 'grid', gap: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Total Issues</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#1e3a5f' }}>{summaryData.qualityTotal}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Action Completed:</span>
-                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#10b981' }}>{summaryData.qualityCompleted}</span>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Open</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#ef4444' }}>{summaryData.qualityOpen}</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px dashed #e0e0e0', paddingBottom: '8px' }}>
-                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Open Issues:</span>
-                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#ef4444' }}>{summaryData.qualityOpen}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>No of Critical Issues:</span>
-                              <span style={{ fontSize: '15px', fontWeight: 'bold', color: '#ef4444' }}>{summaryData.qualityCritical}</span>
+                            <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '4px 0' }} />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Closed</span>
+                              <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: '18px', fontWeight: '900', color: '#10b981' }}>{summaryData.qualityCompleted}</span>
+                                <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 'bold' }}>RESOLUTION</div>
+                              </div>
                             </div>
                           </div>
                         </div>
