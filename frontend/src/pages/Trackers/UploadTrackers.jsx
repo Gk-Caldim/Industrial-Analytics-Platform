@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { setSelectedUploadFileId } from '../../store/slices/navSlice';
 import {
   Upload, File, CheckCircle, Clock, AlertCircle, Download, Trash2, Eye, Edit,
   Plus, Search, X, ChevronUp, ChevronDown, Filter, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
@@ -711,7 +713,10 @@ const capitalizeFirstLetter = (str) => {
 // MAIN UPLOAD TRACKERS COMPONENT
 // ============================================================================
 
-const UploadTrackers = ({ selectedFileId, onClearSelection }) => {
+const UploadTrackers = () => {
+  const dispatch = useDispatch();
+  const selectedFileId = useSelector(state => state.nav.selectedUploadFileId);
+  const onClearSelection = () => dispatch(setSelectedUploadFileId(null));
   // Get current user from localStorage
   const getCurrentUser = () => {
     const userData = localStorage.getItem('currentUser');
