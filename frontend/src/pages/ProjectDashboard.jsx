@@ -83,6 +83,60 @@ const formatXAxisValue = (val) => {
   return strVal;
 };
 
+// Helper to detect if a column is a date
+const isDateColumn = (data, colName) => {
+  if (!data || !Array.isArray(data) || data.length === 0) return false;
+  // Check first 5 non-empty rows
+  let count = 0;
+  let matches = 0;
+  for (let i = 0; i < data.length && count < 5; i++) {
+    const val = data[i][colName];
+    if (val !== null && val !== undefined && String(val).trim() !== '') {
+      count++;
+      const strVal = String(val);
+      if (strVal.match(/^\d{4}-\d{2}-\d{2}/) || strVal.match(/^\d{1,2}\/\d{1,2}\/\d{2,4}/)) {
+        matches++;
+      }
+    }
+  }
+  return count > 0 && matches / count > 0.6;
+};
+
+// Infer relationship between two date columns
+const inferDateRelationship = (col1, col2) => {
+  const c1 = col1.toLowerCase();
+  const c2 = col2.toLowerCase();
+  
+  // Delay: Planned/Target vs Actual/Completed
+  const plannedKeys = ['planned', 'target', 'expected', 'schedule'];
+  const actualKeys = ['actual', 'completed', 'delivered', 'finish'];
+  
+  if (plannedKeys.some(k => c1.includes(k)) && actualKeys.some(k => c2.includes(k))) {
+    return { type: 'delay', label: 'Delay', date1: col1, date2: col2 }; // Actual - Planned
+  }
+  if (plannedKeys.some(k => c2.includes(k)) && actualKeys.some(k => c1.includes(k))) {
+    return { type: 'delay', label: 'Delay', date1: col2, date2: col1 };
+  }
+  
+  // Duration: Start vs End
+  if (c1.includes('start') && (c2.includes('end') || c2.includes('finish'))) {
+    return { type: 'duration', label: 'Duration', date1: col1, date2: col2 }; // End - Start
+  }
+  if (c2.includes('start') && (c1.includes('end') || c1.includes('finish'))) {
+    return { type: 'duration', label: 'Duration', date1: col2, date2: col1 };
+  }
+  
+  // Cycle Time: Created vs Completed/Closed
+  if (c1.includes('created') && (c2.includes('completed') || c2.includes('closed') || c2.includes('finish'))) {
+    return { type: 'cycleTime', label: 'Cycle Time', date1: col1, date2: col2 }; // Completed - Created
+  }
+  if (c2.includes('created') && (c1.includes('completed') || c1.includes('closed') || c1.includes('finish'))) {
+    return { type: 'cycleTime', label: 'Cycle Time', date1: col2, date2: col1 };
+  }
+  
+  return null;
+};
+
 // Diverse color palette for differentiation
 const getDiversePalette = () => [
   "#5470c6", "#91cc75", "#fac858", "#ee6666", "#73c0de", 
@@ -782,14 +836,15 @@ const ProjectTitleDashboard = () => {
   };
 
   // Handle axis configuration change
-  const handleAxesUpdate = (chartId, xAxis, yAxis) => {
+  const handleAxesUpdate = (chartId, xAxis, yAxis, derivedConfig = null) => {
     if (activeProject) {
       const projectAxes = axisConfigs[activeProject.id] || {};
       const updatedAxes = {
         ...projectAxes,
         [chartId]: {
           xAxis,
-          yAxis
+          yAxis,
+          derivedConfig
         }
       };
 
@@ -797,6 +852,11 @@ const ProjectTitleDashboard = () => {
         ...prev,
         [activeProject.id]: updatedAxes
       }));
+
+      // If we have a derived metric, default the chart type to 'bar'
+      if (derivedConfig) {
+        handleChartTypeChange(chartId, 'bar');
+      }
 
       // Persist to Redux
       dispatch(updateProjectConfig({
@@ -2322,6 +2382,8 @@ const ProjectTitleDashboard = () => {
       return val !== null && val !== undefined && val !== '' && !isNaN(parseFloat(val));
     });
 
+    const derivedConfig = axisConfig.derivedConfig;
+
     chartData.forEach(row => {
       let xVal = row[axisConfig.xAxis];
       if (xVal === null || xVal === undefined || String(xVal).trim() === '') {
@@ -2330,13 +2392,26 @@ const ProjectTitleDashboard = () => {
         xVal = String(xVal).trim();
       }
 
-      const yVal = row[axisConfig.yAxis];
+      let yVal = row[axisConfig.yAxis];
+
+      // Handle derived date metrics
+      if (derivedConfig && ['delay', 'duration', 'cycleTime'].includes(derivedConfig.type)) {
+        const d1 = new Date(row[derivedConfig.date1]);
+        const d2 = new Date(row[derivedConfig.date2]);
+        
+        if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
+          // value = (later_date - earlier_date) in days
+          yVal = (d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24);
+        } else {
+          yVal = null;
+        }
+      }
 
       if (!groupedData[xVal]) {
         groupedData[xVal] = 0;
       }
 
-      if (yAxisIsNumeric) {
+      if (derivedConfig || yAxisIsNumeric) {
         if (yVal !== null && yVal !== undefined && yVal !== '') {
           groupedData[xVal] += parseFloat(yVal) || 0;
         }
@@ -2368,6 +2443,12 @@ const ProjectTitleDashboard = () => {
       return yAxisIsNumeric ? Math.round(e[1] * 100) / 100 : e[1];
     });
 
+    // Label for Y-axis
+    let yAxisLabel = humanizeLabel(axisConfig.yAxis);
+    if (derivedConfig && derivedConfig.label) {
+      yAxisLabel = `${derivedConfig.label} (Days)`;
+    }
+
     const baseOption = {
       tooltip: {
         trigger: 'axis',
@@ -2377,7 +2458,7 @@ const ProjectTitleDashboard = () => {
           params.forEach(p => {
             html += `<div style="display: flex; justify-content: space-between; gap: 20px;">
               <span><span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${p.color};"></span>${humanizeLabel(p.seriesName)}</span>
-              <span style="font-weight: bold;">${p.value}</span>
+              <span style="font-weight: bold;">${p.value} ${derivedConfig ? 'Days' : ''}</span>
             </div>`;
           });
           return html;
@@ -2397,7 +2478,7 @@ const ProjectTitleDashboard = () => {
       grid: {
         left: '5%',
         right: '5%',
-        bottom: xLabels.length > 10 ? '30%' : '15%',
+        bottom: xLabels.length > 10 ? '30%' : (chartType === 'bar-rotated' ? '25%' : '15%'),
         top: '15%',
         containLabel: true
       },
@@ -2406,7 +2487,7 @@ const ProjectTitleDashboard = () => {
         data: xLabels,
         axisLabel: {
           interval: 0,
-          rotate: xLabels.length > 5 ? 35 : 0,
+          rotate: xLabels.length > 5 ? (chartType === 'bar-rotated' ? 45 : 35) : 0,
           formatter: formatXAxisValue,
           fontSize: 10,
           color: '#64748b'
@@ -2415,7 +2496,7 @@ const ProjectTitleDashboard = () => {
       },
       yAxis: {
         type: 'value',
-        name: humanizeLabel(axisConfig.yAxis),
+        name: yAxisLabel,
         nameTextStyle: { color: '#64748b', fontSize: 11, fontWeight: 'bold' },
         axisLabel: { color: '#64748b', fontSize: 10 },
         splitLine: { lineStyle: { type: 'dashed', color: '#f1f5f9' } }
@@ -4270,8 +4351,30 @@ const AxisSelectorModal = ({
     }
   }, [dynamicAvailableColumns]);
 
+  const [showPrompt, setShowPrompt] = useState(false);
+
   const handleApply = () => {
-    handleAxesUpdate(chartId, localConfig.xAxis, localConfig.yAxis);
+    // Check if both axes are dates
+    const data = (tracker && submoduleData[tracker.trackerId] && submoduleData[tracker.trackerId].rows) || [];
+    const isXDate = isDateColumn(data, localConfig.xAxis);
+    const isYDate = isDateColumn(data, localConfig.yAxis);
+
+    if (isXDate && isYDate) {
+      const relationship = inferDateRelationship(localConfig.xAxis, localConfig.yAxis);
+      if (relationship) {
+        handleAxesUpdate(chartId, localConfig.xAxis, localConfig.yAxis, relationship);
+        onClose();
+      } else {
+        setShowPrompt(true);
+      }
+    } else {
+      handleAxesUpdate(chartId, localConfig.xAxis, localConfig.yAxis, null);
+      onClose();
+    }
+  };
+
+  const handleSelectedMetric = (type, label, date1, date2) => {
+    handleAxesUpdate(chartId, localConfig.xAxis, localConfig.yAxis, { type, label, date1, date2 });
     onClose();
   };
 
@@ -4281,104 +4384,146 @@ const AxisSelectorModal = ({
       top: '100%',
       right: '0',
       backgroundColor: 'white',
-      border: '1px solid #e0e0e0',
-      borderRadius: '6px',
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-      padding: '12px',
-      zIndex: 100,
-      width: '240px',
-      marginTop: '8px'
+      border: '1px solid #e2e8f0',
+      borderRadius: '12px',
+      boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+      padding: '16px',
+      zIndex: 200,
+      width: '280px',
+      marginTop: '12px'
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', borderBottom: '1px solid #e0e0e0', paddingBottom: '8px' }}>
-        <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Configure Axes</h3>
-        <button
-          onClick={onClose}
-          style={{
-            border: 'none',
-            background: '#f3f4f6',
-            cursor: 'pointer',
-            fontSize: '12px',
-            width: '22px',
-            height: '22px',
-            borderRadius: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#4b5563',
-            fontWeight: 'bold'
-          }}
-        >
-          ✕
-        </button>
-      </div>
+      {!showPrompt ? (
+        <>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Configure Axes</h3>
+            <button
+              onClick={onClose}
+              style={{
+                border: 'none',
+                background: '#f1f5f9',
+                cursor: 'pointer',
+                fontSize: '12px',
+                width: '24px',
+                height: '24px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#64748b',
+                fontWeight: 'bold'
+              }}
+            >
+              ✕
+            </button>
+          </div>
 
-      <div style={{ marginBottom: '10px' }}>
-        <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '4px' }}>
-          Attribute 1
-        </label>
-        <select
-          value={localConfig.xAxis}
-          onChange={(e) => setLocalConfig(prev => ({ ...prev, xAxis: e.target.value }))}
-          style={{
-            width: '100%',
-            padding: '6px',
-            fontSize: '12px',
-            borderRadius: '4px',
-            border: '1px solid #c0c0c0',
-            backgroundColor: 'white',
-            cursor: 'pointer',
-            outline: 'none',
-            color: '#1e3a5f'
-          }}
-        >
-          {dynamicAvailableColumns.map(col => (
-            <option key={col} value={col} style={{ color: '#1e3a5f', padding: '6px' }}>{col}</option>
-          ))}
-        </select>
-      </div>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', marginBottom: '6px', textTransform: 'uppercase' }}>
+              X-Axis Attribute
+            </label>
+            <select
+              value={localConfig.xAxis}
+              onChange={(e) => setLocalConfig(prev => ({ ...prev, xAxis: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                fontSize: '13px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                outline: 'none',
+                color: '#1e3a5f',
+                fontWeight: '500'
+              }}
+            >
+              {dynamicAvailableColumns.map(col => (
+                <option key={col} value={col}>{col}</option>
+              ))}
+            </select>
+          </div>
 
-      <div style={{ marginBottom: '10px' }}>
-        <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '4px' }}>
-          Attribute 2
-        </label>
-        <select
-          value={localConfig.yAxis}
-          onChange={(e) => setLocalConfig(prev => ({ ...prev, yAxis: e.target.value }))}
-          style={{
-            width: '100%',
-            padding: '6px',
-            fontSize: '12px',
-            borderRadius: '4px',
-            border: '1px solid #c0c0c0',
-            backgroundColor: 'white',
-            cursor: 'pointer',
-            outline: 'none',
-            color: '#1e3a5f'
-          }}
-        >
-          {dynamicAvailableColumns.map(col => (
-            <option key={col} value={col} style={{ color: '#1e3a5f', padding: '6px' }}>{col}</option>
-          ))}
-        </select>
-      </div>
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', marginBottom: '6px', textTransform: 'uppercase' }}>
+              Y-Axis Attribute
+            </label>
+            <select
+              value={localConfig.yAxis}
+              onChange={(e) => setLocalConfig(prev => ({ ...prev, yAxis: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                fontSize: '13px',
+                borderRadius: '8px',
+                border: '1px solid #e2e8f0',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                outline: 'none',
+                color: '#1e3a5f',
+                fontWeight: '500'
+              }}
+            >
+              {dynamicAvailableColumns.map(col => (
+                <option key={col} value={col}>{col}</option>
+              ))}
+            </select>
+          </div>
 
-      <button
-        onClick={handleApply}
-        style={{
-          width: '100%',
-          padding: '8px',
-          backgroundColor: '#1e3a5f',
-          color: 'white',
-          border: 'none',
-          borderRadius: '4px',
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          fontSize: '13px',
-          marginTop: '4px'
-        }}
-      >
-        Apply
-      </button>
+          <button
+            onClick={handleApply}
+            style={{
+              width: '100%',
+              padding: '10px',
+              backgroundColor: '#1e3a5f',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '800',
+              fontSize: '13px',
+              boxShadow: '0 4px 6px -1px rgba(30, 58, 95, 0.2)'
+            }}
+          >
+            Apply Configuration
+          </button>
+        </>
+      ) : (
+        <div>
+          <div style={{ backgroundColor: '#f1f5f9', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#475569', lineHeight: '1.5' }}>
+            <strong style={{ color: '#1e3a5f' }}>Attr 1:</strong> {localConfig.xAxis}<br />
+            <strong style={{ color: '#1e3a5f' }}>Attr 2:</strong> {localConfig.yAxis}
+          </div>
+          <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: '800', color: '#1e3a5f', lineHeight: '1.4' }}>
+            Both are dates — what should we calculate?
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button
+              onClick={() => handleSelectedMetric('delay', 'Delay', localConfig.xAxis, localConfig.yAxis)}
+              style={{ padding: '10px 12px', textAlign: 'left', borderRadius: '8px', border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#1e40af' }}
+            >
+              Delay — {localConfig.yAxis} − {localConfig.xAxis}
+            </button>
+            <button
+              onClick={() => handleSelectedMetric('duration', 'Duration', localConfig.xAxis, localConfig.yAxis)}
+              style={{ padding: '10px 12px', textAlign: 'left', borderRadius: '8px', border: '1px solid #bbf7d0', backgroundColor: '#f0fdf4', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#166534' }}
+            >
+              Duration — {localConfig.yAxis} − {localConfig.xAxis}
+            </button>
+            <button
+              onClick={() => { handleAxesUpdate(chartId, localConfig.xAxis, localConfig.yAxis, null); onClose(); }}
+              style={{ padding: '10px 12px', textAlign: 'left', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#64748b' }}
+            >
+              Plot as-is (no calculation)
+            </button>
+            <button
+              onClick={() => setShowPrompt(false)}
+              style={{ padding: '8px', textAlign: 'center', backgroundColor: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '11px', fontWeight: '700' }}
+            >
+              ← Back to selection
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
