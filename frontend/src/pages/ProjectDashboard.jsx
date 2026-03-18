@@ -66,7 +66,7 @@ const humanizeLabel = (label) => {
 const formatXAxisValue = (val) => {
   if (val === null || val === undefined) return '';
   const strVal = String(val);
-  
+
   // Try to detect common date formats
   if (strVal.match(/^\d{4}-\d{2}-\d{2}/) || strVal.match(/^\d{1,2}\/\d{1,2}\/\d{2,4}/)) {
     const date = new Date(val);
@@ -74,7 +74,7 @@ const formatXAxisValue = (val) => {
       return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
     }
   }
-  
+
   // Large numbers
   if (!isNaN(parseFloat(val)) && parseFloat(val) > 1000) {
     return new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 1 }).format(val);
@@ -106,18 +106,18 @@ const isDateColumn = (data, colName) => {
 const inferDateRelationship = (col1, col2) => {
   const c1 = col1.toLowerCase();
   const c2 = col2.toLowerCase();
-  
+
   // Delay: Planned/Target vs Actual/Completed
   const plannedKeys = ['planned', 'target', 'expected', 'schedule'];
   const actualKeys = ['actual', 'completed', 'delivered', 'finish'];
-  
+
   if (plannedKeys.some(k => c1.includes(k)) && actualKeys.some(k => c2.includes(k))) {
     return { type: 'delay', label: 'Delay', date1: col1, date2: col2 }; // Actual - Planned
   }
   if (plannedKeys.some(k => c2.includes(k)) && actualKeys.some(k => c1.includes(k))) {
     return { type: 'delay', label: 'Delay', date1: col2, date2: col1 };
   }
-  
+
   // Duration: Start vs End
   if (c1.includes('start') && (c2.includes('end') || c2.includes('finish'))) {
     return { type: 'duration', label: 'Duration', date1: col1, date2: col2 }; // End - Start
@@ -125,7 +125,7 @@ const inferDateRelationship = (col1, col2) => {
   if (c2.includes('start') && (c1.includes('end') || c1.includes('finish'))) {
     return { type: 'duration', label: 'Duration', date1: col2, date2: col1 };
   }
-  
+
   // Cycle Time: Created vs Completed/Closed
   if (c1.includes('created') && (c2.includes('completed') || c2.includes('closed') || c2.includes('finish'))) {
     return { type: 'cycleTime', label: 'Cycle Time', date1: col1, date2: col2 }; // Completed - Created
@@ -133,13 +133,13 @@ const inferDateRelationship = (col1, col2) => {
   if (c2.includes('created') && (c1.includes('completed') || c1.includes('closed') || c1.includes('finish'))) {
     return { type: 'cycleTime', label: 'Cycle Time', date1: col2, date2: col1 };
   }
-  
+
   return null;
 };
 
 // Diverse color palette for differentiation
 const getDiversePalette = () => [
-  "#5470c6", "#91cc75", "#fac858", "#ee6666", "#73c0de", 
+  "#5470c6", "#91cc75", "#fac858", "#ee6666", "#73c0de",
   "#3ba272", "#fc8452", "#9a60b4", "#ea7ccc", "#5ae3f1",
   "#ff9f7f", "#fb7293", "#e79068", "#e690d1", "#e062ae",
   "#67e0e3", "#ffdb5c", "#37a2da", "#32c5e9", "#9fe6b8"
@@ -693,7 +693,7 @@ const ProjectTitleDashboard = () => {
   const handleProjectSelect = (projectId) => {
     // Look up by ID or Name for robustness
     const selectedProject = projects.find(p => p.id === projectId || p.name === projectId);
-    
+
     if (selectedProject?.dashboardConfig) {
       setSearchParams({ projectId: selectedProject.id });
       setVisibleSections(selectedProject.dashboardConfig.visibleSections || {});
@@ -772,7 +772,7 @@ const ProjectTitleDashboard = () => {
         // Persist defaults to Redux
         dispatch(updateProjectConfig({
           projectId: activeProject.id,
-          config: { 
+          config: {
             chartTypes: currentChartTypes,
             axisConfigs: currentAxisConfigs
           }
@@ -2398,7 +2398,7 @@ const ProjectTitleDashboard = () => {
       if (derivedConfig && ['delay', 'duration', 'cycleTime'].includes(derivedConfig.type)) {
         const d1 = new Date(row[derivedConfig.date1]);
         const d2 = new Date(row[derivedConfig.date2]);
-        
+
         if (!isNaN(d1.getTime()) && !isNaN(d2.getTime())) {
           // value = (later_date - earlier_date) in days
           yVal = (d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24);
@@ -2515,7 +2515,7 @@ const ProjectTitleDashboard = () => {
               type: 'bar',
               barWidth: '50%',
               data: yValues,
-              itemStyle: { 
+              itemStyle: {
                 borderRadius: [6, 6, 0, 0],
                 color: (params) => {
                   const palette = getDiversePalette();
@@ -2549,7 +2549,7 @@ const ProjectTitleDashboard = () => {
               data: yValues,
               lineStyle: { width: 3, color: '#3b82f6' },
               itemStyle: { color: '#3b82f6', borderWidth: 2, borderColor: '#fff' },
-              areaStyle: chartType === 'area' ? { 
+              areaStyle: chartType === 'area' ? {
                 color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
                   { offset: 0, color: 'rgba(59, 130, 246, 0.5)' },
                   { offset: 1, color: 'rgba(59, 130, 246, 0.01)' }
@@ -2572,10 +2572,10 @@ const ProjectTitleDashboard = () => {
           name: label,
           value: yValues[index]
         }));
-        
+
         // Smart Default: If too many segments in a Pie, it's better as a Bar
         if (pieData.length > 15 && !isMaximized) {
-           return renderChart(chartId, 'bar', isMaximized, trackerId);
+          return renderChart(chartId, 'bar', isMaximized, trackerId);
         }
 
         // Clutter management for Pie Chart: Group small slices into "Others"
@@ -2633,7 +2633,7 @@ const ProjectTitleDashboard = () => {
                 length: 20, // Increased length
                 length2: 25, // Increased length
                 smooth: true,
-                lineStyle: { 
+                lineStyle: {
                   width: 1.5,
                   color: '#e2e8f0'
                 }
@@ -2737,7 +2737,7 @@ const ProjectTitleDashboard = () => {
               type: 'bar',
               barWidth: '95%', // Histogram style: narrow gaps
               data: yValues,
-              itemStyle: { 
+              itemStyle: {
                 color: '#6366f1',
                 opacity: 0.8,
                 borderColor: '#4338ca',
@@ -2917,10 +2917,10 @@ const ProjectTitleDashboard = () => {
       qualityIssues: 'Quality Issues'
     };
 
-    const phaseLabel = chartNames[maximizedChart] || 
-                      (activeProject?.submodules || []).find(sub => sub.id === maximizedChart)?.displayName || 
-                      (activeProject?.submodules || []).find(sub => sub.id === maximizedChart)?.name || 
-                      maximizedChart;
+    const phaseLabel = chartNames[maximizedChart] ||
+      (activeProject?.submodules || []).find(sub => sub.id === maximizedChart)?.displayName ||
+      (activeProject?.submodules || []).find(sub => sub.id === maximizedChart)?.name ||
+      maximizedChart;
 
     return (
       <div style={{
@@ -2960,8 +2960,8 @@ const ProjectTitleDashboard = () => {
             borderBottom: '1px solid #2c4c7c'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-               <div style={{ backgroundColor: '#3b82f6', width: '4px', height: '24px', borderRadius: '2px' }} />
-               <span>{humanizeLabel(phaseLabel)} - Analysis</span>
+              <div style={{ backgroundColor: '#3b82f6', width: '4px', height: '24px', borderRadius: '2px' }} />
+              <span>{humanizeLabel(phaseLabel)} - Analysis</span>
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <select
@@ -3008,7 +3008,7 @@ const ProjectTitleDashboard = () => {
           </div>
           <div style={{ padding: '40px', flex: 1, overflowY: 'auto', backgroundColor: '#f8fafc' }}>
             <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
-               {renderChart(maximizedChart, chartTypes[activeProject.id]?.[maximizedChart] || 'bar', true, getTrackerForPhase(maximizedChart)?.trackerId)}
+              {renderChart(maximizedChart, chartTypes[activeProject.id]?.[maximizedChart] || 'bar', true, getTrackerForPhase(maximizedChart)?.trackerId)}
             </div>
           </div>
         </div>
@@ -3357,173 +3357,191 @@ const ProjectTitleDashboard = () => {
               <div style={{ padding: '20px 25px 25px 25px' }}>
                 {/* Milestones Section */}
                 {visibleSections.milestones && (
+                  <div style={{
+                    backgroundColor: 'white',
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    overflow: 'hidden',
+                    marginBottom: '28px'
+                  }}>
                     <div style={{
-                      backgroundColor: 'white',
-                      borderRadius: '12px',
-                      border: '1px solid #e2e8f0',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                      overflow: 'hidden'
+                      textAlign: 'center',
+                      padding: '14px 20px 10px',
+                      backgroundColor: '#f8fafc',
+                      borderBottom: '2px solid #e2e8f0'
                     }}>
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        backgroundColor: '#f8fafc',
-                        padding: '12px 20px',
-                        borderBottom: '1px solid #e2e8f0'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ backgroundColor: '#1e3a5f', width: '4px', height: '18px', borderRadius: '2px' }} />
-                          <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Project Timeline</span>
-                        </div>
-                        <button
-                          onClick={() => { setMilestoneForm({ ...milestones[0] }); setShowEditMilestones(true); }}
-                          className="no-print"
-                          style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '4px' }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                            <th style={{ width: '120px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Category</th>
-                            <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>A</th>
-                            <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>B</th>
-                            <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>C</th>
-                            <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>D</th>
-                            <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>E</th>
-                            <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>F</th>
-                            <th style={{ width: '140px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {milestones.map((item, idx) => (
-                            <React.Fragment key={idx}>
-                              <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                <td style={{ padding: '12px 15px', fontWeight: 'bold', color: '#1e3a5f', whiteSpace: 'nowrap' }}>Plan</td>
-                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.a)}</td>
-                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.b)}</td>
-                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.c)}</td>
-                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.d)}</td>
-                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.e)}</td>
-                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.f)}</td>
-                                <td style={{ padding: '12px 15px' }}>
-                                  <span style={{
-                                    display: 'inline-block',
-                                    padding: '4px 12px',
-                                    borderRadius: '6px',
-                                    fontSize: '11px',
-                                    fontWeight: 'bold',
-                                    backgroundColor: item.plan.implementation === 'On Track' ? '#ecfdf5' : item.plan.implementation === 'In Progress' ? '#eff6ff' : '#fff1f2',
-                                    color: item.plan.implementation === 'On Track' ? '#059669' : item.plan.implementation === 'In Progress' ? '#2563eb' : '#dc2626',
-                                    border: `1px solid ${item.plan.implementation === 'On Track' ? '#10b981' : item.plan.implementation === 'In Progress' ? '#3b82f6' : '#f43f5e'}33`
-                                  }}>
-                                    {item.plan.implementation}
-                                  </span>
-                                </td>
-                              </tr>
-                              <tr style={{ backgroundColor: '#fcfdff', borderBottom: '1px solid #f1f5f9' }}>
-                                <td style={{ padding: '12px 15px', fontWeight: 'bold', color: '#047857', whiteSpace: 'nowrap' }}>Actual</td>
-                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.a)}</td>
-                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.b)}</td>
-                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.c)}</td>
-                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.d)}</td>
-                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.e)}</td>
-                                <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.f)}</td>
-                                <td style={{ padding: '12px 15px' }}>
-                                  <span style={{
-                                    display: 'inline-block',
-                                    padding: '4px 12px',
-                                    borderRadius: '6px',
-                                    fontSize: '11px',
-                                    fontWeight: 'bold',
-                                    backgroundColor: item.actual.implementation === 'On Track' ? '#ecfdf5' : item.actual.implementation === 'In Progress' ? '#eff6ff' : '#fff1f2',
-                                    color: item.actual.implementation === 'On Track' ? '#059669' : item.actual.implementation === 'In Progress' ? '#2563eb' : '#dc2626',
-                                    border: `1px solid ${item.actual.implementation === 'On Track' ? '#10b981' : item.actual.implementation === 'In Progress' ? '#3b82f6' : '#f43f5e'}33`
-                                  }}>
-                                    {item.actual.implementation}
-                                  </span>
-                                </td>
-                              </tr>
-                            </React.Fragment>
-                          ))}
-                        </tbody>
-                      </table>
+                      <span style={{ fontSize: '18px', fontWeight: '900', color: '#1e3a5f', letterSpacing: '-0.01em' }}>Milestones</span>
                     </div>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      backgroundColor: '#f8fafc',
+                      padding: '10px 20px',
+                      borderBottom: '1px solid #e2e8f0'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ backgroundColor: '#1e3a5f', width: '4px', height: '18px', borderRadius: '2px' }} />
+                        <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Project Timeline</span>
+                      </div>
+                      <button
+                        onClick={() => { setMilestoneForm({ ...milestones[0] }); setShowEditMilestones(true); }}
+                        className="no-print"
+                        style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '4px' }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                          <th style={{ width: '120px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Category</th>
+                          <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>A</th>
+                          <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>B</th>
+                          <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>C</th>
+                          <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>D</th>
+                          <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>E</th>
+                          <th style={{ width: '100px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>F</th>
+                          <th style={{ width: '140px', padding: '15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {milestones.map((item, idx) => (
+                          <React.Fragment key={idx}>
+                            <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '12px 15px', fontWeight: 'bold', color: '#1e3a5f', whiteSpace: 'nowrap' }}>Plan</td>
+                              <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.a)}</td>
+                              <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.b)}</td>
+                              <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.c)}</td>
+                              <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.d)}</td>
+                              <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.e)}</td>
+                              <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.f)}</td>
+                              <td style={{ padding: '12px 15px' }}>
+                                <span style={{
+                                  display: 'inline-block',
+                                  padding: '4px 12px',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  fontWeight: 'bold',
+                                  backgroundColor: item.plan.implementation === 'On Track' ? '#ecfdf5' : item.plan.implementation === 'In Progress' ? '#eff6ff' : '#fff1f2',
+                                  color: item.plan.implementation === 'On Track' ? '#059669' : item.plan.implementation === 'In Progress' ? '#2563eb' : '#dc2626',
+                                  border: `1px solid ${item.plan.implementation === 'On Track' ? '#10b981' : item.plan.implementation === 'In Progress' ? '#3b82f6' : '#f43f5e'}33`
+                                }}>
+                                  {item.plan.implementation}
+                                </span>
+                              </td>
+                            </tr>
+                            <tr style={{ backgroundColor: '#fcfdff', borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '12px 15px', fontWeight: 'bold', color: '#047857', whiteSpace: 'nowrap' }}>Actual</td>
+                              <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.a)}</td>
+                              <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.b)}</td>
+                              <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.c)}</td>
+                              <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.d)}</td>
+                              <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.e)}</td>
+                              <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.f)}</td>
+                              <td style={{ padding: '12px 15px' }}>
+                                <span style={{
+                                  display: 'inline-block',
+                                  padding: '4px 12px',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  fontWeight: 'bold',
+                                  backgroundColor: item.actual.implementation === 'On Track' ? '#ecfdf5' : item.actual.implementation === 'In Progress' ? '#eff6ff' : '#fff1f2',
+                                  color: item.actual.implementation === 'On Track' ? '#059669' : item.actual.implementation === 'In Progress' ? '#2563eb' : '#dc2626',
+                                  border: `1px solid ${item.actual.implementation === 'On Track' ? '#10b981' : item.actual.implementation === 'In Progress' ? '#3b82f6' : '#f43f5e'}33`
+                                }}>
+                                  {item.actual.implementation}
+                                </span>
+                              </td>
+                            </tr>
+                          </React.Fragment>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
 
                 {/* Critical Issues Section */}
                 {visibleSections.criticalIssues && (
+                  <div style={{
+                    backgroundColor: 'white',
+                    borderRadius: '12px',
+                    border: '1px solid #e2e8f0',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    overflow: 'hidden',
+                    marginBottom: '28px'
+                  }}>
                     <div style={{
-                      backgroundColor: 'white',
-                      borderRadius: '12px',
-                      border: '1px solid #e2e8f0',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                      overflow: 'hidden'
+                      textAlign: 'center',
+                      padding: '14px 20px 10px',
+                      backgroundColor: '#fff5f5',
+                      borderBottom: '2px solid #fecaca'
                     }}>
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        backgroundColor: '#f8fafc',
-                        padding: '12px 20px',
-                        borderBottom: '1px solid #e2e8f0'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ backgroundColor: '#ef4444', width: '4px', height: '18px', borderRadius: '2px' }} />
-                          <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Top Critical Issues</span>
-                        </div>
-                        <button
-                          onClick={() => { setIssuesForm([...criticalIssues]); setShowEditIssues(true); }}
-                          className="no-print"
-                          style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '4px' }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                            <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>#</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Issue Description</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Owner</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Function</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Target Date</th>
-                            <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {criticalIssues.map((item, index) => {
-                            const colors = getStatusColor(item.status);
-
-                            return (
-                              <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                <td style={{ padding: '12px 15px', fontWeight: 'bold', color: '#64748b' }}>{item.id}</td>
-                                <td style={{ padding: '12px 15px', color: '#1e3a5f', fontWeight: '500' }}>{item.issue}</td>
-                                <td style={{ padding: '12px 15px', color: '#445164' }}>{item.responsibility}</td>
-                                <td style={{ padding: '12px 15px', color: '#445164' }}>{item.function}</td>
-                                <td style={{ padding: '12px 15px', color: '#445164' }}>{formatXAxisValue(item.targetDate)}</td>
-                                <td style={{ padding: '12px 15px' }}>
-                                  <span style={{
-                                    display: 'inline-block',
-                                    padding: '4px 12px',
-                                    borderRadius: '6px',
-                                    fontSize: '11px',
-                                    fontWeight: 'bold',
-                                    backgroundColor: colors.bg,
-                                    color: colors.text,
-                                    border: `1px solid ${colors.text}33`
-                                  }}>
-                                    {item.status}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
+                      <span style={{ fontSize: '18px', fontWeight: '900', color: '#b91c1c', letterSpacing: '-0.01em' }}>Critical Issues</span>
                     </div>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      backgroundColor: '#f8fafc',
+                      padding: '10px 20px',
+                      borderBottom: '1px solid #e2e8f0'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{ backgroundColor: '#ef4444', width: '4px', height: '18px', borderRadius: '2px' }} />
+                        <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Top Critical Issues</span>
+                      </div>
+                      <button
+                        onClick={() => { setIssuesForm([...criticalIssues]); setShowEditIssues(true); }}
+                        className="no-print"
+                        style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '4px' }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                          <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>#</th>
+                          <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Issue Description</th>
+                          <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Owner</th>
+                          <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Function</th>
+                          <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Target Date</th>
+                          <th style={{ padding: '12px 15px', textAlign: 'left', color: '#64748b', fontWeight: 'bold' }}>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {criticalIssues.map((item, index) => {
+                          const colors = getStatusColor(item.status);
+
+                          return (
+                            <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                              <td style={{ padding: '12px 15px', fontWeight: 'bold', color: '#64748b' }}>{item.id}</td>
+                              <td style={{ padding: '12px 15px', color: '#1e3a5f', fontWeight: '500' }}>{item.issue}</td>
+                              <td style={{ padding: '12px 15px', color: '#445164' }}>{item.responsibility}</td>
+                              <td style={{ padding: '12px 15px', color: '#445164' }}>{item.function}</td>
+                              <td style={{ padding: '12px 15px', color: '#445164' }}>{formatXAxisValue(item.targetDate)}</td>
+                              <td style={{ padding: '12px 15px' }}>
+                                <span style={{
+                                  display: 'inline-block',
+                                  padding: '4px 12px',
+                                  borderRadius: '6px',
+                                  fontSize: '11px',
+                                  fontWeight: 'bold',
+                                  backgroundColor: colors.bg,
+                                  color: colors.text,
+                                  border: `1px solid ${colors.text}33`
+                                }}>
+                                  {item.status}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
 
                 {/* Project Metrics Charts */}
@@ -3533,13 +3551,13 @@ const ProjectTitleDashboard = () => {
                       (activeProject?.submodules || []).some(sub => sub.id === key)
                   )
                 )) && (
-                  <div style={{ marginBottom: '40px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-                      <div style={{ backgroundColor: '#3b82f6', width: '4px', height: '24px', borderRadius: '2px' }} />
-                      <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#1e3a5f', margin: 0, letterSpacing: '-0.02em' }}>
-                        Project Metrics Summary
-                      </h2>
-                    </div>
+                    <div style={{ marginBottom: '40px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px', gap: '6px' }}>
+                        <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#1e3a5f', margin: 0, letterSpacing: '-0.02em', textAlign: 'center' }}>
+                          Project Metrics Summary
+                        </h2>
+                        <div style={{ backgroundColor: '#3b82f6', width: '48px', height: '4px', borderRadius: '2px' }} />
+                      </div>
 
                       <div style={{
                         display: 'grid',
