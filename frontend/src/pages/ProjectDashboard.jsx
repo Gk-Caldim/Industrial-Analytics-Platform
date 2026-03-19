@@ -2453,24 +2453,51 @@ const ProjectTitleDashboard = () => {
       tooltip: {
         trigger: 'axis',
         axisPointer: { type: 'shadow' },
+        backgroundColor: 'rgba(255, 255, 255, 0.96)',
+        borderColor: '#e2e8f0',
+        borderWidth: 1,
+        textStyle: { color: '#1e3a5f', fontSize: 12 },
+        extraCssText: 'box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px;',
         formatter: (params) => {
-          let html = `<div style="font-weight: bold; margin-bottom: 5px;">${formatXAxisValue(params[0].axisValue)}</div>`;
+          if (!params || params.length === 0) return '';
+          let html = `<div style="font-weight: 800; margin-bottom: 8px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; color: #1e3a5f;">${formatXAxisValue(params[0].axisValue)}</div>`;
           params.forEach(p => {
-            html += `<div style="display: flex; justify-content: space-between; gap: 20px;">
-              <span><span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${p.color};"></span>${humanizeLabel(p.seriesName)}</span>
-              <span style="font-weight: bold;">${p.value} ${derivedConfig ? 'Days' : ''}</span>
+            const val = typeof p.value === 'number' ? Math.round(p.value * 100) / 100 : p.value;
+            html += `<div style="display: flex; justify-content: space-between; gap: 24px; align-items: center; margin-bottom: 3px;">
+              <span style="display: flex; align-items: center;">
+                <span style="display:inline-block;margin-right:8px;border-radius:2px;width:10px;height:10px;background-color:${p.color};"></span>
+                <span style="color: #64748b; font-weight: 600;">${humanizeLabel(p.seriesName)}</span>
+              </span>
+              <span style="font-weight: 800; color: #1e3a5f;">${val} ${derivedConfig ? 'Days' : ''}</span>
             </div>`;
           });
           return html;
         }
       },
-      toolbox: isMaximized ? {
-        right: '20px',
+      toolbox: {
+        show: true,
+        right: '2%',
+        top: '2%',
         feature: {
-          dataView: { show: true, readOnly: false, title: 'Data View' },
-          saveAsImage: { show: true, title: 'Save Image' }
-        }
-      } : undefined,
+          magicType: { show: true, type: ['line', 'bar', 'stack'], title: { line: 'Line', bar: 'Bar', stack: 'Stack' } },
+          dataView: { 
+            show: true, 
+            readOnly: false, 
+            title: 'Data',
+            lang: ['Data View', 'Close', 'Refresh'],
+            backgroundColor: '#fff',
+            textareaColor: '#fff',
+            textareaBorderColor: '#e2e8f0',
+            textColor: '#1e3a5f',
+            buttonColor: '#1e3a5f',
+            buttonTextColor: '#fff'
+          },
+          restore: { show: true, title: 'Reset' },
+          saveAsImage: { show: true, title: 'Export', pixelRatio: 2 }
+        },
+        iconStyle: { borderColor: '#94a3b8' },
+        emphasis: { iconStyle: { borderColor: '#3b82f6' } }
+      },
       dataZoom: xLabels.length > 10 ? [
         { type: 'slider', show: true, start: 0, end: Math.max(20, Math.floor(1000 / xLabels.length)), bottom: '2%' },
         { type: 'inside', start: 0, end: 100 }
@@ -2574,16 +2601,15 @@ const ProjectTitleDashboard = () => {
         }));
 
         // Smart Default: If too many segments in a Pie, it's better as a Bar
-        if (pieData.length > 15 && !isMaximized) {
+        if (pieData.length > 20 && !isMaximized) {
           return renderChart(chartId, 'bar', isMaximized, trackerId);
         }
 
         // Clutter management for Pie Chart: Group small slices into "Others"
-        // Reducing topN to 6 for better readability in high-density dashboards
-        if (pieData.length > 7) {
+        if (pieData.length > 12) {
           const sortedData = [...pieData].sort((a, b) => b.value - a.value);
-          const topN = sortedData.slice(0, 6);
-          const others = sortedData.slice(6).reduce((acc, curr) => acc + curr.value, 0);
+          const topN = sortedData.slice(0, 10);
+          const others = sortedData.slice(10).reduce((acc, curr) => acc + curr.value, 0);
           if (others > 0) {
             pieData = [...topN, { name: 'Others', value: others }];
           }
@@ -2593,7 +2619,11 @@ const ProjectTitleDashboard = () => {
           color: getDiversePalette(),
           tooltip: {
             trigger: 'item',
-            formatter: (p) => `<b>${formatXAxisValue(p.name)}</b>: ${p.value} (${p.percent}%)`
+            backgroundColor: 'rgba(255, 255, 255, 0.96)',
+            borderColor: '#e2e8f0',
+            borderWidth: 1,
+            textStyle: { color: '#1e3a5f' },
+            formatter: (p) => `<div style="padding: 4px;"><b>${formatXAxisValue(p.name)}</b><br/><span style="color:#64748b">Value:</span> <b>${p.value}</b><br/><span style="color:#64748b">Share:</span> <b>${p.percent}%</b></div>`
           },
           legend: {
             type: 'scroll',
@@ -2608,37 +2638,35 @@ const ProjectTitleDashboard = () => {
             {
               name: humanizeLabel(axisConfig.yAxis),
               type: 'pie',
-              radius: isMaximized ? ['40%', '70%'] : ['40%', '65%'],
-              center: ['50%', '40%'],
+              radius: isMaximized ? ['45%', '75%'] : ['40%', '70%'],
+              center: ['50%', '45%'],
               avoidLabelOverlap: true,
               itemStyle: {
-                borderRadius: 8,
+                borderRadius: 6,
                 borderColor: '#fff',
                 borderWidth: 2
               },
               label: {
                 show: true,
                 position: 'outside',
-                // Only show labels for slices > 3% to avoid collision
-                formatter: (p) => p.percent > 3 ? `${formatXAxisValue(p.name)}\n${p.value} (${p.percent}%)` : '',
+                formatter: (p) => `${formatXAxisValue(p.name)}\n${p.value} (${p.percent}%)`,
                 fontSize: 10,
                 fontWeight: '600',
                 color: '#1e3a5f',
-                alignTo: 'edge', // Key for avoiding overlap
-                margin: 20,
-                distanceToLabelLine: 5
+                alignTo: 'labelLine'
               },
               labelLine: {
                 show: true,
-                length: 20, // Increased length
-                length2: 25, // Increased length
+                length: 15,
+                length2: 15,
                 smooth: true,
-                lineStyle: {
-                  width: 1.5,
-                  color: '#e2e8f0'
-                }
+                lineStyle: { width: 1, color: '#e2e8f0' }
               },
-              minAngle: 15, // Ensure slice is large enough to see
+              labelLayout: {
+                hideOverlap: true,
+                moveOverlap: 'shiftY'
+              },
+              minAngle: 5,
               emphasis: {
                 label: { show: true, fontSize: 12, fontWeight: 'bold' },
                 itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.2)' }
@@ -3006,9 +3034,98 @@ const ProjectTitleDashboard = () => {
               </button>
             </div>
           </div>
-          <div style={{ padding: '40px', flex: 1, overflowY: 'auto', backgroundColor: '#f8fafc' }}>
-            <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0' }}>
-              {renderChart(maximizedChart, chartTypes[activeProject.id]?.[maximizedChart] || 'bar', true, getTrackerForPhase(maximizedChart)?.trackerId)}
+          <div style={{ padding: '30px', flex: 1, overflowY: 'auto', backgroundColor: '#f8fafc' }}>
+            <div style={{ backgroundColor: 'white', padding: '25px', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', marginBottom: '30px' }}>
+              <div style={{ height: '550px' }}>
+                {renderChart(maximizedChart, chartTypes[activeProject.id]?.[maximizedChart] || 'bar', true, getTrackerForPhase(maximizedChart)?.trackerId)}
+              </div>
+            </div>
+
+            {/* Detailed Data View Table */}
+            <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+              <div style={{ padding: '16px 20px', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Detailed Data View</h4>
+                <button 
+                  onClick={() => {
+                    const tid = getTrackerForPhase(maximizedChart)?.trackerId;
+                    const rows = tid && submoduleData[tid] ? submoduleData[tid].rows : [];
+                    const config = axisConfigs[activeProject.id]?.[maximizedChart];
+                    if (!rows.length || !config) return;
+                    
+                    const headers = [config.xAxis, config.yAxis];
+                    const csvContent = [
+                      headers.join(','),
+                      ...rows.map(row => headers.map(h => `"${row[h] || ''}"`).join(','))
+                    ].join('\n');
+                    
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.setAttribute("download", `${phaseLabel}_data.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  style={{ 
+                    padding: '6px 14px', 
+                    fontSize: '12px', 
+                    backgroundColor: '#10b981', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '6px', 
+                    cursor: 'pointer', 
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <Download size={14} /> Export CSV
+                </button>
+              </div>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f1f5f9', textAlign: 'left' }}>
+                      <th style={{ padding: '12px 20px', color: '#475569', fontWeight: '800', borderBottom: '2px solid #e2e8f0' }}>#</th>
+                      <th style={{ padding: '12px 20px', color: '#1e3a5f', fontWeight: '800', borderBottom: '2px solid #e2e8f0' }}>{humanizeLabel(axisConfigs[activeProject.id]?.[maximizedChart]?.xAxis || 'X Axis')}</th>
+                      <th style={{ padding: '12px 20px', color: '#1e3a5f', fontWeight: '800', borderBottom: '2px solid #e2e8f0' }}>{humanizeLabel(axisConfigs[activeProject.id]?.[maximizedChart]?.yAxis || 'Y Axis')}</th>
+                      {/* Show other relevant columns if available */}
+                      {Object.keys(submoduleData[getTrackerForPhase(maximizedChart)?.trackerId]?.rows[0] || {})
+                        .filter(k => k !== axisConfigs[activeProject.id]?.[maximizedChart]?.xAxis && k !== axisConfigs[activeProject.id]?.[maximizedChart]?.yAxis && !k.startsWith('_'))
+                        .slice(0, 3)
+                        .map(key => (
+                          <th key={key} style={{ padding: '12px 20px', color: '#64748b', fontWeight: '600', borderBottom: '2px solid #e2e8f0' }}>{humanizeLabel(key)}</th>
+                        ))
+                      }
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(submoduleData[getTrackerForPhase(maximizedChart)?.trackerId]?.rows || []).slice(0, 50).map((row, idx) => {
+                      const config = axisConfigs[activeProject.id]?.[maximizedChart];
+                      return (
+                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: idx % 2 === 0 ? 'white' : '#f9fafb' }}>
+                          <td style={{ padding: '10px 20px', color: '#94a3b8', fontWeight: '600' }}>{idx + 1}</td>
+                          <td style={{ padding: '10px 20px', color: '#1e293b', fontWeight: '700' }}>{formatXAxisValue(row[config?.xAxis])}</td>
+                          <td style={{ padding: '10px 20px', color: '#3b82f6', fontWeight: '800' }}>{row[config?.yAxis]}</td>
+                          {Object.keys(row)
+                            .filter(k => k !== config?.xAxis && k !== config?.yAxis && !k.startsWith('_'))
+                            .slice(0, 3)
+                            .map(key => (
+                              <td key={key} style={{ padding: '10px 20px', color: '#64748b' }}>{row[key]}</td>
+                            ))
+                          }
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+                { (submoduleData[getTrackerForPhase(maximizedChart)?.trackerId]?.rows || []).length > 50 && (
+                  <div style={{ padding: '15px', textAlign: 'center', color: '#64748b', fontSize: '12px', fontStyle: 'italic' }}>
+                    Showing top 50 rows. Use "Export CSV" for full results.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -4512,20 +4629,20 @@ const AxisSelectorModal = ({
             <strong style={{ color: '#1e3a5f' }}>Attr 2:</strong> {localConfig.yAxis}
           </div>
           <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: '800', color: '#1e3a5f', lineHeight: '1.4' }}>
-            Both are dates — what should we calculate?
+            Both are dates {"\u2014"} what should we calculate?
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <button
               onClick={() => handleSelectedMetric('delay', 'Delay', localConfig.xAxis, localConfig.yAxis)}
               style={{ padding: '10px 12px', textAlign: 'left', borderRadius: '8px', border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#1e40af' }}
             >
-              Delay — {localConfig.yAxis} − {localConfig.xAxis}
+              Delay = {localConfig.yAxis} - {localConfig.xAxis}
             </button>
             <button
               onClick={() => handleSelectedMetric('duration', 'Duration', localConfig.xAxis, localConfig.yAxis)}
               style={{ padding: '10px 12px', textAlign: 'left', borderRadius: '8px', border: '1px solid #bbf7d0', backgroundColor: '#f0fdf4', cursor: 'pointer', fontSize: '12px', fontWeight: '600', color: '#166534' }}
             >
-              Duration — {localConfig.yAxis} − {localConfig.xAxis}
+              Duration = {localConfig.yAxis} - {localConfig.xAxis}
             </button>
             <button
               onClick={() => { handleAxesUpdate(chartId, localConfig.xAxis, localConfig.yAxis, null); onClose(); }}
@@ -4537,7 +4654,7 @@ const AxisSelectorModal = ({
               onClick={() => setShowPrompt(false)}
               style={{ padding: '8px', textAlign: 'center', backgroundColor: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: '11px', fontWeight: '700' }}
             >
-              ← Back to selection
+              {"\u2190"} Back to selection
             </button>
           </div>
         </div>
