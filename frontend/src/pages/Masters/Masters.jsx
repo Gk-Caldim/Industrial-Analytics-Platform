@@ -293,6 +293,7 @@ const Masters = () => {
       id: 1,
       name: 'Employee Master',
       masterModuleId: 'employee-master',
+      path: 'masters/employees',
       type: 'master',
       description: 'Manage employee information and records',
       icon: <Users className="h-5 w-5" />,
@@ -306,6 +307,7 @@ const Masters = () => {
       id: 2,
       name: 'Employee Access',
       masterModuleId: 'employee-access',
+      path: 'masters/access',
       type: 'master',
       description: 'Configure employee access permissions',
       icon: <Shield className="h-5 w-5" />,
@@ -319,6 +321,7 @@ const Masters = () => {
       id: 3,
       name: 'Project Master',
       masterModuleId: 'project-master',
+      path: 'masters/project-master',
       type: 'master',
       description: 'Manage project portfolios and timelines',
       icon: <FolderKanban className="h-5 w-5" />,
@@ -332,6 +335,7 @@ const Masters = () => {
       id: 4,
       name: 'Part Master',
       masterModuleId: 'part-master',
+      path: 'masters/parts',
       type: 'master',
       description: 'Catalog parts and inventory items',
       icon: <Package className="h-5 w-5" />,
@@ -345,6 +349,7 @@ const Masters = () => {
       id: 5,
       name: 'Department Master',
       masterModuleId: 'department-master',
+      path: 'masters/departments',
       type: 'master',
       description: 'Organize departmental structures',
       icon: <Building className="h-5 w-5" />,
@@ -411,22 +416,26 @@ const Masters = () => {
     };
   }, []);
 
-  // Handle module click - Navigate to dashboard with module parameter
+  // Handle module click - Navigate to the correct submodule path
   const handleModuleClick = (module) => {
     console.log(`Opening master: ${module.name}`);
-    navigate(`/dashboard?module=${module.id}`);
+    navigate(`/dashboard/${module.path}`);
   };
 
   // Handle "Open Module" button click
   const handleOpenModule = (masterModuleId) => {
     localStorage.setItem('active_master_submodule', masterModuleId);
 
+    // Find the module to get its path
+    const module = staticMasterModules.find(m => m.masterModuleId === masterModuleId);
+    const path = module ? module.path : 'masters';
+
     const event = new CustomEvent('openMasterSubmodule', {
       detail: { masterModuleId }
     });
     window.dispatchEvent(event);
 
-    navigate('/dashboard');
+    navigate(`/dashboard/${path}`);
   };
 
   // Handle file click

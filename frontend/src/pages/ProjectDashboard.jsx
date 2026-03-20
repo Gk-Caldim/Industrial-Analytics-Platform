@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { setProjects, updateProjectConfig } from '../store/slices/projectSlice';
 import { setSelectedProjectFileId } from '../store/slices/navSlice';
@@ -147,6 +147,7 @@ const getDiversePalette = () => [
 
 const ProjectTitleDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const selectedFileId = useSelector(state => state.nav.selectedProjectFileId);
   const onClearSelection = () => dispatch(setSelectedProjectFileId(null));
@@ -224,6 +225,10 @@ const ProjectTitleDashboard = () => {
 
       const selectedProject = projects.find(p => p.id === projectId || p.name === projectId);
       if (selectedProject) {
+        if (selectedProject.name.toLowerCase() === 'masters') {
+          navigate('/dashboard/masters');
+          return;
+        }
         setSearchParams({ projectId: selectedProject.id });
         if (selectedProject.dashboardConfig) {
           setVisibleSections(selectedProject.dashboardConfig.visibleSections || {});
@@ -694,13 +699,19 @@ const ProjectTitleDashboard = () => {
     // Look up by ID or Name for robustness
     const selectedProject = projects.find(p => p.id === projectId || p.name === projectId);
     
-    if (selectedProject?.dashboardConfig) {
-      setSearchParams({ projectId: selectedProject.id });
-      setVisibleSections(selectedProject.dashboardConfig.visibleSections || {});
-    } else if (selectedProject) {
-      // If no config, go straight to configure modal
-      // We use push here because it's a new "page" transition from the list
-      setSearchParams({ projectId: selectedProject.id, configure: 'true' });
+    if (selectedProject) {
+      if (selectedProject.name.toLowerCase() === 'masters') {
+        navigate('/dashboard/masters');
+        return;
+      }
+
+      if (selectedProject.dashboardConfig) {
+        setSearchParams({ projectId: selectedProject.id });
+        setVisibleSections(selectedProject.dashboardConfig.visibleSections || {});
+      } else {
+        // If no config, go straight to configure modal
+        setSearchParams({ projectId: selectedProject.id, configure: 'true' });
+      }
     }
   };
 
