@@ -7,9 +7,10 @@ import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import '../utils/echarts-theme-v5'; // Register the v5 theme
 import ExcelTableViewer from '../components/ExcelTableViewer';
-import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings, Download } from 'lucide-react';
+import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings, Download, GripVertical } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
 // Helper to get display name without project prefix
 const getDisplayFileName = (fileName, projectName) => {
@@ -337,6 +338,7 @@ const ProjectTitleDashboard = () => {
   const [pdfPages, setPdfPages] = useState([[]]); // Array of pages [ [sectionKey1, sectionKey2], [sectionKey3] ]
   const [activePageIndex, setActivePageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('structure'); // 'structure', 'style', 'page'
+  const [capacityWarning, setCapacityWarning] = useState('');
   const [pdfGlobalStyles, setPdfGlobalStyles] = useState({
     fontFamily: 'Inter, sans-serif',
     lineHeight: '1.6',
@@ -1294,6 +1296,30 @@ const ProjectTitleDashboard = () => {
     setShowEmailModal(false);
   };
 
+  // Space Analyzer Engine
+  const getMaxRows = () => {
+    if (pdfGlobalStyles.pageSize === 'a3') return 5;
+    if (pdfGlobalStyles.pageSize === 'letter') return 2;
+    return 3; // a4 is standard 3 full rows safely
+  };
+
+  const calculatePageRows = (pageItems) => {
+    let slots = 0;
+    let rows = 0;
+    (pageItems || []).forEach(key => {
+      const layout = pdfCustomContent[key]?.layout || '1-col';
+      const need = layout === '1-col' ? 2 : 1;
+      if (slots + need > 2) {
+        rows++;
+        slots = need;
+      } else {
+        slots += need;
+      }
+    });
+    if (slots > 0) rows++;
+    return rows;
+  };
+
   const moveSectionUp = (pageIdx, secIdx) => {
     if (pageIdx === 0 && secIdx === 0) return;
 
@@ -1308,6 +1334,11 @@ const ProjectTitleDashboard = () => {
         // Move to previous page
         const section = newPages[pageIdx].splice(secIdx, 1)[0];
         newPages[pageIdx - 1].push(section);
+
+        if (calculatePageRows(newPages[pageIdx - 1]) > getMaxRows()) {
+          setCapacityWarning(`⚠️ Page ${pageIdx} exceeds optimal capacity. Items may overlap or compress when printed.`);
+          setTimeout(() => setCapacityWarning(''), 5000);
+        }
       }
       return newPages;
     });
@@ -1331,7 +1362,44 @@ const ProjectTitleDashboard = () => {
         const section = newPages[pageIdx].splice(secIdx, 1)[0];
         if (!newPages[pageIdx + 1]) newPages[pageIdx + 1] = [];
         newPages[pageIdx + 1].unshift(section);
+
+        if (calculatePageRows(newPages[pageIdx + 1]) > getMaxRows()) {
+          setCapacityWarning(`⚠️ Page ${pageIdx + 2} exceeds optimal capacity. Items may overlap or compress when printed.`);
+          setTimeout(() => setCapacityWarning(''), 5000);
+        }
       }
+      return newPages;
+    });
+  };
+
+  const onDragEnd = (result) => {
+    const { source, destination } = result;
+    if (!destination) return; // Dropped outside valid droppable
+
+    const sourcePageIdx = parseInt(source.droppableId, 10);
+    const destPageIdx = parseInt(destination.droppableId, 10);
+
+    // If dropped in the same place
+    if (sourcePageIdx === destPageIdx && source.index === destination.index) return;
+
+    setPdfPages(prev => {
+      const newPages = prev.map(p => [...p]);
+      const [movedSection] = newPages[sourcePageIdx].splice(source.index, 1);
+      
+      if (!newPages[destPageIdx]) newPages[destPageIdx] = [];
+      newPages[destPageIdx].splice(destination.index, 0, movedSection);
+
+      // Trigger capacity warning dynamically if moved to a different page and it exceeds limits
+      if (sourcePageIdx !== destPageIdx && calculatePageRows(newPages[destPageIdx]) > getMaxRows()) {
+        setCapacityWarning(`⚠️ Page ${destPageIdx + 1} exceeds optimal capacity. Items may overlap or compress when printed.`);
+        setTimeout(() => setCapacityWarning(''), 5000);
+      }
+
+      // Automatically jump the view to the destination page if they dropped cross-page
+      if (sourcePageIdx !== destPageIdx) {
+        setActivePageIndex(destPageIdx);
+      }
+
       return newPages;
     });
   };
@@ -1391,12 +1459,18 @@ const ProjectTitleDashboard = () => {
             zIndex: 5001,
             color: '#f8fafc'
           }}>
-            <div style={{ padding: '32px 24px', backgroundColor: '#1e3a5f', borderBottom: '1px solid #334155' }}>
+            <div style={{ padding: '32px 24px', backgroundColor: '#1e3a5f', borderBottom: '1px solid #334155', position: 'relative' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '900', letterSpacing: '-0.025em' }}>REPORT STUDIO</h2>
                 <div style={{ backgroundColor: '#3b82f6', color: 'white', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '800' }}>PRO</div>
               </div>
               <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#94a3b8' }}>Advanced Multi-Page Insights Engine</p>
+              
+              {capacityWarning && (
+                <div style={{ position: 'absolute', bottom: '-40px', left: '10px', right: '10px', backgroundColor: '#ef4444', color: 'white', padding: '10px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', zIndex: 10, boxShadow: '0 4px 6px rgba(0,0,0,0.3)', transition: 'all 0.3s' }}>
+                  {capacityWarning}
+                </div>
+              )}
             </div>
 
             {/* Tab Navigation */}
@@ -1450,7 +1524,13 @@ const ProjectTitleDashboard = () => {
                       <span style={{ fontSize: '13px', color: '#f8fafc', fontWeight: '700' }}>Include Cover Page</span>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {pdfPages.map((page, idx) => (
+                      {pdfPages.map((page, idx) => {
+                        const mxR = getMaxRows();
+                        const rows = calculatePageRows(page);
+                        const usagePct = Math.min((rows / mxR) * 100, 100);
+                        const isOverloaded = rows > mxR;
+
+                        return (
                         <div
                           key={idx}
                           onClick={() => setActivePageIndex(idx)}
@@ -1461,67 +1541,124 @@ const ProjectTitleDashboard = () => {
                             border: activePageIndex === idx ? '1px solid #3b82f6' : '1px solid #1f2937',
                             cursor: 'pointer',
                             display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
+                            flexDirection: 'column',
+                            gap: '6px',
                             transition: 'all 0.2s'
                           }}
                         >
-                          <span style={{ fontSize: '13px', fontWeight: activePageIndex === idx ? '700' : '500', color: activePageIndex === idx ? 'white' : '#94a3b8' }}>
-                            Page {idx + 1} {page.length > 0 ? `(${page.length} sections)` : '(Empty)'}
-                          </span>
-                          {pdfPages.length > 1 && (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); removePage(idx); }}
-                              style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '13px', fontWeight: activePageIndex === idx ? '700' : '500', color: activePageIndex === idx ? 'white' : '#94a3b8' }}>
+                              Page {idx + 1} {page.length > 0 ? `(${page.length} modules)` : '(Empty)'}
+                            </span>
+                            {pdfPages.length > 1 && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); removePage(idx); }}
+                                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
+                          
+                          {/* Adaptive Engine Space Graph */}
+                          <div style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px', 
+                            opacity: activePageIndex === idx ? 1 : 0.6 
+                          }}>
+                            <div style={{ flex: 1, height: '4px', backgroundColor: '#334155', borderRadius: '4px', overflow: 'hidden' }}>
+                              <div style={{ 
+                                height: '100%', 
+                                width: `${Math.max(usagePct, 2)}%`, 
+                                backgroundColor: isOverloaded ? '#ef4444' : (usagePct > 80 ? '#f59e0b' : '#10b981'),
+                                transition: 'all 0.3s ease'
+                              }} />
+                            </div>
+                            <span style={{ fontSize: '9px', fontWeight: '800', color: isOverloaded ? '#ef4444' : '#94a3b8' }}>
+                              {rows}/{mxR} U
+                            </span>
+                          </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
-                  {/* Move Section Logic */}
+                  {/* Cross-Page Drag & Drop Logic */}
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', marginBottom: '16px', textTransform: 'uppercase' }}>Section Organization - Page {activePageIndex + 1}</label>
-                    {pdfPages[activePageIndex]?.length === 0 ? (
-                      <p style={{ fontSize: '12px', color: '#94a3b8', fontStyle: 'italic' }}>This page is empty.</p>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        {pdfPages[activePageIndex]?.map((sectionKey, secIdx) => (
-                          <div key={sectionKey} style={{
-                            padding: '10px 12px',
-                            backgroundColor: '#1e293b',
-                            borderRadius: '6px',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            border: '1px solid #334155'
-                          }}>
-                            <span style={{ fontSize: '12px', color: '#f8fafc', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '170px' }}>
-                              {pdfCustomContent[sectionKey]?.title || sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1)}
-                            </span>
-                            <div style={{ display: 'flex', gap: '2px' }}>
-                              <button
-                                disabled={secIdx === 0}
-                                onClick={() => moveSectionUp(activePageIndex, secIdx)}
-                                style={{ background: 'none', border: 'none', color: secIdx === 0 ? '#475569' : '#3b82f6', cursor: secIdx === 0 ? 'default' : 'pointer', padding: '2px' }}
+                    <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', marginBottom: '16px', textTransform: 'uppercase' }}>Cross-Page Organization</label>
+                    <p style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '12px' }}>Drag sections between pages to visually reorder your PDF layout.</p>
+                    <DragDropContext onDragEnd={onDragEnd}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                        {pdfPages.map((pageSections, pIdx) => (
+                          <Droppable key={pIdx} droppableId={String(pIdx)}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.droppableProps}
+                                style={{
+                                  backgroundColor: snapshot.isDraggingOver ? '#1e293b' : 'transparent',
+                                  padding: '12px',
+                                  borderRadius: '8px',
+                                  border: '2px dashed',
+                                  borderColor: snapshot.isDraggingOver ? '#3b82f6' : (pIdx === activePageIndex ? '#475569' : '#1e293b'),
+                                  minHeight: pageSections.length === 0 ? '60px' : 'auto',
+                                  transition: 'all 0.2s',
+                                  opacity: (pIdx === activePageIndex || snapshot.isDraggingOver) ? 1 : 0.6
+                                }}
                               >
-                                ▲
-                              </button>
-                              <button
-                                disabled={secIdx === pdfPages[activePageIndex].length - 1}
-                                onClick={() => moveSectionDown(activePageIndex, secIdx)}
-                                style={{ background: 'none', border: 'none', color: secIdx === pdfPages[activePageIndex].length - 1 ? '#475569' : '#3b82f6', cursor: secIdx === pdfPages[activePageIndex].length - 1 ? 'default' : 'pointer', padding: '2px' }}
-                              >
-                                ▼
-                              </button>
-                            </div>
-                          </div>
+                                <h4 style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: '800', color: pIdx === activePageIndex ? '#f8fafc' : '#64748b', display: 'flex', justifyContent: 'space-between' }}>
+                                  PAGE {pIdx + 1}
+                                  {snapshot.isDraggingOver && <span style={{ color: '#3b82f6' }}>Drop Here</span>}
+                                </h4>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                  {pageSections.map((sectionKey, secIdx) => (
+                                    <Draggable key={sectionKey} draggableId={sectionKey} index={secIdx}>
+                                      {(prov, snap) => (
+                                        <div
+                                          ref={prov.innerRef}
+                                          {...prov.draggableProps}
+                                          style={{
+                                            ...prov.draggableProps.style,
+                                            padding: '10px 12px',
+                                            backgroundColor: snap.isDragging ? '#2563eb' : '#0f172a',
+                                            borderRadius: '6px',
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            border: '1px solid',
+                                            borderColor: snap.isDragging ? '#60a5fa' : '#334155',
+                                            boxShadow: snap.isDragging ? '0 10px 25px rgba(0,0,0,0.5)' : 'none',
+                                            opacity: snap.isDragging ? 0.9 : 1
+                                          }}
+                                        >
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, overflow: 'hidden' }}>
+                                            <div {...prov.dragHandleProps} style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: snap.isDragging ? 'white' : '#64748b' }}>
+                                              <GripVertical size={16} />
+                                            </div>
+                                            <span style={{ fontSize: '12px', color: snap.isDragging ? 'white' : '#f8fafc', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                              {pdfCustomContent[sectionKey]?.title || sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1)}
+                                            </span>
+                                          </div>
+                                          <span style={{ fontSize: '9px', fontWeight: '800', backgroundColor: snap.isDragging ? '#1d4ed8' : '#1e293b', color: snap.isDragging ? '#bfdbfe' : '#64748b', padding: '2px 6px', borderRadius: '4px' }}>
+                                            {(pdfCustomContent[sectionKey]?.layout || '1-col').toUpperCase()}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </Draggable>
+                                  ))}
+                                  {provided.placeholder}
+                                  {pageSections.length === 0 && !snapshot.isDraggingOver && (
+                                    <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic', textAlign: 'center', padding: '10px 0' }}>Empty Page</div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </Droppable>
                         ))}
                       </div>
-                    )}
+                    </DragDropContext>
                   </div>
                 </div>
               )}
