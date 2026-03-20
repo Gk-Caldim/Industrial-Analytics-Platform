@@ -7,7 +7,7 @@ import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import '../utils/echarts-theme-v5'; // Register the v5 theme
 import ExcelTableViewer from '../components/ExcelTableViewer';
-import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings } from 'lucide-react';
+import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings, Download } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 
@@ -2598,7 +2598,7 @@ const ProjectTitleDashboard = () => {
         let pieData = xLabels.map((label, index) => ({
           name: label,
           value: yValues[index]
-        }));
+        })).filter(item => item.value > 0);
 
         // Smart Default: If too many segments in a Pie, it's better as a Bar
         if (pieData.length > 20 && !isMaximized) {
@@ -2611,7 +2611,7 @@ const ProjectTitleDashboard = () => {
           const topN = sortedData.slice(0, 10);
           const others = sortedData.slice(10).reduce((acc, curr) => acc + curr.value, 0);
           if (others > 0) {
-            pieData = [...topN, { name: 'Others', value: others }];
+            pieData = [...topN, { name: 'Others', value: Math.round(others * 100) / 100 }];
           }
         }
 
@@ -2625,6 +2625,7 @@ const ProjectTitleDashboard = () => {
             textStyle: { color: '#1e3a5f' },
             formatter: (p) => `<div style="padding: 4px;"><b>${formatXAxisValue(p.name)}</b><br/><span style="color:#64748b">Value:</span> <b>${p.value}</b><br/><span style="color:#64748b">Share:</span> <b>${p.percent}%</b></div>`
           },
+          toolbox: baseOption.toolbox, // retain toolbox from base option
           legend: {
             type: 'scroll',
             orient: 'horizontal',
@@ -2638,37 +2639,48 @@ const ProjectTitleDashboard = () => {
             {
               name: humanizeLabel(axisConfig.yAxis),
               type: 'pie',
-              radius: isMaximized ? ['45%', '75%'] : ['40%', '70%'],
+              radius: isMaximized ? ['45%', '75%'] : ['35%', '65%'],
               center: ['50%', '45%'],
               avoidLabelOverlap: true,
               itemStyle: {
-                borderRadius: 6,
+                borderRadius: 4,
                 borderColor: '#fff',
                 borderWidth: 2
               },
               label: {
                 show: true,
                 position: 'outside',
-                formatter: (p) => `${formatXAxisValue(p.name)}\n${p.value} (${p.percent}%)`,
-                fontSize: 10,
-                fontWeight: '600',
-                color: '#1e3a5f',
-                alignTo: 'labelLine'
+                alignTo: 'edge',
+                margin: 10,
+                formatter: (p) => `{name|${formatXAxisValue(p.name)}}\n{value|${p.value}} {percent|(${p.percent}%)}`,
+                rich: {
+                  name: { fontSize: 10, fontWeight: '700', color: '#1e3a5f', padding: [0, 0, 4, 0] },
+                  value: { fontSize: 10, fontWeight: '800', color: '#3b82f6' },
+                  percent: { fontSize: 10, color: '#64748b' }
+                }
               },
               labelLine: {
                 show: true,
                 length: 15,
-                length2: 15,
+                length2: 25,
                 smooth: true,
-                lineStyle: { width: 1, color: '#e2e8f0' }
+                lineStyle: { width: 1.5, color: '#cbd5e1' }
               },
-              labelLayout: {
-                hideOverlap: true,
-                moveOverlap: 'shiftY'
+              labelLayout: function (params) {
+                const isLeft = params.labelRect.x < (isMaximized ? 400 : 250); // Rough center estimation based on avg width
+                const points = params.labelLinePoints;
+                if (!points) return;
+                // Update the end point
+                points[2][0] = isLeft
+                  ? params.labelRect.x
+                  : params.labelRect.x + params.labelRect.width;
+                return {
+                  labelLinePoints: points
+                };
               },
               minAngle: 5,
               emphasis: {
-                label: { show: true, fontSize: 12, fontWeight: 'bold' },
+                label: { show: true, fontSize: 11, fontWeight: 'bold' },
                 itemStyle: { shadowBlur: 10, shadowOffsetX: 0, shadowColor: 'rgba(0, 0, 0, 0.2)' }
               },
               data: pieData
