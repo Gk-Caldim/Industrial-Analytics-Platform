@@ -1102,6 +1102,10 @@ const ProjectTitleDashboard = () => {
       return;
     }
 
+    if (!window.confirm("Ready to dispatch? This will capture a high-fidelity scan of the report and email it directly to the designated stakeholders.")) {
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -1376,8 +1380,9 @@ const ProjectTitleDashboard = () => {
     const { source, destination } = result;
     if (!destination) return; // Dropped outside valid droppable
 
-    const sourcePageIdx = parseInt(source.droppableId, 10);
-    const destPageIdx = parseInt(destination.droppableId, 10);
+    const extractIdx = (id) => parseInt(id.replace(/[^0-9]/g, ''), 10);
+    const sourcePageIdx = extractIdx(source.droppableId);
+    const destPageIdx = extractIdx(destination.droppableId);
 
     // If dropped in the same place
     if (sourcePageIdx === destPageIdx && source.index === destination.index) return;
@@ -1434,6 +1439,7 @@ const ProjectTitleDashboard = () => {
                     { w: '210mm', h: '297mm' };
 
     return (
+      <DragDropContext onDragEnd={onDragEnd}>
       <div style={{
         position: 'fixed',
         top: 0,
@@ -1589,7 +1595,6 @@ const ProjectTitleDashboard = () => {
                   <div>
                     <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', marginBottom: '16px', textTransform: 'uppercase' }}>Cross-Page Organization</label>
                     <p style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '12px' }}>Drag sections between pages to visually reorder your PDF layout.</p>
-                    <DragDropContext onDragEnd={onDragEnd}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                         {pdfPages.map((pageSections, pIdx) => (
                           <Droppable key={pIdx} droppableId={String(pIdx)}>
@@ -1614,7 +1619,7 @@ const ProjectTitleDashboard = () => {
                                 </h4>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                   {pageSections.map((sectionKey, secIdx) => (
-                                    <Draggable key={sectionKey} draggableId={sectionKey} index={secIdx}>
+                                    <Draggable key={`sidebar-${sectionKey}`} draggableId={`sidebar-${sectionKey}`} index={secIdx}>
                                       {(prov, snap) => (
                                         <div
                                           ref={prov.innerRef}
@@ -1648,7 +1653,6 @@ const ProjectTitleDashboard = () => {
                                       )}
                                     </Draggable>
                                   ))}
-                                  {provided.placeholder}
                                   {pageSections.length === 0 && !snapshot.isDraggingOver && (
                                     <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic', textAlign: 'center', padding: '10px 0' }}>Empty Page</div>
                                   )}
@@ -1658,7 +1662,6 @@ const ProjectTitleDashboard = () => {
                           </Droppable>
                         ))}
                       </div>
-                    </DragDropContext>
                   </div>
                 </div>
               )}
@@ -2014,8 +2017,9 @@ const ProjectTitleDashboard = () => {
                   position: 'relative',
                   marginBottom: isCapturingPdf ? '0' : '60px',
                   opacity: !isCapturingPdf && activePageIndex !== pageIdx ? 0.6 : 1,
-                  transform: !isCapturingPdf && activePageIndex !== pageIdx ? 'scale(0.98)' : 'scale(1)',
-                  transition: 'all 0.4s'
+                  transform: !isCapturingPdf && activePageIndex !== pageIdx ? 'scale(0.98)' : 'none',
+                  transition: 'all 0.4s',
+                  zIndex: activePageIndex === pageIdx ? 10 : 1
                 }}
               >
                 {/* Page Overlay Label */}
@@ -2035,10 +2039,14 @@ const ProjectTitleDashboard = () => {
                   </div>
                 )}
 
-                <div
-                  className="pdf-printable-area"
-                  style={{
-                    backgroundColor: pdfBackground.type === 'solid' ? (pdfBackground.color || '#ffffff') : 'transparent',
+                <Droppable droppableId={`canvas-page-${pageIdx}`} direction="vertical">
+                  {(provided, snapshot) => (
+                    <div
+                      className="pdf-printable-area"
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      style={{
+                        backgroundColor: pdfBackground.type === 'solid' ? (pdfBackground.color || '#ffffff') : 'transparent',
                     backgroundImage: pdfBackground.type === 'image' && pdfBackground.imageUrl
                       ? `linear-gradient(rgba(255,255,255,${1 - pdfBackground.imageOpacity}), rgba(255,255,255,${1 - pdfBackground.imageOpacity})), url(${pdfBackground.imageUrl})`
                       : (pdfBackground.type === 'gradient' ? pdfBackground.gradient : 'none'),
@@ -2072,7 +2080,7 @@ const ProjectTitleDashboard = () => {
                     alignItems: 'start',
                     gap: pdfGlobalStyles.spacing === 'Compact' ? '20px' : (pdfGlobalStyles.spacing === 'Normal' ? '40px' : '60px')
                   }}>
-                    {isPageEmpty ? (
+                    {isPageEmpty && !snapshot.isDraggingOver ? (
                       <div style={{ gridColumn: 'span 2', padding: '80px', border: '2px dashed #cbd5e1', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', opacity: 0.6 }}>
                         <Layout size={40} color="#94a3b8" />
                         <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>Empty Page - Move sections here from other pages</span>
@@ -2083,16 +2091,26 @@ const ProjectTitleDashboard = () => {
                         const isMetric = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(sectionKey) || (activeProject?.submodules || []).some(sub => sub.id === sectionKey);
 
                         return (
-                          <div key={sectionKey} style={{
-                            gridColumn: customContent.layout === '2-col' ? 'span 1' : 'span 2',
-                            breakInside: 'avoid',
-                            textAlign: customContent.alignment,
-                            position: 'relative',
-                            padding: isCapturingPdf ? '0' : '20px',
-                            backgroundColor: isCapturingPdf ? 'transparent' : 'rgba(255, 255, 255, 0.3)',
-                            borderRadius: '16px',
-                            border: isCapturingPdf ? 'none' : '1px solid rgba(255,255,255,0.4)',
-                          }}>
+                          <Draggable key={`canvas-${sectionKey}`} draggableId={`canvas-${sectionKey}`} index={secIdx} isDragDisabled={isCapturingPdf}>
+                            {(prov, snap) => (
+                              <div
+                                ref={prov.innerRef}
+                                {...prov.draggableProps}
+                                style={{
+                                  ...prov.draggableProps.style,
+                                  boxSizing: 'border-box',
+                                  gridColumn: customContent.layout === '2-col' ? 'span 1' : 'span 2',
+                                  breakInside: 'avoid',
+                                  textAlign: customContent.alignment,
+                                  position: snap.isDragging ? 'fixed' : 'relative',
+                                  padding: isCapturingPdf ? '0' : '20px',
+                                  backgroundColor: isCapturingPdf ? 'transparent' : (snap.isDragging ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.3)'),
+                                  borderRadius: '16px',
+                                  border: isCapturingPdf ? 'none' : (snap.isDragging ? '2px solid #3b82f6' : '1px solid rgba(255,255,255,0.4)'),
+                                  boxShadow: snap.isDragging ? '0 30px 60px rgba(0,0,0,0.2)' : 'none',
+                                  zIndex: snap.isDragging ? 999999 : 'auto',
+                                }}
+                              >
                             {/* Section Header */}
                             <div style={{
                               backgroundColor: '#1e293b',
@@ -2109,19 +2127,22 @@ const ProjectTitleDashboard = () => {
                               letterSpacing: '0.05em'
                             }}>
                               {!isCapturingPdf ? (
-                                <input
-                                  value={customContent.title}
-                                  onChange={(e) => handleUpdateCustomContent(sectionKey, 'title', e.target.value)}
-                                  style={{ background: 'transparent', border: 'none', color: 'white', fontWeight: '900', width: '60%', fontSize: '12px', outline: 'none' }}
-                                />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '60%' }}>
+                                  <div {...prov.dragHandleProps} style={{ cursor: 'grab', display: 'flex', color: snap.isDragging ? '#93c5fd' : '#94a3b8' }}>
+                                    <GripVertical size={16} />
+                                  </div>
+                                  <input
+                                    value={customContent.title}
+                                    onChange={(e) => handleUpdateCustomContent(sectionKey, 'title', e.target.value)}
+                                    style={{ background: 'transparent', border: 'none', color: 'white', fontWeight: '900', width: '100%', fontSize: '12px', outline: 'none' }}
+                                  />
+                                </div>
                               ) : (
                                 <span>{customContent.title}</span>
                               )}
 
                               {!isCapturingPdf && (
                                 <div style={{ display: 'flex', gap: '4px' }}>
-                                  <button onClick={() => moveSectionUp(pageIdx, secIdx)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px' }}><ChevronUp size={14} /></button>
-                                  <button onClick={() => moveSectionDown(pageIdx, secIdx)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px' }}><ChevronDown size={14} /></button>
                                   <button onClick={() => {
                                     setPdfPages(prev => prev.map((p, i) => i === pageIdx ? p.filter(k => k !== sectionKey) : p));
                                     handleSectionToggle(sectionKey);
@@ -2176,9 +2197,12 @@ const ProjectTitleDashboard = () => {
                               </div>
                             )}
                           </div>
+                            )}
+                          </Draggable>
                         );
                       })
                     )}
+                    {provided.placeholder}
                   </div>
 
                   {/* Page Footer */}
@@ -2187,11 +2211,14 @@ const ProjectTitleDashboard = () => {
                     {pdfGlobalStyles.showPageNumbers && <div>PAGE {pageIdx + 1} OF {pdfPages.length}</div>}
                   </div>
                 </div>
+                )}
+                </Droppable>
               </div>
             );
           })}
         </div>
       </div>
+      </DragDropContext>
     );
   };
   const renderSimulateModal = () => {
