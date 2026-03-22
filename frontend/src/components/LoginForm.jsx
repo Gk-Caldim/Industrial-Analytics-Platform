@@ -1,22 +1,27 @@
 import React, { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice';
+import API from '../utils/api';
 
 const LoginForm = () => {
-  const { login } = useAuth();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { loading, error: reduxError } = useSelector((state) => state.auth);
+  
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [localError, setLocalError] = useState('');
   const [longLoading, setLongLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    setLocalError('');
+    dispatch(loginStart());
     setLongLoading(false);
 
     // Timer to show message if it takes too long
@@ -24,30 +29,31 @@ const LoginForm = () => {
       setLongLoading(true);
     }, 3000);
 
-    // Use the actual values from formData, not the placeholder
     const email = formData.email;
     const password = formData.password === '**********' ? '' : formData.password;
 
     console.log('Logging in with:', email);
 
-    const result = await login(email, password);
+    try {
+      const response = await API.post('/auth/login', { email, password });
+      clearTimeout(timer);
+      setLongLoading(false);
 
-    clearTimeout(timer);
-    setLongLoading(false);
-
-    console.log('Login result:', result);
-
-    if (result.success) {
-      console.log('Redirecting to dashboard...');
-      // Force redirect after a small delay to ensure state updates
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 100);
-    } else {
-      setError(result.error || 'Login failed. Please check your credentials.');
+      if (response.data && response.data.access_token) {
+        const { access_token, user } = response.data;
+        dispatch(loginSuccess({ token: access_token, user }));
+        console.log('Login success, navigating to dashboard...');
+        navigate('/dashboard');
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (err) {
+      clearTimeout(timer);
+      setLongLoading(false);
+      const errorMessage = err.response?.data?.detail || err.message || 'Login failed';
+      dispatch(loginFailure(errorMessage));
+      setLocalError(errorMessage);
     }
-
-    setLoading(false);
   };
 
   const handleChange = (e) => {
@@ -79,7 +85,7 @@ const LoginForm = () => {
             onChange={handleChange}
             required
             className="w-full px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-300 text-slate-800 placeholder-slate-400 shadow-sm"
-            placeholder="name@company.in"
+            placeholder="Enter your email"
           />
         </div>
 
@@ -151,9 +157,9 @@ const LoginForm = () => {
         </div>
 
         {/* Error Message */}
-        {error && (
+        {localError && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-xl animate-fade-in-down">
-            <p className="text-sm font-medium text-red-600 text-center">{error}</p>
+            <p className="text-sm font-medium text-red-600 text-center">{localError}</p>
           </div>
         )}
 

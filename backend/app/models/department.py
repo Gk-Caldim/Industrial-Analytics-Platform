@@ -6,6 +6,7 @@ class Department(Base):
     __tablename__ = "departments"
 
     id = Column(Integer, primary_key=True, index=True)
+    department_id = Column(String, unique=True, nullable=True)
     name = Column(String, nullable=False)
     head = Column(String, nullable=False)
     employees = Column(Integer, default=0)

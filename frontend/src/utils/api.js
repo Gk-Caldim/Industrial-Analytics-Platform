@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "https://automated-manufacturing.onrender.com/api",
-  timeout: 60000, // 60 seconds timeout to allow for cold starts
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  timeout: 120000, // 120 seconds timeout to allow for cold starts
   headers: {
     'Content-Type': 'application/json',
   },
