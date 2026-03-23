@@ -12,6 +12,11 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 
+import { HotTable } from '@handsontable/react';
+import { registerAllModules } from 'handsontable/registry';
+import 'handsontable/dist/handsontable.full.min.css';
+registerAllModules();
+
 // Helper to get display name without project prefix
 const getDisplayFileName = (fileName, projectName) => {
   if (!fileName) return '';
@@ -554,16 +559,27 @@ const ProjectTitleDashboard = () => {
     qualityCritical: '7'
   });
 
+  // Budget Table Data (Array of Arrays to support Handsontable Excel-like editing natively)
+  const [budgetTableData, setBudgetTableData] = useState([
+    ['Category', 'Department', 'Estimation', 'Approved (x)', 'Utilized (y)', 'Balance (z=x-y)', 'Outlook Spend (S)', 'Likely Cummulative Spend (Z+S)'],
+    ['CAPEX', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', ''],
+    ['Total CAPEX', '', '', '', '', '', '', ''],
+    ['Revenue', '', '', '', '', '', '', ''],
+    ['Total Revenue', '', '', '', '', '', '', '']
+  ]);
+
   // Modal States
   const [showEditMilestones, setShowEditMilestones] = useState(false);
   const [showEditIssues, setShowEditIssues] = useState(false);
   const [showEditSummary, setShowEditSummary] = useState(false);
-  const [editType, setEditType] = useState(null); // 'budget', 'resource', 'quality'
+  const [editType, setEditType] = useState(null); // 'budget', 'resource', 'quality', 'budgetTable'
 
   // Form States
   const [milestoneForm, setMilestoneForm] = useState(null);
   const [issuesForm, setIssuesForm] = useState([]);
   const [summaryForm, setSummaryForm] = useState({});
+  const [budgetTableForm, setBudgetTableForm] = useState([]);
 
 
   // Load submodule data from API
@@ -2177,6 +2193,82 @@ const ProjectTitleDashboard = () => {
                               </div>
                             )}
 
+                            {sectionKey === 'budget' && (
+                              <div style={{ overflow: 'hidden', borderRadius: '12px', border: '1px solid #bfdbfe', backgroundColor: '#ffffff', boxShadow: isCapturingPdf ? 'none' : '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '11px' }}>
+                                  <thead>
+                                    <tr>
+                                      {budgetTableData.length > 0 && budgetTableData[0].map((h, i) => (
+                                        <th key={i} style={{ padding: '12px 10px', borderBottom: '2px solid #bfdbfe', backgroundColor: '#eff6ff', fontWeight: '800', color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
+                                      ))}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {budgetTableData.slice(1).map((row, idx) => {
+                                      const categoryVal = String(row[0] || '');
+                                      const isHighlight = categoryVal && (categoryVal.includes('Total') || categoryVal === 'CAPEX' || categoryVal === 'Revenue');
+                                      return (
+                                      <tr key={idx} style={{ backgroundColor: isHighlight ? '#f8fafc' : '#ffffff' }}>
+                                        {row.map((cell, colIdx) => (
+                                          <td key={colIdx} style={{ padding: '10px', borderBottom: '1px solid #e2e8f0', color: colIdx === 0 && isHighlight ? '#0f172a' : '#475569', fontWeight: colIdx === 0 && isHighlight ? '800' : '500' }}>
+                                            {cell}
+                                          </td>
+                                        ))}
+                                      </tr>
+                                    )})}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+
+                            {sectionKey === 'resource' && (
+                              <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #dcfce7', overflow: 'hidden', boxShadow: isCapturingPdf ? 'none' : '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
+                                <div style={{ padding: '12px 16px', backgroundColor: '#f0fdf4', borderBottom: '1px solid #dcfce7', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <div style={{ backgroundColor: '#22c55e', color: 'white', padding: '4px', borderRadius: '6px' }}><Check size={12} /></div>
+                                  <span style={{ fontSize: '13px', fontWeight: '800', color: '#14532d', letterSpacing: '0.05em' }}>RESOURCE STATE</span>
+                                </div>
+                                <div style={{ padding: '16px', display: 'grid', gap: '10px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Deployed</span>
+                                    <span style={{ fontSize: '16px', fontWeight: '900', color: '#1e3a5f' }}>{summaryData.resourceDeployed}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Shortage</span>
+                                    <span style={{ fontSize: '16px', fontWeight: '900', color: '#ef4444' }}>{summaryData.resourceShortage}</span>
+                                  </div>
+                                  <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '4px 0' }} />
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Utilization</span>
+                                    <span style={{ fontSize: '16px', fontWeight: '900', color: '#f59e0b' }}>{summaryData.resourceUtilized}/{summaryData.resourceDeployed}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {sectionKey === 'quality' && (
+                              <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #ffedd5', overflow: 'hidden', boxShadow: isCapturingPdf ? 'none' : '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
+                                <div style={{ padding: '12px 16px', backgroundColor: '#fff7ed', borderBottom: '1px solid #ffedd5', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <div style={{ backgroundColor: '#f59e0b', color: 'white', padding: '4px', borderRadius: '6px' }}><Filter size={12} /></div>
+                                  <span style={{ fontSize: '13px', fontWeight: '800', color: '#78350f', letterSpacing: '0.05em' }}>QUALITY METRICS</span>
+                                </div>
+                                <div style={{ padding: '16px', display: 'grid', gap: '10px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Total Issues</span>
+                                    <span style={{ fontSize: '16px', fontWeight: '900', color: '#1e3a5f' }}>{summaryData.qualityTotal}</span>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Open</span>
+                                    <span style={{ fontSize: '16px', fontWeight: '900', color: '#ef4444' }}>{summaryData.qualityOpen}</span>
+                                  </div>
+                                  <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '4px 0' }} />
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Resolution</span>
+                                    <span style={{ fontSize: '16px', fontWeight: '900', color: '#10b981' }}>{summaryData.qualityCompleted} Closed</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
                             {isMetric && (
                               <div style={{ height: '340px', width: '100%', border: '1px solid #e2e8f0', borderRadius: '12px', backgroundColor: '#ffffff', padding: '16px' }}>
                                 {renderChart(sectionKey, chartTypes[activeProject.id]?.[sectionKey] || 'bar', false, getTrackerForPhase(sectionKey)?.trackerId)}
@@ -2731,9 +2823,128 @@ const ProjectTitleDashboard = () => {
     if (!showEditSummary) return null;
 
     const handleSave = () => {
-      setSummaryData(summaryForm);
+      if (editType === 'budgetTable') {
+        setBudgetTableData(budgetTableForm);
+      } else {
+        setSummaryData(summaryForm);
+      }
       setShowEditSummary(false);
     };
+
+    if (editType === 'budgetTable') {
+      const updateValue = (rIdx, cIdx, val) => {
+        const newForm = [...budgetTableForm];
+        newForm[rIdx] = [...newForm[rIdx]];
+        newForm[rIdx][cIdx] = val;
+        setBudgetTableForm(newForm);
+      };
+      const addRow = () => setBudgetTableForm([...budgetTableForm, new Array(budgetTableForm[0]?.length || 1).fill('')]);
+      const delRow = (i) => setBudgetTableForm(budgetTableForm.filter((_, idx) => idx !== i));
+      const addCol = () => setBudgetTableForm(budgetTableForm.map((row, i) => [...row, i === 0 ? 'New Column' : '']));
+      const delCol = (j) => setBudgetTableForm(budgetTableForm.map(row => row.filter((_, idx) => idx !== j)));
+      
+      const onRowDragEnd = (res) => {
+        if (!res.destination) return;
+        const sIdx = res.source.index + 1;
+        const dIdx = res.destination.index + 1;
+        const newForm = [...budgetTableForm];
+        const [moved] = newForm.splice(sIdx, 1);
+        newForm.splice(dIdx, 0, moved);
+        setBudgetTableForm(newForm);
+      };
+
+      const headers = budgetTableForm[0] || [];
+      const rows = budgetTableForm.slice(1);
+
+      return (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '20px' }}>
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '95vw', maxWidth: '1200px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '16px 24px', fontSize: '18px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>Edit Budget Matrix Workspace</span>
+              <button onClick={() => setShowEditSummary(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', display: 'flex' }}><X size={20}/></button>
+            </div>
+            
+            <div style={{ padding: '24px', overflowY: 'auto', flex: 1, backgroundColor: '#f8fafc' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                <button onClick={addCol} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' }}><Plus size={16}/> Add Column</button>
+                <button onClick={addRow} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' }}><Plus size={16}/> Add Row</button>
+              </div>
+
+              <DragDropContext onDragEnd={onRowDragEnd}>
+                <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead style={{ backgroundColor: '#f1f5f9' }}>
+                      <tr>
+                        <th style={{ width: '40px', padding: '12px', borderBottom: '2px solid #cbd5e1', borderRight: '1px solid #e2e8f0' }}></th>
+                        {headers.map((h, i) => (
+                          <th key={i} style={{ padding: '12px', borderBottom: '2px solid #cbd5e1', borderRight: '1px solid #e2e8f0', minWidth: '150px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <input 
+                                type="text" 
+                                value={h} 
+                                onChange={(e) => updateValue(0, i, e.target.value)} 
+                                style={{ flex: 1, padding: '6px', border: '1px solid transparent', backgroundColor: 'transparent', fontWeight: '800', color: '#1e293b', borderRadius: '4px', outline: 'none' }} 
+                                onFocus={(e) => e.target.style.border = '1px solid #94a3b8'} 
+                                onBlur={(e) => e.target.style.border = '1px solid transparent'}
+                              />
+                              <button onClick={() => delCol(i)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', borderRadius: '4px' }} className="hover:bg-red-50" title="Delete Column">
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <Droppable droppableId="budget-rows-droppable" type="BUDGET_ROWS">
+                      {(provided) => (
+                        <tbody ref={provided.innerRef} {...provided.droppableProps}>
+                          {rows.map((row, idx) => (
+                            <Draggable key={`row-${idx}`} draggableId={`row-${idx}`} index={idx}>
+                              {(provided, snapshot) => (
+                                <tr 
+                                  ref={provided.innerRef} 
+                                  {...provided.draggableProps} 
+                                  style={{ ...provided.draggableProps.style, backgroundColor: snapshot.isDragging ? '#f8fafc' : 'white', boxShadow: snapshot.isDragging ? '0 5px 15px rgba(0,0,0,0.1)' : 'none', display: snapshot.isDragging ? 'table' : 'table-row' }}
+                                >
+                                  <td style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0', textAlign: 'center', backgroundColor: '#f8fafc' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                      <div {...provided.dragHandleProps} style={{ color: '#94a3b8', cursor: 'grab' }}><GripVertical size={16} /></div>
+                                      <button onClick={() => delRow(idx + 1)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex' }} title="Delete Row"><Trash2 size={14}/></button>
+                                    </div>
+                                  </td>
+                                  {row.map((cell, colIdx) => (
+                                    <td key={colIdx} style={{ padding: '8px', borderBottom: '1px solid #e2e8f0', borderRight: '1px solid #e2e8f0' }}>
+                                      <input 
+                                        type="text" 
+                                        value={cell} 
+                                        onChange={(e) => updateValue(idx + 1, colIdx, e.target.value)} 
+                                        style={{ width: '100%', padding: '8px', border: '1px solid transparent', borderRadius: '4px', outline: 'none', color: '#334155' }} 
+                                        onFocus={(e) => { e.target.style.border = '1px solid #bfdbfe'; e.target.style.backgroundColor = '#eff6ff'; }} 
+                                        onBlur={(e) => { e.target.style.border = '1px solid transparent'; e.target.style.backgroundColor = 'transparent'; }}
+                                      />
+                                    </td>
+                                  ))}
+                                </tr>
+                              )}
+                            </Draggable>
+                          ))}
+                          {provided.placeholder}
+                        </tbody>
+                      )}
+                    </Droppable>
+                  </table>
+                </div>
+              </DragDropContext>
+            </div>
+            
+            <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', backgroundColor: 'white' }}>
+              <button onClick={() => setShowEditSummary(false)} style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#475569', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSave} style={{ padding: '10px 20px', borderRadius: '6px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
 
     const config = {
       budget: {
@@ -3945,16 +4156,31 @@ const ProjectTitleDashboard = () => {
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Status:</span>
-                      <span style={{
-                        fontSize: '14px',
-                        padding: '4px 12px',
-                        borderRadius: '20px',
-                        backgroundColor: '#fed7aa',
-                        color: '#9a3412',
-                        fontWeight: 'bold'
-                      }}>
-                        {sopData[0].status}
-                      </span>
+                      <select
+                        value={sopData[0].status}
+                        onChange={(e) => {
+                          const newSop = [...sopData];
+                          newSop[0].status = e.target.value;
+                          setSopData(newSop);
+                        }}
+                        style={{
+                          fontSize: '14px',
+                          padding: '4px 28px 4px 12px',
+                          borderRadius: '20px',
+                          backgroundColor: sopData[0].status === 'On Track' ? '#dcfce7' : sopData[0].status === 'Likely Delay' ? '#fef08a' : '#fecaca',
+                          color: sopData[0].status === 'On Track' ? '#166534' : sopData[0].status === 'Likely Delay' ? '#9a3412' : '#991b1b',
+                          fontWeight: 'bold',
+                          border: 'none',
+                          outline: 'none',
+                          cursor: 'pointer',
+                          appearance: 'menulist',
+                          boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        }}
+                      >
+                        <option value="On Track">On Track</option>
+                        <option value="Likely Delay">Likely Delay</option>
+                        <option value="Critical">Critical</option>
+                      </select>
                     </div>
                   </div>
 
@@ -4046,18 +4272,31 @@ const ProjectTitleDashboard = () => {
                               <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.e)}</td>
                               <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.f)}</td>
                               <td style={{ padding: '12px 15px' }}>
-                                <span style={{
-                                  display: 'inline-block',
-                                  padding: '4px 12px',
-                                  borderRadius: '6px',
-                                  fontSize: '11px',
-                                  fontWeight: 'bold',
-                                  backgroundColor: item.plan.implementation === 'On Track' ? '#ecfdf5' : item.plan.implementation === 'In Progress' ? '#eff6ff' : '#fff1f2',
-                                  color: item.plan.implementation === 'On Track' ? '#059669' : item.plan.implementation === 'In Progress' ? '#2563eb' : '#dc2626',
-                                  border: `1px solid ${item.plan.implementation === 'On Track' ? '#10b981' : item.plan.implementation === 'In Progress' ? '#3b82f6' : '#f43f5e'}33`
-                                }}>
-                                  {item.plan.implementation}
-                                </span>
+                                <select
+                                  value={item.plan.implementation}
+                                  onChange={(e) => {
+                                    const newMilestones = [...milestones];
+                                    newMilestones[idx].plan.implementation = e.target.value;
+                                    setMilestones(newMilestones);
+                                  }}
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '4px 24px 4px 12px',
+                                    borderRadius: '6px',
+                                    fontSize: '11px',
+                                    fontWeight: 'bold',
+                                    backgroundColor: item.plan.implementation === 'On Track' ? '#ecfdf5' : item.plan.implementation === 'In Progress' ? '#eff6ff' : '#fff1f2',
+                                    color: item.plan.implementation === 'On Track' ? '#059669' : item.plan.implementation === 'In Progress' ? '#2563eb' : '#dc2626',
+                                    border: `1px solid ${item.plan.implementation === 'On Track' ? '#10b981' : item.plan.implementation === 'In Progress' ? '#3b82f6' : '#f43f5e'}33`,
+                                    cursor: 'pointer',
+                                    outline: 'none',
+                                    appearance: 'menulist'
+                                  }}
+                                >
+                                  <option value="On Track">On Track</option>
+                                  <option value="In Progress">In Progress</option>
+                                  <option value="At Risk">At Risk</option>
+                                </select>
                               </td>
                             </tr>
                             <tr style={{ backgroundColor: '#fcfdff', borderBottom: '1px solid #f1f5f9' }}>
@@ -4069,18 +4308,31 @@ const ProjectTitleDashboard = () => {
                               <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.e)}</td>
                               <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.actual.f)}</td>
                               <td style={{ padding: '12px 15px' }}>
-                                <span style={{
-                                  display: 'inline-block',
-                                  padding: '4px 12px',
-                                  borderRadius: '6px',
-                                  fontSize: '11px',
-                                  fontWeight: 'bold',
-                                  backgroundColor: item.actual.implementation === 'On Track' ? '#ecfdf5' : item.actual.implementation === 'In Progress' ? '#eff6ff' : '#fff1f2',
-                                  color: item.actual.implementation === 'On Track' ? '#059669' : item.actual.implementation === 'In Progress' ? '#2563eb' : '#dc2626',
-                                  border: `1px solid ${item.actual.implementation === 'On Track' ? '#10b981' : item.actual.implementation === 'In Progress' ? '#3b82f6' : '#f43f5e'}33`
-                                }}>
-                                  {item.actual.implementation}
-                                </span>
+                                <select
+                                  value={item.actual.implementation}
+                                  onChange={(e) => {
+                                    const newMilestones = [...milestones];
+                                    newMilestones[idx].actual.implementation = e.target.value;
+                                    setMilestones(newMilestones);
+                                  }}
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '4px 24px 4px 12px',
+                                    borderRadius: '6px',
+                                    fontSize: '11px',
+                                    fontWeight: 'bold',
+                                    backgroundColor: item.actual.implementation === 'On Track' ? '#ecfdf5' : item.actual.implementation === 'In Progress' ? '#eff6ff' : '#fff1f2',
+                                    color: item.actual.implementation === 'On Track' ? '#059669' : item.actual.implementation === 'In Progress' ? '#2563eb' : '#dc2626',
+                                    border: `1px solid ${item.actual.implementation === 'On Track' ? '#10b981' : item.actual.implementation === 'In Progress' ? '#3b82f6' : '#f43f5e'}33`,
+                                    cursor: 'pointer',
+                                    outline: 'none',
+                                    appearance: 'menulist'
+                                  }}
+                                >
+                                  <option value="On Track">On Track</option>
+                                  <option value="In Progress">In Progress</option>
+                                  <option value="At Risk">At Risk</option>
+                                </select>
                               </td>
                             </tr>
                           </React.Fragment>
@@ -4151,18 +4403,34 @@ const ProjectTitleDashboard = () => {
                               <td style={{ padding: '12px 15px', color: '#445164' }}>{item.function}</td>
                               <td style={{ padding: '12px 15px', color: '#445164' }}>{formatXAxisValue(item.targetDate)}</td>
                               <td style={{ padding: '12px 15px' }}>
-                                <span style={{
-                                  display: 'inline-block',
-                                  padding: '4px 12px',
-                                  borderRadius: '6px',
-                                  fontSize: '11px',
-                                  fontWeight: 'bold',
-                                  backgroundColor: colors.bg,
-                                  color: colors.text,
-                                  border: `1px solid ${colors.text}33`
-                                }}>
-                                  {item.status}
-                                </span>
+                                <select
+                                  value={item.status}
+                                  onChange={(e) => {
+                                    const newIssues = [...criticalIssues];
+                                    const index = newIssues.findIndex(x => x.id === item.id);
+                                    if (index !== -1) {
+                                      newIssues[index].status = e.target.value;
+                                      setCriticalIssues(newIssues);
+                                    }
+                                  }}
+                                  style={{
+                                    display: 'inline-block',
+                                    padding: '4px 24px 4px 12px',
+                                    borderRadius: '6px',
+                                    fontSize: '11px',
+                                    fontWeight: 'bold',
+                                    backgroundColor: colors.bg,
+                                    color: colors.text,
+                                    border: `1px solid ${colors.text}33`,
+                                    cursor: 'pointer',
+                                    outline: 'none',
+                                    appearance: 'menulist'
+                                  }}
+                                >
+                                  <option value="Open">Open</option>
+                                  <option value="In Progress">In Progress</option>
+                                  <option value="Closed">Closed</option>
+                                </select>
                               </td>
                             </tr>
                           );
@@ -4245,69 +4513,90 @@ const ProjectTitleDashboard = () => {
                     </div>
                   )}
 
+                {/* Budget Summary - Full Width Layout */}
+                {visibleSections.budget && (
+                  <div style={{ marginBottom: '35px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                      <div style={{ fontSize: '15px', color: '#64748b' }}>Project Name: <span style={{ fontWeight: 'bold', color: '#1e3a5f', paddingLeft: '5px' }}>{activeProject?.name || 'Unknown'}</span></div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <h3 style={{ fontSize: '24px', fontWeight: 'normal', color: '#444444', margin: 0 }}>Budget Summary</h3>
+                        <button
+                          onClick={() => { setEditType('budgetTable'); setBudgetTableForm(JSON.parse(JSON.stringify(budgetTableData))); setShowEditSummary(true); }}
+                          className="no-print"
+                          style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '4px' }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <div style={{ fontSize: '15px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        Status: 
+                        <select
+                          value={activeProject?.status || 'In Progress'}
+                          onChange={(e) => {
+                            if (activeProject && projects) {
+                              const updatedProject = { ...activeProject, status: e.target.value };
+                              const updatedProjects = projects.map(p => p.id === activeProject.id ? updatedProject : p);
+                              dispatch(setProjects(updatedProjects));
+                            }
+                          }}
+                          style={{
+                            padding: '4px 24px 4px 10px',
+                            fontWeight: 'bold',
+                            color: activeProject?.status === 'Completed' ? '#166534' : activeProject?.status === 'At Risk' ? '#991b1b' : activeProject?.status === 'On Hold' ? '#9a3412' : '#1e3a5f',
+                            backgroundColor: activeProject?.status === 'Completed' ? '#dcfce7' : activeProject?.status === 'At Risk' ? '#fecaca' : activeProject?.status === 'On Hold' ? '#fef08a' : '#f1f5f9',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            outline: 'none',
+                            fontSize: '14px',
+                            appearance: 'menulist',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                          }}
+                        >
+                          <option value="In Progress">In Progress</option>
+                          <option value="Completed">Completed</option>
+                          <option value="On Hold">On Hold</option>
+                          <option value="At Risk">At Risk</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
+                        <thead>
+                          <tr>
+                            {budgetTableData.length > 0 && budgetTableData[0].map((h, i) => (
+                              <th key={i} style={{ padding: '16px 12px', border: '1px solid #bfdbfe', backgroundColor: '#ffffff', fontWeight: 'bold', color: '#1e293b', fontSize: '14px' }}>{h}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {budgetTableData.slice(1).map((row, idx) => {
+                            const categoryVal = String(row[0] || '');
+                            const isHighlight = categoryVal && (categoryVal.includes('Total') || categoryVal === 'CAPEX' || categoryVal === 'Revenue');
+                            return (
+                            <tr key={idx}>
+                              {row.map((cell, colIdx) => (
+                                <td key={colIdx} style={{ padding: '16px 12px', border: '1px solid #bfdbfe', fontSize: '14px', color: '#334155', backgroundColor: '#ffffff', fontWeight: colIdx === 0 && isHighlight ? 'bold' : 'normal', textAlign: colIdx === 0 ? 'center' : 'left' }}>
+                                  {cell}
+                                </td>
+                              ))}
+                            </tr>
+                          )})}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
                 {/* Summary Cards */}
-                {(visibleSections.budget || visibleSections.resource || visibleSections.quality) && (
+                {(visibleSections.resource || visibleSections.quality) && (
                   <div style={{ marginBottom: '35px' }}>
                     <div style={{
                       display: 'grid',
-                      gridTemplateColumns: (visibleSections.budget && visibleSections.resource && visibleSections.quality) ? '1fr 1fr 1fr' :
-                        (visibleSections.budget && visibleSections.resource) || (visibleSections.budget && visibleSections.quality) || (visibleSections.resource && visibleSections.quality) ? '1fr 1fr' : '1fr',
+                      gridTemplateColumns: (visibleSections.resource && visibleSections.quality) ? '1fr 1fr' : '1fr',
                       gap: '20px'
                     }}>
-                      {/* Budget Summary */}
-                      {visibleSections.budget && (
-                        <div style={{
-                          backgroundColor: 'white',
-                          borderRadius: '12px',
-                          border: '1px solid #e2e8f0',
-                          overflow: 'hidden',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                          display: 'flex',
-                          flexDirection: 'column'
-                        }}>
-                          <div style={{
-                            padding: '16px 20px',
-                            backgroundColor: '#eff6ff',
-                            borderBottom: '1px solid #dbeafe',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <div style={{ backgroundColor: '#3b82f6', color: 'white', padding: '6px', borderRadius: '8px' }}>
-                                <Maximize2 size={16} /> {/* Using icon as placeholder */}
-                              </div>
-                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Budget</span>
-                            </div>
-                            <button
-                              onClick={() => { setEditType('budget'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
-                              className="no-print"
-                              style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '4px' }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                          </div>
-                          <div style={{ padding: '20px', display: 'grid', gap: '12px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Approved</span>
-                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#1e3a5f' }}>{summaryData.budgetApproved}</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Utilized</span>
-                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#3b82f6' }}>{summaryData.budgetUtilized}</span>
-                            </div>
-                            <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '4px 0' }} />
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Outlook</span>
-                              <div style={{ textAlign: 'right' }}>
-                                <span style={{ fontSize: '18px', fontWeight: '900', color: '#10b981' }}>{summaryData.budgetOutlook}</span>
-                                <div style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 'bold' }}>EXPENDITURE</div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
                       {/* Resource Summary */}
                       {visibleSections.resource && (
                         <div style={{
