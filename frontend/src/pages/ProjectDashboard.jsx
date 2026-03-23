@@ -4513,90 +4513,83 @@ const ProjectTitleDashboard = () => {
                     </div>
                   )}
 
-                {/* Budget Summary - Full Width Layout */}
-                {visibleSections.budget && (
-                  <div style={{ marginBottom: '35px', backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                      <div style={{ fontSize: '15px', color: '#64748b' }}>Project Name: <span style={{ fontWeight: 'bold', color: '#1e3a5f', paddingLeft: '5px' }}>{activeProject?.name || 'Unknown'}</span></div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <h3 style={{ fontSize: '24px', fontWeight: 'normal', color: '#444444', margin: 0 }}>Budget Summary</h3>
-                        <button
-                          onClick={() => { setEditType('budgetTable'); setBudgetTableForm(JSON.parse(JSON.stringify(budgetTableData))); setShowEditSummary(true); }}
-                          className="no-print"
-                          style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: '4px' }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                      </div>
-                      <div style={{ fontSize: '15px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        Status: 
-                        <select
-                          value={activeProject?.status || 'In Progress'}
-                          onChange={(e) => {
-                            if (activeProject && projects) {
-                              const updatedProject = { ...activeProject, status: e.target.value };
-                              const updatedProjects = projects.map(p => p.id === activeProject.id ? updatedProject : p);
-                              dispatch(setProjects(updatedProjects));
-                            }
-                          }}
-                          style={{
-                            padding: '4px 24px 4px 10px',
-                            fontWeight: 'bold',
-                            color: activeProject?.status === 'Completed' ? '#166534' : activeProject?.status === 'At Risk' ? '#991b1b' : activeProject?.status === 'On Hold' ? '#9a3412' : '#1e3a5f',
-                            backgroundColor: activeProject?.status === 'Completed' ? '#dcfce7' : activeProject?.status === 'At Risk' ? '#fecaca' : activeProject?.status === 'On Hold' ? '#fef08a' : '#f1f5f9',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            outline: 'none',
-                            fontSize: '14px',
-                            appearance: 'menulist',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
-                          }}
-                        >
-                          <option value="In Progress">In Progress</option>
-                          <option value="Completed">Completed</option>
-                          <option value="On Hold">On Hold</option>
-                          <option value="At Risk">At Risk</option>
-                        </select>
-                      </div>
-                    </div>
-                    
-                    <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
-                        <thead>
-                          <tr>
-                            {budgetTableData.length > 0 && budgetTableData[0].map((h, i) => (
-                              <th key={i} style={{ padding: '16px 12px', border: '1px solid #bfdbfe', backgroundColor: '#ffffff', fontWeight: 'bold', color: '#1e293b', fontSize: '14px' }}>{h}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {budgetTableData.slice(1).map((row, idx) => {
-                            const categoryVal = String(row[0] || '');
-                            const isHighlight = categoryVal && (categoryVal.includes('Total') || categoryVal === 'CAPEX' || categoryVal === 'Revenue');
-                            return (
-                            <tr key={idx}>
-                              {row.map((cell, colIdx) => (
-                                <td key={colIdx} style={{ padding: '16px 12px', border: '1px solid #bfdbfe', fontSize: '14px', color: '#334155', backgroundColor: '#ffffff', fontWeight: colIdx === 0 && isHighlight ? 'bold' : 'normal', textAlign: colIdx === 0 ? 'center' : 'left' }}>
-                                  {cell}
-                                </td>
-                              ))}
-                            </tr>
-                          )})}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
+
 
                 {/* Summary Cards */}
-                {(visibleSections.resource || visibleSections.quality) && (
+                {(visibleSections.budget || visibleSections.resource || visibleSections.quality) && (
                   <div style={{ marginBottom: '35px' }}>
                     <div style={{
                       display: 'grid',
-                      gridTemplateColumns: (visibleSections.resource && visibleSections.quality) ? '1fr 1fr' : '1fr',
+                      gridTemplateColumns: [visibleSections.budget, visibleSections.resource, visibleSections.quality].filter(Boolean).length === 3 ? 'repeat(3, 1fr)' : [visibleSections.budget, visibleSections.resource, visibleSections.quality].filter(Boolean).length === 2 ? 'repeat(2, 1fr)' : '1fr',
                       gap: '20px'
                     }}>
+                      {/* Budget Summary */}
+                      {visibleSections.budget && (
+                        <div style={{
+                          backgroundColor: 'white',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0',
+                          overflow: 'hidden',
+                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                          display: 'flex',
+                          flexDirection: 'column'
+                        }}>
+                          <div style={{
+                            padding: '16px 20px',
+                            backgroundColor: '#eff6ff',
+                            borderBottom: '1px solid #bfdbfe',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{ backgroundColor: '#3b82f6', color: 'white', padding: '6px', borderRadius: '8px' }}>
+                                <Settings size={16} />
+                              </div>
+                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Budget</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                onClick={() => { setEditType('budgetTable'); setBudgetTableForm([...budgetTableData]); setShowEditSummary(true); }}
+                                className="no-print"
+                                style={{ background: 'none', border: 'none', color: '#0ea5e9', cursor: 'pointer', padding: '4px' }}
+                                title="Edit PDF Budget Matrix Workspace"
+                              >
+                                <Maximize2 className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => { setEditType('budget'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
+                                className="no-print"
+                                style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '4px' }}
+                                title="Edit Simple Budget Summary"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                          <div style={{ padding: '20px', display: 'grid', gap: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Approved</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#1e3a5f' }}>{summaryData.budgetApproved}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Utilized</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#3b82f6' }}>{summaryData.budgetUtilized}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Balance</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#10b981' }}>{summaryData.budgetBalance}</span>
+                            </div>
+                            <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '4px 0' }} />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Outlook</span>
+                              <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: '18px', fontWeight: '900', color: '#f59e0b' }}>{summaryData.budgetOutlook}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       {/* Resource Summary */}
                       {visibleSections.resource && (
                         <div style={{
