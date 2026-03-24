@@ -1,101 +1,250 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { DotLottiePlayer } from '@dotlottie/react-player';
 import LoginForm from '../components/LoginForm';
 
+// Modern easing curves for a premium feel
+const transitionEasing = [0.22, 1, 0.36, 1];
+
 const Login = () => {
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Initial loader timeout
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleLoginStart = () => {
+    setIsAuthenticating(true);
+  };
+
+  const handleLoginSuccess = () => {
+    setIsExiting(true);
+    // Graceful delay for 3D flip (1.2s total)
+    setTimeout(() => {
+      navigate('/dashboard');
+    }, 1200);
+  };
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-white text-slate-900 relative overflow-hidden">
-      {/* Subtle background glow for full page */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-red-200/40 blur-[120px]"></div>
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-200/40 blur-[120px]"></div>
-        <div className="absolute top-[40%] right-[10%] w-[30%] h-[30%] rounded-full bg-purple-200/30 blur-[120px]"></div>
-      </div>
+    <div className="min-h-screen w-full flex flex-col bg-slate-50 text-slate-900 relative overflow-hidden"
+      style={{ perspective: '1500px' }}>
 
-      {/* Tech Circuitry Full Page SVG Background */}
-      <div className="absolute inset-0 w-full h-full opacity-[0.15] pointer-events-none z-0 overflow-hidden">
-        <svg viewBox="0 0 2000 1000" className="w-full h-full object-cover text-slate-400" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
-          {/* Subtle dots background */}
-          <pattern id="dots" width="40" height="40" patternUnits="userSpaceOnUse">
-            <circle cx="2" cy="2" r="1.5" fill="currentColor" opacity="0.3" />
-            <circle cx="22" cy="22" r="1.5" fill="currentColor" opacity="0.1" />
-          </pattern>
-          <rect width="2000" height="1000" fill="url(#dots)" />
-
-          {/* Circuitry / PCB-like Tracks */}
-          <path d="M 0 900 L 200 900 L 300 800 L 600 800 L 700 700 L 1200 700 L 1300 600 L 1800 600 L 1900 500 L 2000 500" stroke="currentColor" strokeWidth="2" opacity="0.6" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M 50 1000 L 50 900 L 150 800 L 150 400 L 250 300 L 550 300 L 650 200 L 1050 200 L 1150 100" stroke="currentColor" strokeWidth="1" strokeDasharray="5 5" opacity="0.5" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M 400 1000 L 400 850 L 550 700 L 550 550 L 650 450 L 950 450 L 1050 350 L 1350 350 L 1450 250 L 1850 250" stroke="currentColor" strokeWidth="3" opacity="0.4" strokeLinecap="round" strokeLinejoin="round" />
-
-          {/* Connection Nodes */}
-          <circle cx="300" cy="800" r="6" fill="currentColor" />
-          <circle cx="700" cy="700" r="6" fill="currentColor" />
-          <circle cx="1300" cy="600" r="8" fill="transparent" stroke="currentColor" strokeWidth="2" />
-          <circle cx="1900" cy="500" r="6" fill="currentColor" />
-
-          <circle cx="150" cy="400" r="4" fill="currentColor" opacity="0.8" />
-          <circle cx="250" cy="300" r="4" fill="currentColor" opacity="0.8" />
-          <circle cx="650" cy="200" r="4" fill="currentColor" opacity="0.8" />
-          <circle cx="1150" cy="100" r="7" fill="transparent" stroke="currentColor" strokeWidth="2" opacity="0.8" />
-
-          <circle cx="550" cy="700" r="5" fill="currentColor" opacity="0.6" />
-          <circle cx="650" cy="450" r="5" fill="currentColor" opacity="0.6" />
-          <circle cx="1050" cy="350" r="9" fill="transparent" stroke="currentColor" strokeWidth="2" opacity="0.6" />
-          <circle cx="1450" cy="250" r="5" fill="currentColor" opacity="0.6" />
-
-          {/* Abstract Data Rings */}
-          <g transform="translate(1600, 300)" opacity="0.5">
-            <circle cx="0" cy="0" r="150" stroke="currentColor" strokeWidth="1" strokeDasharray="10 10" />
-            <circle cx="0" cy="0" r="100" stroke="currentColor" strokeWidth="2" />
-            <circle cx="0" cy="0" r="80" stroke="currentColor" strokeWidth="1" strokeDasharray="4 8" />
-            <circle cx="0" cy="0" r="40" stroke="currentColor" strokeWidth="4" opacity="0.3" />
-            <path d="M -150 0 L 150 0 M 0 -150 L 0 150" stroke="currentColor" strokeWidth="1" opacity="0.3" />
-            {/* Radar / scan wedge abstract */}
-            <path d="M 0 0 L 70 -70 A 100 100 0 0 1 100 0 Z" fill="currentColor" opacity="0.1" />
-          </g>
-
-          <g transform="translate(400, 750)" opacity="0.3">
-            <circle cx="0" cy="0" r="120" stroke="currentColor" strokeWidth="1" />
-            <circle cx="0" cy="0" r="90" stroke="currentColor" strokeWidth="2" strokeDasharray="20 10" />
-            <circle cx="0" cy="0" r="60" stroke="currentColor" strokeWidth="1" />
-            <path d="M -80 -80 L 80 80 M -80 80 L 80 -80" stroke="currentColor" strokeWidth="1" strokeDasharray="5 5" />
-          </g>
-
-          {/* Polygons / Hex arrays */}
-          <path d="M 900 650 L 930 630 L 960 650 L 960 680 L 930 700 L 900 680 Z" stroke="currentColor" strokeWidth="1" fill="none" opacity="0.6" />
-          <path d="M 960 650 L 990 630 L 1020 650 L 1020 680 L 990 700 L 960 680 Z" stroke="currentColor" strokeWidth="1" fill="currentColor" opacity="0.1" />
-          <path d="M 930 600 L 960 580 L 990 600 L 990 630 L 960 650 L 930 630 Z" stroke="currentColor" strokeWidth="1" fill="none" opacity="0.6" />
-
-        </svg>
-      </div>
-
-      <div className="flex-1 flex flex-col justify-center p-8 lg:p-16 xl:p-24 relative z-10 w-full max-w-screen-2xl mx-auto">
-        <div className="flex flex-col lg:flex-row items-center justify-center gap-16 lg:gap-32 w-full">
-          {/* Creative Agency Hero */}
-          <div className="text-center lg:text-left flex-1 max-w-3xl">
-            <h1 className="text-6xl lg:text-8xl font-black tracking-tighter mb-8 leading-[1.05]">
-              <span className="text-slate-800 block mb-2">Welcome</span>
-              <span className="text-slate-800 block mb-2">to the</span>
-              <span className="aurora-text block">Future of</span>
-              <span className="aurora-text block">Industry 4.0</span>
-            </h1>
-            <p className="text-slate-500 text-lg lg:text-xl leading-relaxed mt-8 max-w-xl mx-auto lg:mx-0 font-medium">
-              Empowering your manufacturing with intelligent analytics, real-time insights, and next-generation connectivity.
-            </p>
-          </div>
-
-          {/* Login Form Container */}
-          <div className="w-full max-w-md relative group z-10 pt-10 lg:pt-0">
-
-            <div className="absolute -inset-0.5 bg-gradient-to-br from-red-400/20 via-transparent to-purple-400/20 rounded-[2rem] blur-md opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 z-10 pointer-events-none"></div>
-            <div className="relative w-full bg-white p-8 sm:p-10 rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 z-20">
-              <LoginForm />
+      {/* 
+        ========================================
+        1. ENTRANCE LOADER 
+        ========================================
+      */}
+      <AnimatePresence>
+        {loading && (
+          <motion.div
+            key="initial-loader"
+            className="absolute inset-0 z-[60] flex items-center justify-center bg-white"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.1, filter: "blur(20px)" }}
+            transition={{ duration: 0.8, ease: transitionEasing }}
+          >
+            <div className="w-[80vw] h-[80vw] max-w-[500px] max-h-[500px] flex items-center justify-center">
+              <DotLottiePlayer
+                src="/Office%20work.lottie"
+                autoplay
+                loop
+                style={{ width: '100%', height: '100%' }}
+              />
             </div>
-          </div>
-        </div>
-      </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Add CSS animation for aurora text */}
+      {/* 
+        ========================================
+        2. EXIT TRANSITION - REPORT PORTFOLIO FLIP
+        ========================================
+      */}
+
+      {!loading && (
+        <motion.div
+          key="login-cover"
+          className="flex-1 flex flex-col justify-center bg-white relative z-10 w-full min-h-screen overflow-hidden shadow-2xl"
+          style={{ originX: 0 }}
+          initial={{ rotateY: 0, opacity: 1 }}
+          animate={{
+            rotateY: isExiting ? -90 : (isAuthenticating ? -12 : 0),
+            x: isExiting ? "-15%" : 0,
+            opacity: isExiting ? 0 : 1,
+            filter: isExiting ? "blur(20px)" : "blur(0px)"
+          }}
+          transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
+        >
+          {/* Subtle Page Edge Shadow (Appears on click) */}
+          <motion.div
+            className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-black/5 to-transparent pointer-events-none z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: isAuthenticating ? 1 : 0 }}
+          />
+
+          {/* Technical Grid Background (Matches PDF/Structure theme) */}
+          <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
+            <svg width="100%" height="100%">
+              <pattern id="page-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1" />
+              </pattern>
+              <rect width="100%" height="100%" fill="url(#page-grid)" />
+            </svg>
+          </div>
+          {/* Static geometric background features to remove emptiness */}
+          <div className="absolute top-0 right-0 w-2/3 h-full bg-slate-50 [clip-path:polygon(20%_0%,100%_0%,100%_100%,0%_100%)] opacity-80" />
+
+          <div className="absolute top-0 left-0 w-full h-full opacity-[0.03]">
+            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#grid)" />
+            </svg>
+          </div>
+
+          {/* Accent lighting patches */}
+          <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-red-100/40 blur-[150px]" />
+          <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-slate-200/50 blur-[150px]" />
+
+          {/* Abstract industrial decor lines */}
+          <svg className="absolute top-0 right-0 w-1/2 h-full opacity-10" viewBox="0 0 800 1000" fill="none" preserveAspectRatio="xMaxYMax slice">
+            <motion.path
+              d="M 800 200 L 400 200 L 200 400 L 200 1000"
+              stroke="currentColor" strokeWidth="2"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 2, ease: transitionEasing, delay: 0.5 }}
+            />
+            <motion.path
+              d="M 800 300 L 450 300 L 300 450 L 300 1000"
+              stroke="currentColor" strokeWidth="1" strokeDasharray="5 5"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1 }}
+              transition={{ duration: 2, ease: transitionEasing, delay: 0.7 }}
+            />
+            <circle cx="200" cy="400" r="4" fill="currentColor" />
+            <circle cx="300" cy="450" r="3" fill="currentColor" />
+          </svg>
+          {/* Ported from previous block - Main page content will live inside the cover */}
+          <motion.div
+            className="flex-1 flex flex-col justify-center p-8 lg:p-16 xl:p-24 relative z-10 w-full max-w-screen-2xl mx-auto min-h-screen"
+            animate={{
+              scale: isExiting ? 0.95 : (isAuthenticating ? 0.98 : 1),
+              opacity: isExiting ? 0 : 1,
+              filter: isExiting ? "blur(10px)" : "blur(0px)"
+            }}
+            transition={{ duration: 0.8, ease: transitionEasing }}
+          >
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-16 lg:gap-24 w-full h-full">
+
+              {/* HERO TEXT REVEAL */}
+              <div className="text-center lg:text-left flex-1 max-w-2xl pt-20 lg:pt-0">
+
+                <h1 className="text-5xl lg:text-7xl font-black tracking-tighter mb-8 leading-[1.1]">
+                  <div className="overflow-hidden py-1">
+                    <motion.span
+                      initial={{ y: "100%", opacity: 0, filter: "blur(10px)" }}
+                      animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
+                      transition={{ duration: 0.9, delay: 0.3, ease: transitionEasing }}
+                      className="text-slate-800 block"
+                    >
+                      Welcome
+                    </motion.span>
+                  </div>
+                  <div className="overflow-hidden py-1">
+                    <motion.span
+                      initial={{ y: "100%", opacity: 0, filter: "blur(10px)" }}
+                      animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
+                      transition={{ duration: 0.9, delay: 0.4, ease: transitionEasing }}
+                      className="text-slate-800 block"
+                    >
+                      to the
+                    </motion.span>
+                  </div>
+                  <div className="overflow-hidden py-1 mt-2">
+                    <motion.span
+                      initial={{ y: "100%", opacity: 0, filter: "blur(10px)" }}
+                      animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
+                      transition={{ duration: 0.9, delay: 0.5, ease: transitionEasing }}
+                      className="aurora-text block"
+                    >
+                      Industrial Analytics
+                    </motion.span>
+                  </div>
+                  <div className="overflow-hidden py-1">
+                    <motion.span
+                      initial={{ y: "100%", opacity: 0, filter: "blur(10px)" }}
+                      animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
+                      transition={{ duration: 0.9, delay: 0.6, ease: transitionEasing }}
+                      className="aurora-text block"
+                    >
+                      Platform
+                    </motion.span>
+                  </div>
+                </h1>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 30, filter: "blur(5px)" }}
+                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  transition={{ duration: 1, delay: 0.8, ease: transitionEasing }}
+                  className="text-slate-500 text-lg lg:text-xl leading-relaxed mt-6 max-w-xl mx-auto lg:mx-0 font-medium"
+                >
+                  Empowering your manufacturing with intelligent analytics, real-time insights, and next-generation connectivity.
+                </motion.p>
+
+                {/* Decorative data blocks sliding in */}
+                <motion.div
+                  className="flex gap-4 mt-12 justify-center lg:justify-start"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 1, delay: 1 }}
+                >
+                  {[1, 2, 3].map((i) => (
+                    <motion.div
+                      key={i}
+                      className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden"
+                    >
+                      <motion.div
+                        className="h-full bg-red-500 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.random() * 60 + 20}%` }}
+                        transition={{ duration: 1.5, delay: 1 + (i * 0.2), ease: "easeOut" }}
+                      />
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </div>
+
+              {/* FORM REVEAL */}
+              <motion.div
+                className="w-full max-w-[480px] relative group z-10"
+                initial={{ opacity: 0, x: 100, scale: 0.95, filter: "blur(20px)" }}
+                animate={{ opacity: 1, x: 0, scale: 1, filter: "blur(0px)" }}
+                transition={{ duration: 1.2, delay: 0.5, ease: transitionEasing }}
+              >
+                <div className="absolute -inset-1 bg-gradient-to-br from-red-500/10 via-transparent to-slate-400/20 rounded-[2.5rem] blur-xl opacity-75 z-10 pointer-events-none"></div>
+                <div className="relative w-full bg-white/80 backdrop-blur-xl p-10 sm:p-12 rounded-[2rem] border border-slate-100 shadow-2xl shadow-slate-200/50 z-20">
+                  <LoginForm onLoginStart={handleLoginStart} onLoginSuccess={handleLoginSuccess} />
+                </div>
+              </motion.div>
+
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Aurora text gradient style */}
       <style>{`
         @keyframes aurora {
           0% { background-position: 0% 50%; }
@@ -103,10 +252,7 @@ const Login = () => {
           100% { background-position: 0% 50%; }
         }
         .aurora-text {
-          background: linear-gradient(
-            -45deg,
-            #dc2626, #ea580c, #0891b2, #7c3aed, #dc2626
-          );
+          background: linear-gradient(-45deg, #dc2626, #ea580c, #0891b2, #7c3aed, #dc2626);
           background-size: 300% auto;
           color: #1e293b;
           background-clip: text;
