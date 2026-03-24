@@ -373,9 +373,9 @@ const Dashboard = () => {
       const { projectId } = event.detail;
       const project = projectDashboardModules.find(p => p.id === projectId || p.name === projectId || p.projectId === projectId);
       if (project && project.name) {
-        setActiveProjectName(project.name);
+        dispatch(setActiveProjectName(project.name));
       } else {
-        setActiveProjectName(projectId);
+        dispatch(setActiveProjectName(projectId));
       }
     };
 
@@ -479,17 +479,8 @@ const Dashboard = () => {
       }
       return 'Upload Trackers';
     }
-    if (activeModule === 'project-dashboard' && selectedProjectFileId) {
-      for (const proj of projectDashboardModules) {
-        const file = proj.submodules?.find(s => s.trackerId === selectedProjectFileId);
-        if (file) {
-          // Use displayName which is now cleaned in loadDynamicModules
-          return file.displayName || capitalizeFirstLetter((file.name || '').replace(/\.(xlsx|xls|csv|json|txt)$/i, ''));
-        }
-      }
-    }
     if (activeModule === 'project-dashboard' && activeProjectName) {
-      return `${capitalizeFirstLetter(activeProjectName)} Dashboard`;
+      return capitalizeFirstLetter(activeProjectName);
     }
     return getActiveModuleName();
   };
@@ -513,6 +504,8 @@ const Dashboard = () => {
       dispatch(setSelectedProjectFileId(null));
     } else {
       dispatch(setSelectedProjectFileId(null));
+      // Reset project name when clicking the main dashboard link
+      dispatch(setActiveProjectName(null));
       window.dispatchEvent(new CustomEvent('resetProjectDashboardMain'));
     }
 
@@ -575,6 +568,8 @@ const Dashboard = () => {
       );
 
       if (project) {
+        // Set the active project name so header picks it up
+        dispatch(setActiveProjectName(project.name));
         const projectKey = project.id || project.projectId || project.name;
         dispatch(setExpandedModules({
           [`project-dashboard-${projectKey}`]: true
