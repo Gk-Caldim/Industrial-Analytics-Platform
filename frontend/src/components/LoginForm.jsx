@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { loginStart, loginSuccess, loginFailure } from '../store/slices/authSlice';
 import API from '../utils/api';
 
-const LoginForm = () => {
+const LoginForm = ({ onLoginSuccess, onLoginStart }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error: reduxError } = useSelector((state) => state.auth);
@@ -20,6 +20,7 @@ const LoginForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (onLoginStart) onLoginStart();
     setLocalError('');
     dispatch(loginStart());
     setLongLoading(false);
@@ -42,8 +43,13 @@ const LoginForm = () => {
       if (response.data && response.data.access_token) {
         const { access_token, user } = response.data;
         dispatch(loginSuccess({ token: access_token, user }));
-        console.log('Login success, navigating to dashboard...');
-        navigate('/dashboard');
+        console.log('Login success...');
+        
+        if (onLoginSuccess) {
+          onLoginSuccess();
+        } else {
+          navigate('/dashboard');
+        }
       } else {
         throw new Error('Invalid response from server');
       }
