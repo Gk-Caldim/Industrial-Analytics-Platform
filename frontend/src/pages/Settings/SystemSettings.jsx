@@ -52,6 +52,19 @@ const SystemSettings = () => {
       deletable: false,
       icon: 'Calendar'
     },
+    { 
+      id: 'theme_color', 
+      category: 'Appearance',
+      label: 'Dashboard Theme Color', 
+      value: 'Default Blue',
+      type: 'select',
+      options: ['Default Blue', 'Emerald Green', 'Royal Purple', 'Crimson Red', 'Slate Gray'],
+      description: 'Primary color theme for the dashboard area',
+      editable: true,
+      required: true,
+      deletable: false,
+      icon: 'Settings'
+    },
 
     // Security Settings
     { 
@@ -294,6 +307,7 @@ const SystemSettings = () => {
   // Save settings to localStorage
   useEffect(() => {
     localStorage.setItem('system_settings', JSON.stringify(settings));
+    window.dispatchEvent(new Event('themeChanged'));
   }, [settings]);
 
   // Get unique categories

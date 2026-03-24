@@ -1289,7 +1289,7 @@ const ProjectTitleDashboard = () => {
             zIndex: 5001,
             color: '#f8fafc'
           }}>
-            <div style={{ padding: '32px 24px', backgroundColor: '#1e3a5f', borderBottom: '1px solid #334155' }}>
+            <div style={{ padding: '32px 24px', backgroundColor: 'var(--theme-primary, #1e3a5f)', borderBottom: '1px solid #334155' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '900', letterSpacing: '-0.025em' }}>REPORT STUDIO</h2>
                 <div style={{ backgroundColor: '#3b82f6', color: 'white', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '800' }}>PRO</div>
@@ -1605,7 +1605,7 @@ const ProjectTitleDashboard = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     gap: '30px',
-                    color: '#1e3a5f',
+                    color: 'var(--theme-primary, #1e3a5f)',
                     borderRadius: isCapturingPdf ? '0' : '4px',
                     overflow: 'hidden'
                   }}
@@ -1768,7 +1768,7 @@ const ProjectTitleDashboard = () => {
           boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
         }}>
           <div style={{
-            backgroundColor: '#1e3a5f',
+            backgroundColor: 'var(--theme-primary, #1e3a5f)',
             color: 'white',
             padding: '15px 20px',
             fontSize: '18px',
@@ -1804,7 +1804,7 @@ const ProjectTitleDashboard = () => {
             </p>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f' }}>Dashboard Sections:</h3>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)' }}>Dashboard Sections:</h3>
               <button
                 onClick={handleSelectAllVisibility}
                 style={{
@@ -1812,8 +1812,8 @@ const ProjectTitleDashboard = () => {
                   fontSize: '13px',
                   borderRadius: '4px',
                   border: '1px solid #1e3a5f',
-                  backgroundColor: allSelected ? '#1e3a5f' : 'white',
-                  color: allSelected ? 'white' : '#1e3a5f',
+                  backgroundColor: allSelected ? 'var(--theme-primary, #1e3a5f)' : 'white',
+                  color: allSelected ? 'white' : 'var(--theme-primary, #1e3a5f)',
                   cursor: 'pointer',
                   fontWeight: 'bold'
                 }}
@@ -1939,7 +1939,7 @@ const ProjectTitleDashboard = () => {
               borderRadius: '6px',
               border: '1px solid #e0e0e0'
             }}>
-              <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Dashboard Preview:</h4>
+              <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)' }}>Dashboard Preview:</h4>
               <div style={{ fontSize: '13px', color: '#4b5563' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {Object.entries(tempVisibleSections)
@@ -1966,7 +1966,7 @@ const ProjectTitleDashboard = () => {
                   </div>
                 )}
               </div>
-              <div style={{ marginTop: '10px', fontSize: '12px', color: '#1e3a5f', fontWeight: 'bold' }}>
+              <div style={{ marginTop: '10px', fontSize: '12px', color: 'var(--theme-primary, #1e3a5f)', fontWeight: 'bold' }}>
                 Total visible sections: {Object.values(tempVisibleSections).filter(v => v).length}
               </div>
             </div>
@@ -2006,7 +2006,7 @@ const ProjectTitleDashboard = () => {
                 fontSize: '14px',
                 borderRadius: '4px',
                 border: 'none',
-                backgroundColor: '#1e3a5f',
+                backgroundColor: 'var(--theme-primary, #1e3a5f)',
                 color: 'white',
                 cursor: 'pointer',
                 fontWeight: 'bold'
@@ -2032,7 +2032,7 @@ const ProjectTitleDashboard = () => {
     return (
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '20px' }}>
         <div style={{ backgroundColor: 'white', borderRadius: '8px', width: '900px', maxWidth: '100%', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-          <div style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '15px 20px', fontSize: '18px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
+          <div style={{ backgroundColor: 'var(--theme-primary, #1e3a5f)', color: 'white', padding: '15px 20px', fontSize: '18px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
             <span>Edit Project Milestones</span>
             <button onClick={() => setShowEditMilestones(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>×</button>
           </div>
@@ -2115,7 +2115,7 @@ const ProjectTitleDashboard = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '15px' }}>
               <button onClick={() => setShowEditMilestones(false)} style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSave} style={{ padding: '8px 16px', borderRadius: '4px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Save Changes</button>
+              <button onClick={handleSave} style={{ padding: '8px 16px', borderRadius: '4px', backgroundColor: 'var(--theme-primary, #1e3a5f)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Save Changes</button>
             </div>
           </div>
         </div>
@@ -2157,7 +2157,7 @@ const ProjectTitleDashboard = () => {
     return (
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '20px' }}>
         <div style={{ backgroundColor: 'white', borderRadius: '8px', width: '900px', maxWidth: '100%', maxHeight: '90vh', overflow: 'auto', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-          <div style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '15px 20px', fontSize: '18px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
+          <div style={{ backgroundColor: 'var(--theme-primary, #1e3a5f)', color: 'white', padding: '15px 20px', fontSize: '18px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'sticky', top: 0, zIndex: 10 }}>
             <span>Edit Critical Issues</span>
             <button onClick={() => setShowEditIssues(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>×</button>
           </div>
@@ -2236,7 +2236,7 @@ const ProjectTitleDashboard = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '15px' }}>
               <button onClick={() => setShowEditIssues(false)} style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSave} style={{ padding: '8px 16px', borderRadius: '4px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Save Changes</button>
+              <button onClick={handleSave} style={{ padding: '8px 16px', borderRadius: '4px', backgroundColor: 'var(--theme-primary, #1e3a5f)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Save Changes</button>
             </div>
           </div>
         </div>
@@ -2288,7 +2288,7 @@ const ProjectTitleDashboard = () => {
     return (
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '20px' }}>
         <div style={{ backgroundColor: 'white', borderRadius: '8px', width: '400px', maxWidth: '100%', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
-          <div style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '15px 20px', fontSize: '18px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ backgroundColor: 'var(--theme-primary, #1e3a5f)', color: 'white', padding: '15px 20px', fontSize: '18px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>Edit {currentConfig.title}</span>
             <button onClick={() => setShowEditSummary(false)} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>×</button>
           </div>
@@ -2308,7 +2308,7 @@ const ProjectTitleDashboard = () => {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button onClick={() => setShowEditSummary(false)} style={{ padding: '8px 16px', borderRadius: '4px', border: '1px solid #cbd5e1', backgroundColor: 'white', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSave} style={{ padding: '8px 16px', borderRadius: '4px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Save Changes</button>
+              <button onClick={handleSave} style={{ padding: '8px 16px', borderRadius: '4px', backgroundColor: 'var(--theme-primary, #1e3a5f)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Save Changes</button>
             </div>
           </div>
         </div>
@@ -2348,7 +2348,7 @@ const ProjectTitleDashboard = () => {
           color: '#6b7280'
         }}>
           <Settings className="h-10 w-10 mb-3 opacity-30" />
-          <p style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a5f' }}>Configure Attributes</p>
+          <p style={{ fontSize: '15px', fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)' }}>Configure Attributes</p>
           <p style={{ fontSize: '13px', marginTop: '6px', textAlign: 'center', padding: '0 20px' }}>
             Please select the X and Y axes in the settings to visualize this chart.
           </p>
@@ -2456,7 +2456,7 @@ const ProjectTitleDashboard = () => {
         backgroundColor: 'rgba(255, 255, 255, 0.96)',
         borderColor: '#e2e8f0',
         borderWidth: 1,
-        textStyle: { color: '#1e3a5f', fontSize: 12 },
+        textStyle: { color: 'var(--theme-primary, #1e3a5f)', fontSize: 12 },
         extraCssText: 'box-shadow: 0 4px 12px rgba(0,0,0,0.1); border-radius: 8px;',
         formatter: (params) => {
           if (!params || params.length === 0) return '';
@@ -2488,8 +2488,8 @@ const ProjectTitleDashboard = () => {
             backgroundColor: '#fff',
             textareaColor: '#fff',
             textareaBorderColor: '#e2e8f0',
-            textColor: '#1e3a5f',
-            buttonColor: '#1e3a5f',
+            textColor: 'var(--theme-primary, #1e3a5f)',
+            buttonColor: 'var(--theme-primary, #1e3a5f)',
             buttonTextColor: '#fff'
           },
           restore: { show: true, title: 'Reset' },
@@ -2552,7 +2552,7 @@ const ProjectTitleDashboard = () => {
               label: {
                 show: true,
                 position: 'top',
-                color: '#1e3a5f',
+                color: 'var(--theme-primary, #1e3a5f)',
                 fontSize: 10,
                 fontWeight: 'bold',
                 formatter: (p) => p.value > 0 ? p.value : ''
@@ -2585,7 +2585,7 @@ const ProjectTitleDashboard = () => {
               label: {
                 show: true,
                 position: 'top',
-                color: '#1e3a5f',
+                color: 'var(--theme-primary, #1e3a5f)',
                 fontSize: 10,
                 fontWeight: 'bold'
               }
@@ -2622,7 +2622,7 @@ const ProjectTitleDashboard = () => {
             backgroundColor: 'rgba(255, 255, 255, 0.96)',
             borderColor: '#e2e8f0',
             borderWidth: 1,
-            textStyle: { color: '#1e3a5f' },
+            textStyle: { color: 'var(--theme-primary, #1e3a5f)' },
             formatter: (p) => `<div style="padding: 4px;"><b>${formatXAxisValue(p.name)}</b><br/><span style="color:#64748b">Value:</span> <b>${p.value}</b><br/><span style="color:#64748b">Share:</span> <b>${p.percent}%</b></div>`
           },
           legend: {
@@ -2652,7 +2652,7 @@ const ProjectTitleDashboard = () => {
                 formatter: (p) => `${formatXAxisValue(p.name)}\n${p.value} (${p.percent}%)`,
                 fontSize: 10,
                 fontWeight: '600',
-                color: '#1e3a5f',
+                color: 'var(--theme-primary, #1e3a5f)',
                 alignTo: 'labelLine'
               },
               labelLine: {
@@ -2709,7 +2709,7 @@ const ProjectTitleDashboard = () => {
               label: {
                 show: true,
                 position: 'right',
-                color: '#1e3a5f',
+                color: 'var(--theme-primary, #1e3a5f)',
                 fontSize: 10,
                 fontWeight: 'bold'
               }
@@ -2747,7 +2747,7 @@ const ProjectTitleDashboard = () => {
               label: {
                 show: true,
                 position: 'top',
-                color: '#1e3a5f',
+                color: 'var(--theme-primary, #1e3a5f)',
                 fontSize: 9,
                 fontWeight: 'bold'
               }
@@ -2837,7 +2837,7 @@ const ProjectTitleDashboard = () => {
     return (
       <div style={size}>
         <div style={{ marginBottom: '10px', fontSize: '11px', color: '#64748b', textAlign: 'center', backgroundColor: '#f8fafc', padding: '6px 10px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>X:</span> {humanizeLabel(axisConfig.xAxis)} <span style={{ mx: 2, opacity: 0.3 }}>|</span> <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>Y:</span> {humanizeLabel(axisConfig.yAxis)}
+          <span style={{ fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)' }}>X:</span> {humanizeLabel(axisConfig.xAxis)} <span style={{ mx: 2, opacity: 0.3 }}>|</span> <span style={{ fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)' }}>Y:</span> {humanizeLabel(axisConfig.yAxis)}
         </div>
         <ReactECharts theme="v5" option={option} style={{ height: isMaximized ? '350px' : '280px', width: '100%' }} notMerge={true} />
       </div>
@@ -2858,7 +2858,7 @@ const ProjectTitleDashboard = () => {
           borderRadius: '6px',
           border: '1px solid #cbd5e1',
           backgroundColor: '#f8fafc',
-          color: '#1e3a5f',
+          color: 'var(--theme-primary, #1e3a5f)',
           cursor: 'pointer',
           fontWeight: 'bold',
           outline: 'none',
@@ -2886,8 +2886,8 @@ const ProjectTitleDashboard = () => {
           height: '28px',
           borderRadius: '6px',
           border: '1px solid #cbd5e1',
-          backgroundColor: showAxisSelector === chartId ? '#1e3a5f' : '#f8fafc',
-          color: showAxisSelector === chartId ? 'white' : '#1e3a5f',
+          backgroundColor: showAxisSelector === chartId ? 'var(--theme-primary, #1e3a5f)' : '#f8fafc',
+          color: showAxisSelector === chartId ? 'white' : 'var(--theme-primary, #1e3a5f)',
           cursor: 'pointer',
           transition: 'all 0.2s',
           padding: 0
@@ -2908,7 +2908,7 @@ const ProjectTitleDashboard = () => {
           borderRadius: '6px',
           border: '1px solid #cbd5e1',
           backgroundColor: '#f8fafc',
-          color: '#1e3a5f',
+          color: 'var(--theme-primary, #1e3a5f)',
           cursor: 'pointer',
           transition: 'all 0.2s',
           padding: 0
@@ -2977,7 +2977,7 @@ const ProjectTitleDashboard = () => {
           overflow: 'hidden'
         }}>
           <div style={{
-            backgroundColor: '#1e3a5f',
+            backgroundColor: 'var(--theme-primary, #1e3a5f)',
             color: 'white',
             padding: '20px 25px',
             fontSize: '18px',
@@ -3007,14 +3007,14 @@ const ProjectTitleDashboard = () => {
                   outline: 'none'
                 }}
               >
-                <option value="bar" style={{ color: '#1e3a5f' }}>Bar</option>
-                <option value="line" style={{ color: '#1e3a5f' }}>Line</option>
-                <option value="pie" style={{ color: '#1e3a5f' }}>Pie</option>
-                <option value="area" style={{ color: '#1e3a5f' }}>Area</option>
-                <option value="histogram" style={{ color: '#1e3a5f' }}>Histogram</option>
-                <option value="bar-horizontal" style={{ color: '#1e3a5f' }}>Horizontal Bar</option>
-                <option value="bar-rotated" style={{ color: '#1e3a5f' }}>Rotated Bar</option>
-                <option value="timeline" style={{ color: '#1e3a5f' }}>Timeline</option>
+                <option value="bar" style={{ color: 'var(--theme-primary, #1e3a5f)' }}>Bar</option>
+                <option value="line" style={{ color: 'var(--theme-primary, #1e3a5f)' }}>Line</option>
+                <option value="pie" style={{ color: 'var(--theme-primary, #1e3a5f)' }}>Pie</option>
+                <option value="area" style={{ color: 'var(--theme-primary, #1e3a5f)' }}>Area</option>
+                <option value="histogram" style={{ color: 'var(--theme-primary, #1e3a5f)' }}>Histogram</option>
+                <option value="bar-horizontal" style={{ color: 'var(--theme-primary, #1e3a5f)' }}>Horizontal Bar</option>
+                <option value="bar-rotated" style={{ color: 'var(--theme-primary, #1e3a5f)' }}>Rotated Bar</option>
+                <option value="timeline" style={{ color: 'var(--theme-primary, #1e3a5f)' }}>Timeline</option>
               </select>
               <button
                 onClick={handleCloseMaximize}
@@ -3044,7 +3044,7 @@ const ProjectTitleDashboard = () => {
             {/* Detailed Data View Table */}
             <div style={{ backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
               <div style={{ padding: '16px 20px', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Detailed Data View</h4>
+                <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: 'var(--theme-primary, #1e3a5f)' }}>Detailed Data View</h4>
                 <button 
                   onClick={() => {
                     const tid = getTrackerForPhase(maximizedChart)?.trackerId;
@@ -3088,8 +3088,8 @@ const ProjectTitleDashboard = () => {
                   <thead>
                     <tr style={{ backgroundColor: '#f1f5f9', textAlign: 'left' }}>
                       <th style={{ padding: '12px 20px', color: '#475569', fontWeight: '800', borderBottom: '2px solid #e2e8f0' }}>#</th>
-                      <th style={{ padding: '12px 20px', color: '#1e3a5f', fontWeight: '800', borderBottom: '2px solid #e2e8f0' }}>{humanizeLabel(axisConfigs[activeProject.id]?.[maximizedChart]?.xAxis || 'X Axis')}</th>
-                      <th style={{ padding: '12px 20px', color: '#1e3a5f', fontWeight: '800', borderBottom: '2px solid #e2e8f0' }}>{humanizeLabel(axisConfigs[activeProject.id]?.[maximizedChart]?.yAxis || 'Y Axis')}</th>
+                      <th style={{ padding: '12px 20px', color: 'var(--theme-primary, #1e3a5f)', fontWeight: '800', borderBottom: '2px solid #e2e8f0' }}>{humanizeLabel(axisConfigs[activeProject.id]?.[maximizedChart]?.xAxis || 'X Axis')}</th>
+                      <th style={{ padding: '12px 20px', color: 'var(--theme-primary, #1e3a5f)', fontWeight: '800', borderBottom: '2px solid #e2e8f0' }}>{humanizeLabel(axisConfigs[activeProject.id]?.[maximizedChart]?.yAxis || 'Y Axis')}</th>
                       {/* Show other relevant columns if available */}
                       {Object.keys(submoduleData[getTrackerForPhase(maximizedChart)?.trackerId]?.rows[0] || {})
                         .filter(k => k !== axisConfigs[activeProject.id]?.[maximizedChart]?.xAxis && k !== axisConfigs[activeProject.id]?.[maximizedChart]?.yAxis && !k.startsWith('_'))
@@ -3188,7 +3188,7 @@ const ProjectTitleDashboard = () => {
       }}>
         {/* Header with navigation */}
         <div style={{
-          backgroundColor: '#1e3a5f',
+          backgroundColor: 'var(--theme-primary, #1e3a5f)',
           color: 'white',
           padding: '15px 20px',
           fontSize: '20px',
@@ -3330,13 +3330,13 @@ const ProjectTitleDashboard = () => {
                     ':hover': {
                       transform: 'translateY(-2px)',
                       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                      borderColor: '#1e3a5f'
+                      borderColor: 'var(--theme-primary, #1e3a5f)'
                     }
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-2px)';
                     e.currentTarget.style.boxShadow = '0 44px 12px rgba(0,0,0,0.1)';
-                    e.currentTarget.style.borderColor = '#1e3a5f';
+                    e.currentTarget.style.borderColor = 'var(--theme-primary, #1e3a5f)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
@@ -3348,7 +3348,7 @@ const ProjectTitleDashboard = () => {
                     width: '60px',
                     height: '60px',
                     borderRadius: '50%',
-                    backgroundColor: '#1e3a5f',
+                    backgroundColor: 'var(--theme-primary, #1e3a5f)',
                     color: 'white',
                     display: 'flex',
                     alignItems: 'center',
@@ -3362,7 +3362,7 @@ const ProjectTitleDashboard = () => {
                   <h3 style={{
                     fontSize: '18px',
                     fontWeight: 'bold',
-                    color: '#1e3a5f',
+                    color: 'var(--theme-primary, #1e3a5f)',
                     margin: '0 0 8px 0'
                   }}>
                     {project.name}
@@ -3377,7 +3377,7 @@ const ProjectTitleDashboard = () => {
                   {project.submodules && project.submodules.length > 0 && (
                     <p style={{
                       fontSize: '13px',
-                      color: '#1e3a5f',
+                      color: 'var(--theme-primary, #1e3a5f)',
                       margin: '0 0 15px 0',
                       fontWeight: '500'
                     }}>
@@ -3419,21 +3419,21 @@ const ProjectTitleDashboard = () => {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Report date:</span>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)' }}>Report date:</span>
                     <span style={{ fontSize: '14px', color: '#4b5563' }}>March 15, 2024</span>
                   </div>
 
                   {/* SOP Info */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>SOP Date:</span>
+                      <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)' }}>SOP Date:</span>
                       <span style={{ fontSize: '14px', color: '#4b5563', backgroundColor: '#e6f0fa', padding: '4px 10px', borderRadius: '20px', fontWeight: 'bold' }}>
                         {sopData[0].daysToGo} days to go
                       </span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Status:</span>
+                      <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)' }}>Status:</span>
                       <span style={{
                         fontSize: '14px',
                         padding: '4px 12px',
@@ -3449,7 +3449,7 @@ const ProjectTitleDashboard = () => {
 
                   {/* Overall Project Health */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Overall Project Health:</span>
+                    <span style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)' }}>Overall Project Health:</span>
                     <div style={{ display: 'flex', gap: '12px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
                         <div style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
@@ -3488,7 +3488,7 @@ const ProjectTitleDashboard = () => {
                       backgroundColor: '#f8fafc',
                       borderBottom: '2px solid #e2e8f0'
                     }}>
-                      <span style={{ fontSize: '18px', fontWeight: '900', color: '#1e3a5f', letterSpacing: '-0.01em' }}>Milestones</span>
+                      <span style={{ fontSize: '18px', fontWeight: '900', color: 'var(--theme-primary, #1e3a5f)', letterSpacing: '-0.01em' }}>Milestones</span>
                     </div>
                     <div style={{
                       display: 'flex',
@@ -3499,8 +3499,8 @@ const ProjectTitleDashboard = () => {
                       borderBottom: '1px solid #e2e8f0'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div style={{ backgroundColor: '#1e3a5f', width: '4px', height: '18px', borderRadius: '2px' }} />
-                        <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Project Timeline</span>
+                        <div style={{ backgroundColor: 'var(--theme-primary, #1e3a5f)', width: '4px', height: '18px', borderRadius: '2px' }} />
+                        <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--theme-primary, #1e3a5f)' }}>Project Timeline</span>
                       </div>
                       <button
                         onClick={() => { setMilestoneForm({ ...milestones[0] }); setShowEditMilestones(true); }}
@@ -3527,7 +3527,7 @@ const ProjectTitleDashboard = () => {
                         {milestones.map((item, idx) => (
                           <React.Fragment key={idx}>
                             <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                              <td style={{ padding: '12px 15px', fontWeight: 'bold', color: '#1e3a5f', whiteSpace: 'nowrap' }}>Plan</td>
+                              <td style={{ padding: '12px 15px', fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)', whiteSpace: 'nowrap' }}>Plan</td>
                               <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.a)}</td>
                               <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.b)}</td>
                               <td style={{ padding: '12px 15px', whiteSpace: 'nowrap', color: '#445164' }}>{formatXAxisValue(item.plan.c)}</td>
@@ -3607,7 +3607,7 @@ const ProjectTitleDashboard = () => {
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{ backgroundColor: '#ef4444', width: '4px', height: '18px', borderRadius: '2px' }} />
-                        <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Top Critical Issues</span>
+                        <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--theme-primary, #1e3a5f)' }}>Top Critical Issues</span>
                       </div>
                       <button
                         onClick={() => { setIssuesForm([...criticalIssues]); setShowEditIssues(true); }}
@@ -3635,7 +3635,7 @@ const ProjectTitleDashboard = () => {
                           return (
                             <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                               <td style={{ padding: '12px 15px', fontWeight: 'bold', color: '#64748b' }}>{item.id}</td>
-                              <td style={{ padding: '12px 15px', color: '#1e3a5f', fontWeight: '500' }}>{item.issue}</td>
+                              <td style={{ padding: '12px 15px', color: 'var(--theme-primary, #1e3a5f)', fontWeight: '500' }}>{item.issue}</td>
                               <td style={{ padding: '12px 15px', color: '#445164' }}>{item.responsibility}</td>
                               <td style={{ padding: '12px 15px', color: '#445164' }}>{item.function}</td>
                               <td style={{ padding: '12px 15px', color: '#445164' }}>{formatXAxisValue(item.targetDate)}</td>
@@ -3670,7 +3670,7 @@ const ProjectTitleDashboard = () => {
                 )) && (
                     <div style={{ marginBottom: '40px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px', gap: '6px' }}>
-                        <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#1e3a5f', margin: 0, letterSpacing: '-0.02em', textAlign: 'center' }}>
+                        <h2 style={{ fontSize: '22px', fontWeight: '900', color: 'var(--theme-primary, #1e3a5f)', margin: 0, letterSpacing: '-0.02em', textAlign: 'center' }}>
                           Project Metrics Summary
                         </h2>
                         <div style={{ backgroundColor: '#3b82f6', width: '48px', height: '4px', borderRadius: '2px' }} />
@@ -3722,7 +3722,7 @@ const ProjectTitleDashboard = () => {
                               justifyContent: 'space-between',
                               alignItems: 'center'
                             }}>
-                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f', letterSpacing: '-0.01em' }}>{humanizeLabel(phase.label)}</span>
+                              <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--theme-primary, #1e3a5f)', letterSpacing: '-0.01em' }}>{humanizeLabel(phase.label)}</span>
                               {renderChartOptions(phase.id, chartTypes[activeProject.id]?.[phase.id] || phase.defaultType || 'bar')}
                             </div>
                             <div style={{ padding: '20px' }}>
@@ -3766,7 +3766,7 @@ const ProjectTitleDashboard = () => {
                               <div style={{ backgroundColor: '#3b82f6', color: 'white', padding: '6px', borderRadius: '8px' }}>
                                 <Maximize2 size={16} /> {/* Using icon as placeholder */}
                               </div>
-                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Budget</span>
+                              <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--theme-primary, #1e3a5f)' }}>Budget</span>
                             </div>
                             <button
                               onClick={() => { setEditType('budget'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
@@ -3779,7 +3779,7 @@ const ProjectTitleDashboard = () => {
                           <div style={{ padding: '20px', display: 'grid', gap: '12px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                               <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Approved</span>
-                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#1e3a5f' }}>{summaryData.budgetApproved}</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: 'var(--theme-primary, #1e3a5f)' }}>{summaryData.budgetApproved}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                               <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Utilized</span>
@@ -3820,7 +3820,7 @@ const ProjectTitleDashboard = () => {
                               <div style={{ backgroundColor: '#22c55e', color: 'white', padding: '6px', borderRadius: '8px' }}>
                                 <Check size={16} />
                               </div>
-                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Resource</span>
+                              <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--theme-primary, #1e3a5f)' }}>Resource</span>
                             </div>
                             <button
                               onClick={() => { setEditType('resource'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
@@ -3833,7 +3833,7 @@ const ProjectTitleDashboard = () => {
                           <div style={{ padding: '20px', display: 'grid', gap: '12px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                               <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Deployed</span>
-                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#1e3a5f' }}>{summaryData.resourceDeployed}</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: 'var(--theme-primary, #1e3a5f)' }}>{summaryData.resourceDeployed}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                               <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Shortage</span>
@@ -3874,7 +3874,7 @@ const ProjectTitleDashboard = () => {
                               <div style={{ backgroundColor: '#f59e0b', color: 'white', padding: '6px', borderRadius: '8px' }}>
                                 <Filter size={16} />
                               </div>
-                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Quality</span>
+                              <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--theme-primary, #1e3a5f)' }}>Quality</span>
                             </div>
                             <button
                               onClick={() => { setEditType('quality'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
@@ -3887,7 +3887,7 @@ const ProjectTitleDashboard = () => {
                           <div style={{ padding: '20px', display: 'grid', gap: '12px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                               <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Total Issues</span>
-                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#1e3a5f' }}>{summaryData.qualityTotal}</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: 'var(--theme-primary, #1e3a5f)' }}>{summaryData.qualityTotal}</span>
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                               <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Open</span>
@@ -3918,7 +3918,7 @@ const ProjectTitleDashboard = () => {
                     border: '2px dashed #e0e0e0'
                   }}>
                     <div style={{ fontSize: '48px', marginBottom: '20px' }}>📊</div>
-                    <h3 style={{ fontSize: '18px', color: '#1e3a5f', marginBottom: '10px' }}>No Sections Selected</h3>
+                    <h3 style={{ fontSize: '18px', color: 'var(--theme-primary, #1e3a5f)', marginBottom: '10px' }}>No Sections Selected</h3>
                     <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '20px' }}>
                       Click the "Configure Dashboard" button to select which sections to display for {activeProject.name}.
                     </p>
@@ -3929,7 +3929,7 @@ const ProjectTitleDashboard = () => {
                         fontSize: '14px',
                         borderRadius: '4px',
                         border: 'none',
-                        backgroundColor: '#1e3a5f',
+                        backgroundColor: 'var(--theme-primary, #1e3a5f)',
                         color: 'white',
                         cursor: 'pointer',
                         fontWeight: 'bold'
@@ -4021,7 +4021,7 @@ const EmailModal = ({
       }}>
         {/* Header */}
         <div style={{
-          backgroundColor: '#1e3a5f',
+          backgroundColor: 'var(--theme-primary, #1e3a5f)',
           color: 'white',
           padding: '15px 20px',
           fontSize: '18px',
@@ -4055,7 +4055,7 @@ const EmailModal = ({
           flex: 1
         }}>
           <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '15px' }}>
-            Email the dashboard summary for <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{activeProject?.name}</span>.
+            Email the dashboard summary for <span style={{ fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)' }}>{activeProject?.name}</span>.
           </p>
 
           {/* Employee Search/Selection - PLACED AT TOP AS REQUESTED */}
@@ -4066,7 +4066,7 @@ const EmailModal = ({
             borderRadius: '6px',
             border: '1px solid #e2e8f0'
           }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>Choose Employees:</label>
+            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)', fontSize: '13px' }}>Choose Employees:</label>
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
@@ -4143,7 +4143,7 @@ const EmailModal = ({
                           onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f7ff'}
                           onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
                         >
-                          <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#1e3a5f' }}>{contact.name || 'Unknown Name'}</span>
+                          <span style={{ fontWeight: 'bold', fontSize: '12px', color: 'var(--theme-primary, #1e3a5f)' }}>{contact.name || 'Unknown Name'}</span>
                           <span style={{ fontSize: '11px', color: '#6b7280' }}>{contact.email} • {contact.department || 'No Dept'}</span>
                         </div>
                       ))}
@@ -4165,13 +4165,13 @@ const EmailModal = ({
               )}
             </div>
             <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px', marginBottom: 0 }}>
-              * Click to add to the <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{activeEmailField.toUpperCase()}</span> field.
+              * Click to add to the <span style={{ fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)' }}>{activeEmailField.toUpperCase()}</span> field.
             </p>
           </div>
 
           {/* To, CC, BCC fields */}
           <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>To:</label>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)', fontSize: '13px' }}>To:</label>
             {emailData.emailInputs.map((email, index) => (
               <div key={`to-${index}`} style={{ display: 'flex', marginBottom: '4px', gap: '8px' }}>
                 <input
@@ -4210,7 +4210,7 @@ const EmailModal = ({
           </div>
 
           <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>CC:</label>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)', fontSize: '13px' }}>CC:</label>
             {emailData.ccInputs.map((email, index) => (
               <div key={`cc-${index}`} style={{ display: 'flex', marginBottom: '4px', gap: '8px' }}>
                 <input
@@ -4249,7 +4249,7 @@ const EmailModal = ({
           </div>
 
           <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>BCC:</label>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)', fontSize: '13px' }}>BCC:</label>
             {emailData.bccInputs.map((email, index) => (
               <div key={`bcc-${index}`} style={{ display: 'flex', marginBottom: '4px', gap: '8px' }}>
                 <input
@@ -4290,7 +4290,7 @@ const EmailModal = ({
 
           {/* Subject */}
           <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>Subject:</label>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)', fontSize: '13px' }}>Subject:</label>
             <input
               type="text"
               value={emailData.subject}
@@ -4307,7 +4307,7 @@ const EmailModal = ({
 
           {/* Message */}
           <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>Message (Optional):</label>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)', fontSize: '13px' }}>Message (Optional):</label>
             <textarea
               value={emailData.message}
               onChange={(e) => setEmailData(prev => ({ ...prev, message: e.target.value }))}
@@ -4327,7 +4327,7 @@ const EmailModal = ({
           {/* Section selection */}
           <div style={{ marginBottom: '12px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <label style={{ fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>Select Sections to Include:</label>
+              <label style={{ fontWeight: 'bold', color: 'var(--theme-primary, #1e3a5f)', fontSize: '13px' }}>Select Sections to Include:</label>
               <button
                 onClick={handleSelectAll}
                 style={{
@@ -4335,8 +4335,8 @@ const EmailModal = ({
                   fontSize: '11px',
                   borderRadius: '4px',
                   border: '1px solid #1e3a5f',
-                  backgroundColor: allSelected ? '#1e3a5f' : 'white',
-                  color: allSelected ? 'white' : '#1e3a5f',
+                  backgroundColor: allSelected ? 'var(--theme-primary, #1e3a5f)' : 'white',
+                  color: allSelected ? 'white' : 'var(--theme-primary, #1e3a5f)',
                   cursor: 'pointer'
                 }}
               >
@@ -4434,7 +4434,7 @@ const EmailModal = ({
                 fontSize: '14px',
                 borderRadius: '4px',
                 border: 'none',
-                backgroundColor: '#1e3a5f',
+                backgroundColor: 'var(--theme-primary, #1e3a5f)',
                 color: 'white',
                 cursor: 'pointer',
                 fontWeight: 'bold'
@@ -4530,7 +4530,7 @@ const AxisSelectorModal = ({
       {!showPrompt ? (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
-            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Configure Axes</h3>
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '800', color: 'var(--theme-primary, #1e3a5f)' }}>Configure Axes</h3>
             <button
               onClick={onClose}
               style={{
@@ -4568,7 +4568,7 @@ const AxisSelectorModal = ({
                 backgroundColor: 'white',
                 cursor: 'pointer',
                 outline: 'none',
-                color: '#1e3a5f',
+                color: 'var(--theme-primary, #1e3a5f)',
                 fontWeight: '500'
               }}
             >
@@ -4594,7 +4594,7 @@ const AxisSelectorModal = ({
                 backgroundColor: 'white',
                 cursor: 'pointer',
                 outline: 'none',
-                color: '#1e3a5f',
+                color: 'var(--theme-primary, #1e3a5f)',
                 fontWeight: '500'
               }}
             >
@@ -4609,7 +4609,7 @@ const AxisSelectorModal = ({
             style={{
               width: '100%',
               padding: '10px',
-              backgroundColor: '#1e3a5f',
+              backgroundColor: 'var(--theme-primary, #1e3a5f)',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -4625,10 +4625,10 @@ const AxisSelectorModal = ({
       ) : (
         <div>
           <div style={{ backgroundColor: '#f1f5f9', borderRadius: '8px', padding: '10px 12px', marginBottom: '12px', fontSize: '12px', color: '#475569', lineHeight: '1.5' }}>
-            <strong style={{ color: '#1e3a5f' }}>Attr 1:</strong> {localConfig.xAxis}<br />
-            <strong style={{ color: '#1e3a5f' }}>Attr 2:</strong> {localConfig.yAxis}
+            <strong style={{ color: 'var(--theme-primary, #1e3a5f)' }}>Attr 1:</strong> {localConfig.xAxis}<br />
+            <strong style={{ color: 'var(--theme-primary, #1e3a5f)' }}>Attr 2:</strong> {localConfig.yAxis}
           </div>
-          <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: '800', color: '#1e3a5f', lineHeight: '1.4' }}>
+          <h3 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: '800', color: 'var(--theme-primary, #1e3a5f)', lineHeight: '1.4' }}>
             Both are dates {"\u2014"} what should we calculate?
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

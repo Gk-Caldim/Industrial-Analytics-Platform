@@ -9,7 +9,10 @@ const files = [
     'src/pages/Masters/DepartmentMaster.jsx'
 ];
 
-const replacements = [
+const replacements 
+
+
+= [
     { p: /bg-white(?!\w)/g, r: 'bg-white dark:bg-slate-800' },
     { p: /bg-gray-50\/50/g, r: 'bg-slate-50/50 dark:bg-slate-900/50' },
     { p: /bg-gray-50(?!\w|\/)/g, r: 'bg-slate-50 dark:bg-slate-800/80' },

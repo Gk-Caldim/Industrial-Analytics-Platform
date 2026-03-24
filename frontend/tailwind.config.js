@@ -24,6 +24,10 @@ export default {
           800: '#5c0000', // Darker maroon
           900: '#380000', // Even darker maroon
         },
+        theme: {
+          primary: 'var(--theme-primary, #1e3a5f)',
+          secondary: 'var(--theme-secondary, #2c4c7c)',
+        },
       },
     },
   },

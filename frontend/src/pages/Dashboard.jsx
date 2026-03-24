@@ -241,7 +241,14 @@ const Dashboard = () => {
     const path = location.pathname;
     if (path.includes('/dashboard/projects')) dispatch(setActiveModule('project-dashboard'));
     else if (path.includes('/dashboard/trackers')) dispatch(setActiveModule('upload-trackers'));
-    else if (path.includes('/dashboard/masters')) dispatch(setActiveModule('masters-main'));
+    else if (path.includes('/dashboard/masters')) {
+      if (path.includes('/masters/employees')) dispatch(setActiveModule('employee-master'));
+      else if (path.includes('/masters/access')) dispatch(setActiveModule('employee-access'));
+      else if (path.includes('/masters/project-master')) dispatch(setActiveModule('project-master'));
+      else if (path.includes('/masters/parts')) dispatch(setActiveModule('part-master'));
+      else if (path.includes('/masters/departments')) dispatch(setActiveModule('department-master'));
+      else dispatch(setActiveModule('masters-main'));
+    }
     else if (path.includes('/dashboard/mom')) dispatch(setActiveModule('mom-module'));
     else if (path.includes('/dashboard/settings')) dispatch(setActiveModule('system-settings'));
   }, [location.pathname, dispatch]);
@@ -990,7 +997,7 @@ const Dashboard = () => {
           className={`
             fixed lg:relative inset-y-0 left-0 z-30
             ${isSidebarExpanded ? 'w-60' : 'w-16'}
-            bg-[#1e3a5f]
+            bg-theme-primary
             transform transition-all duration-200 ease-in-out lg:transform-none
             flex flex-col
             shadow-xl
@@ -1050,7 +1057,7 @@ const Dashboard = () => {
 
               {/* Center - Title */}
               <div className="flex-1 flex justify-center items-center">
-                <h1 className="text-2xl font-bold text-[#1e3a5f] tracking-tight">
+                <h1 className="text-2xl font-bold text-theme-primary tracking-tight">
                   {getHeaderTitle()}
                 </h1>
               </div>
@@ -1068,7 +1075,7 @@ const Dashboard = () => {
                 <div className="relative" ref={profileMenuRef}>
                   <button
                     onClick={() => setProfileMenuOpen(!profileMenuOpen)}
-                    className="bg-[#1e3a5f] w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-base shadow-md hover:shadow-lg transition-all"
+                    className="bg-theme-primary w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-base shadow-md hover:shadow-lg transition-all"
                   >
                     {getUserInitial()}
                   </button>
@@ -1084,7 +1091,7 @@ const Dashboard = () => {
                     >
                       <div className="px-5 py-4">
                         <div className="flex items-center space-x-4">
-                          <div className="bg-[#1e3a5f] w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md flex-shrink-0">
+                          <div className="bg-theme-primary w-14 h-14 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md flex-shrink-0">
                             {getUserInitial()}
                           </div>
                           <div className="flex-1 min-w-0">

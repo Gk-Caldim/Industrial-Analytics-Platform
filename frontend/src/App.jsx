@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -18,6 +18,51 @@ import MOMModule from './pages/mom/MOMModule';
 import SystemSettings from './pages/Settings/SystemSettings';
 
 function App() {
+  useEffect(() => {
+    const applyTheme = () => {
+      try {
+        const savedSettings = localStorage.getItem('system_settings');
+        let primary = '#1e3a5f';
+        let secondary = '#2c4c7c';
+        
+        if (savedSettings) {
+          const settings = JSON.parse(savedSettings);
+          const themeSetting = settings.find(s => s.id === 'theme_color');
+          
+          if (themeSetting && themeSetting.value) {
+            switch (themeSetting.value) {
+              case 'Emerald Green':
+                primary = '#059669'; secondary = '#047857'; break;
+              case 'Royal Purple':
+                primary = '#7c3aed'; secondary = '#6d28d9'; break;
+              case 'Crimson Red':
+                primary = '#e11d48'; secondary = '#be123c'; break;
+              case 'Slate Gray':
+                primary = '#475569'; secondary = '#334155'; break;
+              case 'Default Blue':
+              default:
+                primary = '#1e3a5f'; secondary = '#2c4c7c';
+            }
+          }
+        }
+        
+        document.documentElement.style.setProperty('--theme-primary', primary);
+        document.documentElement.style.setProperty('--theme-secondary', secondary);
+      } catch (e) {
+        console.error('Error applying theme', e);
+      }
+    };
+
+    applyTheme();
+    window.addEventListener('storage', applyTheme);
+    window.addEventListener('themeChanged', applyTheme);
+    
+    return () => {
+      window.removeEventListener('storage', applyTheme);
+      window.removeEventListener('themeChanged', applyTheme);
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       <Router>

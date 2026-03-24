@@ -88,8 +88,8 @@ const FileContentViewer = ({ fileData, trackerInfo, onClose, onSaveData }) => {
       return (
         <div className="text-center py-12">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-[#1e3a5f]/5 to-transparent rounded-full blur-3xl"></div>
-            <Database className="h-16 w-16 text-[#1e3a5f]/20 mx-auto mb-4 relative" />
+            <div className="absolute inset-0 bg-gradient-to-r from-theme-primary/5 to-transparent rounded-full blur-3xl"></div>
+            <Database className="h-16 w-16 text-theme-primary/20 mx-auto mb-4 relative" />
           </div>
           <p className="text-gray-500 font-medium">No data available in this file</p>
           <p className="text-sm text-gray-400 mt-1">Upload data to get started</p>
@@ -98,7 +98,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onClose, onSaveData }) => {
     }
 
     return (
-      <div className="overflow-auto border border-gray-200 rounded-xl bg-white shadow-lg shadow-[#1e3a5f]/5">
+      <div className="overflow-auto border border-gray-200 rounded-xl bg-white shadow-lg shadow-theme-primary/5">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gradient-to-r from-[#f0f5fa] to-[#e6eef8] sticky top-0">
             <tr>
@@ -106,17 +106,17 @@ const FileContentViewer = ({ fileData, trackerInfo, onClose, onSaveData }) => {
                 {isEditing && (
                   <button onClick={handleSelectAll} className="focus:outline-none hover:scale-110 transition-transform">
                     {selectAll ? (
-                      <div className="bg-[#1e3a5f] rounded p-0.5">
+                      <div className="bg-theme-primary rounded p-0.5">
                         <Check className="h-4 w-4 text-white" />
                       </div>
                     ) : (
-                      <Square className="h-4 w-4 text-[#1e3a5f]/40 hover:text-[#1e3a5f]/60" />
+                      <Square className="h-4 w-4 text-theme-primary/40 hover:text-theme-primary/60" />
                     )}
                   </button>
                 )}
               </th>
               {editedHeaders.map((header, idx) => (
-                <th key={idx} className="px-4 py-3 text-left text-xs font-semibold text-[#1e3a5f] uppercase tracking-wider">
+                <th key={idx} className="px-4 py-3 text-left text-xs font-semibold text-theme-primary uppercase tracking-wider">
                   {header}
                 </th>
               ))}
@@ -127,18 +127,18 @@ const FileContentViewer = ({ fileData, trackerInfo, onClose, onSaveData }) => {
               <tr 
                 key={rowIndex} 
                 className={`hover:bg-gradient-to-r hover:from-[#f0f5fa] hover:to-transparent transition-all duration-200 ${
-                  selectedRows.has(rowIndex) ? 'bg-[#1e3a5f]/5' : ''
+                  selectedRows.has(rowIndex) ? 'bg-theme-primary/5' : ''
                 }`}
               >
                 <td className="px-3 py-2">
                   {isEditing && (
                     <button onClick={() => handleRowSelect(rowIndex)} className="focus:outline-none hover:scale-110 transition-transform">
                       {selectedRows.has(rowIndex) ? (
-                        <div className="bg-[#1e3a5f] rounded p-0.5">
+                        <div className="bg-theme-primary rounded p-0.5">
                           <Check className="h-4 w-4 text-white" />
                         </div>
                       ) : (
-                        <Square className="h-4 w-4 text-gray-400 hover:text-[#1e3a5f]/40" />
+                        <Square className="h-4 w-4 text-gray-400 hover:text-theme-primary/40" />
                       )}
                     </button>
                   )}
@@ -156,11 +156,11 @@ const FileContentViewer = ({ fileData, trackerInfo, onClose, onSaveData }) => {
                         onChange={handleCellChange}
                         onBlur={handleCellBlur}
                         onKeyPress={handleKeyPress}
-                        className="w-full px-2 py-1 border border-[#1e3a5f] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]/20 focus:border-[#1e3a5f] shadow-sm"
+                        className="w-full px-2 py-1 border border-theme-primary rounded-lg focus:outline-none focus:ring-2 focus:ring-theme-primary/20 focus:border-theme-primary shadow-sm"
                         autoFocus
                       />
                     ) : (
-                      <span className="block min-h-[20px] hover:text-[#1e3a5f] transition-colors">{cell}</span>
+                      <span className="block min-h-[20px] hover:text-theme-primary transition-colors">{cell}</span>
                     )}
                   </td>
                 ))}
@@ -177,7 +177,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onClose, onSaveData }) => {
       {/* Header */}
       <div className="flex items-center justify-between bg-gradient-to-r from-white to-[#f8faff] p-4 rounded-xl shadow-lg border border-gray-200">
         <div className="flex items-center space-x-3">
-          <div className="p-2.5 bg-gradient-to-br from-[#1e3a5f] to-[#2c4c7c] rounded-xl shadow-lg shadow-[#1e3a5f]/20">
+          <div className="p-2.5 bg-gradient-to-br from-theme-primary to-theme-secondary rounded-xl shadow-lg shadow-theme-primary/20">
             <FileText className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -215,7 +215,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onClose, onSaveData }) => {
           {isEditing && (
             <button
               onClick={handleSave}
-              className="px-3 py-1.5 bg-gradient-to-r from-[#1e3a5f] to-[#2c4c7c] text-white rounded-lg text-sm font-medium hover:from-[#2c4c7c] hover:to-[#1e3a5f] transition-all duration-200 flex items-center shadow-lg shadow-[#1e3a5f]/20"
+              className="px-3 py-1.5 bg-gradient-to-r from-theme-primary to-theme-secondary text-white rounded-lg text-sm font-medium hover:from-theme-secondary hover:to-theme-primary transition-all duration-200 flex items-center shadow-lg shadow-theme-primary/20"
             >
               <Check className="h-4 w-4 mr-1" />
               Save Changes
@@ -239,12 +239,12 @@ const FileContentViewer = ({ fileData, trackerInfo, onClose, onSaveData }) => {
       <div className="flex items-center justify-between text-xs text-gray-500 bg-gradient-to-r from-white to-[#f8faff] p-3 rounded-xl border border-gray-200 shadow-sm">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-1">
-            <span className="font-medium text-[#1e3a5f]">{editedData.length}</span>
+            <span className="font-medium text-theme-primary">{editedData.length}</span>
             <span>Rows</span>
           </div>
           <div className="w-px h-4 bg-gray-300"></div>
           <div className="flex items-center space-x-1">
-            <span className="font-medium text-[#1e3a5f]">{editedHeaders.length}</span>
+            <span className="font-medium text-theme-primary">{editedHeaders.length}</span>
             <span>Columns</span>
           </div>
         </div>
@@ -296,10 +296,10 @@ const Masters = () => {
       type: 'master',
       description: 'Manage employee information and records',
       icon: <Users className="h-5 w-5" />,
-      gradient: 'from-[#1e3a5f] to-[#2c4c7c]',
+      gradient: 'from-theme-primary to-theme-secondary',
       lightGradient: 'from-[#e6eef8] to-[#d1e0f0]',
-      borderColor: 'border-[#1e3a5f]/20',
-      iconBg: 'bg-[#1e3a5f]',
+      borderColor: 'border-theme-primary/20',
+      iconBg: 'bg-theme-primary',
       
     },
     {
@@ -309,10 +309,10 @@ const Masters = () => {
       type: 'master',
       description: 'Configure employee access permissions',
       icon: <Shield className="h-5 w-5" />,
-      gradient: 'from-[#1e3a5f] to-[#344e6c]',
+      gradient: 'from-theme-primary to-[#344e6c]',
       lightGradient: 'from-[#e6eef8] to-[#d1e0f0]',
-      borderColor: 'border-[#1e3a5f]/20',
-      iconBg: 'bg-[#1e3a5f]',
+      borderColor: 'border-theme-primary/20',
+      iconBg: 'bg-theme-primary',
       
     },
     {
@@ -322,10 +322,10 @@ const Masters = () => {
       type: 'master',
       description: 'Manage project portfolios and timelines',
       icon: <FolderKanban className="h-5 w-5" />,
-      gradient: 'from-[#1e3a5f] to-[#2d4b72]',
+      gradient: 'from-theme-primary to-[#2d4b72]',
       lightGradient: 'from-[#e6eef8] to-[#d1e0f0]',
-      borderColor: 'border-[#1e3a5f]/20',
-      iconBg: 'bg-[#1e3a5f]',
+      borderColor: 'border-theme-primary/20',
+      iconBg: 'bg-theme-primary',
       
     },
     {
@@ -335,10 +335,10 @@ const Masters = () => {
       type: 'master',
       description: 'Catalog parts and inventory items',
       icon: <Package className="h-5 w-5" />,
-      gradient: 'from-[#1e3a5f] to-[#2b4970]',
+      gradient: 'from-theme-primary to-[#2b4970]',
       lightGradient: 'from-[#e6eef8] to-[#d1e0f0]',
-      borderColor: 'border-[#1e3a5f]/20',
-      iconBg: 'bg-[#1e3a5f]',
+      borderColor: 'border-theme-primary/20',
+      iconBg: 'bg-theme-primary',
       
     },
     {
@@ -348,10 +348,10 @@ const Masters = () => {
       type: 'master',
       description: 'Organize departmental structures',
       icon: <Building className="h-5 w-5" />,
-      gradient: 'from-[#1e3a5f] to-[#2a4870]',
+      gradient: 'from-theme-primary to-[#2a4870]',
       lightGradient: 'from-[#e6eef8] to-[#d1e0f0]',
-      borderColor: 'border-[#1e3a5f]/20',
-      iconBg: 'bg-[#1e3a5f]',
+      borderColor: 'border-theme-primary/20',
+      iconBg: 'bg-theme-primary',
       
     }
   ];
@@ -411,10 +411,22 @@ const Masters = () => {
     };
   }, []);
 
-  // Handle module click - Navigate to dashboard with module parameter
+  // Helper function to get the correct route based on module ID
+  const getModuleRoute = (masterModuleId) => {
+    switch (masterModuleId) {
+      case 'employee-master': return '/dashboard/masters/employees';
+      case 'employee-access': return '/dashboard/masters/access';
+      case 'project-master': return '/dashboard/masters/project-master';
+      case 'part-master': return '/dashboard/masters/parts';
+      case 'department-master': return '/dashboard/masters/departments';
+      default: return '/dashboard/masters';
+    }
+  };
+
+  // Handle module click - Navigate to specific master page
   const handleModuleClick = (module) => {
     console.log(`Opening master: ${module.name}`);
-    navigate(`/dashboard?module=${module.id}`);
+    navigate(getModuleRoute(module.masterModuleId));
   };
 
   // Handle "Open Module" button click
@@ -426,7 +438,7 @@ const Masters = () => {
     });
     window.dispatchEvent(event);
 
-    navigate('/dashboard');
+    navigate(getModuleRoute(masterModuleId));
   };
 
   // Handle file click
@@ -522,8 +534,8 @@ const Masters = () => {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-[#f0f5fa] p-6 flex items-center justify-center">
         <div className="text-center">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-[#1e3a5f]/20 to-transparent rounded-full blur-3xl animate-pulse"></div>
-            <div className="relative animate-spin rounded-full h-16 w-16 border-4 border-[#1e3a5f]/10 border-t-[#1e3a5f] mx-auto mb-4"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-theme-primary/20 to-transparent rounded-full blur-3xl animate-pulse"></div>
+            <div className="relative animate-spin rounded-full h-16 w-16 border-4 border-theme-primary/10 border-t-theme-primary mx-auto mb-4"></div>
           </div>
           <h3 className="text-lg font-semibold text-gray-700 mb-1">Loading Masters</h3>
           <p className="text-sm text-gray-500">Preparing your workspace...</p>
@@ -571,7 +583,7 @@ const Masters = () => {
                 <div className={`absolute inset-0 bg-gradient-to-br ${master.lightGradient} opacity-50`}></div>
                 
                 {/* Decorative Elements */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#1e3a5f]/5 to-transparent rounded-bl-full transform translate-x-16 -translate-y-16 group-hover:translate-x-8 group-hover:-translate-y-8 transition-transform duration-700"></div>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-theme-primary/5 to-transparent rounded-bl-full transform translate-x-16 -translate-y-16 group-hover:translate-x-8 group-hover:-translate-y-8 transition-transform duration-700"></div>
                 
                 {/* Master Header */}
                 <div
@@ -581,7 +593,7 @@ const Masters = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3">
-                        <div className={`p-3 ${master.iconBg} rounded-xl shadow-lg shadow-[#1e3a5f]/20 transform group-hover:scale-110 transition-transform duration-300`}>
+                        <div className={`p-3 ${master.iconBg} rounded-xl shadow-lg shadow-theme-primary/20 transform group-hover:scale-110 transition-transform duration-300`}>
                           {React.cloneElement(master.icon, { className: "h-5 w-5 text-white" })}
                         </div>
                         <div>
@@ -605,14 +617,14 @@ const Masters = () => {
                           <Zap className="h-3 w-3 mr-1" />
                           RECENT FILES
                         </span>
-                        <span className="text-xs text-[#1e3a5f] font-medium">{fileCount} total</span>
+                        <span className="text-xs text-theme-primary font-medium">{fileCount} total</span>
                       </div>
 
                       {master.submodules.slice(0, 2).map((file) => (
                         <div
                           key={file.id}
                           onClick={(e) => handleFileClick(file, e)}
-                          className="flex items-center justify-between p-2.5 bg-gray-50/80 backdrop-blur-sm rounded-xl hover:bg-white transition-all duration-200 cursor-pointer group/file border border-transparent hover:border-[#1e3a5f]/20"
+                          className="flex items-center justify-between p-2.5 bg-gray-50/80 backdrop-blur-sm rounded-xl hover:bg-white transition-all duration-200 cursor-pointer group/file border border-transparent hover:border-theme-primary/20"
                         >
                           <div className="flex items-center space-x-3 min-w-0 flex-1">
                             <div className="p-1.5 bg-white rounded-lg shadow-sm">
@@ -629,7 +641,7 @@ const Masters = () => {
                               </div>
                             </div>
                           </div>
-                          <Eye className="h-4 w-4 text-gray-400 group-hover/file:text-[#1e3a5f] group-hover/file:scale-110 transition-all duration-200 flex-shrink-0 ml-2" />
+                          <Eye className="h-4 w-4 text-gray-400 group-hover/file:text-theme-primary group-hover/file:scale-110 transition-all duration-200 flex-shrink-0 ml-2" />
                         </div>
                       ))}
 
@@ -639,7 +651,7 @@ const Masters = () => {
                           onClick={() => handleModuleClick(master)}
                         >
                           <button
-                            className="w-full px-3 py-2 bg-gray-50/80 backdrop-blur-sm hover:bg-white rounded-xl text-xs font-medium text-gray-600 hover:text-[#1e3a5f] transition-all duration-200 flex items-center justify-center border border-gray-200 hover:border-[#1e3a5f]/30 group/view"
+                            className="w-full px-3 py-2 bg-gray-50/80 backdrop-blur-sm hover:bg-white rounded-xl text-xs font-medium text-gray-600 hover:text-theme-primary transition-all duration-200 flex items-center justify-center border border-gray-200 hover:border-theme-primary/30 group/view"
                           >
                             View all {fileCount} files
                             <ChevronRight className="h-3 w-3 ml-1 group-hover/view:translate-x-0.5 transition-transform" />
@@ -656,8 +668,8 @@ const Masters = () => {
                         }}
                         className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium 
                           transition-all duration-300 transform hover:scale-105
-                          bg-gradient-to-r from-[#1e3a5f] to-[#2c4c7c] text-white hover:from-[#2c4c7c] hover:to-[#1e3a5f] 
-                          shadow-lg shadow-[#1e3a5f]/20 hover:shadow-xl"
+                          bg-gradient-to-r from-theme-primary to-theme-secondary text-white hover:from-theme-secondary hover:to-theme-primary 
+                          shadow-lg shadow-theme-primary/20 hover:shadow-xl"
                       >
                         <Zap className="h-4 w-4 mr-1" />
                         Open Module
@@ -682,7 +694,7 @@ const Masters = () => {
                           e.stopPropagation();
                           handleOpenModule(master.masterModuleId);
                         }}
-                        className="inline-flex items-center text-xs font-medium text-[#1e3a5f] hover:text-[#2c4c7c] transition-colors group/open"
+                        className="inline-flex items-center text-xs font-medium text-theme-primary hover:text-theme-secondary transition-colors group/open"
                       >
                         Open Full Module
                         <ChevronRight className="h-3 w-3 ml-1 group-hover/open:translate-x-0.5 transition-transform" />
@@ -692,7 +704,7 @@ const Masters = () => {
                 </div>
 
                 {/* Hover Effect Gradient */}
-                <div className={`absolute inset-0 bg-gradient-to-t from-[#1e3a5f]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`}></div>
+                <div className={`absolute inset-0 bg-gradient-to-t from-theme-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`}></div>
               </div>
             );
           })}
@@ -711,7 +723,7 @@ const Masters = () => {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
-                    <div className="p-3 bg-gradient-to-br from-[#1e3a5f] to-[#2c4c7c] rounded-xl shadow-lg">
+                    <div className="p-3 bg-gradient-to-br from-theme-primary to-theme-secondary rounded-xl shadow-lg">
                       {React.cloneElement(master.icon, { className: "h-5 w-5 text-white" })}
                     </div>
                     <div>
