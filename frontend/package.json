@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@dotlottie/react-player": "^1.6.19",
     "@handsontable/react": "^16.2.0",
     "@hello-pangea/dnd": "^18.0.1",
     "@reduxjs/toolkit": "^2.11.2",
