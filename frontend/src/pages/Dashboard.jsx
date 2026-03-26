@@ -8,11 +8,12 @@ import {
   toggleModuleExpansion as toggleExpansion,
   setSelectedProjectFileId,
   setSelectedUploadFileId,
-  setActiveProjectName
+  setActiveProjectName,
+  setSidebarCollapsed
 } from '../store/slices/navSlice';
 import { logout } from '../store/slices/authSlice';
 import {
-  Layout as LayoutIcon, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings,
+  Layout as LayoutIcon, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, ChevronLeft, Check, Save, Settings,
   Users, Shield, FolderKanban, Package, Building, Database, FileUp, LogOut, Menu, User as UserIcon, Bell, ChevronRight, Projector, FileText, Globe, Clock, BarChart3, PieChart, LineChart,
   MessageSquare, Layers, FolderTree
 } from 'lucide-react';
@@ -71,38 +72,17 @@ const Dashboard = () => {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notifications] = useState(3);
   const [hoveredModule, setHoveredModule] = useState(null);
-  const [isHoveringSidebar, setIsHoveringSidebar] = useState(false);
 
   const profileMenuRef = useRef(null);
   const sidebarRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
   const [profileMenuPosition, setProfileMenuPosition] = useState({ top: 0, right: 0 });
 
-  // ==========================================================================
-  // MODIFIED: Handle sidebar hover with delay
-  // ==========================================================================
-  const handleSidebarMouseEnter = () => {
-    // Clear any pending close timeout
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current);
-      hoverTimeoutRef.current = null;
-    }
-    setIsHoveringSidebar(true);
-  };
-
-  const handleSidebarMouseLeave = () => {
-    // Add a small delay before collapsing to prevent accidental closures
-    hoverTimeoutRef.current = setTimeout(() => {
-      setIsHoveringSidebar(false);
-      hoverTimeoutRef.current = null;
-    }, 300); // 300ms delay
-  };
-
-  // Clean up timeout on unmount
+  // Clean up on unmount
   useEffect(() => {
     return () => {
-      if (hoverTimeoutRef.current) {
-        clearTimeout(hoverTimeoutRef.current);
+      if (sidebarRef.current) {
+        // Any specific cleanup
       }
     };
   }, []);
@@ -615,7 +595,7 @@ const Dashboard = () => {
           onMouseEnter={() => setHoveredModule('project-dashboard')}
           onMouseLeave={() => setHoveredModule(null)}
           onClick={() => handleModuleClick('project-dashboard')}
-          className={`w-full flex items-center cursor-pointer transition-all duration-300 ${isHoveringSidebar ? 'justify-between px-4 py-3.5' : 'justify-center px-2 py-3.5'
+          className={`w-full flex items-center cursor-pointer transition-all duration-300 ${isSidebarExpanded ? 'justify-between px-4 py-3.5' : 'justify-center px-2 py-3.5'
             } rounded-xl ${isActive
               ? 'bg-white/20 shadow-md text-white'
               : isHovered
@@ -623,17 +603,17 @@ const Dashboard = () => {
                 : 'hover:bg-white/10 text-white'
             }`}
         >
-          <div className={`flex items-center ${isHoveringSidebar ? 'space-x-3.5' : 'justify-center'}`}>
+          <div className={`flex items-center ${isSidebarExpanded ? 'space-x-3.5' : 'justify-center'}`}>
             <div className={`transition-colors text-white`}>
-              <BarChart3 className={`${isHoveringSidebar ? 'h-5 w-5' : 'h-5 w-5'}`} />
+              <BarChart3 className={`${isSidebarExpanded ? 'h-5 w-5' : 'h-5 w-5'}`} />
             </div>
-            {isHoveringSidebar && (
+            {isSidebarExpanded && (
               <span className={`font-semibold text-base text-white`}>
                 Dashboard
               </span>
             )}
           </div>
-          {isHoveringSidebar && hasDynamicModules && (
+          {isSidebarExpanded && hasDynamicModules && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -649,7 +629,7 @@ const Dashboard = () => {
           )}
         </div>
 
-        {isHoveringSidebar && isExpanded && hasDynamicModules && (
+        {isSidebarExpanded && isExpanded && hasDynamicModules && (
           <div className="ml-7 mt-1.5 space-y-1.5">
             {projectDashboardModules.map(projectModule => renderProjectModule(projectModule, 'project-dashboard'))}
           </div>
@@ -670,7 +650,7 @@ const Dashboard = () => {
           onMouseEnter={() => setHoveredModule('upload-trackers')}
           onMouseLeave={() => setHoveredModule(null)}
           onClick={() => handleModuleClick('upload-trackers')}
-          className={`w-full flex items-center cursor-pointer transition-all duration-300 ${isHoveringSidebar ? 'justify-between px-4 py-3.5' : 'justify-center px-2 py-3.5'
+          className={`w-full flex items-center cursor-pointer transition-all duration-300 ${isSidebarExpanded ? 'justify-between px-4 py-3.5' : 'justify-center px-2 py-3.5'
             } rounded-xl ${isActive
               ? 'bg-white/20 shadow-md text-white'
               : isHovered
@@ -678,17 +658,17 @@ const Dashboard = () => {
                 : 'hover:bg-white/10 text-white'
             }`}
         >
-          <div className={`flex items-center ${isHoveringSidebar ? 'space-x-3.5' : 'justify-center'}`}>
+          <div className={`flex items-center ${isSidebarExpanded ? 'space-x-3.5' : 'justify-center'}`}>
             <div className={`transition-colors text-white`}>
-              <FileUp className={`${isHoveringSidebar ? 'h-5 w-5' : 'h-5 w-5'}`} />
+              <FileUp className={`${isSidebarExpanded ? 'h-5 w-5' : 'h-5 w-5'}`} />
             </div>
-            {isHoveringSidebar && (
+            {isSidebarExpanded && (
               <span className={`font-semibold text-base text-white`}>
                 Upload Trackers
               </span>
             )}
           </div>
-          {isHoveringSidebar && hasDynamicModules && (
+          {isSidebarExpanded && hasDynamicModules && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -704,7 +684,7 @@ const Dashboard = () => {
           )}
         </div>
 
-        {isHoveringSidebar && isExpanded && hasDynamicModules && (
+        {isSidebarExpanded && isExpanded && hasDynamicModules && (
           <div className="ml-7 mt-1.5 space-y-1.5">
             {uploadTrackerModules.map(projectModule => renderProjectModule(projectModule, 'upload-trackers'))}
           </div>
@@ -723,7 +703,7 @@ const Dashboard = () => {
         onMouseEnter={() => setHoveredModule('mom-module')}
         onMouseLeave={() => setHoveredModule(null)}
         onClick={() => handleModuleClick('mom-module')}
-        className={`w-full flex items-center transition-all duration-300 ${isHoveringSidebar ? 'px-4 py-3.5 space-x-3.5' : 'justify-center px-2 py-3.5'
+        className={`w-full flex items-center transition-all duration-300 ${isSidebarExpanded ? 'px-4 py-3.5 space-x-3.5' : 'justify-center px-2 py-3.5'
           } rounded-xl ${isActive
             ? 'bg-white/20 shadow-md text-white'
             : isHovered
@@ -732,9 +712,9 @@ const Dashboard = () => {
           }`}
       >
         <div className={`transition-colors text-white`}>
-          <MessageSquare className={`${isHoveringSidebar ? 'h-5 w-5' : 'h-5 w-5'}`} />
+          <MessageSquare className={`${isSidebarExpanded ? 'h-5 w-5' : 'h-5 w-5'}`} />
         </div>
-        {isHoveringSidebar && (
+        {isSidebarExpanded && (
           <span className={`font-semibold text-base text-white`}>
             MOM
           </span>
@@ -754,7 +734,7 @@ const Dashboard = () => {
           onMouseEnter={() => setHoveredModule('masters-main')}
           onMouseLeave={() => setHoveredModule(null)}
           onClick={() => handleModuleClick('masters-main')}
-          className={`w-full flex items-center cursor-pointer transition-all duration-300 ${isHoveringSidebar ? 'justify-between px-4 py-3.5' : 'justify-center px-2 py-3.5'
+          className={`w-full flex items-center cursor-pointer transition-all duration-300 ${isSidebarExpanded ? 'justify-between px-4 py-3.5' : 'justify-center px-2 py-3.5'
             } rounded-xl ${isActive
               ? 'bg-white/20 shadow-md text-white'
               : isHovered
@@ -762,17 +742,17 @@ const Dashboard = () => {
                 : 'hover:bg-white/10 text-white'
             }`}
         >
-          <div className={`flex items-center ${isHoveringSidebar ? 'space-x-3.5' : 'justify-center'}`}>
+          <div className={`flex items-center ${isSidebarExpanded ? 'space-x-3.5' : 'justify-center'}`}>
             <div className={`transition-colors text-white`}>
-              <FolderTree className={`${isHoveringSidebar ? 'h-5 w-5' : 'h-5 w-5'}`} />
+              <FolderTree className={`${isSidebarExpanded ? 'h-5 w-5' : 'h-5 w-5'}`} />
             </div>
-            {isHoveringSidebar && (
+            {isSidebarExpanded && (
               <span className={`font-semibold text-base text-white`}>
                 Masters
               </span>
             )}
           </div>
-          {isHoveringSidebar && (
+          {isSidebarExpanded && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -788,7 +768,7 @@ const Dashboard = () => {
           )}
         </div>
 
-        {isHoveringSidebar && isExpanded && (
+        {isSidebarExpanded && isExpanded && (
           <div className="ml-7 mt-1.5 space-y-1.5">
             {mastersSubmodules.map((submodule, index) => {
               const isSubmoduleActive = activeModule === submodule.id;
@@ -930,7 +910,7 @@ const Dashboard = () => {
           onMouseEnter={() => setHoveredModule(module.id)}
           onMouseLeave={() => setHoveredModule(null)}
           onClick={() => handleModuleClick(module.id)}
-          className={`w-full flex items-center transition-all duration-300 ${isHoveringSidebar ? 'px-4 py-3.5 space-x-3.5' : 'justify-center px-2 py-3.5'
+          className={`w-full flex items-center transition-all duration-300 ${isSidebarExpanded ? 'px-4 py-3.5 space-x-3.5' : 'justify-center px-2 py-3.5'
             } rounded-xl ${isActive
               ? 'bg-white/20 shadow-md text-white'
               : isHovered
@@ -941,7 +921,7 @@ const Dashboard = () => {
           <div className="text-white">
             {module.icon}
           </div>
-          {isHoveringSidebar && (
+          {isSidebarExpanded && (
             <span className="font-semibold text-base text-white">
               {module.name}
             </span>
@@ -952,7 +932,7 @@ const Dashboard = () => {
   };
 
   // Determine if sidebar should be expanded
-  const isSidebarExpanded = isHoveringSidebar || !sidebarCollapsed;
+  const isSidebarExpanded = !sidebarCollapsed;
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-white">
@@ -985,8 +965,6 @@ const Dashboard = () => {
         {/* Sidebar - Blue color from project dashboard header (#1e3a5f) */}
         <div
           ref={sidebarRef}
-          onMouseEnter={handleSidebarMouseEnter}
-          onMouseLeave={handleSidebarMouseLeave}
           className={`
             fixed lg:relative inset-y-0 left-0 z-30
             ${isSidebarExpanded ? 'w-60' : 'w-16'}
@@ -1045,8 +1023,16 @@ const Dashboard = () => {
           {/* Header - White background */}
           <header className="bg-white border-b border-gray-200 flex-shrink-0 sticky top-0 z-20 shadow-sm">
             <div className="px-6 py-4 flex items-center justify-between relative z-10">
-              {/* Left side - Empty for centering */}
-              <div className="w-48"></div>
+              {/* Left side - Toggle button */}
+              <div className="w-48 flex items-center">
+                <button
+                  onClick={() => dispatch(setSidebarCollapsed(!sidebarCollapsed))}
+                  className="p-2 rounded-lg text-[#1e3a5f] hover:bg-gray-100 transition-colors"
+                  title={sidebarCollapsed ? "Open Sidebar" : "Close Sidebar"}
+                >
+                  {sidebarCollapsed ? <Menu className="h-6 w-6" /> : <ChevronLeft className="h-6 w-6" />}
+                </button>
+              </div>
 
               {/* Center - Title */}
               <div className="flex-1 flex justify-center items-center">

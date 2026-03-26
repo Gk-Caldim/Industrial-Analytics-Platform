@@ -1383,6 +1383,14 @@ const UploadTrackers = () => {
         file: null
       });
 
+      // Refresh projects list in case a new one was created in project master
+      try {
+        const projResp = await API.get('/projects/');
+        setProjectList(projResp.data || []);
+      } catch (e) {
+        console.error('Error refreshing projects after upload:', e);
+      }
+
       showNotification('File uploaded successfully and added to both sidebar views');
 
     } catch (error) {

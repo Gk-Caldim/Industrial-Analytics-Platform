@@ -12,6 +12,9 @@ def create_project(db: Session, project: ProjectCreate):
     db.refresh(db_project)
     return db_project
 
+def get_project_by_name(db: Session, name: str):
+    return db.query(Project).filter(Project.name == name).first()
+
 def get_project(db: Session, project_id: int):
     return db.query(Project).filter(Project.id == project_id).first()
 

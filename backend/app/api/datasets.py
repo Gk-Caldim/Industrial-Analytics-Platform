@@ -475,6 +475,24 @@ async def upload_dataset(
     Returns dataset metadata compatible with frontend.
     """
 
+    # --- PROJECT INTEGRATION ---
+    from app.crud import project as crud_project
+    from app.schemas.project import ProjectCreate
+
+    existing_project = crud_project.get_project_by_name(db, project)
+    if not existing_project:
+        # Create new project if it doesn't exist
+        new_project_data = ProjectCreate(
+            name=project,
+            manager=employeeName or "Unassigned",
+            status="Planning",
+            budget=0.0,
+            teamSize=0,
+            employee_name=employeeName
+        )
+        crud_project.create_project(db, new_project_data)
+    # ---------------------------
+
     # 1️⃣ Read file into DataFrame
     try:
         contents = await file.read()

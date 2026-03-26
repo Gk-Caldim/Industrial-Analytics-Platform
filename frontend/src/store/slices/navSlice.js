@@ -10,7 +10,7 @@ const initialState = {
   selectedUploadFileId: JSON.parse(sessionStorage.getItem('selected_upload_file_id')) || null,
   selectedProjectFileId: JSON.parse(sessionStorage.getItem('selected_project_file_id')) || null,
   activeProjectName: sessionStorage.getItem('active_project_name') || null,
-  sidebarCollapsed: true,
+  sidebarCollapsed: false,
 };
 
 const navSlice = createSlice({
