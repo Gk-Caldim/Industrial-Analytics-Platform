@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
+import LandingPage from './pages/LandingPage';
 import Dashboard from './pages/Dashboard';
 import PrivateRoute from './components/PrivateRoute';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -16,6 +17,7 @@ import DepartmentMaster from './pages/Masters/DepartmentMaster';
 import Masters from './pages/Masters/Masters';
 import MOMModule from './pages/mom/MOMModule';
 import SystemSettings from './pages/Settings/SystemSettings';
+import ProductDeepDive from './pages/ProductDeepDive';
 
 function App() {
   return (
@@ -47,8 +49,9 @@ function App() {
             <Route path="settings" element={<SystemSettings />} />
           </Route>
 
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/product" element={<ProductDeepDive />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </ErrorBoundary>
