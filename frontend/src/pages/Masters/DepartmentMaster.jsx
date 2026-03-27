@@ -441,6 +441,7 @@ const DepartmentMaster = () => {
     const fixedColumnIds = ['department_id', 'name', 'head', 'employees', 'budget', 'location', 'status', 'email'];
 
     const payload = {
+      department_id: deptData.department_id || '',
       name: deptData.name || '',
       head: deptData.head || '',
       employees: parseInt(deptData.employees) || 0,
@@ -963,7 +964,7 @@ const DepartmentMaster = () => {
       return <span className="text-sm text-slate-700">${(parseFloat(value) || 0).toLocaleString()}</span>;
     }
     if (column.id === 'department_id') {
-      return <span className="text-[13px] text-slate-500 font-mono tracking-tight">{value}</span>;
+      return <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value || '-'}</span>;
     }
     return <span className="text-sm text-slate-700">{value || '-'}</span>;
   };
@@ -1731,11 +1732,11 @@ const DepartmentMaster = () => {
                           }}
                         >
                           <div className="flex items-center justify-between space-x-2">
-                              {/* Left side, label and star */}
-                              <div className="flex items-center space-x-1.5 flex-1">
-                                <span className="font-medium text-[13px]">{col.label}</span>
-                                {col.required && <span className="text-red-400">*</span>}
-                              </div>
+                            {/* Left side, label and star */}
+                            <div className="flex items-center space-x-1.5 flex-1">
+                              <span className="font-medium text-[13px]">{col.label}</span>
+                              {col.required && <span className="text-red-400">*</span>}
+                            </div>
                             <div className="flex items-center space-x-1 relative">
                               <button
                                 onClick={(e) => {

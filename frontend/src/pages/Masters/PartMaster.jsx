@@ -1696,10 +1696,10 @@ const PartMaster = () => {
                             }}
                           >
                             <div className="flex items-center justify-between space-x-2">
-                               <div className="flex items-center space-x-1.5 flex-1">
-                                 <span className="font-medium text-[13px]">{col.label}</span>
-                                 {col.required && <span className="text-red-400">*</span>}
-                               </div>
+                              <div className="flex items-center space-x-1.5 flex-1">
+                                <span className="font-medium text-[13px]">{col.label}</span>
+                                {col.required && <span className="text-red-400">*</span>}
+                              </div>
                               <div className="flex items-center space-x-1 relative">
                                 <button
                                   onClick={(e) => {

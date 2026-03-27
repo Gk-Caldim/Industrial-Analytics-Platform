@@ -9,13 +9,14 @@ import {
 import axios from 'axios';
 
 const EmployeeAccess = () => {
-  // Initial columns configuration
+  // Initial columns configuration - strictly synced with Employee Master
   const initialColumns = [
     { id: 'employee_id', label: 'Employee ID', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'name', label: 'Name', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'email', label: 'Email', visible: true, sortable: true, type: 'email', required: true, deletable: false },
-    { id: 'role', label: 'Role', visible: true, sortable: true, type: 'text', required: true, deletable: false },
+    { id: 'designation', label: 'Designation', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'department', label: 'Department', visible: true, sortable: true, type: 'text', required: true, deletable: false },
+    { id: 'role', label: 'Access Level', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'status', label: 'Status', visible: true, sortable: true, type: 'text', required: true, deletable: false },
   ];
 
@@ -175,33 +176,41 @@ const EmployeeAccess = () => {
     showNotification('Data refreshed successfully');
   };
 
-  // Merge employees and access rules
+  // Merge employees and access rules - strictly from Employee Master
   const mergedData = React.useMemo(() => {
-    return accessRules.map(rule => {
-      const empDetails = rule.employee || allEmployees.find(e => e.id === rule.employee_id) || {};
-      const displayId = rule.employee_code || empDetails.employee_id || (empDetails.id ? String(empDetails.id) : String(rule.employee_id));
-      const displayName = rule.employee_name || empDetails.name || rule.name || 'Unknown';
-      const displayEmail = rule.employee_email || empDetails.email || rule.email || 'Unknown';
+    if (!allEmployees.length || !accessRules.length) return [];
+    
+    return accessRules
+      .map(rule => {
+        // Find the employee in the Master list (allEmployees)
+        // This is the absolute source of truth for employee details
+        const empMaster = allEmployees.find(e => e.id === rule.employee_id);
+        
+        // If employee is not in master OR has missing/dummy data, skip this rule
+        if (!empMaster || !empMaster.name || !empMaster.email) return null;
 
-      return {
-        employee_id: displayId,
-        accessRuleId: rule.id,
-        employeeId: rule.employee_id,
-        name: displayName,
-        email: displayEmail,
-        role: rule.access_level || 'User',
-        department: empDetails.department || '',
-        status: rule.status || 'Active',
-        permissions: rule.modules || [],
-        hasAccess: true,
-        ...Object.keys(rule).reduce((acc, key) => {
-          if (!['id', 'employee_id', 'access_level', 'status', 'modules', 'employee', 'name', 'email', 'employee_name', 'employee_email', 'employee_code'].includes(key)) {
-            acc[key] = rule[key];
-          }
-          return acc;
-        }, {})
-      };
-    });
+        return {
+          employee_id: empMaster.employee_id, // Fetching from Master
+          accessRuleId: rule.id,
+          employeeId: rule.employee_id,
+          name: empMaster.name, // Fetching from Master
+          email: empMaster.email, // Fetching from Master
+          designation: empMaster.role || empMaster.designation || '', // Fetching from Master
+          role: rule.access_level || 'User', // This is Access Level in this context
+          department: empMaster.department || '', // Fetching from Master
+          status: rule.status || 'Active',
+          permissions: rule.modules || [],
+          hasAccess: true,
+          ...Object.keys(rule).reduce((acc, key) => {
+            // Include any custom fields from rule that aren't core employee details
+            if (!['id', 'employee_id', 'access_level', 'status', 'modules', 'employee', 'name', 'email', 'employee_name', 'employee_email', 'employee_code'].includes(key)) {
+              acc[key] = rule[key];
+            }
+            return acc;
+          }, {})
+        };
+      })
+      .filter(Boolean); // Remote null entries
   }, [allEmployees, accessRules]);
 
   // Checkbox Functions
@@ -1409,27 +1418,27 @@ const EmployeeAccess = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Name <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Name</label>
                     <input
                       type="text"
                       value={newRule.name || ''}
-                      onChange={(e) => handleNewRuleChange('name', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
-                      placeholder="Select employee to auto-fill"
+                      readOnly
+                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-800/80 cursor-not-allowed"
+                      placeholder="Auto-filled from selection"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Email <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
                     <input
                       type="email"
                       value={newRule.email || ''}
-                      onChange={(e) => handleNewRuleChange('email', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
-                      placeholder="Select employee to auto-fill"
+                      readOnly
+                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-800/80 cursor-not-allowed"
+                      placeholder="Auto-filled from selection"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Role <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Access Level <span className="text-red-500">*</span></label>
                     <select
                       value={newRule.role || 'User'}
                       onChange={(e) => handleNewRuleChange('role', e.target.value)}
@@ -1568,25 +1577,25 @@ const EmployeeAccess = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Name <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Name</label>
                     <input
                       type="text"
                       value={editForm.name || ''}
-                      onChange={(e) => handleEditFormChange('name', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
+                      readOnly
+                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-800/80 cursor-not-allowed"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Email <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Email</label>
                     <input
                       type="email"
                       value={editForm.email || ''}
-                      onChange={(e) => handleEditFormChange('email', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
+                      readOnly
+                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-800/80 cursor-not-allowed"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Role <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Access Level <span className="text-red-500">*</span></label>
                     <select
                       value={editForm.role || 'User'}
                       onChange={(e) => handleEditFormChange('role', e.target.value)}

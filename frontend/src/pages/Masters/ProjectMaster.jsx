@@ -111,6 +111,7 @@ const ProjectMaster = () => {
   // Helper to nest custom fields for API request
   const transformProjectForSave = (projectData) => {
     const payload = {
+      project_id: projectData.project_id || '',
       name: projectData.name,
       manager: projectData.manager,
       status: projectData.status || 'Planning',
@@ -996,7 +997,7 @@ const ProjectMaster = () => {
       return <span className="text-sm text-slate-700">${(parseFloat(value) || 0).toLocaleString()}</span>;
     }
     if (col.id === 'project_id') {
-      return <span className="text-[13px] text-slate-500 font-mono tracking-tight">{value}</span>;
+      return <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value || '-'}</span>;
     }
     return <span className="text-sm text-slate-700">{value || '-'}</span>;
   };

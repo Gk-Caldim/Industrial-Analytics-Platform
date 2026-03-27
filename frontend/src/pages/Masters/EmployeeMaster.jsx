@@ -298,8 +298,11 @@ const EmployeeMaster = () => {
     localStorage.setItem('employee_columns_v4', JSON.stringify(columns));
   }, [columns]);
 
-  // Filter employees
+  // Filter employees - exclude dummy or missing data
   const filteredEmployees = employees.filter(emp => {
+    // Basic validation for name and email to avoid dummy entries
+    if (!emp.name || !emp.email) return false;
+
     const matchesSearch = Object.values(emp).some(value =>
       String(value).toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -375,7 +378,7 @@ const EmployeeMaster = () => {
   const handleAddEmployeeClick = () => {
     setShowAddEmployeeModal(true);
     setNewEmployee({
-      id: '',
+      employee_id: '',
       name: '',
       email: '',
       department: '',
@@ -680,9 +683,9 @@ const EmployeeMaster = () => {
         </div>
       );
     }
-    if (column.id === 'id') {
+    if (column.id === 'employee_id') {
       return (
-        <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value}</span>
+        <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value || '-'}</span>
       )
     }
     return <span className="text-sm text-slate-700 dark:text-slate-300">{value || '-'}</span>;
@@ -1136,11 +1139,11 @@ const EmployeeMaster = () => {
                 <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Basic Information</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">ID <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Employee ID <span className="text-red-500">*</span></label>
                     <input
                       type="text"
-                      value={newEmployee.id || ''}
-                      onChange={(e) => handleNewEmployeeChange('id', e.target.value)}
+                      value={newEmployee.employee_id || ''}
+                      onChange={(e) => handleNewEmployeeChange('employee_id', e.target.value)}
                       className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
                       placeholder="Enter employee ID"
                     />
@@ -1240,12 +1243,21 @@ const EmployeeMaster = () => {
                 <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Basic Information</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">ID</label>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">System ID</label>
                     <input
                       type="text"
                       value={editForm.id || ''}
                       disabled
                       className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-800/80"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Employee ID <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={editForm.employee_id || ''}
+                      onChange={(e) => handleEditFormChange('employee_id', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
                     />
                   </div>
                   <div>

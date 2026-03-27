@@ -78,6 +78,32 @@ const Dashboard = () => {
   const hoverTimeoutRef = useRef(null);
   const [profileMenuPosition, setProfileMenuPosition] = useState({ top: 0, right: 0 });
 
+  // Masters submodules
+  const mastersSubmodules = useMemo(() => [
+    { id: 'employee-master', name: 'Employee Master', path: 'masters/employees', icon: <Users className="h-5 w-5" />, color: '#000000' },
+    { id: 'employee-access', name: 'Employee Access', path: 'masters/access', icon: <Shield className="h-5 w-5" />, color: '#1a1a1a' },
+    { id: 'project-master', name: 'Project Master', path: 'masters/project-master', icon: <FolderKanban className="h-5 w-5" />, color: '#333333' },
+    { id: 'part-master', name: 'Part Master', path: 'masters/parts', icon: <Package className="h-5 w-5" />, color: '#4d4d4d' },
+    { id: 'department-master', name: 'Department Master', path: 'masters/departments', icon: <Building className="h-5 w-5" />, color: '#666666' },
+  ], []);
+
+  const mastersModules = useMemo(() => [
+    { id: 'masters-main', name: 'Masters', path: 'masters', icon: <Database className="h-5 w-5" /> },
+  ], []);
+
+  const uploadsSubmodules = useMemo(() => [
+    { id: 'upload-trackers', name: 'Trackers Upload', path: 'trackers', icon: <FileUp className="h-5 w-5" /> },
+    { id: 'budget-upload', name: 'Budget Upload', path: 'budget-upload', icon: <FileUp className="h-5 w-5" /> }
+  ], []);
+  const uploadsModules = useMemo(() => [
+    { id: 'uploads-main', name: 'Uploads', path: 'trackers', icon: <FileUp className="h-5 w-5" /> }
+  ], []);
+
+  const otherModules = useMemo(() => [
+    { id: 'system-settings', name: 'Settings', path: 'settings', icon: <Settings className="h-5 w-5" /> },
+  ], []);
+
+
   // Clean up on unmount
   useEffect(() => {
     return () => {
@@ -184,6 +210,23 @@ const Dashboard = () => {
         }
       });
 
+      // Ensure each project has a Budget Summary submodule
+      for (const project of dashProjectsMap.values()) {
+        const hasBudget = project.submodules.some(sub => sub.type === 'budget');
+        if (!hasBudget) {
+          project.submodules.push({
+            id: `budget-${project.id}`,
+            moduleId: `budget-${project.id}`,
+            trackerId: 'budget',
+            name: 'Budget Summary',
+            displayName: 'Budget Summary',
+            type: 'budget',
+            projectName: project.projectName,
+            context: 'project-dashboard'
+          });
+        }
+      }
+
       setProjectDashboardModules(Array.from(dashProjectsMap.values()));
       setUploadTrackerModules(Array.from(uploadProjectsMap.values()));
     } catch (error) {
@@ -219,12 +262,34 @@ const Dashboard = () => {
   // Sync with URL on route changes
   useEffect(() => {
     const path = location.pathname;
+
+    // First check masters submodules
+    const mastersSub = mastersSubmodules.find(sub => path.includes(`/dashboard/${sub.path}`));
+    if (mastersSub) {
+      dispatch(setActiveModule(mastersSub.id));
+      return;
+    }
+
+    // Then check uploads submodules
+    const uploadsSub = uploadsSubmodules.find(sub => path.includes(`/dashboard/${sub.path}`));
+    if (uploadsSub) {
+      dispatch(setActiveModule(uploadsSub.id));
+      return;
+    }
+
+    // Then check other specific submodules if any
+    const otherSub = otherModules.find(sub => path.includes(`/dashboard/${sub.path}`));
+    if (otherSub) {
+      dispatch(setActiveModule(otherSub.id));
+      return;
+    }
+
     if (path.includes('/dashboard/projects')) dispatch(setActiveModule('project-dashboard'));
     else if (path.includes('/dashboard/trackers')) dispatch(setActiveModule('upload-trackers'));
     else if (path.includes('/dashboard/masters')) dispatch(setActiveModule('masters-main'));
     else if (path.includes('/dashboard/mom')) dispatch(setActiveModule('mom-module'));
     else if (path.includes('/dashboard/settings')) dispatch(setActiveModule('system-settings'));
-  }, [location.pathname, dispatch]);
+  }, [location.pathname, dispatch, mastersSubmodules, otherModules]);
 
   // DateTime
   useEffect(() => {
@@ -386,32 +451,6 @@ const Dashboard = () => {
     }
   }, [activeModule, selectedProjectFileId, projectDashboardModules, dispatch]);
 
-  // Masters submodules
-  const mastersSubmodules = useMemo(() => [
-    { id: 'employee-master', name: 'Employee Master', path: 'masters/employees', icon: <Users className="h-5 w-5" />, color: '#000000' },
-    { id: 'employee-access', name: 'Employee Access', path: 'masters/access', icon: <Shield className="h-5 w-5" />, color: '#1a1a1a' },
-    { id: 'project-master', name: 'Project Master', path: 'masters/project-master', icon: <FolderKanban className="h-5 w-5" />, color: '#333333' },
-    { id: 'part-master', name: 'Part Master', path: 'masters/parts', icon: <Package className="h-5 w-5" />, color: '#4d4d4d' },
-    { id: 'department-master', name: 'Department Master', path: 'masters/departments', icon: <Building className="h-5 w-5" />, color: '#666666' },
-  ], []);
-
-  const mastersModules = useMemo(() => [
-    { id: 'masters-main', name: 'Masters', path: 'masters', icon: <Database className="h-5 w-5" /> },
-  ], []);
-
-  // ==========================================================================
-  // FIXED: Pass the correct selected file ID to each component
-  // ==========================================================================
-  const otherModules = useMemo(() => [
-    {
-      id: 'upload-trackers',
-      name: 'Upload Trackers',
-      path: 'trackers',
-      icon: <FileUp className="h-5 w-5" />
-    },
-    { id: 'system-settings', name: 'Settings', path: 'settings', icon: <Settings className="h-5 w-5" /> },
-  ], []);
-
   // Helper functions
   const getUserInitial = () => {
     if (user?.full_name) {
@@ -433,7 +472,7 @@ const Dashboard = () => {
     if (activeModule === 'masters-main') return 'Masters';
     if (activeModule === 'mom-module') return 'Minutes of Meeting';
 
-    const allModules = [...mastersModules, ...mastersSubmodules, ...otherModules];
+    const allModules = [...mastersModules, ...mastersSubmodules, ...uploadsModules, ...uploadsSubmodules, ...otherModules];
     const module = allModules.find(m => m.id === activeModule);
     return module ? module.name : 'Project Dashboard';
   };
@@ -470,16 +509,16 @@ const Dashboard = () => {
   // ==========================================================================
   // HANDLE MODULE CLICK - UPDATED to match Masters behavior
   // ==========================================================================
-  const handleModuleClick = (moduleId) => {
+    const handleModuleClick = (moduleId) => {
     dispatch(setActiveModule(moduleId));
-    
+
     // Build path
     let path = 'projects';
-    const allModules = [...mastersModules, ...mastersSubmodules, ...otherModules];
+    const allModules = [...mastersModules, ...mastersSubmodules, ...uploadsModules, ...uploadsSubmodules, ...otherModules];
     const module = allModules.find(m => m.id === moduleId);
     if (module) path = module.path;
     else if (moduleId === 'mom-module') path = 'mom';
-    
+
     navigate(`/dashboard/${path}`);
 
     if (moduleId !== 'project-dashboard') {
@@ -499,6 +538,8 @@ const Dashboard = () => {
       }
     } else if (moduleId === 'masters-main') {
       dispatch(toggleExpansion('masters'));
+    } else if (moduleId === 'uploads-main') {
+      dispatch(toggleExpansion('uploads'));
     } else if (moduleId === 'upload-trackers') {
       if (uploadTrackerModules.length > 0 && !expandedModules['upload-trackers']) {
         dispatch(setExpandedModules({ 'upload-trackers': true }));
@@ -693,6 +734,86 @@ const Dashboard = () => {
     );
   };
 
+  const renderUploadsModule = () => {
+    const isExpanded = expandedModules['uploads'];
+    const isActive = activeModule === 'uploads-main' || uploadsSubmodules.some(s => s.id === activeModule);
+    const isHovered = hoveredModule === 'uploads-main';
+
+    return (
+      <div key="uploads" className="mb-1.5">
+        <div
+          onMouseEnter={() => setHoveredModule('uploads-main')}
+          onMouseLeave={() => setHoveredModule(null)}
+          onClick={() => handleModuleClick('uploads-main')}
+          className={`w-full flex items-center cursor-pointer transition-all duration-300 ${isSidebarExpanded ? 'justify-between px-4 py-3.5' : 'justify-center px-2 py-3.5'
+            } rounded-xl ${isActive
+              ? 'bg-white/20 shadow-md text-white'
+              : isHovered
+                ? 'bg-white/15 shadow-sm text-white'
+                : 'hover:bg-white/10 text-white'
+            }`}
+        >
+          <div className={`flex items-center ${isSidebarExpanded ? 'space-x-3.5' : 'justify-center'}`}>
+            <div className={`transition-colors text-white`}>
+              <FolderTree className={`${isSidebarExpanded ? 'h-5 w-5' : 'h-5 w-5'}`} />
+            </div>
+            {isSidebarExpanded && (
+              <span className={`font-semibold text-base text-white`}>
+                Uploads
+              </span>
+            )}
+          </div>
+          {isSidebarExpanded && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleModuleExpansion('uploads', e);
+              }}
+              className={`p-1.5 rounded-lg text-white ${isActive ? 'hover:bg-white/20' :
+                isHovered ? 'hover:bg-white/15' :
+                  'hover:bg-white/10'
+                }`}
+            >
+              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
+          )}
+        </div>
+
+        {isSidebarExpanded && isExpanded && (
+          <div className="ml-7 mt-1.5 space-y-1.5">
+            {/*
+              Embed the Upload Trackers tile (with its own dynamic project expansion)
+            */}
+            {renderUploadTrackersModule()}
+            {/*
+              Simple submodule button for Budget Upload
+            */}
+            <button
+              key="budget-upload"
+              onMouseEnter={() => setHoveredModule('budget-upload')}
+              onMouseLeave={() => setHoveredModule(null)}
+              onClick={() => handleModuleClick('budget-upload')}
+              className={`w-full flex items-center space-x-3.5 rounded-lg px-3 py-2.5 transition-all duration-300 ${
+                activeModule === 'budget-upload'
+                  ? 'bg-white/20 shadow-sm text-white'
+                  : hoveredModule === 'budget-upload'
+                    ? 'bg-white/15 shadow-sm text-white'
+                    : 'hover:bg-white/10 text-white'
+              }`}
+            >
+              <div className="text-white">
+                <FileUp className="h-5 w-5" />
+              </div>
+              <span className={`text-sm font-medium truncate text-white`}>
+                Budget Upload
+              </span>
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderMOMModule = () => {
     const isActive = activeModule === 'mom-module';
     const isHovered = hoveredModule === 'mom-module';
@@ -878,10 +999,18 @@ const Dashboard = () => {
           if (context === 'upload-trackers') {
             handleFileModuleClick(fileModule);
           } else if (context === 'project-dashboard') {
-            handleProjectFileClick({
-              ...fileModule,
-              projectName: fileModule.projectName || projectKey
-            });
+            if (fileModule.type === 'budget') {
+              const projectId = projectKey;
+              navigate('/dashboard/projects');
+              window.dispatchEvent(new CustomEvent('openProjectBudget', {
+                detail: { projectId }
+              }));
+            } else {
+              handleProjectFileClick({
+                ...fileModule,
+                projectName: fileModule.projectName || projectKey
+              });
+            }
           }
         }}
         className={`w-full flex items-center space-x-2.5 rounded-lg px-3 py-2 transition-all duration-300 ${isSelected
@@ -1012,7 +1141,7 @@ const Dashboard = () => {
             {renderMastersModule()}
 
             <div className="space-y-1.5">
-              {renderUploadTrackersModule()}
+              {renderUploadsModule()}
               {renderOtherModules()}
             </div>
           </div>

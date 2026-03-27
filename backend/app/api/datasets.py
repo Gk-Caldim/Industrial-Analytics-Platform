@@ -482,7 +482,14 @@ async def upload_dataset(
     existing_project = crud_project.get_project_by_name(db, project)
     if not existing_project:
         # Create new project if it doesn't exist
+        # Generate a project_id slug
+        project_id_slug = re.sub(r'[^a-zA-Z0-9-]', '', project.lower().replace(' ', '-'))
+        # Ensure it's not empty and add a simple suffix if needed
+        if not project_id_slug:
+            project_id_slug = f"proj-{datetime.datetime.now().strftime('%y%m%d%H%M')}"
+        
         new_project_data = ProjectCreate(
+            project_id=project_id_slug,
             name=project,
             manager=employeeName or "Unassigned",
             status="Planning",

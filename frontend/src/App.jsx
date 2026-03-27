@@ -16,6 +16,7 @@ import DepartmentMaster from './pages/Masters/DepartmentMaster';
 import Masters from './pages/Masters/Masters';
 import MOMModule from './pages/mom/MOMModule';
 import SystemSettings from './pages/Settings/SystemSettings';
+import BudgetUpload from './pages/Budget/BudgetUpload';
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
             <Route index element={<Navigate to="projects" replace />} />
             <Route path="projects" element={<ProjectDashboard />} />
             <Route path="trackers" element={<UploadTrackers />} />
+            <Route path="budget-upload" element={<BudgetUpload />} />
             
             <Route path="masters" element={<Masters />} />
             <Route path="masters/employees" element={<EmployeeMaster />} />
