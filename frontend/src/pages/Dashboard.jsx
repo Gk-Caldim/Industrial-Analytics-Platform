@@ -83,7 +83,6 @@ const Dashboard = () => {
     { id: 'employee-master', name: 'Employee Master', path: 'masters/employees', icon: <Users className="h-5 w-5" />, color: '#000000' },
     { id: 'employee-access', name: 'Employee Access', path: 'masters/access', icon: <Shield className="h-5 w-5" />, color: '#1a1a1a' },
     { id: 'project-master', name: 'Project Master', path: 'masters/project-master', icon: <FolderKanban className="h-5 w-5" />, color: '#333333' },
-    { id: 'part-master', name: 'Part Master', path: 'masters/parts', icon: <Package className="h-5 w-5" />, color: '#4d4d4d' },
     { id: 'department-master', name: 'Department Master', path: 'masters/departments', icon: <Building className="h-5 w-5" />, color: '#666666' },
   ], []);
 
@@ -127,11 +126,34 @@ const Dashboard = () => {
   // ==========================================================================
   const loadDynamicModules = async () => {
     try {
-      const response = await API.get('/datasets/');
-      const datasets = response.data;
+      const [datasetsResp, budgetsResp] = await Promise.all([
+        API.get('/datasets/'),
+        API.get('/budget/')
+      ]);
+      
+      const datasets = datasetsResp.data;
+      const budgets = budgetsResp.data || [];
+      const projectsWithBudget = new Set(budgets.map(b => capitalizeFirstLetter(b.project_name)));
 
       const uploadProjectsMap = new Map();
       const dashProjectsMap = new Map();
+
+      // First, ensure all projects with budgets are in the map
+      projectsWithBudget.forEach(projectName => {
+        const projectId = projectName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        if (!dashProjectsMap.has(projectName)) {
+          dashProjectsMap.set(projectName, {
+            id: `project-dashboard-${projectId}`,
+            moduleId: `project-dashboard-${projectId}`,
+            name: projectName,
+            projectName: projectName,
+            type: 'project',
+            context: 'project-dashboard',
+            isExpanded: false,
+            submodules: []
+          });
+        }
+      });
 
       datasets.forEach(dataset => {
         const projectName = capitalizeFirstLetter(dataset.project || 'Uncategorized');
@@ -210,14 +232,14 @@ const Dashboard = () => {
         }
       });
 
-      // Ensure each project has a Budget Summary submodule
+      // Ensure projects with budget have a Budget Summary submodule
       for (const project of dashProjectsMap.values()) {
         const hasBudget = project.submodules.some(sub => sub.type === 'budget');
-        if (!hasBudget) {
+        if (!hasBudget && projectsWithBudget.has(project.name)) {
           project.submodules.push({
             id: `budget-${project.id}`,
             moduleId: `budget-${project.id}`,
-            trackerId: 'budget',
+            trackerId: `budget-${project.id}`,
             name: 'Budget Summary',
             displayName: 'Budget Summary',
             type: 'budget',
@@ -286,6 +308,16 @@ const Dashboard = () => {
 
     if (path.includes('/dashboard/projects')) dispatch(setActiveModule('project-dashboard'));
     else if (path.includes('/dashboard/trackers')) dispatch(setActiveModule('upload-trackers'));
+    else if (path.includes('/dashboard/budget-summary')) {
+      dispatch(setActiveModule('project-dashboard'));
+      // Extract project name from path if possible to set selectedProjectFileId
+      const pathParts = path.split('/');
+      const projectName = decodeURIComponent(pathParts[pathParts.length - 1]);
+      if (projectName) {
+        const projectId = projectName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        dispatch(setSelectedProjectFileId(`budget-project-dashboard-${projectId}`));
+      }
+    }
     else if (path.includes('/dashboard/masters')) dispatch(setActiveModule('masters-main'));
     else if (path.includes('/dashboard/mom')) dispatch(setActiveModule('mom-module'));
     else if (path.includes('/dashboard/settings')) dispatch(setActiveModule('system-settings'));
@@ -596,7 +628,11 @@ const Dashboard = () => {
       }
     }
 
-    navigate('/dashboard/projects');
+    if (fileModule.type === 'budget') {
+      navigate(`/dashboard/budget-summary/${encodeURIComponent(fileModule.projectName)}`);
+    } else {
+      navigate('/dashboard/projects');
+    }
 
     // Dispatch event for ProjectDashboard to handle
     window.dispatchEvent(new CustomEvent('openProjectDashboardFile', {
@@ -705,7 +741,7 @@ const Dashboard = () => {
             </div>
             {isSidebarExpanded && (
               <span className={`font-semibold text-base text-white`}>
-                Upload Trackers
+                Trackers
               </span>
             )}
           </div>
@@ -1000,11 +1036,8 @@ const Dashboard = () => {
             handleFileModuleClick(fileModule);
           } else if (context === 'project-dashboard') {
             if (fileModule.type === 'budget') {
-              const projectId = projectKey;
-              navigate('/dashboard/projects');
-              window.dispatchEvent(new CustomEvent('openProjectBudget', {
-                detail: { projectId }
-              }));
+              dispatch(setActiveModule(fileModule.id));
+              navigate(`/dashboard/budget-summary/${fileModule.projectName}`);
             } else {
               handleProjectFileClick({
                 ...fileModule,

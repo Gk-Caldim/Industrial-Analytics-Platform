@@ -71,3 +71,13 @@ def delete_employee(db: Session, employee_id: int) -> bool:
     db.delete(db_employee)
     db.commit()
     return True
+
+def bulk_delete_employees(db: Session, employee_ids: List[int]) -> bool:
+    """Bulk delete employees"""
+    try:
+        db.query(Employee).filter(Employee.id.in_(employee_ids)).delete(synchronize_session=False)
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback()
+        raise e

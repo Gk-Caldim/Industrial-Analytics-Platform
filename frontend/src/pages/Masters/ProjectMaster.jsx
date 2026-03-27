@@ -111,7 +111,7 @@ const ProjectMaster = () => {
   // Helper to nest custom fields for API request
   const transformProjectForSave = (projectData) => {
     const payload = {
-      project_id: projectData.project_id || '',
+      project_id: projectData.project_id || null,
       name: projectData.name,
       manager: projectData.manager,
       status: projectData.status || 'Planning',
@@ -277,10 +277,11 @@ const ProjectMaster = () => {
 
   const confirmBulkDelete = async () => {
     const count = selectedProjects.length;
+
     try {
-      for (const id of selectedProjects) {
-        await axios.delete(`${API_URL}/${id}`);
-      }
+      // Use bulk delete endpoint for better performance
+      await axios.post(`${API_URL}/bulk-delete`, selectedProjects);
+      
       await fetchProjects();
       setSelectedProjects([]);
       setSelectAll(false);
@@ -289,7 +290,8 @@ const ProjectMaster = () => {
       showNotification(`${count} projects deleted successfully`);
     } catch (err) {
       console.error(err);
-      showNotification('Error deleting projects', 'error');
+      const errorMsg = err.response?.data?.detail || 'Error during bulk delete process';
+      showNotification(errorMsg, 'error');
     }
   };
 

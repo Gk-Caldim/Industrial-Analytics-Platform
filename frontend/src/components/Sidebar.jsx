@@ -115,7 +115,7 @@ const Sidebar = ({
                         {!sidebarCollapsed && (
                             <span className={`font-semibold text-base ${isActive ? 'text-slate-900' : 'text-slate-600'
                                 }`}>
-                                Upload Trackers
+                                Trackers
                             </span>
                         )}
                     </div>

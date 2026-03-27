@@ -263,7 +263,6 @@ const getMasterIcon = (masterName) => {
     'Employee Master': <Users className="h-5 w-5" />,
     'Employee Access': <Shield className="h-5 w-5" />,
     'Project Master': <FolderKanban className="h-5 w-5" />,
-    'Part Master': <Package className="h-5 w-5" />,
     'Department Master': <Building className="h-5 w-5" />
   };
   return icons[masterName] || <Database className="h-5 w-5" />;
@@ -326,20 +325,6 @@ const Masters = () => {
       description: 'Manage project portfolios and timelines',
       icon: <FolderKanban className="h-5 w-5" />,
       gradient: 'from-[#1e3a5f] to-[#2d4b72]',
-      lightGradient: 'from-[#e6eef8] to-[#d1e0f0]',
-      borderColor: 'border-[#1e3a5f]/20',
-      iconBg: 'bg-[#1e3a5f]',
-      
-    },
-    {
-      id: 4,
-      name: 'Part Master',
-      masterModuleId: 'part-master',
-      path: 'masters/parts',
-      type: 'master',
-      description: 'Catalog parts and inventory items',
-      icon: <Package className="h-5 w-5" />,
-      gradient: 'from-[#1e3a5f] to-[#2b4970]',
       lightGradient: 'from-[#e6eef8] to-[#d1e0f0]',
       borderColor: 'border-[#1e3a5f]/20',
       iconBg: 'bg-[#1e3a5f]',

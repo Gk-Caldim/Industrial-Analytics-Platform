@@ -208,20 +208,22 @@ const EmployeeMaster = () => {
 
   const confirmBulkDelete = async () => {
     const count = selectedEmployees.length;
+
     try {
-      // Delete each selected employee
-      for (const id of selectedEmployees) {
-        await axios.delete(`${API_BASE_URL}/employees/${id}`);
-      }
+      // Use bulk delete endpoint for better performance
+      await axios.post(`${API_BASE_URL}/employees/bulk-delete`, selectedEmployees);
+
       await fetchEmployees();
       setSelectedEmployees([]);
       setSelectAll(false);
       setCurrentPage(1);
       setShowBulkDeletePrompt({ show: false, count: 0 });
+
       showNotification(`${count} employees deleted successfully`);
     } catch (err) {
       console.error(err);
-      showNotification('Error deleting employees', 'error');
+      const errorMsg = err.response?.data?.detail || 'Error during bulk delete process';
+      showNotification(errorMsg, 'error');
     }
   };
 
@@ -395,7 +397,11 @@ const EmployeeMaster = () => {
   // Save new employee
   const saveNewEmployee = async () => {
     try {
-      await axios.post(`${API_BASE_URL}/employees`, newEmployee);
+      const payload = {
+        ...newEmployee,
+        employee_id: newEmployee.employee_id || null
+      };
+      await axios.post(`${API_BASE_URL}/employees`, payload);
       await fetchEmployees();
       setShowAddEmployeeModal(false);
       setNewEmployee({});
@@ -450,7 +456,11 @@ const EmployeeMaster = () => {
   // Save employee edit
   const saveEdit = async () => {
     try {
-      await axios.put(`${API_BASE_URL}/employees/${editingId}`, editForm);
+      const payload = {
+        ...editForm,
+        employee_id: editForm.employee_id || null
+      };
+      await axios.put(`${API_BASE_URL}/employees/${editingId}`, payload);
       await fetchEmployees();
       setEditingId(null);
       setEditForm({});

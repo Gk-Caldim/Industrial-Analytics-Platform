@@ -7,7 +7,7 @@ import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import '../utils/echarts-theme-v5'; // Register the v5 theme
 import ExcelTableViewer from '../components/ExcelTableViewer';
-import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings, Download, GripVertical } from 'lucide-react';
+import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings, Download, GripVertical, DollarSign } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
@@ -611,13 +611,7 @@ const ProjectTitleDashboard = () => {
 
   // Project Master Data
   const [masterProjects, setMasterProjects] = useState([]);
-  const [selectedBudgetProject, setSelectedBudgetProject] = useState('');
-
-  // Budget Modal Specific Edit States for Name & Status
-  const [modalProjectName, setModalProjectName] = useState('');
-  const [modalProjectStatus, setModalProjectStatus] = useState('');
   const [showSaveNotification, setShowSaveNotification] = useState(false);
-  const [budgetCurrency, setBudgetCurrency] = useState('$');
 
   // Fetch Master Projects for dropdown
   useEffect(() => {
@@ -634,42 +628,6 @@ const ProjectTitleDashboard = () => {
     };
     fetchMasterProjects();
   }, []);
-
-  // Sync selected budget project with activeProject initially
-  useEffect(() => {
-    if (activeProject && activeProject.name) {
-      setSelectedBudgetProject(activeProject.name);
-    }
-  }, [activeProject]);
-
-  // Fetch budget table data when selectedBudgetProject changes
-  useEffect(() => {
-    const fetchBudget = async () => {
-      const targetProject = selectedBudgetProject || (activeProject ? activeProject.name : null);
-      if (!targetProject) return;
-      try {
-        const { default: API } = await import('../utils/api');
-        const response = await API.get(`/budget/${encodeURIComponent(targetProject)}`);
-        if (response.data && response.data.budget_data && response.data.budget_data.length > 0) {
-          setBudgetTableData(response.data.budget_data);
-          setBudgetCurrency(response.data.currency || '$');
-        } else {
-          // Reset to default
-          setBudgetCurrency('$');
-          setBudgetTableData([
-            ['Category', 'Department', 'Estimation', 'Approved', 'Utilized', 'Balance', 'Outlook Spend', 'Likely Cummulative Spend'],
-            ['CAPEX', '', '', '', '', '', '', ''],
-            ['Total CAPEX', '', '', '', '', '', '', ''],
-            ['Revenue', '', '', '', '', '', '', ''],
-            ['Total Revenue', '', '', '', '', '', '', '']
-          ]);
-        }
-      } catch (error) {
-        console.error('Error fetching budget data:', error);
-      }
-    };
-    fetchBudget();
-  }, [selectedBudgetProject, activeProject]);
 
   // Load submodule data from API
   const loadSubmoduleData = async (trackerId) => {
@@ -2224,38 +2182,26 @@ const ProjectTitleDashboard = () => {
                             <div style={{ backgroundColor: '#fff', borderRadius: '10px', border: '1px solid #bfdbfe', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.07)', overflow: 'hidden', marginBottom: '4px' }}>
                               {/* Tier 1 */}
                               <div style={{ textAlign: 'center', padding: '12px 20px 8px', backgroundColor: '#eff6ff', borderBottom: '2px solid #bfdbfe' }}>
-                                <span style={{ fontSize: '16px', fontWeight: '900', color: '#1e40af', letterSpacing: '-0.01em' }}>Budget Summary</span>
+                                <span style={{ fontSize: '16px', fontWeight: '900', color: '#1e40af', letterSpacing: '-0.01em' }}>Budget</span>
                               </div>
                               {/* Tier 2 */}
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '8px 18px', borderBottom: '1px solid #e2e8f0' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                  <div style={{ backgroundColor: '#3b82f6', width: '4px', height: '18px', borderRadius: '2px' }} />
-                                  <span style={{ fontSize: '13px', fontWeight: '800', color: '#1e3a5f' }}>Financial Overview</span>
-                                </div>
-                                {selectedBudgetProject && <span style={{ fontSize: '11px', color: '#3b82f6', fontWeight: '700' }}>{selectedBudgetProject}</span>}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: '#f8fafc', padding: '8px 18px', borderBottom: '1px solid #e2e8f0' }}>
+                                <div style={{ backgroundColor: '#3b82f6', color: '#fff', padding: '3px', borderRadius: '5px', display: 'flex' }}><DollarSign size={11} /></div>
+                                <span style={{ fontSize: '13px', fontWeight: '800', color: '#1e3a5f' }}>Financial Summary</span>
                               </div>
-                              {budgetTableData && budgetTableData.length > 0 ? (
-                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-                                  <thead>
-                                    <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                                      {budgetTableData[0].map((h, i) => <th key={i} style={{ padding: '7px 12px', textAlign: 'left', color: '#475569', fontWeight: '700', whiteSpace: 'nowrap' }}>{h}</th>)}
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {budgetTableData.slice(1).map((row, idx) => {
-                                      const isTotal = row[0] && row[0].toString().startsWith('Total');
-                                      const isCategory = row[0] && (row[0] === 'CAPEX' || row[0] === 'Revenue');
-                                      return (
-                                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isTotal ? '#eff6ff' : isCategory ? '#f8fafc' : '#fff' }}>
-                                          {row.map((cell, colIdx) => <td key={colIdx} style={{ padding: '7px 12px', fontWeight: isTotal || isCategory ? '700' : '500', color: isTotal ? '#1e3a5f' : '#475569', whiteSpace: 'nowrap' }}>{cell}</td>)}
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              ) : (
-                                <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', fontSize: '12px' }}>No budget data available</div>
-                              )}
+                              <div style={{ padding: '14px 20px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
+                                {[
+                                  { label: 'Approved', value: summaryData.budgetApproved, color: '#1e3a5f' },
+                                  { label: 'Utilized', value: summaryData.budgetUtilized, color: '#f59e0b' },
+                                  { label: 'Balance', value: summaryData.budgetBalance, color: '#10b981' },
+                                  { label: 'Outlook', value: summaryData.budgetOutlook, color: '#3b82f6' }
+                                ].map(item => (
+                                  <div key={item.label} style={{ backgroundColor: '#f8fafc', borderRadius: '8px', padding: '10px 5px', textAlign: 'center', border: '1px solid #e2e8f0' }}>
+                                    <div style={{ fontSize: '18px', fontWeight: '900', color: item.color }}>{item.value}</div>
+                                    <div style={{ fontSize: '10px', color: '#64748b', fontWeight: '600', marginTop: '2px', textTransform: 'uppercase' }}>{item.label}</div>
+                                  </div>
+                                ))}
+                              </div>
                               {!isCapturingPdf && <textarea value={customContent.notes || ''} onChange={e => handleUpdateCustomContent(sectionKey, 'notes', e.target.value)} placeholder="Add notes…" style={{ width: '100%', padding: '8px 12px', border: 'none', borderTop: '1px dashed #bfdbfe', fontSize: '11px', color: '#64748b', outline: 'none', resize: 'none', fontStyle: 'italic', boxSizing: 'border-box', backgroundColor: '#eff6ff' }} />}
                               {isCapturingPdf && customContent.notes && <div style={{ padding: '7px 16px', borderTop: '1px solid #bfdbfe', fontSize: '11px', color: '#475569', fontStyle: 'italic' }}>{customContent.notes}</div>}
                             </div>
@@ -2895,326 +2841,14 @@ const ProjectTitleDashboard = () => {
     );
   };
 
-  // Calculate Budget Table totals and derived columns
-  const calculateBudgetTable = (table) => {
-    if (!table || table.length === 0) return table;
-    const newTable = table.map(row => [...row]);
-
-    let totals = {
-      CAPEX: { estimation: 0, approved: 0, utilized: 0, balance: 0, outlook: 0, likely: 0 },
-      Revenue: { estimation: 0, approved: 0, utilized: 0, balance: 0, outlook: 0, likely: 0 },
-      "Total CAPEX": null, // markers
-      "Total Revenue": null
-    };
-
-    const parseNum = (val) => {
-      if (val === null || val === undefined || val === '') return 0;
-      const strVal = String(val).replace(/[^0-9.-]+/g, '');
-      const num = parseFloat(strVal);
-      return isNaN(num) ? 0 : num;
-    };
-
-    const formatNum = (num, forceFormat = false) => {
-      if (num === 0 && !forceFormat) return '';
-      return `${budgetCurrency} ` + num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-    };
-
-    let currentCategory = null;
-
-    for (let i = 1; i < newTable.length; i++) {
-      const category = String(newTable[i][0] || '').trim();
-
-      if (category === 'CAPEX' || category === 'Revenue') {
-        currentCategory = category;
-        // Do NOT continue here, allow data extraction simultaneously
-      }
-
-      if (category.startsWith('Total')) {
-        const cat = category.replace('Total', '').trim();
-        if (totals[cat]) {
-          newTable[i][2] = formatNum(totals[cat].estimation);
-          newTable[i][3] = formatNum(totals[cat].approved);
-          newTable[i][4] = formatNum(totals[cat].utilized);
-          newTable[i][5] = formatNum(totals[cat].balance);
-          newTable[i][6] = formatNum(totals[cat].outlook);
-          newTable[i][7] = formatNum(totals[cat].likely);
-        }
-        currentCategory = null;
-        continue;
-      }
-
-      // It's a data row
-      const estimation = parseNum(newTable[i][2]);
-      const approved = parseNum(newTable[i][3]);
-      const utilized = parseNum(newTable[i][4]);
-      const balance = approved - utilized;
-      const outlook = parseNum(newTable[i][6]);
-      const likely = balance + outlook;
-
-      // Auto-update derived values if there's any active value
-      if (approved !== 0 || utilized !== 0 || outlook !== 0 || newTable[i][3] || newTable[i][4] || newTable[i][6]) {
-        newTable[i][5] = formatNum(balance);
-        newTable[i][7] = formatNum(likely);
-      }
-
-      if (currentCategory && totals[currentCategory]) {
-        totals[currentCategory].estimation += estimation;
-        totals[currentCategory].approved += approved;
-        totals[currentCategory].utilized += utilized;
-        totals[currentCategory].balance += balance;
-        totals[currentCategory].outlook += outlook;
-        totals[currentCategory].likely += likely;
-      }
-    }
-
-    return newTable;
-  };
-
   // Edit Summary Modal Component
   const renderEditSummaryModal = () => {
     if (!showEditSummary) return null;
 
     const handleSave = async () => {
-      if (editType === 'budgetTable') {
-        const calculatedForm = calculateBudgetTable(budgetTableForm);
-        const targetProject = modalProjectName.trim() || selectedBudgetProject || (activeProject ? activeProject.name : null);
-
-        if (targetProject) {
-          try {
-            const { default: API } = await import('../utils/api');
-
-            // 1. Save Budget Data
-            await API.post(`/budget/${encodeURIComponent(targetProject)}`, {
-              project_name: targetProject,
-              currency: budgetCurrency,
-              budget_data: calculatedForm
-            });
-
-            // 2. Sync to Project Master Database
-            const existingMaster = masterProjects.find(p => p.name === targetProject);
-            if (existingMaster) {
-              await API.put(`/projects/${existingMaster.id}`, {
-                name: targetProject,
-                status: modalProjectStatus || existingMaster.status || 'Active',
-                manager: existingMaster.manager || 'Unassigned',
-                budget: existingMaster.budget || 0.0,
-                teamSize: existingMaster.teamSize || 0
-              });
-            } else {
-              await API.post(`/projects/`, {
-                name: targetProject,
-                status: modalProjectStatus || 'Active',
-                manager: 'Unassigned',
-                budget: 0.0,
-                teamSize: 0
-              });
-            }
-
-            // Refresh Master Project list
-            const pRes = await API.get('/projects/');
-            setMasterProjects(pRes.data);
-
-            // Update Dashboard UI context to the explicitly saved project
-            setSelectedBudgetProject(targetProject);
-            setBudgetTableData(calculatedForm);
-            setShowSaveNotification(true);
-            setTimeout(() => setShowSaveNotification(false), 3000);
-          } catch (error) {
-            console.error('Error saving budget/project data to backend:', error);
-          }
-        }
-      } else {
-        setSummaryData(summaryForm);
-      }
+      setSummaryData(summaryForm);
       setShowEditSummary(false);
     };
-
-    if (editType === 'budgetTable') {
-      const updateValue = (rIdx, cIdx, val) => {
-        const newForm = [...budgetTableForm];
-        newForm[rIdx] = [...newForm[rIdx]];
-        newForm[rIdx][cIdx] = val;
-        setBudgetTableForm(calculateBudgetTable(newForm));
-      };
-
-      const addDepartmentRow = (categoryIndex) => {
-        const newForm = [...budgetTableForm];
-        newForm.splice(categoryIndex, 0, ['', 'New Dept', '', '', '', '', '', '']);
-        setBudgetTableForm(calculateBudgetTable(newForm));
-      };
-
-      const handleCurrencyChange = (newCurr) => {
-        setBudgetCurrency(newCurr);
-        // Sweep entire table and reformat raw numbers with new currency
-        const updatedTable = budgetTableForm.map((row, rIdx) => {
-          if (rIdx === 0) return row;
-          return row.map((cell, cIdx) => {
-            if (cIdx >= 2) {
-              const num = parseNum(cell);
-              if (num === 0 && (!cell || cell.toString().trim() === '')) return '';
-              return `${newCurr} ` + num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-            }
-            return cell;
-          });
-        });
-        setBudgetTableForm(calculateBudgetTable(updatedTable));
-      };
-
-      const delRow = (i) => {
-        const row = budgetTableForm[i];
-        if (row && (row[0] === 'CAPEX' || row[0] === 'Revenue' || row[0].startsWith('Total') || row[0] === 'Category')) {
-          return; // Don't delete fixed headers/totals
-        }
-        setBudgetTableForm(calculateBudgetTable(budgetTableForm.filter((_, idx) => idx !== i)));
-      };
-
-      const headers = budgetTableForm[0] || [];
-      const rows = budgetTableForm.slice(1);
-
-      return (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000, padding: '20px' }}>
-          <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '95vw', maxWidth: '1200px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-                <span style={{ fontSize: '18px', fontWeight: 'bold' }}>Edit Budget Summary</span>
-              </div>
-              <button onClick={() => setShowEditSummary(false)} style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', padding: '4px', borderRadius: '4px' }} className="hover:bg-slate-700">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ padding: '24px', overflowY: 'auto', flex: 1, backgroundColor: '#f8fafc' }}>
-              <div style={{ marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'white', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 'bold' }}>Project Name:</span>
-                  <input
-                    type="text"
-                    value={modalProjectName}
-                    onChange={e => setModalProjectName(e.target.value)}
-                    style={{ border: 'none', color: '#1e3a5f', fontWeight: '800', fontSize: '14px', outline: 'none', width: '180px' }}
-                  />
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'white', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 'bold' }}>Status:</span>
-                  <select
-                    value={modalProjectStatus}
-                    onChange={e => setModalProjectStatus(e.target.value)}
-                    style={{ border: 'none', color: '#10b981', fontWeight: '800', fontSize: '14px', outline: 'none', cursor: 'pointer', backgroundColor: 'transparent' }}
-                  >
-                    <option style={{ color: 'black' }} value="Planning">Planning</option>
-                    <option style={{ color: 'black' }} value="Active">Active</option>
-                    <option style={{ color: 'black' }} value="In Progress">In Progress</option>
-                    <option style={{ color: 'black' }} value="Completed">Completed</option>
-                    <option style={{ color: 'black' }} value="On Hold">On Hold</option>
-                  </select>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'white', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 'bold' }}>Currency:</span>
-                  <select
-                    value={budgetCurrency}
-                    onChange={e => handleCurrencyChange(e.target.value)}
-                    style={{ border: 'none', color: '#1e3a5f', fontWeight: '800', fontSize: '14px', outline: 'none', cursor: 'pointer', backgroundColor: 'transparent' }}
-                  >
-                    <option style={{ color: 'black' }} value="$">USD ($)</option>
-                    <option style={{ color: 'black' }} value="€">EUR (€)</option>
-                    <option style={{ color: 'black' }} value="£">GBP (£)</option>
-                    <option style={{ color: 'black' }} value="₹">INR (₹)</option>
-                    <option style={{ color: 'black' }} value="A$">AUD (A$)</option>
-                  </select>
-                </div>
-                <div style={{ flex: 1 }}></div>
-
-                <button
-                  onClick={() => addDepartmentRow(budgetTableForm.findIndex(r => r[0] === 'Total CAPEX'))}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' }}
-                >
-                  <Plus size={16} /> ADD CAPEX
-                </button>
-                <button
-                  onClick={() => addDepartmentRow(budgetTableForm.findIndex(r => r[0] === 'Total Revenue'))}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', backgroundColor: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' }}
-                >
-                  <Plus size={16} /> ADD REVENUE
-                </button>
-              </div>
-
-              <div style={{ overflowX: 'auto', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: 'white', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                      {headers.map((h, i) => (
-                        <th key={i} style={{
-                          padding: '12px 14px',
-                          borderRight: i === headers.length - 1 ? 'none' : '1px solid #e2e8f0',
-                          color: '#475569',
-                          fontWeight: 'bold'
-                        }}>
-                          {h}
-                        </th>
-                      ))}
-                      <th style={{ padding: '12px', width: '40px' }}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row, idx) => {
-                      const absoluteIdx = idx + 1;
-                      const isHeader = row[0] === 'CAPEX' || row[0] === 'Revenue';
-                      const isTotal = row[0] && String(row[0]).startsWith('Total');
-                      const canDelete = !isHeader && !isTotal;
-
-                      return (
-                        <tr key={idx} style={{ backgroundColor: isTotal ? '#f8fafc' : 'white', borderBottom: '1px solid #e2e8f0' }}>
-                          {row.map((cell, colIdx) => {
-                            const isCalculatedCell = colIdx === 5 || colIdx === 7 || isTotal;
-                            const isLabelCell = colIdx === 0 && (isHeader || isTotal);
-                            const isReadOnly = isCalculatedCell || isLabelCell;
-
-                            return (
-                              <td key={colIdx} style={{
-                                padding: '0',
-                                borderRight: colIdx === row.length - 1 ? 'none' : '1px solid #e2e8f0'
-                              }}>
-                                {isReadOnly ? (
-                                  <div style={{ padding: '12px 14px', color: isHeader || isTotal ? '#1e3a5f' : '#334155', fontWeight: isHeader || isTotal ? 'bold' : 'normal', minHeight: '44px', display: 'flex', alignItems: 'center' }}>
-                                    {cell}
-                                  </div>
-                                ) : (
-                                  <input
-                                    type="text"
-                                    value={cell}
-                                    onChange={(e) => updateValue(absoluteIdx, colIdx, e.target.value)}
-                                    placeholder={colIdx === 1 ? "Dept Name" : ""}
-                                    style={{ width: '100%', padding: '12px 14px', border: '1px solid transparent', outline: 'none', color: '#334155', height: '100%', backgroundColor: 'transparent' }}
-                                    onFocus={(e) => { e.target.style.backgroundColor = '#eff6ff'; }}
-                                    onBlur={(e) => { e.target.style.backgroundColor = 'transparent'; }}
-                                  />
-                                )}
-                              </td>
-                            );
-                          })}
-                          <td style={{ padding: '8px', textAlign: 'center' }}>
-                            {canDelete && (
-                              <button onClick={() => delRow(absoluteIdx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', display: 'flex', margin: '0 auto' }} title="Delete Row">
-                                <Trash2 size={16} />
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', backgroundColor: 'white' }}>
-              <button onClick={() => setShowEditSummary(false)} style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#475569', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSave} style={{ padding: '10px 20px', borderRadius: '6px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Save Changes</button>
-            </div>
-          </div>
-        </div>
-      );
-    }
 
     const config = {
       budget: {
@@ -4085,9 +3719,8 @@ const ProjectTitleDashboard = () => {
                       {/* Show other relevant columns if available */}
                       {Object.keys(submoduleData[getTrackerForPhase(maximizedChart)?.trackerId]?.rows[0] || {})
                         .filter(k => k !== axisConfigs[activeProject.id]?.[maximizedChart]?.xAxis && k !== axisConfigs[activeProject.id]?.[maximizedChart]?.yAxis && !k.startsWith('_'))
-                        .slice(0, 3)
                         .map(key => (
-                          <th key={key} style={{ padding: '12px 20px', color: '#64748b', fontWeight: '600', borderBottom: '2px solid #e2e8f0' }}>{humanizeLabel(key)}</th>
+                          <th key={key} style={{ padding: '12px 20px', color: '#64748b', fontWeight: '600', borderBottom: '2px solid #e2e8f0', minWidth: '150px' }}>{humanizeLabel(key)}</th>
                         ))
                       }
                     </tr>
@@ -4102,9 +3735,8 @@ const ProjectTitleDashboard = () => {
                           <td style={{ padding: '10px 20px', color: '#3b82f6', fontWeight: '800' }}>{row[config?.yAxis]}</td>
                           {Object.keys(row)
                             .filter(k => k !== config?.xAxis && k !== config?.yAxis && !k.startsWith('_'))
-                            .slice(0, 3)
                             .map(key => (
-                              <td key={key} style={{ padding: '10px 20px', color: '#64748b' }}>{row[key]}</td>
+                              <td key={key} style={{ padding: '10px 20px', color: '#64748b', minWidth: '150px' }}>{row[key]}</td>
                             ))
                           }
                         </tr>
@@ -4801,11 +4433,9 @@ const ProjectTitleDashboard = () => {
                       gridTemplateColumns: [visibleSections.budget, visibleSections.resource, visibleSections.quality].filter(Boolean).length === 3 ? 'repeat(3, 1fr)' : [visibleSections.budget, visibleSections.resource, visibleSections.quality].filter(Boolean).length === 2 ? 'repeat(2, 1fr)' : '1fr',
                       gap: '20px'
                     }}>
-                      {/* Budget Summary */}
-                      {/* Budget Summary Tracker Table */}
+                      {/* Budget Summary Card */}
                       {visibleSections.budget && (
                         <div style={{
-                          gridColumn: '1 / -1',
                           backgroundColor: 'white',
                           borderRadius: '12px',
                           border: '1px solid #e2e8f0',
@@ -4815,98 +4445,51 @@ const ProjectTitleDashboard = () => {
                           flexDirection: 'column'
                         }}>
                           <div style={{
-                            padding: '16px 24px',
-                            backgroundColor: '#f8fafc',
-                            borderBottom: '1px solid #e2e8f0',
+                            padding: '16px 20px',
+                            backgroundColor: '#eff6ff',
+                            borderBottom: '1px solid #dbeafe',
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center'
                           }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <div style={{ backgroundColor: '#3b82f6', color: 'white', padding: '8px', borderRadius: '8px', display: 'flex' }}>
-                                <Settings size={18} />
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{ backgroundColor: '#3b82f6', color: 'white', padding: '6px', borderRadius: '8px' }}>
+                                <DollarSign size={16} />
                               </div>
-                              <span style={{ fontSize: '18px', fontWeight: '800', color: '#1e3a5f' }}>Budget Summary</span>
+                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#1e3a5f' }}>Budget</span>
                             </div>
-                            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', backgroundColor: '#f8fafc' }}>
-                              <div style={{ display: 'flex', alignItems: 'center' }}>
-                                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#64748b', marginRight: '8px' }}>Project Name:</span>
-                                <input
-                                  list="projectMasterList"
-                                  value={selectedBudgetProject}
-                                  onChange={(e) => setSelectedBudgetProject(e.target.value)}
-                                  placeholder="Select or Type project..."
-                                  style={{ padding: '8px 14px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', fontWeight: '700', color: '#1e3a5f', width: '220px', outline: 'none', backgroundColor: 'white' }}
-                                />
-                                <datalist id="projectMasterList">
-                                  {masterProjects.map((p, idx) => (
-                                    <option key={idx} value={p.name}>{p.name}</option>
-                                  ))}
-                                </datalist>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', marginLeft: '8px', marginRight: '8px' }}>
-                                <span style={{ fontSize: '14px', fontWeight: 'bold', color: '#64748b', marginRight: '8px' }}>Status:</span>
-                                <span style={{ fontSize: '15px', fontWeight: '800', color: '#10b981' }}>
-                                  {masterProjects.find(p => p.name === selectedBudgetProject)?.status || activeProject?.status || 'Active'}
-                                </span>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  const currentName = selectedBudgetProject || activeProject?.name || '';
-                                  const currentStatus = masterProjects.find(p => p.name === currentName)?.status || activeProject?.status || 'Active';
-                                  setModalProjectName(currentName);
-                                  setModalProjectStatus(currentStatus);
-                                  setEditType('budgetTable');
-                                  setBudgetTableForm([...budgetTableData]);
-                                  setShowEditSummary(true);
-                                }}
-                                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '6px', border: '1px solid #3b82f6', backgroundColor: '#ffffff', color: '#3b82f6', fontWeight: '700', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-                                onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; }}
-                                onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#ffffff'; }}
-                              >
-                                <Edit size={16} /> Edit
-                              </button>
-                            </div>
+                            <button
+                              onClick={() => { setEditType('budget'); setSummaryForm({ ...summaryData }); setShowEditSummary(true); }}
+                              className="no-print"
+                              style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', padding: '4px' }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
                           </div>
-                          <div style={{ padding: '24px 20px', backgroundColor: '#ffffff' }}>
-                            {budgetTableData && budgetTableData.length > 0 ? (
-                              <div style={{ borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                                <table style={{ minWidth: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-                                  <thead style={{ backgroundColor: '#f8fafc' }}>
-                                    <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                                      {budgetTableData[0].map((h, i) => (
-                                        <th key={i} style={{ padding: '12px 14px', color: '#475569', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-                                          {h}
-                                        </th>
-                                      ))}
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {budgetTableData.slice(1).map((row, idx) => {
-                                      const isTotal = row[0] && row[0].toString().startsWith('Total');
-                                      const isCategory = row[0] && (row[0] === 'CAPEX' || row[0] === 'Revenue');
-                                      const fw = isTotal || isCategory ? 'bold' : 'normal';
-                                      const color = isTotal ? '#1e3a5f' : '#475569';
-
-                                      return (
-                                        <tr key={idx} style={{ backgroundColor: 'white', borderBottom: '1px solid #f1f5f9' }}>
-                                          {row.map((cell, colIdx) => (
-                                            <td key={colIdx} style={{ padding: '14px', fontWeight: fw, color: color }}>
-                                              {cell}
-                                            </td>
-                                          ))}
-                                        </tr>
-                                      )
-                                    })}
-                                  </tbody>
-                                </table>
+                          <div style={{ padding: '20px', display: 'grid', gap: '12px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Approved</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#1e3a5f' }}>{summaryData.budgetApproved}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Utilized</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#1e3a5f' }}>{summaryData.budgetUtilized}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Balance</span>
+                              <span style={{ fontSize: '18px', fontWeight: '900', color: '#10b981' }}>{summaryData.budgetBalance}</span>
+                            </div>
+                            <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '4px 0' }} />
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                              <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '600' }}>Utilization Outlook</span>
+                              <div style={{ textAlign: 'right' }}>
+                                <span style={{ fontSize: '18px', fontWeight: '900', color: '#3b82f6' }}>{summaryData.budgetOutlook}</span>
                               </div>
-                            ) : (
-                              <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>No budget data available</div>
-                            )}
+                            </div>
                           </div>
                         </div>
                       )}
+
                       {/* Resource Summary */}
                       {visibleSections.resource && (
                         <div style={{

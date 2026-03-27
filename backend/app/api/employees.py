@@ -98,13 +98,52 @@ def update_employee(
 @router.delete("/{employee_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_employee(employee_id: int, db: Session = Depends(get_db)):
     """Delete an employee"""
-    success = employee_crud.delete_employee(db, employee_id)
-    if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Employee with id {employee_id} not found"
-        )
-    return None
+    try:
+        success = employee_crud.delete_employee(db, employee_id)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Employee with id {employee_id} not found"
+            )
+        return None
+    except Exception as e:
+        # Handle foreign key constraint violation
+        error_msg = str(e)
+        if "foreign key constraint" in error_msg.lower() or "violates foreign key constraint" in error_msg:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete employee because it is being referenced by other records. Please delete those records first."
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error deleting employee: {error_msg}"
+            )
+
+@router.post("/bulk-delete", status_code=status.HTTP_204_NO_CONTENT)
+def bulk_delete_employees(employee_ids: List[int], db: Session = Depends(get_db)):
+    """Bulk delete employees"""
+    try:
+        success = employee_crud.bulk_delete_employees(db, employee_ids)
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="One or more employees not found"
+            )
+        return None
+    except Exception as e:
+        # Handle foreign key constraint violation
+        error_msg = str(e)
+        if "foreign key constraint" in error_msg.lower() or "violates foreign key constraint" in error_msg:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Some employees cannot be deleted because they are referenced by other records. Please delete those records first."
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error bulk deleting employees: {error_msg}"
+            )
 
 # ============================================================================
 # CUSTOM COLUMN ENDPOINTS

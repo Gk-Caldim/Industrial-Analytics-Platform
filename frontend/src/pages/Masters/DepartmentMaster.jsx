@@ -236,24 +236,40 @@ const DepartmentMaster = () => {
   };
 
   const confirmBulkDelete = async () => {
+    const count = selectedDepartments.length;
+    let successCount = 0;
+    let failCount = 0;
+    let lastError = null;
+
     try {
-      const deletePromises = selectedDepartments.map(id =>
-        API.delete(`/departments/${id}`)
-      );
+      for (const id of selectedDepartments) {
+        try {
+          await API.delete(`/departments/${id}`);
+          successCount++;
+        } catch (e) {
+          failCount++;
+          lastError = e.response?.data?.detail || e.message;
+          console.error(`Failed to delete department ${id}:`, e);
+        }
+      }
 
-      await Promise.all(deletePromises);
-
-      const count = selectedDepartments.length;
       setSelectedDepartments([]);
       setSelectAll(false);
       setCurrentPage(1);
       setShowBulkDeletePrompt({ show: false, count: 0 });
-      showNotification(`${count} department${count > 1 ? 's' : ''} deleted successfully`);
+      
+      if (failCount === 0) {
+        showNotification(`${count} department${count > 1 ? 's' : ''} deleted successfully`);
+      } else if (successCount > 0) {
+        showNotification(`${successCount} deleted, ${failCount} failed. Last error: ${lastError}`, 'warning');
+      } else {
+        showNotification(`Failed to delete departments: ${lastError}`, 'error');
+      }
+      
       fetchDepartments();
     } catch (err) {
-      console.error('Error deleting departments:', err);
-      const msg = err.response?.data?.detail || err.message;
-      showNotification('Error deleting departments: ' + msg, 'error');
+      console.error('Error during bulk delete process:', err);
+      showNotification('Error during bulk delete process', 'error');
       setShowBulkDeletePrompt({ show: false, count: 0 });
     }
   };
@@ -441,7 +457,7 @@ const DepartmentMaster = () => {
     const fixedColumnIds = ['department_id', 'name', 'head', 'employees', 'budget', 'location', 'status', 'email'];
 
     const payload = {
-      department_id: deptData.department_id || '',
+      department_id: deptData.department_id || null,
       name: deptData.name || '',
       head: deptData.head || '',
       employees: parseInt(deptData.employees) || 0,
