@@ -3423,7 +3423,7 @@ const ProjectTitleDashboard = () => {
         }
       },
       toolbox: {
-        show: true,
+        show: false,
         right: '2%',
         top: '2%',
         feature: {
@@ -3859,18 +3859,17 @@ const ProjectTitleDashboard = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: '28px',
+          padding: '4px 8px',
           height: '28px',
           borderRadius: '6px',
           border: '1px solid #cbd5e1',
           backgroundColor: showAxisSelector === chartId ? '#1e3a5f' : '#f8fafc',
           color: showAxisSelector === chartId ? 'white' : '#1e3a5f',
           cursor: 'pointer',
-          transition: 'all 0.2s',
-          padding: 0
+          transition: 'all 0.2s'
         }}
       >
-        <Settings size={14} />
+        <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Axes</span>
       </button>
 
       <button
@@ -3880,18 +3879,17 @@ const ProjectTitleDashboard = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: '28px',
+          padding: '4px 8px',
           height: '28px',
           borderRadius: '6px',
           border: '1px solid #cbd5e1',
           backgroundColor: '#f8fafc',
           color: '#1e3a5f',
           cursor: 'pointer',
-          transition: 'all 0.2s',
-          padding: 0
+          transition: 'all 0.2s'
         }}
       >
-        <Maximize2 size={14} />
+        <span style={{ fontSize: '11px', fontWeight: 'bold' }}>Analyze</span>
       </button>
 
       {showAxisSelector === chartId && (

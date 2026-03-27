@@ -1,23 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { DotLottiePlayer } from '@dotlottie/react-player';
 import LoginForm from '../components/LoginForm';
+import SplitText from '../components/SplitText';
 
-// Modern easing curves for a premium feel
-const transitionEasing = [0.22, 1, 0.36, 1];
+const transitionEasing = [0.16, 1, 0.3, 1];
 
 const Login = () => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const navigate = useNavigate();
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    // Initial loader timeout
+    if (isAuthenticated) {
+      navigate('/dashboard/projects');
+    }
+  }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 1200);
+    }, 1500);
     return () => clearTimeout(timer);
   }, []);
 
@@ -27,31 +34,24 @@ const Login = () => {
 
   const handleLoginSuccess = () => {
     setIsExiting(true);
-    // Graceful delay for 3D flip (1.2s total)
     setTimeout(() => {
       navigate('/dashboard');
     }, 1200);
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-slate-50 text-slate-900 relative overflow-hidden"
-      style={{ perspective: '1500px' }}>
-
-      {/* 
-        ========================================
-        1. ENTRANCE LOADER 
-        ========================================
-      */}
+    <div className="min-h-screen w-full bg-white text-slate-950 font-outfit relative overflow-hidden flex flex-col">
+      
+      {/* 1. INITIAL LOADER */}
       <AnimatePresence>
         {loading && (
           <motion.div
             key="initial-loader"
-            className="absolute inset-0 z-[60] flex items-center justify-center bg-white"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.1, filter: "blur(20px)" }}
-            transition={{ duration: 0.8, ease: transitionEasing }}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-white"
+            exit={{ opacity: 0, y: -20, filter: "blur(20px)" }}
+            transition={{ duration: 1, ease: transitionEasing }}
           >
-            <div className="w-[80vw] h-[80vw] max-w-[500px] max-h-[500px] flex items-center justify-center">
+            <div className="w-[300px] h-[300px]">
               <DotLottiePlayer
                 src="/Office%20work.lottie"
                 autoplay
@@ -59,209 +59,164 @@ const Login = () => {
                 style={{ width: '100%', height: '100%' }}
               />
             </div>
+            <motion.div 
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               className="text-[10px] font-black uppercase tracking-[0.8em] text-slate-300 mt-8"
+            >
+              Initializing_Gateway_v4.2
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 
-        ========================================
-        2. EXIT TRANSITION - REPORT PORTFOLIO FLIP
-        ========================================
-      */}
-
+      {/* 2. MAIN LOGIN HUB */}
       {!loading && (
         <motion.div
-          key="login-cover"
-          className="flex-1 flex flex-col justify-center bg-white relative z-10 w-full min-h-screen overflow-hidden shadow-2xl"
-          style={{ originX: 0 }}
-          initial={{ rotateY: 0, opacity: 1 }}
-          animate={{
-            rotateY: isExiting ? -90 : (isAuthenticating ? -12 : 0),
-            x: isExiting ? "-15%" : 0,
-            opacity: isExiting ? 0 : 1,
-            filter: isExiting ? "blur(20px)" : "blur(0px)"
-          }}
-          transition={{ duration: 1.2, ease: [0.4, 0, 0.2, 1] }}
+          className="flex-1 relative flex flex-col z-10"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.5 }}
         >
-          {/* Subtle Page Edge Shadow (Appears on click) */}
-          <motion.div
-            className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-black/5 to-transparent pointer-events-none z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: isAuthenticating ? 1 : 0 }}
-          />
-
-          {/* Technical Grid Background (Matches PDF/Structure theme) */}
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none">
-            <svg width="100%" height="100%">
-              <pattern id="page-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1" />
-              </pattern>
-              <rect width="100%" height="100%" fill="url(#page-grid)" />
-            </svg>
-          </div>
-          {/* Static geometric background features to remove emptiness */}
-          <div className="absolute top-0 right-0 w-2/3 h-full bg-slate-50 [clip-path:polygon(20%_0%,100%_0%,100%_100%,0%_100%)] opacity-80" />
-
-          <div className="absolute top-0 left-0 w-full h-full opacity-[0.03]">
-            <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-              <defs>
-                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1" />
-                </pattern>
-              </defs>
-              <rect width="100%" height="100%" fill="url(#grid)" />
-            </svg>
+          {/* IMMERSIVE FLUID BACKGROUND */}
+          <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none bg-white">
+            {/* Structural Mesh */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] [mask-image:radial-gradient(ellipse_100%_100%_at_50%_0%,#000_30%,transparent_100%)]"></div>
+            
+            {/* High-Impact Fluid Orbs */}
+            <motion.div 
+               animate={{ scale: [1, 1.2, 1], x: [0, 120, 0], y: [0, 80, 0] }} 
+               transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+               className="absolute top-[-10%] left-[-5%] w-[800px] h-[800px] rounded-full bg-indigo-500/15 blur-[120px]" 
+            />
+            <motion.div 
+               animate={{ scale: [1, 1.3, 1], x: [0, -120, 0], y: [0, -80, 0] }} 
+               transition={{ duration: 25, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+               className="absolute bottom-[-10%] right-[-5%] w-[900px] h-[900px] rounded-full bg-blue-400/15 blur-[150px]" 
+            />
           </div>
 
-          {/* Accent lighting patches */}
-          <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-red-100/40 blur-[150px]" />
-          <div className="absolute bottom-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-slate-200/50 blur-[150px]" />
+          {/* CONTENT CONTAINER */}
+          <div className="max-w-[1700px] mx-auto w-full flex-1 grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] h-full min-h-screen relative px-12 lg:px-24 gap-20 lg:gap-32">
+            
+            {/* LEFT: TEXT SECTION */}
+            <div className="flex flex-col justify-center py-20 lg:py-0 z-20 lg:pr-20">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 1.2, ease: transitionEasing }}
+                className="space-y-16"
+              >
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 1.2, delay: 0.5, ease: transitionEasing }}
+                  className="inline-flex items-center gap-3 px-6 py-2 bg-slate-100 rounded-full border border-slate-200 shadow-sm w-fit"
+                >
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-950 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-950">System Access Node</span>
+                </motion.div>
 
-          {/* Abstract industrial decor lines */}
-          <svg className="absolute top-0 right-0 w-1/2 h-full opacity-10" viewBox="0 0 800 1000" fill="none" preserveAspectRatio="xMaxYMax slice">
-            <motion.path
-              d="M 800 200 L 400 200 L 200 400 L 200 1000"
-              stroke="currentColor" strokeWidth="2"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 2, ease: transitionEasing, delay: 0.5 }}
-            />
-            <motion.path
-              d="M 800 300 L 450 300 L 300 450 L 300 1000"
-              stroke="currentColor" strokeWidth="1" strokeDasharray="5 5"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1 }}
-              transition={{ duration: 2, ease: transitionEasing, delay: 0.7 }}
-            />
-            <circle cx="200" cy="400" r="4" fill="currentColor" />
-            <circle cx="300" cy="450" r="3" fill="currentColor" />
-          </svg>
-          {/* Ported from previous block - Main page content will live inside the cover */}
-          <motion.div
-            className="flex-1 flex flex-col justify-center p-8 lg:p-16 xl:p-24 relative z-10 w-full max-w-screen-2xl mx-auto min-h-screen"
-            animate={{
-              scale: isExiting ? 0.95 : (isAuthenticating ? 0.98 : 1),
-              opacity: isExiting ? 0 : 1,
-              filter: isExiting ? "blur(10px)" : "blur(0px)"
-            }}
-            transition={{ duration: 0.8, ease: transitionEasing }}
-          >
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-16 lg:gap-24 w-full h-full">
-
-              {/* HERO TEXT REVEAL */}
-              <div className="text-center lg:text-left flex-1 max-w-2xl pt-20 lg:pt-0">
-
-                <h1 className="text-5xl lg:text-7xl font-black tracking-tighter mb-8 leading-[1.1]">
-                  <div className="overflow-hidden py-1">
-                    <motion.span
-                      initial={{ y: "100%", opacity: 0, filter: "blur(10px)" }}
-                      animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-                      transition={{ duration: 0.9, delay: 0.3, ease: transitionEasing }}
-                      className="text-slate-800 block"
-                    >
-                      Welcome
-                    </motion.span>
-                  </div>
-                  <div className="overflow-hidden py-1">
-                    <motion.span
-                      initial={{ y: "100%", opacity: 0, filter: "blur(10px)" }}
-                      animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-                      transition={{ duration: 0.9, delay: 0.4, ease: transitionEasing }}
-                      className="text-slate-800 block"
-                    >
-                      to the
-                    </motion.span>
-                  </div>
-                  <div className="overflow-hidden py-1 mt-2">
-                    <motion.span
-                      initial={{ y: "100%", opacity: 0, filter: "blur(10px)" }}
-                      animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-                      transition={{ duration: 0.9, delay: 0.5, ease: transitionEasing }}
-                      className="aurora-text block"
-                    >
-                      Industrial Analytics
-                    </motion.span>
-                  </div>
-                  <div className="overflow-hidden py-1">
-                    <motion.span
-                      initial={{ y: "100%", opacity: 0, filter: "blur(10px)" }}
-                      animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-                      transition={{ duration: 0.9, delay: 0.6, ease: transitionEasing }}
-                      className="aurora-text block"
-                    >
-                      Platform
-                    </motion.span>
-                  </div>
-                </h1>
+                <div className="space-y-6">
+                  <h1 className="text-6xl lg:text-[6rem] font-black tracking-tighter uppercase leading-[0.9] text-slate-950">
+                    <SplitText
+                      text="INDUSTRIAL"
+                      className="block"
+                      delay={30}
+                      duration={1.0}
+                      textAlign="left"
+                    />
+                    <div className="text-slate-400 lg:text-[6.5rem]">
+                      <SplitText
+                        text="ANALYTICS"
+                        className="block"
+                        delay={40}
+                        duration={1.0}
+                        textAlign="left"
+                      />
+                    </div>
+                    <SplitText
+                      text="PLATFORM"
+                      className="block"
+                      delay={50}
+                      duration={1.0}
+                      textAlign="left"
+                    />
+                  </h1>
+                </div>
 
                 <motion.p
-                  initial={{ opacity: 0, y: 30, filter: "blur(5px)" }}
-                  animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  transition={{ duration: 1, delay: 0.8, ease: transitionEasing }}
-                  className="text-slate-500 text-lg lg:text-xl leading-relaxed mt-6 max-w-xl mx-auto lg:mx-0 font-medium"
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 1.5, delay: 1.2, ease: transitionEasing }}
+                  className="text-xl lg:text-3xl text-slate-400 max-w-xl font-medium tracking-tight leading-normal"
                 >
-                  Empowering your manufacturing with intelligent analytics, real-time insights, and next-generation connectivity.
+                  Orchestrate high-fidelity industrial landscapes with predictive clarity and absolute synchronization.
                 </motion.p>
 
-                {/* Decorative data blocks sliding in */}
+                {/* Status Indicator */}
                 <motion.div
-                  className="flex gap-4 mt-12 justify-center lg:justify-start"
+                  className="flex items-center gap-8 mt-16"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ duration: 1, delay: 1 }}
+                  transition={{ duration: 1, delay: 1.8 }}
                 >
-                  {[1, 2, 3].map((i) => (
-                    <motion.div
-                      key={i}
-                      className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden"
-                    >
-                      <motion.div
-                        className="h-full bg-red-500 rounded-full"
-                        initial={{ width: 0 }}
-                        animate={{ width: `${Math.random() * 60 + 20}%` }}
-                        transition={{ duration: 1.5, delay: 1 + (i * 0.2), ease: "easeOut" }}
-                      />
-                    </motion.div>
-                  ))}
+                  <div className="flex -space-x-4">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="w-12 h-12 rounded-full border-4 border-white bg-slate-100 shadow-xl overflow-hidden backdrop-blur-md">
+                         <div className={`w-full h-full bg-gradient-to-br ${i % 2 === 0 ? 'from-indigo-100 to-white' : 'from-slate-100 to-white'}`} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="text-[10px] font-black text-slate-950 uppercase tracking-widest">Platform Sync Status</div>
+                    <div className="text-[10px] font-bold text-green-500 uppercase tracking-widest flex items-center gap-2">
+                       <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                       99.9% System uptime
+                    </div>
+                  </div>
                 </motion.div>
-              </div>
-
-              {/* FORM REVEAL */}
-              <motion.div
-                className="w-full max-w-[480px] relative group z-10"
-                initial={{ opacity: 0, x: 100, scale: 0.95, filter: "blur(20px)" }}
-                animate={{ opacity: 1, x: 0, scale: 1, filter: "blur(0px)" }}
-                transition={{ duration: 1.2, delay: 0.5, ease: transitionEasing }}
-              >
-                <div className="absolute -inset-1 bg-gradient-to-br from-red-500/10 via-transparent to-slate-400/20 rounded-[2.5rem] blur-xl opacity-75 z-10 pointer-events-none"></div>
-                <div className="relative w-full bg-white/80 backdrop-blur-xl p-10 sm:p-12 rounded-[2rem] border border-slate-100 shadow-2xl shadow-slate-200/50 z-20">
-                  <LoginForm onLoginStart={handleLoginStart} onLoginSuccess={handleLoginSuccess} />
-                </div>
               </motion.div>
-
             </div>
-          </motion.div>
+
+            {/* RIGHT: 3D FORM SECTION */}
+            <div className="flex items-center justify-center lg:justify-end z-20 pb-20 lg:pb-0">
+               <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 40 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ duration: 1.8, delay: 0.8, ease: transitionEasing }}
+                  className="w-full lg:w-[520px] perspective-[2000px] h-fit"
+               >
+                  <motion.div
+                    whileHover={{ rotateY: 5, rotateX: 2, scale: 1.02 }}
+                    transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
+                    className="relative group isolate"
+                  >
+                    <div className="absolute inset-0 bg-slate-900/[0.04] rounded-[5rem] translate-y-16 blur-[120px] -z-10 group-hover:translate-y-20 transition-all duration-1000" />
+                    <div className="absolute inset-0 bg-slate-200/50 rounded-[5rem] translate-y-6 blur-[60px] -z-10" />
+                    
+                    <div className="relative w-full bg-white/40 backdrop-blur-3xl border border-white/60 ring-1 ring-white/40 rounded-[4.5rem] p-12 lg:p-20 shadow-[0_2px_40px_-10px_rgba(0,0,0,0.02)] overflow-hidden">
+                       <LoginForm onLoginStart={handleLoginStart} onLoginSuccess={handleLoginSuccess} />
+                    </div>
+                  </motion.div>
+               </motion.div>
+            </div>
+
+          </div>
         </motion.div>
       )}
 
-      {/* Aurora text gradient style */}
-      <style>{`
-        @keyframes aurora {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        .aurora-text {
-          background: linear-gradient(-45deg, #dc2626, #ea580c, #0891b2, #7c3aed, #dc2626);
-          background-size: 300% auto;
-          color: #1e293b;
-          background-clip: text;
-          text-fill-color: transparent;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          animation: aurora 6s ease infinite;
-        }
-      `}</style>
+      <AnimatePresence>
+        {isExiting && (
+          <motion.div 
+             key="exit-transition"
+             className="fixed inset-0 z-[200] bg-slate-950 origin-bottom"
+             initial={{ scaleY: 0 }}
+             animate={{ scaleY: 1 }}
+             transition={{ duration: 1, ease: transitionEasing }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
