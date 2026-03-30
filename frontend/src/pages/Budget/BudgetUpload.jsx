@@ -163,15 +163,47 @@ const BudgetUpload = () => {
   };
 
   const handleDownloadTemplate = () => {
-    const templateData = [[]]; // Completely empty sheet
+    const templateData = [
+      [
+        "Category", 
+        "Department", 
+        "Estimation", 
+        "Approved (x)", 
+        "Utilized (y)", 
+        "Balance (z=x-y)", 
+        "Outlook Spend (S)", 
+        "Likely Cummulative Spend (Z+S)"
+      ],
+      ["CAPEX", "", "", "", "", "", "", ""],
+      ["Total CAPEX", "", "", "", "", "", "", ""],
+      ["Revenue", "", "", "", "", "", "", ""],
+      ["Total Revenue", "", "", "", "", "", "" , ""]
+    ];
     
+    // Create worksheet
     const ws = XLSX.utils.aoa_to_sheet(templateData);
+    
+    // Set column widths for better readability
+    const colWidths = [
+      { wch: 20 }, // Category
+      { wch: 20 }, // Department
+      { wch: 15 }, // Estimation
+      { wch: 15 }, // Approved (x)
+      { wch: 15 }, // Utilized (y)
+      { wch: 15 }, // Balance (z=x-y)
+      { wch: 18 }, // Outlook Spend (S)
+      { wch: 25 }, // Likely Cummulative Spend (Z+S)
+    ];
+    ws['!cols'] = colWidths;
+
+    // Create workbook and download
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Budget Template");
     XLSX.writeFile(wb, "Budget_Template.xlsx");
     
     showNotification('Template downloaded successfully');
   };
+
 
   const getSortIcon = (key) => {
     if (sortConfig.key !== key) {
