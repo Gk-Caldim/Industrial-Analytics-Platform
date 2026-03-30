@@ -1813,7 +1813,7 @@ const ProjectTitleDashboard = () => {
                           />
                         ))}
                       </div>
-                      
+
                       <div style={{ marginTop: '24px', padding: '16px', backgroundColor: '#111827', borderRadius: '12px', border: '1px solid #334155' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
                           <Layout size={16} color="#3b82f6" />
@@ -2263,11 +2263,11 @@ const ProjectTitleDashboard = () => {
                                               <button title="Left" onClick={() => handleUpdateCustomContent(sectionKey, 'alignment', 'left')} style={{ marginLeft: '6px', padding: '4px 8px', backgroundColor: customContent.alignment === 'left' ? '#3b82f6' : '#334155', border: 'none', borderRadius: '4px', cursor: 'pointer', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>L</button>
                                               <button title="Center" onClick={() => handleUpdateCustomContent(sectionKey, 'alignment', 'center')} style={{ padding: '4px 8px', backgroundColor: customContent.alignment === 'center' ? '#3b82f6' : '#334155', border: 'none', borderRadius: '4px', cursor: 'pointer', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>C</button>
                                             </div>
-                                            <button 
+                                            <button
                                               onClick={() => {
                                                 setPdfPages(prev => prev.map((p, i) => i === pageIdx ? p.filter(k => k !== sectionKey) : p));
                                                 handleSectionToggle(sectionKey);
-                                              }} 
+                                              }}
                                               style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '4px' }}
                                             >
                                               <Trash2 size={16} />

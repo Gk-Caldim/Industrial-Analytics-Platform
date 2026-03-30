@@ -97,7 +97,7 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
     const [tempFrozenColumns, setTempFrozenColumns] = useState([]);
 
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
-    
+
     // Column Pagination Derived Values
     const visibleColumns = useMemo(() => columns.filter(col => col.visible), [columns]);
     const totalVisibleCols = visibleColumns.length;
@@ -178,10 +178,10 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
         return sortedData.slice(startIndex, endIndex);
     }, [sortedData, currentPage, pageSize]);
 
-    
+
     const colStartIndex = useMemo(() => (columnPage - 1) * colsPerPage, [columnPage, colsPerPage]);
     const colEndIndex = useMemo(() => Math.min(colStartIndex + colsPerPage, totalVisibleCols), [colStartIndex, colsPerPage, totalVisibleCols]);
-    
+
     const paginatedColumns = useMemo(() => {
         return visibleColumns.slice(colStartIndex, colEndIndex);
     }, [visibleColumns, colStartIndex, colEndIndex]);
@@ -662,11 +662,11 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                                 </button>
                             </div>
                         )}
-                        
+
                         {/* COLUMN PAGINATION CONTROL (from image) */}
                         {totalVisibleCols > colsPerPage && (
                             <div className="flex items-center gap-2 px-2 py-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md shadow-sm mr-2">
-                                <button 
+                                <button
                                     onClick={() => setColumnPage(prev => Math.max(1, prev - 1))}
                                     disabled={columnPage === 1}
                                     className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
@@ -676,7 +676,7 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                                 <span className="text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300 min-w-[100px] text-center whitespace-nowrap">
                                     Cols {colStartIndex + 1}-{colEndIndex} of {totalVisibleCols}
                                 </span>
-                                <button 
+                                <button
                                     onClick={() => setColumnPage(prev => Math.min(Math.ceil(totalVisibleCols / colsPerPage), prev + 1))}
                                     disabled={colEndIndex >= totalVisibleCols}
                                     className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"

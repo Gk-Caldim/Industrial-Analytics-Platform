@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
   File, Clock, User, ChevronRight, Database, FileSpreadsheet,
   Archive, FileText, X, Eye, Edit, Check,
@@ -271,6 +272,7 @@ const getMasterIcon = (masterName) => {
 // Main Masters Component
 const Masters = () => {
   const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
   const [dynamicModules, setDynamicModules] = useState([]);
   const [loading, setLoading] = useState(true);
   const [trackers, setTrackers] = useState([]);
@@ -343,6 +345,19 @@ const Masters = () => {
       borderColor: 'border-[#1e3a5f]/20',
       iconBg: 'bg-[#1e3a5f]',
       
+    },
+    {
+      id: 6,
+      name: 'Part Master',
+      masterModuleId: 'part-master',
+      path: 'masters/parts',
+      type: 'master',
+      description: 'Manage part inventory and specifications',
+      icon: <Package className="h-5 w-5" />,
+      gradient: 'from-[#1e3a5f] to-[#2c4c7c]',
+      lightGradient: 'from-[#e6eef8] to-[#d1e0f0]',
+      borderColor: 'border-[#1e3a5f]/20',
+      iconBg: 'bg-[#1e3a5f]',
     }
   ];
 
@@ -353,7 +368,16 @@ const Masters = () => {
         const savedMasterFiles = localStorage.getItem('master_files');
         const masterFiles = savedMasterFiles ? JSON.parse(savedMasterFiles) : [];
 
-        const masterModulesWithFiles = staticMasterModules.map(master => {
+        // Filter static modules based on user permissions
+        const hasPermission = (moduleName) => {
+          if (user?.role === 'Admin') return true;
+          if (!user?.permissions) return false;
+          return user.permissions.includes(moduleName);
+        };
+
+        const filteredStaticModules = staticMasterModules.filter(m => hasPermission(m.name));
+
+        const masterModulesWithFiles = filteredStaticModules.map(master => {
           const masterFileModules = masterFiles
             .filter(file => file.masterId === master.id)
             .map(file => ({

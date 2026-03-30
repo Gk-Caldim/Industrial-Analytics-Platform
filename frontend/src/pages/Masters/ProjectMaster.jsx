@@ -6,6 +6,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { getEmployees } from "../../utils/employeeApi";
 import SearchableDropdown from "../../components/SearchableDropdown";
+import SubCategoryModal from "../../components/SubCategoryModal";
 
 const ProjectMaster = () => {
   // Fixed columns matching backend Project model
@@ -16,9 +17,11 @@ const ProjectMaster = () => {
     { id: 'employee_id', label: 'Employee ID', visible: true, sortable: true, type: 'employee_id', required: false },
     { id: 'employee_name', label: 'Employee Name', visible: true, sortable: true, type: 'employee_name', required: false },
     { id: 'status', label: 'Status', visible: true, sortable: true, type: 'select', required: true },
+    { id: 'sub_category', label: 'Sub Category', visible: true, sortable: false, type: 'sub_category_button', required: false },
     { id: 'budget', label: 'Budget', visible: true, sortable: true, type: 'number', required: true },
+    { id: 'utilized_budget', label: 'Utilized Budget', visible: true, sortable: true, type: 'number', required: false, readonly: true },
+    { id: 'balance_budget', label: 'Balance Budget', visible: true, sortable: true, type: 'number', required: false, readonly: true },
     { id: 'timeline', label: 'Timeline', visible: true, sortable: true, type: 'text', required: false },
-    { id: 'teamSize', label: 'Team Size', visible: true, sortable: true, type: 'number', required: false },
   ];
 
   // Status colors mapping
@@ -49,9 +52,16 @@ const ProjectMaster = () => {
   const [pageSize, setPageSize] = useState(10);
   const pageSizeOptions = [5, 10, 25, 50, 100];
 
-  // Load columns from localStorage
+  // Load columns from localStorage - Aggressive refresh with new key
   const [columns, setColumns] = useState(() => {
-    const savedColumns = localStorage.getItem('project_columns_v4');
+    const CURRENT_STORAGE_KEY = 'master_project_data_config_v3';
+    // Clean up all old project_columns_v* keys
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('project_columns_v')) {
+        localStorage.removeItem(key);
+      }
+    });
+    const savedColumns = localStorage.getItem(CURRENT_STORAGE_KEY);
     return savedColumns ? JSON.parse(savedColumns) : initialColumns;
   });
 
@@ -97,15 +107,21 @@ const ProjectMaster = () => {
 
   const [validationErrors, setValidationErrors] = useState({});
 
+  // Sub-category modal state
+  const [showSubCategoryModal, setShowSubCategoryModal] = useState(false);
+  const [activeSubCategoryProject, setActiveSubCategoryProject] = useState(null);
+
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
   const API_URL = `${API_BASE_URL}/projects`;
 
-  const fixedColumnIds = ['id', 'name', 'manager', 'status', 'budget', 'timeline', 'teamSize', 'employee_id', 'employee_name', 'created_at', 'updated_at'];
+  const fixedColumnIds = ['id', 'project_id', 'name', 'manager', 'status', 'budget', 'utilized_budget', 'balance_budget', 'timeline', 'employee_id', 'employee_name', 'sub_category', 'created_at', 'updated_at'];
 
   // Helper to flatten API response
   const transformProjectFromApi = (apiProject) => {
     const { custom_fields, ...rest } = apiProject;
-    return { ...rest, ...(custom_fields || {}) };
+    // Order matters: rest (fixed fields) should OVERWRITE custom_fields if there's a conflict
+    // This ensures real project_id and employee_id columns are used
+    return { ...(custom_fields || {}), ...rest };
   };
 
   // Helper to nest custom fields for API request
@@ -116,8 +132,9 @@ const ProjectMaster = () => {
       manager: projectData.manager,
       status: projectData.status || 'Planning',
       budget: parseFloat(projectData.budget) || 0,
+      utilized_budget: parseFloat(projectData.utilized_budget) || 0,
+      balance_budget: parseFloat(projectData.balance_budget) || 0,
       timeline: projectData.timeline || '',
-      teamSize: parseInt(projectData.teamSize) || 0,
       employee_id: projectData.employee_id || null,
       employee_name: projectData.employee_name || null,
       custom_fields: {}
@@ -202,7 +219,7 @@ const ProjectMaster = () => {
 
   // Save columns to localStorage
   useEffect(() => {
-    localStorage.setItem('project_columns_v4', JSON.stringify(columns));
+    localStorage.setItem('master_project_data_config_v3', JSON.stringify(columns));
   }, [columns]);
 
   // Checkbox Functions
@@ -319,7 +336,7 @@ const ProjectMaster = () => {
 
   const handleDeleteColumn = (columnId) => {
     const column = columns.find(col => col.id === columnId);
-    const isFixedColumn = ['id', 'name', 'manager', 'status', 'budget', 'timeline', 'teamSize'].includes(columnId);
+    const isFixedColumn = ['id', 'name', 'manager', 'status', 'budget', 'timeline'].includes(columnId);
 
     if (isFixedColumn) {
       setShowDeleteColumnPrompt({
@@ -472,7 +489,7 @@ const ProjectMaster = () => {
 
   // Handle new project input change
   const handleNewProjectChange = (field, value) => {
-    setNewProject({ ...newProject, [field]: value });
+    setNewProject(prev => ({ ...prev, [field]: value }));
     if (validationErrors[field]) {
       setValidationErrors(prev => ({ ...prev, [field]: '' }));
     }
@@ -581,11 +598,31 @@ const ProjectMaster = () => {
 
   // Handle edit form change
   const handleEditFormChange = (field, value) => {
-    setEditForm({ ...editForm, [field]: value });
+    setEditForm(prev => ({ ...prev, [field]: value }));
     if (validationErrors[field]) {
       setValidationErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
+
+  // Auto-calculate balance for newProject form
+  useEffect(() => {
+    const budget = parseFloat(newProject.budget) || 0;
+    const utilized = parseFloat(newProject.utilized_budget) || 0;
+    const balance = budget - utilized;
+    if (newProject.balance_budget !== balance) {
+        setNewProject(prev => ({ ...prev, balance_budget: balance }));
+    }
+  }, [newProject.budget, newProject.utilized_budget]);
+
+  // Auto-calculate balance for editForm
+  useEffect(() => {
+    const budget = parseFloat(editForm.budget) || 0;
+    const utilized = parseFloat(editForm.utilized_budget) || 0;
+    const balance = budget - utilized;
+    if (editForm.balance_budget !== balance) {
+        setEditForm(prev => ({ ...prev, balance_budget: balance }));
+    }
+  }, [editForm.budget, editForm.utilized_budget]);
 
   // Add new column
   const handleAddColumn = () => {
@@ -953,14 +990,18 @@ const ProjectMaster = () => {
           type="number"
           value={value || ''}
           onChange={e => onChange(col.id, e.target.value)}
-          className={inputClass}
+          className={`${inputClass} ${col.readonly ? 'bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-75' : ''}`}
           min="0"
           step={col.id === 'budget' ? "1000" : "1"}
           placeholder={`Enter ${col.label.toLowerCase()}`}
+          disabled={col.readonly}
+          readOnly={col.readonly}
         />
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
     );
+    if (col.type === 'sub_category_button') return null; // Don't show in add/edit modal as input
+
     return (
       <div>
         <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
@@ -968,8 +1009,10 @@ const ProjectMaster = () => {
           type="text"
           value={value || ''}
           onChange={e => onChange(col.id, e.target.value)}
-          className={inputClass}
+          className={`${inputClass} ${col.readonly ? 'bg-slate-100 dark:bg-slate-800 cursor-not-allowed opacity-75' : ''}`}
           placeholder={`Enter ${col.label.toLowerCase()}`}
+          disabled={col.readonly}
+          readOnly={col.readonly}
         />
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
@@ -977,7 +1020,7 @@ const ProjectMaster = () => {
   };
 
   // Render cell content
-  const renderCellContent = (col, value) => {
+  const renderCellContent = (col, value, row) => {
     if (col.id === 'status') {
       const colorMap = {
         'Planning': 'bg-blue-100 text-blue-700',
@@ -995,11 +1038,31 @@ const ProjectMaster = () => {
         </span>
       );
     }
-    if (col.id === 'budget') {
-      return <span className="text-sm text-slate-700">${(parseFloat(value) || 0).toLocaleString()}</span>;
+    if (['budget', 'utilized_budget', 'balance_budget'].includes(col.id)) {
+      const numValue = parseFloat(value) || 0;
+      return (
+        <span className={`text-sm font-medium ${col.id === 'balance_budget' && numValue < 0 ? 'text-red-600' : 'text-slate-700'}`}>
+          ${numValue.toLocaleString()}
+        </span>
+      );
     }
     if (col.id === 'project_id') {
       return <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value || '-'}</span>;
+    }
+    if (col.type === 'sub_category_button') {
+      return (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setActiveSubCategoryProject(row);
+            setShowSubCategoryModal(true);
+          }}
+          className="text-blue-600 hover:text-blue-800 font-medium text-xs bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-all shadow-sm flex items-center gap-1.5"
+        >
+          <Briefcase className="h-3 w-3" />
+          Manage
+        </button>
+      );
     }
     return <span className="text-sm text-slate-700">{value || '-'}</span>;
   };
@@ -1378,7 +1441,7 @@ const ProjectMaster = () => {
                 <h4 className="text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Available Columns</h4>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   {columns.map((column) => {
-                    const isFixedColumn = ['id', 'name', 'manager', 'status', 'budget', 'timeline', 'teamSize'].includes(column.id);
+                    const isFixedColumn = ['id', 'name', 'manager', 'status', 'budget', 'timeline'].includes(column.id);
                     const isEditing = editingColumn === column.id;
 
                     return (
@@ -1540,6 +1603,14 @@ const ProjectMaster = () => {
             </div>
           </div>
         )}
+
+        <SubCategoryModal
+          isOpen={showSubCategoryModal}
+          onClose={() => setShowSubCategoryModal(false)}
+          project={activeSubCategoryProject}
+          showNotification={showNotification}
+          onRefresh={fetchProjects}
+        />
 
         {/* MAIN CONTENT CONTAINER */}
         <div className="master-table-container dark:bg-slate-800 dark:border-slate-700">
@@ -1832,7 +1903,7 @@ const ProjectMaster = () => {
                                 className={`py-3 px-6 whitespace-nowrap ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''}`}
                                 style={{ left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto', zIndex: isColumnFrozen(actualColumnIndex) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto' }}
                               >
-                                {renderCellContent(col, proj[col.id])}
+                                {renderCellContent(col, proj[col.id], proj)}
                               </td>
                             );
                           })}

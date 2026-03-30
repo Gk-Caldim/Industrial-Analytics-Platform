@@ -4,7 +4,8 @@ from datetime import datetime
 
 class BudgetSummaryBase(BaseModel):
     project_name: str
-    currency: str = "$"
+    uploaded_by: Optional[str] = None
+    department: Optional[str] = None
     budget_data: List[List[Any]] = []
 
 class BudgetSummaryCreate(BudgetSummaryBase):
@@ -12,6 +13,7 @@ class BudgetSummaryCreate(BudgetSummaryBase):
 
 class BudgetSummaryResponse(BudgetSummaryBase):
     id: int
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

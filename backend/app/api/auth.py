@@ -56,9 +56,12 @@ def login(data: dict, db: Session = Depends(get_db)):
         email_to_use = access_rule.employee_email or (access_rule.employee.email if access_rule.employee else data["email"])
         employee_code = access_rule.employee_code or (access_rule.employee.employee_id if access_rule.employee else None)
 
+        full_name = access_rule.employee_name or (access_rule.employee.name if access_rule.employee else "User")
+        
         access_token = create_access_token({
             "sub": str(access_rule.employee_id),
             "email": email_to_use,
+            "full_name": full_name,
             "role": access_rule.access_level
         })
 
@@ -70,6 +73,7 @@ def login(data: dict, db: Session = Depends(get_db)):
             "user": {
                 "id": access_rule.employee_id,
                 "email": email_to_use,
+                "full_name": access_rule.employee_name or (access_rule.employee.name if access_rule.employee else "User"),
                 "employee_id": employee_code,
                 "role": access_rule.access_level,
                 "permissions": access_rule.modules or []
@@ -84,17 +88,24 @@ def login(data: dict, db: Session = Depends(get_db)):
     if not verify_password(data["password"], user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
+    # Try to find employee name for fallback user
+    employee = db.query(Employee).filter(Employee.employee_id == user.employee_id).first()
+    full_name = employee.name if employee else "User"
+    
     access_token = create_access_token({
         "sub": str(user.id),
         "email": user.email,
+        "full_name": full_name,
     })
     refresh_token = create_refresh_token(str(user.id))
+    
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
         "user": {
             "id": user.id,
             "email": user.email,
+            "full_name": full_name,
             "employee_id": user.employee_id,
         },
     }
