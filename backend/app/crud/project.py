@@ -12,6 +12,9 @@ def create_project(db: Session, project: ProjectCreate):
     db.refresh(db_project)
     return db_project
 
+def get_project_by_name(db: Session, name: str):
+    return db.query(Project).filter(Project.name == name).first()
+
 def get_project(db: Session, project_id: int):
     return db.query(Project).filter(Project.id == project_id).first()
 
@@ -37,4 +40,15 @@ def delete_project(db: Session, project_id: int):
         # Add detailed error information
         error_msg = f"Error deleting project {project_id}: {str(e)} - {type(e).__name__}"
         print(error_msg)  # This will appear in backend logs
+        raise Exception(error_msg) from e
+
+def bulk_delete_projects(db: Session, project_ids: list[int]):
+    try:
+        db.query(Project).filter(Project.id.in_(project_ids)).delete(synchronize_session=False)
+        db.commit()
+        return True
+    except Exception as e:
+        db.rollback()
+        error_msg = f"Error bulk deleting projects {project_ids}: {str(e)} - {type(e).__name__}"
+        print(error_msg)
         raise Exception(error_msg) from e

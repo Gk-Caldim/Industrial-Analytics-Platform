@@ -208,20 +208,22 @@ const EmployeeMaster = () => {
 
   const confirmBulkDelete = async () => {
     const count = selectedEmployees.length;
+
     try {
-      // Delete each selected employee
-      for (const id of selectedEmployees) {
-        await axios.delete(`${API_BASE_URL}/employees/${id}`);
-      }
+      // Use bulk delete endpoint for better performance
+      await axios.post(`${API_BASE_URL}/employees/bulk-delete`, selectedEmployees);
+
       await fetchEmployees();
       setSelectedEmployees([]);
       setSelectAll(false);
       setCurrentPage(1);
       setShowBulkDeletePrompt({ show: false, count: 0 });
+
       showNotification(`${count} employees deleted successfully`);
     } catch (err) {
       console.error(err);
-      showNotification('Error deleting employees', 'error');
+      const errorMsg = err.response?.data?.detail || 'Error during bulk delete process';
+      showNotification(errorMsg, 'error');
     }
   };
 
@@ -298,8 +300,11 @@ const EmployeeMaster = () => {
     localStorage.setItem('employee_columns_v4', JSON.stringify(columns));
   }, [columns]);
 
-  // Filter employees
+  // Filter employees - exclude dummy or missing data
   const filteredEmployees = employees.filter(emp => {
+    // Basic validation for name and email to avoid dummy entries
+    if (!emp.name || !emp.email) return false;
+
     const matchesSearch = Object.values(emp).some(value =>
       String(value).toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -375,7 +380,7 @@ const EmployeeMaster = () => {
   const handleAddEmployeeClick = () => {
     setShowAddEmployeeModal(true);
     setNewEmployee({
-      id: '',
+      employee_id: '',
       name: '',
       email: '',
       department: '',
@@ -392,7 +397,11 @@ const EmployeeMaster = () => {
   // Save new employee
   const saveNewEmployee = async () => {
     try {
-      await axios.post(`${API_BASE_URL}/employees`, newEmployee);
+      const payload = {
+        ...newEmployee,
+        employee_id: newEmployee.employee_id || null
+      };
+      await axios.post(`${API_BASE_URL}/employees`, payload);
       await fetchEmployees();
       setShowAddEmployeeModal(false);
       setNewEmployee({});
@@ -447,7 +456,11 @@ const EmployeeMaster = () => {
   // Save employee edit
   const saveEdit = async () => {
     try {
-      await axios.put(`${API_BASE_URL}/employees/${editingId}`, editForm);
+      const payload = {
+        ...editForm,
+        employee_id: editForm.employee_id || null
+      };
+      await axios.put(`${API_BASE_URL}/employees/${editingId}`, payload);
       await fetchEmployees();
       setEditingId(null);
       setEditForm({});
@@ -680,9 +693,9 @@ const EmployeeMaster = () => {
         </div>
       );
     }
-    if (column.id === 'id') {
+    if (column.id === 'employee_id') {
       return (
-        <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value}</span>
+        <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value || '-'}</span>
       )
     }
     return <span className="text-sm text-slate-700 dark:text-slate-300">{value || '-'}</span>;
@@ -1136,11 +1149,11 @@ const EmployeeMaster = () => {
                 <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Basic Information</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">ID <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Employee ID <span className="text-red-500">*</span></label>
                     <input
                       type="text"
-                      value={newEmployee.id || ''}
-                      onChange={(e) => handleNewEmployeeChange('id', e.target.value)}
+                      value={newEmployee.employee_id || ''}
+                      onChange={(e) => handleNewEmployeeChange('employee_id', e.target.value)}
                       className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
                       placeholder="Enter employee ID"
                     />
@@ -1240,12 +1253,21 @@ const EmployeeMaster = () => {
                 <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Basic Information</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">ID</label>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">System ID</label>
                     <input
                       type="text"
                       value={editForm.id || ''}
                       disabled
                       className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-800/80"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Employee ID <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={editForm.employee_id || ''}
+                      onChange={(e) => handleEditFormChange('employee_id', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
                     />
                   </div>
                   <div>

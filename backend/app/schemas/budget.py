@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import List, Any
+from typing import List, Any, Optional
+from datetime import datetime
 
 class BudgetSummaryBase(BaseModel):
     project_name: str
@@ -13,4 +14,4 @@ class BudgetSummaryResponse(BudgetSummaryBase):
     id: int
 
     class Config:
-        orm_mode = True
+        from_attributes = True

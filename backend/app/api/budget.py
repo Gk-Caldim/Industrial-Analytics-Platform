@@ -1,10 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from typing import List
 from app.core.database import get_db
 from app.models.budget import BudgetSummary
 from app.schemas.budget import BudgetSummaryCreate, BudgetSummaryResponse
 
 router = APIRouter()
+
+@router.get("/", response_model=List[BudgetSummaryResponse])
+def list_budget_summaries(db: Session = Depends(get_db)):
+    return db.query(BudgetSummary).all()
 
 @router.get("/{project_name}", response_model=BudgetSummaryResponse)
 def get_budget_summary(project_name: str, db: Session = Depends(get_db)):
@@ -27,3 +32,12 @@ def save_budget_summary(project_name: str, budget_data: BudgetSummaryCreate, db:
         db.commit()
         db.refresh(budget)
     return budget
+
+@router.delete("/{project_name}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_budget_summary(project_name: str, db: Session = Depends(get_db)):
+    budget = db.query(BudgetSummary).filter(BudgetSummary.project_name == project_name).first()
+    if not budget:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Budget summary not found")
+    db.delete(budget)
+    db.commit()
+    return None

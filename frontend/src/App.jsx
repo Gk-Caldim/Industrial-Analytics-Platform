@@ -11,11 +11,12 @@ import UploadTrackers from './pages/Trackers/UploadTrackers';
 import EmployeeMaster from './pages/Masters/EmployeeMaster';
 import EmployeeAccess from './pages/Masters/EmployeeAccess';
 import ProjectMaster from './pages/Masters/ProjectMaster';
-import PartMaster from './pages/Masters/PartMaster';
 import DepartmentMaster from './pages/Masters/DepartmentMaster';
 import Masters from './pages/Masters/Masters';
 import MOMModule from './pages/mom/MOMModule';
 import SystemSettings from './pages/Settings/SystemSettings';
+import BudgetUpload from './pages/Budget/BudgetUpload';
+import BudgetSummaryView from './pages/Budget/BudgetSummaryView';
 
 function App() {
   return (
@@ -35,12 +36,13 @@ function App() {
             <Route index element={<Navigate to="projects" replace />} />
             <Route path="projects" element={<ProjectDashboard />} />
             <Route path="trackers" element={<UploadTrackers />} />
+            <Route path="budget-upload" element={<BudgetUpload />} />
+            <Route path="budget-summary/:projectName" element={<BudgetSummaryView />} />
             
             <Route path="masters" element={<Masters />} />
             <Route path="masters/employees" element={<EmployeeMaster />} />
             <Route path="masters/access" element={<EmployeeAccess />} />
             <Route path="masters/project-master" element={<ProjectMaster />} />
-            <Route path="masters/parts" element={<PartMaster />} />
             <Route path="masters/departments" element={<DepartmentMaster />} />
             
             <Route path="mom" element={<MOMModule />} />
