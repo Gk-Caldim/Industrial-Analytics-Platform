@@ -63,7 +63,7 @@
   }
 
   .master-table-container {
-    @apply flex flex-col h-full bg-white flex-1 overflow-hidden relative shadow-sm border border-slate-200 rounded-xl;
+    @apply flex flex-col h-full bg-white flex-1 overflow-hidden relative shadow-sm rounded-xl border border-slate-200/80;
   }
 
   .master-table-inner {
@@ -83,24 +83,29 @@
   }
 
   .master-table th {
-    @apply bg-slate-50 text-slate-600 font-semibold text-xs uppercase tracking-wider border-b border-r border-slate-200 py-3 px-8 text-left whitespace-nowrap;
+    @apply bg-blue-50/80 text-black font-semibold text-[13px] border-b border-slate-200/80 py-3 px-6 text-left whitespace-nowrap;
   }
 
   .master-table td {
-    @apply border-b border-r border-slate-200 py-3 px-8 whitespace-nowrap min-w-[160px] text-base text-slate-700;
-  }
-
-  .master-table th:last-child,
-  .master-table td:last-child {
-    @apply border-r-0;
+    @apply border-b border-slate-100/80 py-3.5 px-6 whitespace-nowrap text-sm text-slate-700;
   }
 
   .master-table tbody tr {
-    @apply transition-colors;
+    @apply transition-colors duration-150 ease-in-out;
   }
 
   .master-table tbody tr:hover td {
-    @apply bg-slate-50;
+    @apply bg-slate-50/50;
+  }
+
+  .master-table-checkbox-cell {
+    @apply opacity-0 outline-none transition-opacity duration-200;
+  }
+
+  .master-table tbody tr:hover .master-table-checkbox-cell,
+  .master-table tbody tr.row-selected .master-table-checkbox-cell,
+  .master-table-checkbox-cell:focus-within {
+    @apply opacity-100;
   }
 
   /* Freeze styles */

@@ -5,7 +5,6 @@ const files = [
     'src/pages/Masters/EmployeeMaster.jsx',
     'src/pages/Masters/EmployeeAccess.jsx',
     'src/pages/Masters/ProjectMaster.jsx',
-    'src/pages/Masters/PartMaster.jsx',
     'src/pages/Masters/DepartmentMaster.jsx'
 ];
 

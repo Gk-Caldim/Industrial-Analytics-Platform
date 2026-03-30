@@ -48,12 +48,33 @@ def delete_project(project_id: int, db: Session = Depends(get_db)):
         if "foreign key constraint" in error_msg.lower() or "violates foreign key constraint" in error_msg:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Cannot delete project because it has associated meetings. Please delete the meetings first or reassign them to another project."
+                detail="Cannot delete project because it is being referenced by other records (like Trackers). Please delete those records first."
             )
         else:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Error deleting project: {error_msg}"
+            )
+
+@router.post("/bulk-delete")
+def bulk_delete_projects(project_ids: List[int], db: Session = Depends(get_db)):
+    try:
+        success = crud_project.bulk_delete_projects(db, project_ids)
+        if not success:
+            raise HTTPException(status_code=404, detail="One or more projects not found")
+        return {"message": f"{len(project_ids)} projects deleted successfully"}
+    except Exception as e:
+        # Handle foreign key constraint violation
+        error_msg = str(e)
+        if "foreign key constraint" in error_msg.lower() or "violates foreign key constraint" in error_msg:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Some projects cannot be deleted because they are referenced by other records (like Trackers). Please delete those records first."
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error bulk deleting projects: {error_msg}"
             )
 
 # ============================================================================

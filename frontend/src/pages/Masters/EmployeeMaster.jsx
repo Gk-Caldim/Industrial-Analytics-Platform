@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, Copy, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import axios from 'axios';
 
 const EmployeeMaster = () => {
-  // Fixed columns - Simplified to match EmployeeAccess
+  // Fixed columns - Simplified un-grouped structure with SaaS styling
   const initialColumns = [
-    { id: 'id', label: 'ID', visible: true, sortable: true, type: 'text', required: true, deletable: false },
+    { id: 'employee_id', label: 'Employee ID', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'name', label: 'Name', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'email', label: 'Email', visible: true, sortable: true, type: 'email', required: true, deletable: false },
     { id: 'department', label: 'Department', visible: true, sortable: true, type: 'text', required: true, deletable: false },
@@ -31,7 +31,7 @@ const EmployeeMaster = () => {
 
   // Load columns from localStorage
   const [columns, setColumns] = useState(() => {
-    const savedColumns = localStorage.getItem('employee_columns_v2');
+    const savedColumns = localStorage.getItem('employee_columns_v4');
     return savedColumns ? JSON.parse(savedColumns) : initialColumns;
   });
 
@@ -40,6 +40,16 @@ const EmployeeMaster = () => {
 
   // Sorting state
   const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'ascending' });
+
+  // Column Dropdown state
+  const [activeDropdownColumn, setActiveDropdownColumn] = useState(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setActiveDropdownColumn(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   // State for Add Employee modal
   const [showAddEmployeeModal, setShowAddEmployeeModal] = useState(false);
@@ -56,6 +66,10 @@ const EmployeeMaster = () => {
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [showDeleteColumnPrompt, setShowDeleteColumnPrompt] = useState(null);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+
+  // Filter Dropdown state
+  const [showFilterDropdown, setShowFilterDropdown] = useState(false);
+  const [filterDraft, setFilterDraft] = useState({});
 
   // Freeze states - Updated to support multiple frozen rows and columns
   const [frozenRows, setFrozenRows] = useState([]);
@@ -194,20 +208,22 @@ const EmployeeMaster = () => {
 
   const confirmBulkDelete = async () => {
     const count = selectedEmployees.length;
+
     try {
-      // Delete each selected employee
-      for (const id of selectedEmployees) {
-        await axios.delete(`${API_BASE_URL}/employees/${id}`);
-      }
+      // Use bulk delete endpoint for better performance
+      await axios.post(`${API_BASE_URL}/employees/bulk-delete`, selectedEmployees);
+
       await fetchEmployees();
       setSelectedEmployees([]);
       setSelectAll(false);
       setCurrentPage(1);
       setShowBulkDeletePrompt({ show: false, count: 0 });
+
       showNotification(`${count} employees deleted successfully`);
     } catch (err) {
       console.error(err);
-      showNotification('Error deleting employees', 'error');
+      const errorMsg = err.response?.data?.detail || 'Error during bulk delete process';
+      showNotification(errorMsg, 'error');
     }
   };
 
@@ -275,17 +291,20 @@ const EmployeeMaster = () => {
   };
 
   const getSortIcon = (key) => {
-    if (sortConfig.key !== key) return <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4 opacity-30" />;
+    if (sortConfig.key !== key) return null;
     return sortConfig.direction === 'ascending' ? <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" /> : <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />;
   };
 
   // Save columns to localStorage
   useEffect(() => {
-    localStorage.setItem('employee_columns_v2', JSON.stringify(columns));
+    localStorage.setItem('employee_columns_v4', JSON.stringify(columns));
   }, [columns]);
 
-  // Filter employees
+  // Filter employees - exclude dummy or missing data
   const filteredEmployees = employees.filter(emp => {
+    // Basic validation for name and email to avoid dummy entries
+    if (!emp.name || !emp.email) return false;
+
     const matchesSearch = Object.values(emp).some(value =>
       String(value).toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -361,7 +380,7 @@ const EmployeeMaster = () => {
   const handleAddEmployeeClick = () => {
     setShowAddEmployeeModal(true);
     setNewEmployee({
-      id: '',
+      employee_id: '',
       name: '',
       email: '',
       department: '',
@@ -378,7 +397,11 @@ const EmployeeMaster = () => {
   // Save new employee
   const saveNewEmployee = async () => {
     try {
-      await axios.post(`${API_BASE_URL}/employees`, newEmployee);
+      const payload = {
+        ...newEmployee,
+        employee_id: newEmployee.employee_id || null
+      };
+      await axios.post(`${API_BASE_URL}/employees`, payload);
       await fetchEmployees();
       setShowAddEmployeeModal(false);
       setNewEmployee({});
@@ -433,7 +456,11 @@ const EmployeeMaster = () => {
   // Save employee edit
   const saveEdit = async () => {
     try {
-      await axios.put(`${API_BASE_URL}/employees/${editingId}`, editForm);
+      const payload = {
+        ...editForm,
+        employee_id: editForm.employee_id || null
+      };
+      await axios.put(`${API_BASE_URL}/employees/${editingId}`, payload);
       await fetchEmployees();
       setEditingId(null);
       setEditForm({});
@@ -504,6 +531,33 @@ const EmployeeMaster = () => {
       col.id === columnId ? { ...col, visible: !col.visible } : col
     );
     setColumns(updatedColumns);
+  };
+
+  // Dropdown Menu specific handlers
+  const handleSortFromMenu = (key, direction) => {
+    setSortConfig({ key, direction });
+    setCurrentPage(1);
+    setActiveDropdownColumn(null);
+  };
+
+  const handleCopyColumnName = (label) => {
+    navigator.clipboard.writeText(label);
+    showNotification('Column name copied');
+    setActiveDropdownColumn(null);
+  };
+
+  const handleFreezeColumnMenu = (colIndex) => {
+    let newFrozen = [...frozenColumns];
+    if (newFrozen.includes(colIndex)) {
+      newFrozen = newFrozen.filter(idx => idx !== colIndex);
+      showNotification('Column unfrozen');
+    } else {
+      newFrozen = [...new Set([...newFrozen, colIndex])].sort((a, b) => a - b);
+      showNotification('Column frozen');
+    }
+    setFrozenColumns(newFrozen);
+    setTempFrozenColumns(newFrozen);
+    setActiveDropdownColumn(null);
   };
 
   // Export functions
@@ -627,17 +681,24 @@ const EmployeeMaster = () => {
   };
 
   // Render cell content
-  const renderCellContent = (column, value) => {
+  const renderCellContent = (column, value, emp) => {
     if (column.id === 'status') {
       const isActive = value === 'Active';
       return (
-        <span className={`px-2 py-1 rounded-full text-sm whitespace-nowrap ${isActive ? 'bg-green-100 text-green-800' : 'bg-slate-100 dark:bg-slate-800 text-gray-800'
-          }`}>
-          {value || 'Inactive'}
-        </span>
+        <div className="flex items-center gap-2">
+          <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            {value || 'Inactive'}
+          </span>
+        </div>
       );
     }
-    return value || '-';
+    if (column.id === 'employee_id') {
+      return (
+        <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value || '-'}</span>
+      )
+    }
+    return <span className="text-sm text-slate-700 dark:text-slate-300">{value || '-'}</span>;
   };
 
   const visibleColumns = columns.filter(col => col.visible);
@@ -1088,11 +1149,11 @@ const EmployeeMaster = () => {
                 <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Basic Information</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">ID <span className="text-red-500">*</span></label>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Employee ID <span className="text-red-500">*</span></label>
                     <input
                       type="text"
-                      value={newEmployee.id || ''}
-                      onChange={(e) => handleNewEmployeeChange('id', e.target.value)}
+                      value={newEmployee.employee_id || ''}
+                      onChange={(e) => handleNewEmployeeChange('employee_id', e.target.value)}
                       className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
                       placeholder="Enter employee ID"
                     />
@@ -1192,12 +1253,21 @@ const EmployeeMaster = () => {
                 <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Basic Information</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">ID</label>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">System ID</label>
                     <input
                       type="text"
                       value={editForm.id || ''}
                       disabled
                       className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-800/80"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Employee ID <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={editForm.employee_id || ''}
+                      onChange={(e) => handleEditFormChange('employee_id', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
                     />
                   </div>
                   <div>
@@ -1303,10 +1373,86 @@ const EmployeeMaster = () => {
                         className="w-full sm:w-48 h-10 pl-9 pr-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
                       />
                     </div>
+
+                    {/* Filter Button */}
+                    <div className="relative">
+                      <button
+                        onClick={() => {
+                          if (!showFilterDropdown) {
+                            const draft = {};
+                            columns.forEach(col => { draft[col.id] = col.visible; });
+                            setFilterDraft(draft);
+                          }
+                          setShowFilterDropdown(!showFilterDropdown);
+                        }}
+                        className="flex items-center gap-1.5 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 master-table-tooltip"
+                        data-tooltip="Filter columns"
+                      >
+                        <Filter className="h-4 w-4 text-slate-600 dark:text-slate-400" />
+                        <span className="hidden sm:inline text-slate-700 dark:text-slate-300">Filter</span>
+                      </button>
+
+                      {showFilterDropdown && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setShowFilterDropdown(false)}
+                          />
+                          <div className="absolute left-0 mt-1 w-56 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl z-50 p-3">
+                            <h4 className="text-xs font-semibold uppercase text-slate-500 mb-2">Visible Columns</h4>
+                            <div className="space-y-1 max-h-60 overflow-y-auto pr-1">
+                              {columns.map(col => (
+                                <label key={col.id} className="flex items-center space-x-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 p-1.5 rounded transition-colors group">
+                                  <input
+                                    type="checkbox"
+                                    checked={filterDraft[col.id] !== false}
+                                    onChange={(e) => {
+                                      setFilterDraft({ ...filterDraft, [col.id]: e.target.checked });
+                                    }}
+                                    className="h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                                  />
+                                  <span className="text-[13px] text-slate-700 dark:text-slate-300 select-none group-hover:text-blue-600 dark:group-hover:text-blue-400">{col.label}</span>
+                                </label>
+                              ))}
+                            </div>
+                            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2">
+                              <button
+                                onClick={() => setShowFilterDropdown(false)}
+                                className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 rounded transition-colors"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setColumns(columns.map(col => ({
+                                    ...col,
+                                    visible: filterDraft[col.id] !== false
+                                  })));
+                                  setShowFilterDropdown(false);
+                                }}
+                                className="px-3 py-1.5 text-xs bg-blue-600 text-white hover:bg-blue-700 rounded transition-colors shadow-sm"
+                              >
+                                Apply
+                              </button>
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
 
                   {/* RIGHT SIDE */}
                   <div className="flex gap-2 mt-2 sm:mt-0">
+
+                    {/* Add Employee Button */}
+                    <button
+                      onClick={handleAddEmployeeClick}
+                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
+                      data-tooltip="Add employee"
+                    >
+                      <Plus className="h-4 w-4" />
+                      <span className="hidden sm:inline">Add Employee</span>
+                    </button>
 
                     {/* Add Column Button */}
                     <button
@@ -1315,19 +1461,7 @@ const EmployeeMaster = () => {
                       data-tooltip="Add column"
                     >
                       <Plus className="h-4 w-4" />
-                    </button>
-
-                    {/* Freeze Column Button */}
-                    <button
-                      onClick={toggleFreezeColumn}
-                      className={`flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border rounded whitespace-nowrap master-table-tooltip ${frozenColumns.length > 0
-                        ? 'bg-blue-50 text-blue-700 border-blue-300'
-                        : 'border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300'
-                        }`}
-                      data-tooltip={frozenColumns.length > 0 ? "Unfreeze columns" : "Freeze columns"}
-                    >
-                      <Snowflake className={`h-4 w-4 ${frozenColumns.length > 0 ? 'text-blue-600' : 'text-slate-600 dark:text-slate-400'}`} />
-                      {frozenColumns.length > 0 && <span className="ml-1 text-xs">{frozenColumns.length}</span>}
+                      <span className="hidden sm:inline">Add Column</span>
                     </button>
 
                     {/* Export Button with Dropdown */}
@@ -1392,12 +1526,12 @@ const EmployeeMaster = () => {
 
               {/* TABLE SECTION - SCROLLABLE */}
               <div className="flex-1 overflow-auto relative">
-                <table className="min-w-full text-sm border-collapse">
+                <table className="master-table">
                   <thead className="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
                     <tr className="border-b border-slate-200 dark:border-slate-700">
                       {/* Checkbox column */}
                       <th
-                        className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap w-8 ${isColumnFrozen(0) ? 'frozen-column' : ''
+                        className={`text-left py-3 px-6 font-medium cursor-pointer w-10 ${isColumnFrozen(0) ? 'frozen-column' : ''
                           }`}
                         style={{
                           left: isColumnFrozen(0) ? '0' : 'auto',
@@ -1407,10 +1541,10 @@ const EmployeeMaster = () => {
                         <div className="flex items-center justify-center">
                           <button
                             onClick={toggleSelectAll}
-                            className="p-1 text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:text-slate-100"
+                            className="p-1 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:text-slate-100 transition-colors"
                           >
                             {selectAll ? (
-                              <CheckSquare className="h-4 w-4" />
+                              <CheckSquare className="h-4 w-4 text-blue-600" />
                             ) : (
                               <Square className="h-4 w-4" />
                             )}
@@ -1422,26 +1556,139 @@ const EmployeeMaster = () => {
                         return (
                           <th
                             key={col.id}
-                            className={`text-left py-3 px-8 font-medium cursor-pointer hover:opacity-80 whitespace-nowrap ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
+                            className={`text-left py-3 px-8 font-medium whitespace-nowrap group ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
                               }`}
-                            onClick={() => col.sortable && handleSort(col.id)}
                             style={{
                               left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
                               zIndex: isColumnFrozen(actualColumnIndex) ? 35 : 30
                             }}
                           >
-                            <div className="flex items-center space-x-1">
-                              <span className="font-semibold">{col.label}</span>
-                              {col.required && <span className="text-red-300">*</span>}
-                              {col.sortable && getSortIcon(col.id)}
+                            <div className="flex items-center justify-between space-x-2">
+                              {/* Left side, label and required star */}
+                              <div className="flex items-center space-x-1.5 flex-1">
+                                <span className="font-medium text-[13px]">{col.label}</span>
+                                {col.required && <span className="text-red-400">*</span>}
+                              </div>
+
+                              {/* Right side, sort icon and dropdown */}
+                              <div className="flex items-center space-x-1 relative">
+
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveDropdownColumn(activeDropdownColumn === col.id ? null : col.id);
+                                  }}
+                                  className={`p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 ${activeDropdownColumn === col.id ? 'opacity-100 bg-slate-200 dark:bg-slate-600 text-slate-700' : ''}`}
+                                >
+                                  <ChevronDown className="h-4 w-4" />
+                                </button>
+
+                                {/* Dropdown Menu */}
+                                {activeDropdownColumn === col.id && (
+                                  <div
+                                    className="absolute top-full right-0 mt-1 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 z-50 py-1 normal-case tracking-normal"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    {col.sortable && (
+                                      <>
+                                        <button
+                                          onClick={() => handleSortFromMenu(col.id, 'ascending')}
+                                          className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                        >
+                                          <ArrowUp className="h-3.5 w-3.5 text-slate-400" />
+                                          Sort Ascending
+                                        </button>
+                                        <button
+                                          onClick={() => handleSortFromMenu(col.id, 'descending')}
+                                          className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                        >
+                                          <ArrowDown className="h-3.5 w-3.5 text-slate-400" />
+                                          Sort Descending
+                                        </button>
+                                        <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
+                                      </>
+                                    )}
+                                    <button
+                                      onClick={() => handleCopyColumnName(col.label)}
+                                      className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                    >
+                                      <Copy className="h-3.5 w-3.5 text-slate-400" />
+                                      Copy name
+                                    </button>
+
+                                    <button
+                                      onClick={() => {
+                                        startEditColumn(col.id, col.label);
+                                        setShowColumnModal(true);
+                                        setActiveDropdownColumn(null);
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                    >
+                                      <Edit className="h-3.5 w-3.5 text-slate-400" />
+                                      Edit column
+                                    </button>
+
+                                    <button
+                                      onClick={() => handleFreezeColumnMenu(actualColumnIndex)}
+                                      className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                    >
+                                      {isColumnFrozen(actualColumnIndex) ? (
+                                        <>
+                                          <Snowflake className="h-3.5 w-3.5 text-blue-500" />
+                                          <span className="text-blue-600">Unfreeze column</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Snowflake className="h-3.5 w-3.5 text-slate-400" />
+                                          Freeze column
+                                        </>
+                                      )}
+                                    </button>
+
+                                    <button
+                                      onClick={() => {
+                                        toggleFreezeRow();
+                                        setActiveDropdownColumn(null);
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-xs hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                                    >
+                                      {frozenRows.length > 0 ? (
+                                        <>
+                                          <Snowflake className="h-3.5 w-3.5 text-blue-500" />
+                                          <span className="text-blue-600">Unfreeze row(s)</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Snowflake className="h-3.5 w-3.5 text-slate-400" />
+                                          Freeze row(s)
+                                        </>
+                                      )}
+                                    </button>
+
+                                    <div className="h-px bg-slate-100 dark:bg-slate-700 my-1"></div>
+                                    <button
+                                      onClick={() => {
+                                        handleDeleteColumn(col.id);
+                                        setActiveDropdownColumn(null);
+                                      }}
+                                      className="w-full text-left px-4 py-2 text-xs hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 text-red-600 dark:text-red-400"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                      Delete column
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </th>
                         );
                       })}
+                      {/* Empty TH for Actions Row */}
+                      <th className="w-24"></th>
                     </tr>
                   </thead>
 
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100/80 dark:divide-slate-700/50">
                     {paginatedEmployees.map((emp, rowIndex) => {
                       const actualRowIndex = (currentPage - 1) * pageSize + rowIndex;
                       const isRowCurrentlyFrozen = isRowFrozen(actualRowIndex);
@@ -1449,27 +1696,27 @@ const EmployeeMaster = () => {
                       return (
                         <tr
                           key={emp.id}
-                          className={`transition-colors ${isRowCurrentlyFrozen ? 'frozen-row' : ''
-                            }`}
+                          className={`group transition-colors duration-150 ${isRowCurrentlyFrozen ? 'frozen-row' : ''
+                            } ${selectedEmployees.includes(emp.id) ? 'row-selected bg-blue-50/40 dark:bg-blue-900/10' : 'hover:bg-slate-50/50 dark:hover:bg-slate-800/50'}`}
                           style={{
                             top: isRowCurrentlyFrozen ? getFrozenRowTop(actualRowIndex) : 'auto'
                           }}
                         >
                           {/* Checkbox cell */}
                           <td
-                            className={`py-3 px-8 whitespace-nowrap w-4 ${isColumnFrozen(0) ? 'frozen-column' : ''
+                            className={`py-3 px-6 whitespace-nowrap w-10 ${isColumnFrozen(0) ? 'frozen-column' : ''
                               }`}
                             style={{
                               left: isColumnFrozen(0) ? '0' : 'auto',
                               zIndex: isColumnFrozen(0) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto'
                             }}
                           >
-                            <div className="flex items-center justify-center">
+                            <div className={`flex items-center justify-center ${selectedEmployees.includes(emp.id) ? 'opacity-100' : 'master-table-checkbox-cell'}`}>
                               <input
                                 type="checkbox"
                                 checked={selectedEmployees.includes(emp.id)}
                                 onChange={() => toggleEmployeeSelection(emp.id)}
-                                className="h-4 w-4 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 rounded focus:ring-gray-500"
+                                className="h-4 w-4 text-blue-600 border-slate-300 dark:border-slate-600 rounded focus:ring-blue-500 cursor-pointer"
                               />
                             </div>
                           </td>
@@ -1478,17 +1725,36 @@ const EmployeeMaster = () => {
                             return (
                               <td
                                 key={col.id}
-                                className={`py-3 px-8 whitespace-nowrap min-w-[160px] text-base ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
+                                className={`py-3 px-6 whitespace-nowrap ${isColumnFrozen(actualColumnIndex) ? 'frozen-column' : ''
                                   }`}
                                 style={{
                                   left: isColumnFrozen(actualColumnIndex) ? getFrozenColumnLeft(actualColumnIndex) : 'auto',
                                   zIndex: isColumnFrozen(actualColumnIndex) ? (isRowCurrentlyFrozen ? 25 : 15) : 'auto'
                                 }}
                               >
-                                {renderCellContent(col, emp[col.id])}
+                                {renderCellContent(col, emp[col.id], emp)}
                               </td>
                             );
                           })}
+                          {/* Actions Cell */}
+                          <td className="py-3 px-6 text-right whitespace-nowrap w-[100px]">
+                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); startEditing(emp); }}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                                title="Edit"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setShowDeletePrompt({ id: emp.id, name: emp.name }); }}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       );
                     })}

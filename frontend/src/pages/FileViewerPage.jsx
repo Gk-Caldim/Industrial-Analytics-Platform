@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Download, 
-  Save, 
-  Edit3, 
-  Eye, 
-  Grid, 
+import {
+  ArrowLeft,
+  Download,
+  Save,
+  Edit3,
+  Eye,
+  Grid,
   List,
   ChevronLeft,
   ChevronRight,
@@ -19,7 +19,7 @@ const FileViewerPage = () => {
   const location = useLocation();
   const { trackerId } = useParams();
   const { fileData, trackerInfo, returnTo } = location.state || {};
-  
+
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'cards'
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage] = useState(20);
@@ -45,10 +45,10 @@ const FileViewerPage = () => {
       const filesData = savedFilesData ? JSON.parse(savedFilesData) : {};
       filesData[trackerId] = editableData;
       localStorage.setItem('uploaded_files_data', JSON.stringify(filesData));
-      
+
       setSaveStatus('Saved successfully!');
       setIsEditing(false);
-      
+
       setTimeout(() => {
         setSaveStatus('');
       }, 3000);
@@ -60,9 +60,9 @@ const FileViewerPage = () => {
 
   const handleCellEdit = (sheetIndex, rowIndex, colIndex, value) => {
     if (!isEditing || !editableData) return;
-    
+
     const newData = { ...editableData };
-    
+
     if (newData.data && Array.isArray(newData.data)) {
       // Simple data format
       if (!newData.data[rowIndex]) {
@@ -77,7 +77,7 @@ const FileViewerPage = () => {
       }
       sheet.data[rowIndex][colIndex] = value;
     }
-    
+
     setEditableData(newData);
   };
 
@@ -148,16 +148,15 @@ const FileViewerPage = () => {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setIsEditing(!isEditing)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center ${
-                isEditing 
-                  ? 'bg-green-100 text-green-700 border border-green-300' 
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium flex items-center ${isEditing
+                  ? 'bg-green-100 text-green-700 border border-green-300'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               <Edit3 className="h-4 w-4 mr-1.5" />
               {isEditing ? 'Editing Mode' : 'Edit Mode'}
             </button>
-            
+
             {isEditing && (
               <button
                 onClick={handleSave}
@@ -167,7 +166,7 @@ const FileViewerPage = () => {
                 Save Changes
               </button>
             )}
-            
+
             <button
               onClick={exportToCSV}
               className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium flex items-center hover:bg-gray-200"
@@ -178,9 +177,8 @@ const FileViewerPage = () => {
           </div>
 
           {saveStatus && (
-            <span className={`text-sm ${
-              saveStatus.includes('Error') ? 'text-red-600' : 'text-green-600'
-            }`}>
+            <span className={`text-sm ${saveStatus.includes('Error') ? 'text-red-600' : 'text-green-600'
+              }`}>
               {saveStatus}
             </span>
           )}
@@ -207,27 +205,26 @@ const FileViewerPage = () => {
                   {headers.map((header, colIndex) => (
                     <td
                       key={colIndex}
-                      className={`px-4 py-2 text-sm text-gray-900 border-r border-gray-200 last:border-r-0 ${
-                        isEditing ? 'cursor-text' : ''
-                      }`}
+                      className={`px-4 py-2 text-sm text-gray-900 border-r border-gray-200 last:border-r-0 ${isEditing ? 'cursor-text' : ''
+                        }`}
                       onClick={() => {
                         if (isEditing) {
                           const input = document.createElement('input');
                           input.type = 'text';
                           input.value = row[colIndex] || '';
                           input.className = 'w-full px-2 py-1 border border-blue-500 rounded focus:outline-none';
-                          
+
                           const td = input.parentElement;
                           if (td) {
                             td.innerHTML = '';
                             td.appendChild(input);
                             input.focus();
-                            
+
                             input.onblur = () => {
                               handleCellEdit(0, startIndex + rowIndex, colIndex, input.value);
                               td.innerHTML = input.value || '-';
                             };
-                            
+
                             input.onkeydown = (e) => {
                               if (e.key === 'Enter') {
                                 input.blur();
@@ -388,14 +385,14 @@ const FileViewerPage = () => {
               <ArrowLeft className="h-4 w-4 mr-1" />
               Back to Dashboard
             </button>
-            
+
             <div className="h-6 w-px bg-gray-300"></div>
-            
+
             <div className="flex items-center">
               <FileSpreadsheet className="h-5 w-5 text-blue-600 mr-2" />
               <div>
                 <h1 className="text-lg font-semibold text-gray-900">
-                  {trackerInfo.fileName}
+                  {String(trackerInfo.fileName).replace(/\.(xlsx|xls|csv|pdf|docx|txt|json)$/i, "")}
                 </h1>
                 <p className="text-xs text-gray-500">
                   Uploaded by {trackerInfo.employeeName} • {new Date(trackerInfo.uploadDate).toLocaleDateString()}
@@ -408,22 +405,20 @@ const FileViewerPage = () => {
           <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => setViewMode('table')}
-              className={`p-2 rounded-lg transition-colors ${
-                viewMode === 'table' 
-                  ? 'bg-white text-blue-600 shadow-sm' 
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'table'
+                  ? 'bg-white text-blue-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
-              }`}
+                }`}
               title="Table View"
             >
               <TableIcon className="h-4 w-4" />
             </button>
             <button
               onClick={() => setViewMode('cards')}
-              className={`p-2 rounded-lg transition-colors ${
-                viewMode === 'cards' 
-                  ? 'bg-white text-blue-600 shadow-sm' 
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'cards'
+                  ? 'bg-white text-blue-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
-              }`}
+                }`}
               title="Card View"
             >
               <Grid className="h-4 w-4" />
