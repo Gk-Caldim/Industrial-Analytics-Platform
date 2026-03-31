@@ -15,7 +15,7 @@ import { logout } from '../store/slices/authSlice';
 import {
   Layout as LayoutIcon, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, ChevronLeft, Check, Save, Settings,
   Users, Shield, FolderKanban, Package, Building, Database, FileUp, LogOut, Menu, User as UserIcon, Bell, ChevronRight, Projector, FileText, Globe, Clock, BarChart3, PieChart, LineChart,
-  MessageSquare, Layers, FolderTree
+  MessageSquare, Layers, FolderTree, Calendar
 } from 'lucide-react';
 
 import API from "../utils/api";
@@ -328,6 +328,8 @@ const Dashboard = () => {
     }
     else if (path.includes('/dashboard/masters')) dispatch(setActiveModule('masters-main'));
     else if (path.includes('/dashboard/mom')) dispatch(setActiveModule('mom-module'));
+    else if (path.includes('/dashboard/meetings')) dispatch(setActiveModule('meetings'));
+    else if (path.includes('/dashboard/schedule-meeting')) dispatch(setActiveModule('schedule-meeting'));
     else if (path.includes('/dashboard/settings')) dispatch(setActiveModule('system-settings'));
   }, [location.pathname, dispatch, mastersSubmodules, otherModules]);
 
@@ -511,6 +513,8 @@ const Dashboard = () => {
     if (activeModule === 'project-dashboard') return 'Project Dashboard';
     if (activeModule === 'masters-main') return 'Masters';
     if (activeModule === 'mom-module') return 'Minutes of Meeting';
+    if (activeModule === 'meetings') return 'Meetings Console';
+    if (activeModule === 'schedule-meeting') return 'Schedule Meeting';
 
     const allModules = [...mastersModules, ...mastersSubmodules, ...uploadsModules, ...uploadsSubmodules, ...otherModules];
     const module = allModules.find(m => m.id === activeModule);
@@ -558,6 +562,8 @@ const Dashboard = () => {
     const module = allModules.find(m => m.id === moduleId);
     if (module) path = module.path;
     else if (moduleId === 'mom-module') path = 'mom';
+    else if (moduleId === 'meetings') path = 'meetings';
+    else if (moduleId === 'schedule-meeting') path = 'schedule-meeting';
 
     navigate(`/dashboard/${path}`);
 
@@ -876,7 +882,7 @@ const Dashboard = () => {
         onMouseEnter={() => setHoveredModule('mom-module')}
         onMouseLeave={() => setHoveredModule(null)}
         onClick={() => handleModuleClick('mom-module')}
-        className={`w-full flex items-center transition-all duration-300 ${isSidebarExpanded ? 'px-4 py-3.5 space-x-3.5' : 'justify-center px-2 py-3.5'
+        className={`w-full flex items-center transition-all duration-300 mb-1.5 ${isSidebarExpanded ? 'px-4 py-3.5 space-x-3.5' : 'justify-center px-2 py-3.5'
           } rounded-xl ${isActive
             ? 'bg-white/20 shadow-md text-white'
             : isHovered
@@ -890,6 +896,38 @@ const Dashboard = () => {
         {isSidebarExpanded && (
           <span className={`font-semibold text-base text-white`}>
             MOM
+          </span>
+        )}
+      </button>
+    );
+  };
+
+  const renderScheduleMeetingModule = () => {
+    if (!hasPermission('MOM')) return null;
+
+    const isActive = activeModule === 'meetings';
+    const isHovered = hoveredModule === 'meetings';
+
+    return (
+      <button
+        key="meetings"
+        onMouseEnter={() => setHoveredModule('meetings')}
+        onMouseLeave={() => setHoveredModule(null)}
+        onClick={() => handleModuleClick('meetings')}
+        className={`w-full flex items-center transition-all duration-300 mb-1.5 ${isSidebarExpanded ? 'px-4 py-3.5 space-x-3.5' : 'justify-center px-2 py-3.5'
+          } rounded-xl ${isActive
+            ? 'bg-white/20 shadow-md text-white'
+            : isHovered
+              ? 'bg-white/15 shadow-sm text-white'
+              : 'hover:bg-white/10 text-white'
+          }`}
+      >
+        <div className={`transition-colors text-white`}>
+          <Calendar className={`${isSidebarExpanded ? 'h-5 w-5' : 'h-5 w-5'}`} />
+        </div>
+        {isSidebarExpanded && (
+          <span className={`font-semibold text-base text-white`}>
+            Meetings
           </span>
         )}
       </button>
@@ -1192,6 +1230,7 @@ const Dashboard = () => {
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 relative z-10">
             {renderProjectDashboardModule()}
             {renderMOMModule()}
+            {renderScheduleMeetingModule()}
             {renderMastersModule()}
 
             <div className="space-y-1.5">

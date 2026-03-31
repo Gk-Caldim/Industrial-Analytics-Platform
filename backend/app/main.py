@@ -31,6 +31,7 @@ from app.api.datasets import router as datasets_router
 from app.api.email import router as email_router  # Added email router
 from app.api import budget as budget_router
 from app.api.project_sub_category import router as sub_category_router
+from app.api.meetings import router as meetings_router
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI(
@@ -86,6 +87,7 @@ app.include_router(datasets_router, prefix=API_PREFIX)
 app.include_router(email_router, prefix=f"{API_PREFIX}/email", tags=["Email"]) # Added email route
 app.include_router(budget_router.router, prefix=f"{API_PREFIX}/budget", tags=["Budget"])
 app.include_router(sub_category_router, prefix=API_PREFIX)
+app.include_router(meetings_router, prefix="/api/meetings", tags=["Meetings"])
 
 #testing routes
 @app.get("/test-db")
