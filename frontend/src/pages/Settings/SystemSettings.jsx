@@ -31,10 +31,7 @@ const SystemSettings = () => {
       items: [
         { id: 'Organization', label: 'Organization', icon: Boxes },
         { id: 'Access Control', label: 'Access Control', icon: Shield },
-        { id: 'Billing', label: 'Billing', icon: CreditCard },
         { id: 'Audit Logs', label: 'Audit Logs', icon: ClipboardList },
-        { id: 'API Keys', label: 'API Keys', icon: Key },
-        { id: 'System Status', label: 'System Status', icon: ActivityIcon },
       ] 
     }
   ];
@@ -158,44 +155,7 @@ const SystemSettings = () => {
 
       {/* Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header matching image */}
-        <header className="h-[90px] bg-white border-b border-slate-100 px-10 flex items-center justify-between sticky top-0 z-10">
-           <div className="flex items-center gap-6 w-1/3">
-              <div className="relative w-full max-w-[400px] group">
-                 <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-indigo-600 transition-colors" />
-                 <input 
-                   type="text" 
-                   placeholder="Search resources or documentation"
-                   className="w-full h-11 pl-11 pr-4 bg-[#F8FAFC] border-none rounded-xl text-sm focus:ring-0 placeholder:text-slate-400 font-medium"
-                 />
-              </div>
-           </div>
-
-           <div className="flex items-center gap-8">
-              <div className="flex items-center gap-6 pr-6 border-r border-slate-100">
-                 <button className="text-slate-400 hover:text-indigo-600 transition-colors relative">
-                    <Bell className="h-5 w-5" />
-                    <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
-                 </button>
-                 <button className="text-slate-400 hover:text-indigo-600 transition-colors">
-                    <HelpCircle className="h-5 w-5" />
-                 </button>
-                 <button className="text-slate-400 hover:text-indigo-600 transition-colors">
-                    <Settings className="h-5 w-5" />
-                 </button>
-              </div>
-
-              <div className="flex items-center gap-4 group cursor-pointer">
-                 <div className="text-right">
-                    <p className="text-sm font-bold text-[#1E293B]">Alex Rivera</p>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">Systems Admin</p>
-                 </div>
-                 <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border-2 border-white shadow-sm ring-1 ring-slate-200">
-                    <img src="https://ui-avatars.com/api/?name=Alex+Rivera&background=1E293B&color=fff" alt="Avatar" />
-                 </div>
-              </div>
-           </div>
-        </header>
+        
 
         <main className="flex-1 overflow-y-auto p-12 scroll-smooth">
           <div className="max-w-7xl mx-auto">

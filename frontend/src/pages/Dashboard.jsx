@@ -82,7 +82,6 @@ const Dashboard = () => {
   const mastersSubmodules = useMemo(() => [
     { id: 'employee-master', name: 'Employee Master', path: 'masters/employees', icon: <Users className="h-5 w-5" />, color: '#000000' },
     { id: 'project-master', name: 'Project Master', path: 'masters/project-master', icon: <FolderKanban className="h-5 w-5" />, color: '#333333' },
-    { id: 'part-master', name: 'Part Master', path: 'masters/parts', icon: <Package className="h-5 w-5" />, color: '#4d4d4d' },
     { id: 'department-master', name: 'Department Master', path: 'masters/departments', icon: <Building className="h-5 w-5" />, color: '#666666' },
   ], []);
 

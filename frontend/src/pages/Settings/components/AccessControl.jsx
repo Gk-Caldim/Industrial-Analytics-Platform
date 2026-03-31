@@ -90,8 +90,7 @@ const AccessControl = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-4xl font-bold text-[#1E293B]">Access Control</h2>
-          <p className="text-slate-500 font-medium text-sm mt-1">Industrial Platform RBAC with module-level granularity</p>
-        </div>
+          </div>
         <button className="flex items-center gap-2 h-12 px-6 bg-[#1E3A8A] text-white rounded-xl font-bold text-sm hover:bg-[#1e2e6b] transition-all shadow-lg active:scale-95">
           <Shield className="h-4 w-4" />
           Create Custom Role

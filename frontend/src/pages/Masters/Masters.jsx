@@ -330,19 +330,6 @@ const Masters = () => {
       borderColor: 'border-[#1e3a5f]/20',
       iconBg: 'bg-[#1e3a5f]',
       
-    },
-    {
-      id: 6,
-      name: 'Part Master',
-      masterModuleId: 'part-master',
-      path: 'masters/parts',
-      type: 'master',
-      description: 'Manage part inventory and specifications',
-      icon: <Package className="h-5 w-5" />,
-      gradient: 'from-[#1e3a5f] to-[#2c4c7c]',
-      lightGradient: 'from-[#e6eef8] to-[#d1e0f0]',
-      borderColor: 'border-[#1e3a5f]/20',
-      iconBg: 'bg-[#1e3a5f]',
     }
   ];
 
