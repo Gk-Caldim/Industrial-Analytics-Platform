@@ -262,7 +262,6 @@ const FileContentViewer = ({ fileData, trackerInfo, onClose, onSaveData }) => {
 const getMasterIcon = (masterName) => {
   const icons = {
     'Employee Master': <Users className="h-5 w-5" />,
-    'Employee Access': <Shield className="h-5 w-5" />,
     'Project Master': <FolderKanban className="h-5 w-5" />,
     'Department Master': <Building className="h-5 w-5" />
   };
@@ -299,20 +298,6 @@ const Masters = () => {
       description: 'Manage employee information and records',
       icon: <Users className="h-5 w-5" />,
       gradient: 'from-[#1e3a5f] to-[#2c4c7c]',
-      lightGradient: 'from-[#e6eef8] to-[#d1e0f0]',
-      borderColor: 'border-[#1e3a5f]/20',
-      iconBg: 'bg-[#1e3a5f]',
-      
-    },
-    {
-      id: 2,
-      name: 'Employee Access',
-      masterModuleId: 'employee-access',
-      path: 'masters/access',
-      type: 'master',
-      description: 'Configure employee access permissions',
-      icon: <Shield className="h-5 w-5" />,
-      gradient: 'from-[#1e3a5f] to-[#344e6c]',
       lightGradient: 'from-[#e6eef8] to-[#d1e0f0]',
       borderColor: 'border-[#1e3a5f]/20',
       iconBg: 'bg-[#1e3a5f]',

@@ -7,13 +7,14 @@ class EmployeeBase(BaseModel):
     name: str
     email: EmailStr
     department: str | None = None
-    role: str | None = None
+    role: str | None = "User"
     status: str = "Active"
+    modules: list[str] = []
     custom_fields: dict = {}
 
 class EmployeeCreate(EmployeeBase):
     id: int | None = None
-    pass
+    password: str | None = None
 
 class EmployeeUpdate(BaseModel):
     id: int | None = None
@@ -23,6 +24,8 @@ class EmployeeUpdate(BaseModel):
     department: str | None = None
     role: str | None = None
     status: str | None = None
+    modules: list[str] | None = None
+    password: str | None = None
     custom_fields: dict | None = None
 
 class EmployeeOut(EmployeeBase):

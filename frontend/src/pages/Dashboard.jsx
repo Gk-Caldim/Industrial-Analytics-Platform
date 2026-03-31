@@ -81,7 +81,6 @@ const Dashboard = () => {
   // Masters submodules
   const mastersSubmodules = useMemo(() => [
     { id: 'employee-master', name: 'Employee Master', path: 'masters/employees', icon: <Users className="h-5 w-5" />, color: '#000000' },
-    { id: 'employee-access', name: 'Employee Access', path: 'masters/access', icon: <Shield className="h-5 w-5" />, color: '#1a1a1a' },
     { id: 'project-master', name: 'Project Master', path: 'masters/project-master', icon: <FolderKanban className="h-5 w-5" />, color: '#333333' },
     { id: 'part-master', name: 'Part Master', path: 'masters/parts', icon: <Package className="h-5 w-5" />, color: '#4d4d4d' },
     { id: 'department-master', name: 'Department Master', path: 'masters/departments', icon: <Building className="h-5 w-5" />, color: '#666666' },
@@ -838,26 +837,28 @@ const Dashboard = () => {
             {/*
               Simple submodule button for Budget Upload
             */}
-            <button
-              key="budget-upload"
-              onMouseEnter={() => setHoveredModule('budget-upload')}
-              onMouseLeave={() => setHoveredModule(null)}
-              onClick={() => handleModuleClick('budget-upload')}
-              className={`w-full flex items-center space-x-3.5 rounded-lg px-3 py-2.5 transition-all duration-300 ${
-                activeModule === 'budget-upload'
-                  ? 'bg-white/20 shadow-sm text-white'
-                  : hoveredModule === 'budget-upload'
-                    ? 'bg-white/15 shadow-sm text-white'
-                    : 'hover:bg-white/10 text-white'
-              }`}
-            >
-              <div className="text-white">
-                <FileUp className="h-5 w-5" />
-              </div>
-              <span className={`text-sm font-medium truncate text-white`}>
-                Budget Upload
-              </span>
-            </button>
+            {hasPermission('Budget Upload') && (
+              <button
+                key="budget-upload"
+                onMouseEnter={() => setHoveredModule('budget-upload')}
+                onMouseLeave={() => setHoveredModule(null)}
+                onClick={() => handleModuleClick('budget-upload')}
+                className={`w-full flex items-center space-x-3.5 rounded-lg px-3 py-2.5 transition-all duration-300 ${
+                  activeModule === 'budget-upload'
+                    ? 'bg-white/20 shadow-sm text-white'
+                    : hoveredModule === 'budget-upload'
+                      ? 'bg-white/15 shadow-sm text-white'
+                      : 'hover:bg-white/10 text-white'
+                }`}
+              >
+                <div className="text-white">
+                  <FileUp className="h-5 w-5" />
+                </div>
+                <span className={`text-sm font-medium truncate text-white`}>
+                  Budget Upload
+                </span>
+              </button>
+            )}
           </div>
         )}
       </div>

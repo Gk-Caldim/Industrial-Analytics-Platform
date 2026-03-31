@@ -24,7 +24,7 @@ from app.models import project_sub_category # noqa: F401
 # Import routers
 from app.api.auth import router as auth_router
 from app.api.employees import router as employee_router
-from app.api.employee_access import router as employee_access_router
+from app.api.employees import router as employee_router
 from app.api import project as project_router
 from app.api import department as department_router
 from app.api.datasets import router as datasets_router
@@ -79,7 +79,6 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix=API_PREFIX)
 app.include_router(employee_router, prefix=API_PREFIX)
-app.include_router(employee_access_router, prefix=API_PREFIX)
 app.include_router(project_router.router, prefix=API_PREFIX)
 app.include_router(department_router.router, prefix=API_PREFIX)
 app.include_router(datasets_router, prefix=API_PREFIX)

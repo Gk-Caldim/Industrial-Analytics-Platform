@@ -9,7 +9,6 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ProjectDashboard from './pages/ProjectDashboard';
 import UploadTrackers from './pages/Trackers/UploadTrackers';
 import EmployeeMaster from './pages/Masters/EmployeeMaster';
-import EmployeeAccess from './pages/Masters/EmployeeAccess';
 import ProjectMaster from './pages/Masters/ProjectMaster';
 import DepartmentMaster from './pages/Masters/DepartmentMaster';
 import PartMaster from './pages/Masters/PartMaster';
@@ -42,7 +41,6 @@ function App() {
             
             <Route path="masters" element={<Masters />} />
             <Route path="masters/employees" element={<EmployeeMaster />} />
-            <Route path="masters/access" element={<EmployeeAccess />} />
             <Route path="masters/project-master" element={<ProjectMaster />} />
             <Route path="masters/departments" element={<DepartmentMaster />} />
             <Route path="masters/parts" element={<PartMaster />} />

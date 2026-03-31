@@ -2,6 +2,22 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, Copy, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import axios from 'axios';
 
+const MODULE_LIST = [
+  'Dashboard', 'MOM', 'Employee Master', 'Project Master', 
+  'Part Master', 'Department Master', 'Upload Trackers', 
+  'Budget Upload', 'Settings'
+];
+
+const PREDEFINED_ROLES = ['Super Admin', 'Admin', 'Manager', 'Employee', 'Intern'];
+
+const ROLE_PERMISSIONS = {
+  'Super Admin': [...MODULE_LIST],
+  'Admin': MODULE_LIST.filter(m => m !== 'Settings'),
+  'Manager': ['Dashboard', 'MOM', 'Project Master', 'Part Master', 'Department Master', 'Upload Trackers'],
+  'Employee': ['Dashboard', 'MOM'],
+  'Intern': ['Dashboard']
+};
+
 const EmployeeMaster = () => {
   // Fixed columns - Simplified un-grouped structure with SaaS styling
   const initialColumns = [
@@ -9,17 +25,39 @@ const EmployeeMaster = () => {
     { id: 'name', label: 'Name', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'email', label: 'Email', visible: true, sortable: true, type: 'email', required: true, deletable: false },
     { id: 'department', label: 'Department', visible: true, sortable: true, type: 'text', required: true, deletable: false },
-    { id: 'role', label: 'Role', visible: true, sortable: true, type: 'text', required: true, deletable: false },
-    { id: 'status', label: 'Status', visible: true, sortable: true, type: 'text', required: true, deletable: false },
+    { id: 'role', label: 'Role', visible: true, sortable: true, type: 'select', required: true, deletable: false },
+    { id: 'status', label: 'Status', visible: true, sortable: true, type: 'select', required: true, deletable: false },
   ];
 
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [newEmployee, setNewEmployee] = useState({});
+  const [newEmployee, setNewEmployee] = useState({ 
+    employee_id: '',
+    name: '',
+    email: '',
+    department: '',
+    role: 'User', 
+    status: 'Active', 
+    modules: [],
+    password: '',
+    confirmPassword: ''
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({});
+  const [editForm, setEditForm] = useState({ 
+    employee_id: '',
+    name: '',
+    email: '',
+    department: '',
+    role: 'User',
+    status: 'Active',
+    modules: [],
+    password: '',
+    confirmPassword: '' 
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDeletePrompt, setShowDeletePrompt] = useState(null);
   const [showColumnModal, setShowColumnModal] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
@@ -384,18 +422,43 @@ const EmployeeMaster = () => {
       name: '',
       email: '',
       department: '',
-      role: '',
-      status: 'Active'
+      status: 'Active',
+      password: '',
+      confirmPassword: '',
+      modules: []
     });
   };
 
   // Handle new employee input change
   const handleNewEmployeeChange = (field, value) => {
-    setNewEmployee({ ...newEmployee, [field]: value });
+    setNewEmployee(prev => {
+      const updated = { ...prev, [field]: value };
+      // Auto-toggle permissions if role is predefined
+      if (field === 'role' && ROLE_PERMISSIONS[value]) {
+        updated.modules = ROLE_PERMISSIONS[value];
+      }
+      return updated;
+    });
   };
 
   // Save new employee
   const saveNewEmployee = async () => {
+    if (!newEmployee.employee_id || !newEmployee.name || !newEmployee.email || !newEmployee.department) {
+      showNotification('Please fill in all required fields marked with *', 'error');
+      return;
+    }
+
+    if (!newEmployee.password) {
+      showNotification('Password is required', 'error');
+      return;
+    }
+
+    if (newEmployee.password !== newEmployee.confirmPassword) {
+      showNotification('Passwords do not match', 'error');
+      return;
+    }
+
+    setLoading(true);
     try {
       const payload = {
         ...newEmployee,
@@ -411,6 +474,8 @@ const EmployeeMaster = () => {
       console.error(err);
       const msg = err.response?.data?.detail || err.message;
       showNotification('Error saving employee: ' + msg, 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -448,18 +513,37 @@ const EmployeeMaster = () => {
   const startEditing = (employee) => {
     setEditForm({
       ...employee,
-      id: employee.id
+      id: employee.id,
+      password: '',
+      confirmPassword: '',
+      modules: employee.modules || []
     });
     setEditingId(employee.id);
   };
 
   // Save employee edit
   const saveEdit = async () => {
+    if (!editForm.employee_id || !editForm.name || !editForm.email || !editForm.department) {
+      showNotification('Please fill in all required fields marked with *', 'error');
+      return;
+    }
+
+    if (editForm.password && editForm.password !== editForm.confirmPassword) {
+      showNotification('Passwords do not match', 'error');
+      return;
+    }
+
+    setLoading(true);
     try {
       const payload = {
         ...editForm,
         employee_id: editForm.employee_id || null
       };
+      // Remove confirmPassword from payload
+      delete payload.confirmPassword;
+      // If password is empty, don't send it to avoid overwriting with empty
+      if (!payload.password) delete payload.password;
+
       await axios.put(`${API_BASE_URL}/employees/${editingId}`, payload);
       await fetchEmployees();
       setEditingId(null);
@@ -471,6 +555,8 @@ const EmployeeMaster = () => {
       console.error(err);
       const msg = err.response?.data?.detail || err.message;
       showNotification('Error updating employee: ' + msg, 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -482,7 +568,14 @@ const EmployeeMaster = () => {
 
   // Handle edit form change
   const handleEditFormChange = (field, value) => {
-    setEditForm({ ...editForm, [field]: value });
+    setEditForm(prev => {
+      const updated = { ...prev, [field]: value };
+      // Auto-toggle permissions if role is predefined
+      if (field === 'role' && ROLE_PERMISSIONS[value]) {
+        updated.modules = ROLE_PERMISSIONS[value];
+      }
+      return updated;
+    });
   };
 
   // Add new column
@@ -687,12 +780,33 @@ const EmployeeMaster = () => {
       return (
         <div className="flex items-center gap-2">
           <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
+            isActive ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+          }`}>
             {value || 'Inactive'}
           </span>
         </div>
       );
     }
+    
+    if (column.id === 'role') {
+      const getRoleStyles = (role) => {
+        switch (role) {
+          case 'Admin': return 'bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20';
+          case 'Manager': return 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20';
+          case 'User': return 'bg-slate-50 text-slate-700 border-slate-100 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20';
+          case 'Intern': return 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20';
+          default: return 'bg-slate-50 text-slate-700 border-slate-100';
+        }
+      };
+      
+      return (
+        <span className={`px-2 py-0.5 rounded border text-[11px] font-medium ${getRoleStyles(value)}`}>
+          {value || 'User'}
+        </span>
+      );
+    }
+
     if (column.id === 'employee_id') {
       return (
         <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value || '-'}</span>
@@ -1189,16 +1303,6 @@ const EmployeeMaster = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Role <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      value={newEmployee.role || ''}
-                      onChange={(e) => handleNewEmployeeChange('role', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
-                      placeholder="Enter role"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Status <span className="text-red-500">*</span></label>
                     <select
                       value={newEmployee.status || 'Active'}
@@ -1209,6 +1313,105 @@ const EmployeeMaster = () => {
                       <option value="Inactive">Inactive</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Role <span className="text-red-500">*</span></label>
+                    <input
+                      list="predefined-roles"
+                      type="text"
+                      value={newEmployee.role || ''}
+                      onChange={(e) => handleNewEmployeeChange('role', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
+                      placeholder="Select or type role"
+                    />
+                    <datalist id="predefined-roles">
+                      {PREDEFINED_ROLES.map(r => <option key={r} value={r} />)}
+                    </datalist>
+                  </div>
+                </div>
+              </div>
+
+              {/* Password Section */}
+              <div className="mb-6">
+                <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center">
+                  Password <span className="text-red-500 ml-1">*</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={newEmployee.password || ''}
+                        onChange={(e) => handleNewEmployeeChange('password', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black pr-10"
+                        placeholder="Enter new password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm Password</label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={newEmployee.confirmPassword || ''}
+                        onChange={(e) => handleNewEmployeeChange('confirmPassword', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black pr-10"
+                        placeholder="Confirm new password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Permissions Section */}
+              <div className="mb-6">
+                <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Permissions</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-y-6 gap-x-4">
+                  {MODULE_LIST.map((module) => {
+                    const isAllowed = (newEmployee.modules || []).includes(module);
+                    return (
+                      <div key={module} className="flex flex-col items-center text-center">
+                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-2 truncate w-full px-1">
+                          {module}
+                        </span>
+                        <div 
+                          onClick={() => {
+                            const current = newEmployee.modules || [];
+                            const updated = current.includes(module)
+                              ? current.filter(m => m !== module)
+                              : [...current, module];
+                            handleNewEmployeeChange('modules', updated);
+                          }}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                            isAllowed ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              isAllowed ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          />
+                        </div>
+                        <span className="text-[10px] mt-1 font-bold text-slate-400">
+                          {isAllowed ? 'ON' : 'OFF'}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -1253,15 +1456,6 @@ const EmployeeMaster = () => {
                 <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Basic Information</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">System ID</label>
-                    <input
-                      type="text"
-                      value={editForm.id || ''}
-                      disabled
-                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-800/80"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Employee ID <span className="text-red-500">*</span></label>
                     <input
                       type="text"
@@ -1298,15 +1492,6 @@ const EmployeeMaster = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Role <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      value={editForm.role || ''}
-                      onChange={(e) => handleEditFormChange('role', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Status <span className="text-red-500">*</span></label>
                     <select
                       value={editForm.status || 'Active'}
@@ -1317,6 +1502,105 @@ const EmployeeMaster = () => {
                       <option value="Inactive">Inactive</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Role <span className="text-red-500">*</span></label>
+                    <input
+                      list="edit-predefined-roles"
+                      type="text"
+                      value={editForm.role || ''}
+                      onChange={(e) => handleEditFormChange('role', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
+                      placeholder="Select or type role"
+                    />
+                    <datalist id="edit-predefined-roles">
+                      {PREDEFINED_ROLES.map(r => <option key={r} value={r} />)}
+                    </datalist>
+                  </div>
+                </div>
+              </div>
+
+               {/* Password Section */}
+               <div className="mb-6">
+                <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">
+                  Password <span className="text-slate-400 font-normal">(Leave blank to keep current)</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={editForm.password || ''}
+                        onChange={(e) => handleEditFormChange('password', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black pr-10"
+                        placeholder="Enter new password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm Password</label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={editForm.confirmPassword || ''}
+                        onChange={(e) => handleEditFormChange('confirmPassword', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black pr-10"
+                        placeholder="Confirm new password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Permissions Section */}
+              <div className="mb-6">
+                <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Permissions</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-y-6 gap-x-4">
+                  {MODULE_LIST.map((module) => {
+                    const isAllowed = (editForm.modules || []).includes(module);
+                    return (
+                      <div key={module} className="flex flex-col items-center text-center">
+                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-2 truncate w-full px-1">
+                          {module}
+                        </span>
+                        <div 
+                          onClick={() => {
+                            const current = editForm.modules || [];
+                            const updated = current.includes(module)
+                              ? current.filter(m => m !== module)
+                              : [...current, module];
+                            handleEditFormChange('modules', updated);
+                          }}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                            isAllowed ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                              isAllowed ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          />
+                        </div>
+                        <span className="text-[10px] mt-1 font-bold text-slate-400">
+                          {isAllowed ? 'ON' : 'OFF'}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
