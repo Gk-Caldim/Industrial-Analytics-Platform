@@ -58,7 +58,7 @@ const getStatusColor = (status) => {
   }
 };
 
-// Humanize raw field names
+// Humanize raw field names and format them for display
 const humanizeLabel = (label) => {
   if (!label) return '';
   return label
