@@ -3026,7 +3026,7 @@ const ProjectTitleDashboard = () => {
       const utilized = parseNum(newTable[i][4]);
       const balance = approved - utilized;
       const outlook = parseNum(newTable[i][6]);
-      const likely = balance + outlook;
+      const likely = utilized + outlook;
 
       // Auto-update derived values if there's any active value
       if (approved !== 0 || utilized !== 0 || outlook !== 0 || newTable[i][3] || newTable[i][4] || newTable[i][6]) {
@@ -3515,7 +3515,7 @@ const ProjectTitleDashboard = () => {
         }
       },
       toolbox: {
-        show: false,
+        show: true,
         right: '2%',
         top: '2%',
         feature: {
@@ -3700,6 +3700,11 @@ const ProjectTitleDashboard = () => {
                 position: 'outside',
                 alignTo: 'edge',
                 margin: 10,
+                backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                padding: [4, 8],
+                borderRadius: 4,
+                shadowColor: 'rgba(0, 0, 0, 0.05)',
+                shadowBlur: 10,
                 formatter: (p) => `{name|${formatXAxisValue(p.name)}}\n{value|${p.value}} {percent|(${p.percent}%)}`,
                 rich: {
                   name: { fontSize: 10, fontWeight: '700', color: '#1e3a5f', padding: [0, 0, 4, 0] },
@@ -3715,13 +3720,19 @@ const ProjectTitleDashboard = () => {
                 lineStyle: { width: 1.5, color: '#cbd5e1' }
               },
               labelLayout: function (params) {
-                const isLeft = params.labelRect.x < (isMaximized ? 400 : 250); // Rough center estimation based on avg width
+                const instance = typeof chartRefs !== 'undefined' && chartRefs.current && chartRefs.current[chartId] ? chartRefs.current[chartId].getEchartsInstance() : null;
+                const liveWidth = instance ? instance.getWidth() : (isMaximized ? 800 : 450);
+                
+                const isLeft = params.labelRect.x < (liveWidth / 2);
                 const points = params.labelLinePoints;
                 if (!points) return;
+
+                // Calculate default target X based on 'edge' alignment constraint
+                let targetX = isLeft ? params.labelRect.x : params.labelRect.x + params.labelRect.width;
+
                 // Update the end point
-                points[2][0] = isLeft
-                  ? params.labelRect.x
-                  : params.labelRect.x + params.labelRect.width;
+                points[2][0] = targetX;
+
                 return {
                   labelLinePoints: points
                 };
@@ -3941,9 +3952,20 @@ const ProjectTitleDashboard = () => {
 
 
 
+  const handleDownloadChart = (chartId) => {
+    const instance = chartRefs.current[chartId]?.getEchartsInstance();
+    if (instance) {
+      const url = instance.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#fff' });
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${chartId || 'export'}-chart.png`;
+      a.click();
+    }
+  };
+
   // Chart options render function
   const renderChartOptions = (chartId, currentType) => (
-    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', position: 'relative' }}>
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', position: 'relative', flexWrap: 'wrap', justifyContent: 'flex-end', zIndex: 10 }}>
       <select
         value={currentType}
         onChange={(e) => handleChartTypeChange(chartId, e.target.value)}
@@ -3969,6 +3991,27 @@ const ProjectTitleDashboard = () => {
         <option value="bar-rotated">Rotated Bar</option>
         <option value="timeline">Timeline</option>
       </select>
+
+      <button
+        onClick={() => handleDownloadChart(chartId)}
+        title="Download Chart"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '28px',
+          height: '28px',
+          borderRadius: '6px',
+          border: '1px solid #cbd5e1',
+          backgroundColor: '#f8fafc',
+          color: '#1e3a5f',
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          padding: 0
+        }}
+      >
+        <Download size={14} />
+      </button>
 
       <button
         onClick={() => toggleAxisSelector(chartId)}
