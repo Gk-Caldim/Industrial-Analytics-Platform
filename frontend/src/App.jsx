@@ -18,9 +18,13 @@ import SystemSettings from './pages/Settings/SystemSettings';
 import BudgetUpload from './pages/Budget/BudgetUpload';
 import BudgetSummaryView from './pages/Budget/BudgetSummaryView';
 
+import { ThemeProvider } from './contexts/ThemeContext';
+
 function App() {
   return (
-    <ErrorBoundary>
+    <ThemeProvider>
+      <ErrorBoundary>
+
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -54,7 +58,8 @@ function App() {
         </Routes>
       </Router>
     </ErrorBoundary>
-  );
+  </ThemeProvider>
+);
 }
 
 export default App;
