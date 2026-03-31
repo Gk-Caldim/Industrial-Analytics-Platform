@@ -98,6 +98,19 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
 
     const [notification, setNotification] = useState({ show: false, message: '', type: '' });
 
+    // Column Pagination Derived Values
+    const visibleColumns = useMemo(() => columns.filter(col => col.visible), [columns]);
+    const totalVisibleCols = visibleColumns.length;
+
+    // Dynamic colsPerPage based on header length (logic from image)
+    const colsPerPage = useMemo(() => {
+        const hasLongHeader = visibleColumns.some(col => col.label.length > 8);
+        return hasLongHeader ? 4 : 7;
+    }, [visibleColumns]);
+
+    // Column Pagination State
+    const [columnPage, setColumnPage] = useState(1);
+
     const showNotification = (message, type = 'success') => {
         setNotification({ show: true, message, type });
         setTimeout(() => setNotification({ show: false, message: '', type: '' }), 3000);
@@ -164,6 +177,22 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
         const endIndex = startIndex + pageSize;
         return sortedData.slice(startIndex, endIndex);
     }, [sortedData, currentPage, pageSize]);
+
+
+    const colStartIndex = useMemo(() => (columnPage - 1) * colsPerPage, [columnPage, colsPerPage]);
+    const colEndIndex = useMemo(() => Math.min(colStartIndex + colsPerPage, totalVisibleCols), [colStartIndex, colsPerPage, totalVisibleCols]);
+
+    const paginatedColumns = useMemo(() => {
+        return visibleColumns.slice(colStartIndex, colEndIndex);
+    }, [visibleColumns, colStartIndex, colEndIndex]);
+
+    // Sync columnPage when visible columns change or filter is applied
+    useEffect(() => {
+        const maxPages = Math.ceil(totalVisibleCols / colsPerPage) || 1;
+        if (columnPage > maxPages) {
+            setColumnPage(maxPages);
+        }
+    }, [totalVisibleCols, colsPerPage, columnPage]);
 
     // Format handlers
     const handleSort = (key) => {
@@ -518,7 +547,6 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
         setShowExportDropdown(false);
     };
 
-    const visibleColumns = columns.filter(col => col.visible);
 
     return (
         <div className="flex flex-col bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm w-full h-[600px] overflow-hidden master-table-container">
@@ -635,6 +663,29 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                             </div>
                         )}
 
+                        {/* COLUMN PAGINATION CONTROL (from image) */}
+                        {totalVisibleCols > colsPerPage && (
+                            <div className="flex items-center gap-2 px-2 py-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-md shadow-sm mr-2">
+                                <button
+                                    onClick={() => setColumnPage(prev => Math.max(1, prev - 1))}
+                                    disabled={columnPage === 1}
+                                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </button>
+                                <span className="text-[11px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300 min-w-[100px] text-center whitespace-nowrap">
+                                    Cols {colStartIndex + 1}-{colEndIndex} of {totalVisibleCols}
+                                </span>
+                                <button
+                                    onClick={() => setColumnPage(prev => Math.min(Math.ceil(totalVisibleCols / colsPerPage), prev + 1))}
+                                    disabled={colEndIndex >= totalVisibleCols}
+                                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </button>
+                            </div>
+                        )}
+
                         <button onClick={handleAddRowClick} className="flex items-center gap-1 h-9 px-3 text-sm font-medium bg-blue-600 text-white rounded hover:bg-blue-700 transition" title="Add Row">
                             <Plus className="h-4 w-4" />
                             <span className="hidden xl:inline">Row</span>
@@ -710,7 +761,7 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                             </th>
 
                             {/* Dynamic Headers */}
-                            {visibleColumns.map((col) => {
+                            {paginatedColumns.map((col) => {
                                 const actualColumnIndex = columns.findIndex(c => c.id === col.id);
                                 const isFrozen = isColumnFrozen(actualColumnIndex);
 
@@ -795,7 +846,7 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                                     </td>
 
                                     {/* Normal Data Cells */}
-                                    {visibleColumns.map((col) => {
+                                    {paginatedColumns.map((col) => {
                                         const actualColumnIndex = columns.findIndex(c => c.id === col.id);
                                         const isColFrozen = isColumnFrozen(actualColumnIndex);
                                         return (
@@ -824,7 +875,7 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                             );
                         })}
                         {paginatedData.length === 0 && (
-                            <tr><td colSpan={visibleColumns.length + 2} className="py-8 text-center text-sm text-slate-500">{loading ? 'Loading...' : 'No local data available'}</td></tr>
+                            <tr><td colSpan={paginatedColumns.length + 2} className="py-8 text-center text-sm text-slate-500">{loading ? 'Loading...' : 'No local data available'}</td></tr>
                         )}
                     </tbody>
                 </table>

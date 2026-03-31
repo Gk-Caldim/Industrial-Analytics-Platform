@@ -15,7 +15,7 @@ def list_budget_summaries(db: Session = Depends(get_db)):
 def get_budget_summary(project_name: str, db: Session = Depends(get_db)):
     budget = db.query(BudgetSummary).filter(BudgetSummary.project_name == project_name).first()
     if not budget:
-        return BudgetSummaryResponse(id=0, project_name=project_name, currency="$", budget_data=[])
+        return BudgetSummaryResponse(id=0, project_name=project_name, uploaded_by="", department="", budget_data=[])
     return budget
 
 @router.post("/{project_name}", response_model=BudgetSummaryResponse)
@@ -23,11 +23,17 @@ def save_budget_summary(project_name: str, budget_data: BudgetSummaryCreate, db:
     budget = db.query(BudgetSummary).filter(BudgetSummary.project_name == project_name).first()
     if budget:
         budget.budget_data = budget_data.budget_data
-        budget.currency = budget_data.currency
+        budget.uploaded_by = budget_data.uploaded_by
+        budget.department = budget_data.department
         db.commit()
         db.refresh(budget)
     else:
-        budget = BudgetSummary(project_name=project_name, currency=budget_data.currency, budget_data=budget_data.budget_data)
+        budget = BudgetSummary(
+            project_name=project_name, 
+            uploaded_by=budget_data.uploaded_by,
+            department=budget_data.department,
+            budget_data=budget_data.budget_data
+        )
         db.add(budget)
         db.commit()
         db.refresh(budget)

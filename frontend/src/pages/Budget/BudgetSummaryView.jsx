@@ -86,14 +86,14 @@ const BudgetSummaryView = () => {
   if (!budget) return null;
 
   return (
-    <div className="p-6 bg-gray-50 min-h-full">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="h-full bg-white">
+      <div className="w-full max-w-[1600px] mx-auto space-y-4 px-6 py-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Budget Summary</h1>
-          <p className="text-sm text-gray-500">Project: {projectName}</p>
+          <h1 className="text-xl font-extrabold text-[#1e3a5f] tracking-tight">Budget Summary</h1>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Project: {projectName}</p>
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+        <div className="mt-2">
           <ExcelTableViewer
             key={`budget-summary-${projectName}`}
             columns={columns}

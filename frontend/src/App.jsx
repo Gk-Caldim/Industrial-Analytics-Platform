@@ -12,6 +12,7 @@ import EmployeeMaster from './pages/Masters/EmployeeMaster';
 import EmployeeAccess from './pages/Masters/EmployeeAccess';
 import ProjectMaster from './pages/Masters/ProjectMaster';
 import DepartmentMaster from './pages/Masters/DepartmentMaster';
+import PartMaster from './pages/Masters/PartMaster';
 import Masters from './pages/Masters/Masters';
 import MOMModule from './pages/mom/MOMModule';
 import SystemSettings from './pages/Settings/SystemSettings';
@@ -44,6 +45,7 @@ function App() {
             <Route path="masters/access" element={<EmployeeAccess />} />
             <Route path="masters/project-master" element={<ProjectMaster />} />
             <Route path="masters/departments" element={<DepartmentMaster />} />
+            <Route path="masters/parts" element={<PartMaster />} />
             
             <Route path="mom" element={<MOMModule />} />
             <Route path="settings" element={<SystemSettings />} />

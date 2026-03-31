@@ -7,8 +7,9 @@ class ProjectBase(BaseModel):
     manager: str
     status: str = "Planning"
     budget: float = 0.0
+    utilized_budget: float = 0.0
+    balance_budget: float = 0.0
     timeline: str | None = None
-    teamSize: int = 0
     employee_id: Optional[str] = None
     employee_name: Optional[str] = None
     custom_fields: Dict[str, Any] = {}

@@ -83,6 +83,7 @@ const Dashboard = () => {
     { id: 'employee-master', name: 'Employee Master', path: 'masters/employees', icon: <Users className="h-5 w-5" />, color: '#000000' },
     { id: 'employee-access', name: 'Employee Access', path: 'masters/access', icon: <Shield className="h-5 w-5" />, color: '#1a1a1a' },
     { id: 'project-master', name: 'Project Master', path: 'masters/project-master', icon: <FolderKanban className="h-5 w-5" />, color: '#333333' },
+    { id: 'part-master', name: 'Part Master', path: 'masters/parts', icon: <Package className="h-5 w-5" />, color: '#4d4d4d' },
     { id: 'department-master', name: 'Department Master', path: 'masters/departments', icon: <Building className="h-5 w-5" />, color: '#666666' },
   ], []);
 
@@ -102,6 +103,13 @@ const Dashboard = () => {
     { id: 'system-settings', name: 'Settings', path: 'settings', icon: <Settings className="h-5 w-5" /> },
   ], []);
 
+
+  // Permission check helper
+  const hasPermission = (moduleName) => {
+    if (user?.role === 'Admin') return true;
+    if (!user?.permissions) return false;
+    return user.permissions.includes(moduleName);
+  };
 
   // Clean up on unmount
   useEffect(() => {
@@ -661,6 +669,8 @@ const Dashboard = () => {
   // ==========================================================================
 
   const renderProjectDashboardModule = () => {
+    if (!hasPermission('Dashboard')) return null;
+
     const isActive = activeModule === 'project-dashboard';
     const isExpanded = expandedModules['project-dashboard'];
     const hasDynamicModules = projectDashboardModules.length > 0;
@@ -716,6 +726,8 @@ const Dashboard = () => {
   };
 
   const renderUploadTrackersModule = () => {
+    if (!hasPermission('Upload Trackers')) return null;
+
     const isActive = activeModule === 'upload-trackers';
     const isExpanded = expandedModules['upload-trackers'];
     const hasDynamicModules = uploadTrackerModules.length > 0;
@@ -771,6 +783,8 @@ const Dashboard = () => {
   };
 
   const renderUploadsModule = () => {
+    if (!hasPermission('Upload Trackers')) return null;
+
     const isExpanded = expandedModules['uploads'];
     const isActive = activeModule === 'uploads-main' || uploadsSubmodules.some(s => s.id === activeModule);
     const isHovered = hoveredModule === 'uploads-main';
@@ -851,6 +865,8 @@ const Dashboard = () => {
   };
 
   const renderMOMModule = () => {
+    if (!hasPermission('MOM')) return null;
+
     const isActive = activeModule === 'mom-module';
     const isHovered = hoveredModule === 'mom-module';
 
@@ -881,6 +897,9 @@ const Dashboard = () => {
   };
 
   const renderMastersModule = () => {
+    const visibleSubmodules = mastersSubmodules.filter(sub => hasPermission(sub.name));
+    if (visibleSubmodules.length === 0) return null;
+
     const isExpanded = expandedModules['masters'];
     const isActive = activeModule === 'masters-main' || mastersSubmodules.some(s => s.id === activeModule);
     const isHovered = hoveredModule === 'masters-main';
@@ -927,7 +946,7 @@ const Dashboard = () => {
 
         {isSidebarExpanded && isExpanded && (
           <div className="ml-7 mt-1.5 space-y-1.5">
-            {mastersSubmodules.map((submodule, index) => {
+            {visibleSubmodules.map((submodule, index) => {
               const isSubmoduleActive = activeModule === submodule.id;
               const isSubmoduleHovered = hoveredModule === submodule.id;
 
@@ -1063,6 +1082,8 @@ const Dashboard = () => {
 
   const renderOtherModules = () => {
     return otherModules.filter(module => module.id !== 'upload-trackers').map((module, index) => {
+      if (!hasPermission(module.name)) return null;
+      
       const isActive = activeModule === module.id;
       const isHovered = hoveredModule === module.id;
 
