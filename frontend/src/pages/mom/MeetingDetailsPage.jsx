@@ -238,10 +238,8 @@ const MeetingDetailsPage = () => {
                 {meetingStatus !== 'cancelled' && (
                     <>
                         <button onClick={() => setShowFallbackModal(true)} className="md-btn border border-gray-200 text-gray-700 hover:bg-gray-50"><ExternalLink className="w-4 h-4" /> Info</button>
-                        {meetingStatus === 'completed' ? (
-                            <button onClick={handleGenerateMOM} className="md-btn bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm"><FileText className="w-4 h-4" /> Generate MOM</button>
-                        ) : (
-                            <button onClick={handleJoinMeeting} className="md-btn bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"><Play className="w-4 h-4" fill="currentColor" /> Join Meeting</button>
+                        {meetingStatus !== 'completed' && (
+                           <button onClick={handleJoinMeeting} className="md-btn bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"><Play className="w-4 h-4" fill="currentColor" /> Join Meeting</button>
                         )}
                     </>
                 )}

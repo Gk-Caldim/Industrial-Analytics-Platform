@@ -217,24 +217,21 @@ const ScheduleMeetingPage = () => {
     setLoading(true); setError('');
 
     const payload = {
+      title: `${meetingTypes.find(t => t.id === meetingType)?.label || 'Team'} Sync`,
       date: selectedDate.toISOString().split('T')[0],
       time: selectedTime,
       platform,
-      duration,
+      duration_minutes: parseInt(duration),
       attendees,
-      meetingType,
-      agenda,
-      reminder,
-      description
+      description: description || agenda.join('\\n'),
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+      organizer_email: 'noreply@antigravity.com'
     };
 
     try {
-      const resp = await API.post('/meetings/schedule', payload);
+      const resp = await API.post('/meetings/publish', payload);
       if (resp.data.success) {
          navigate(`/dashboard/meeting/${resp.data.meeting.id}`);
-      } else if (resp.data.oauthUrl) {
-         // Handoff to Provider Login Portal
-         window.location.href = resp.data.oauthUrl;
       } else {
          setError(resp.data.error || 'Failed to schedule meeting.');
       }
