@@ -324,7 +324,6 @@ const ProjectTitleDashboard = () => {
       resource: true,
       quality: true,
       design: true,
-      partDevelopment: true,
       build: true,
       gateway: true,
       validation: true,
@@ -375,7 +374,6 @@ const ProjectTitleDashboard = () => {
     resource: false,
     quality: false,
     design: false,
-    partDevelopment: false,
     build: false,
     gateway: false,
     validation: false,
@@ -420,7 +418,6 @@ const ProjectTitleDashboard = () => {
         resource: false,
         quality: false,
         design: false,
-        partDevelopment: false,
         build: false,
         gateway: false,
         validation: false,
@@ -434,7 +431,6 @@ const ProjectTitleDashboard = () => {
   const availablePhases = useMemo(() => {
     const phases = {
       design: false,
-      partDevelopment: false,
       build: false,
       gateway: false,
       validation: false,
@@ -458,7 +454,6 @@ const ProjectTitleDashboard = () => {
     });
 
     phases.design = isAvailable('Design Release', ['design']);
-    phases.partDevelopment = isAvailable('Part Development', ['part development', 'partdevelopment', 'part_development', 'part']);
     phases.build = isAvailable('Build', ['build']);
     phases.gateway = isAvailable('Gateway', ['gateway']);
     phases.validation = isAvailable('Validation', ['validation']);
@@ -477,7 +472,6 @@ const ProjectTitleDashboard = () => {
 
     const mapping = {
       design: { dept: 'Design Release', aliases: ['design'] },
-      partDevelopment: { dept: 'Part Development', aliases: ['part development', 'partdevelopment', 'part_development', 'part'] },
       build: { dept: 'Build', aliases: ['build'] },
       gateway: { dept: 'Gateway', aliases: ['gateway'] },
       validation: { dept: 'Validation', aliases: ['validation'] },
@@ -819,10 +813,10 @@ const ProjectTitleDashboard = () => {
       let updated = false;
 
       // Default phases
-      const defaultPhases = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
+      const defaultPhases = ['design', 'build', 'gateway', 'validation', 'qualityIssues'];
       defaultPhases.forEach(phase => {
         if (!currentChartTypes[phase]) {
-          currentChartTypes[phase] = phase === 'partDevelopment' ? 'line' : (phase === 'build' ? 'pie' : (phase === 'gateway' ? 'area' : 'bar'));
+          currentChartTypes[phase] = phase === 'build' ? 'pie' : (phase === 'gateway' ? 'area' : 'bar');
           updated = true;
         }
         if (!currentAxisConfigs[phase]) {
@@ -879,7 +873,6 @@ const ProjectTitleDashboard = () => {
       resource: false,
       quality: false,
       design: false,
-      partDevelopment: false,
       build: false,
       gateway: false,
       validation: false,
@@ -980,10 +973,10 @@ const ProjectTitleDashboard = () => {
     const availableSectionKeys = [
       'milestones', 'criticalIssues', 'sopTables',
       'budget', 'resource', 'quality',
-      ...['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'],
+      ...['design', 'build', 'gateway', 'validation', 'qualityIssues'],
       ...dynamicTrackerKeys
     ].filter(key => {
-      if (['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(key)) {
+      if (['design', 'build', 'gateway', 'validation', 'qualityIssues'].includes(key)) {
         return availablePhases[key];
       }
       return true;
@@ -1005,7 +998,7 @@ const ProjectTitleDashboard = () => {
           newVisibleSections[key] = setTarget;
         } else {
           // Fixed keys that are not available should be false
-          const fixedKeys = ['milestones', 'criticalIssues', 'sopTables', 'budget', 'resource', 'quality', 'design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
+          const fixedKeys = ['milestones', 'criticalIssues', 'sopTables', 'budget', 'resource', 'quality', 'design', 'build', 'gateway', 'validation', 'qualityIssues'];
           if (fixedKeys.includes(key) && !availableSectionKeys.includes(key)) {
             newVisibleSections[key] = false;
           }
@@ -1030,7 +1023,7 @@ const ProjectTitleDashboard = () => {
   // Handle select all sections for email
   const handleSelectAll = () => {
     const availableSectionKeys = Object.keys(emailData.selectedSections).filter(key => {
-      const metricKeys = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
+      const metricKeys = ['design', 'build', 'gateway', 'validation', 'qualityIssues'];
       if (metricKeys.includes(key)) return availablePhases[key];
       return true;
     });

@@ -1802,7 +1802,10 @@ const DepartmentMaster = () => {
                         </th>
                       );
                     })}
-                    <th className="w-24"></th>
+                      {/* Actions Header - Sticky Right */}
+                      <th className="sticky right-0 bg-slate-100 dark:bg-slate-700 z-20 px-6 py-3 text-right font-medium border-l border-slate-200 dark:border-slate-700 w-24">
+                        Actions
+                      </th>
                   </tr>
                 </thead>
 
@@ -1844,8 +1847,13 @@ const DepartmentMaster = () => {
                           );
                         })}
                         {/* Actions Cell */}
-                        <td className="py-3 px-6 text-right whitespace-nowrap w-[100px]">
-                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        {/* Actions Cell - Sticky Right */}
+                        <td className={`sticky right-0 z-10 py-3 px-6 text-right whitespace-nowrap w-[100px] border-l border-slate-100 dark:border-slate-700 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.05)] ${
+                          selectedDepartments.includes(dept.id) 
+                            ? 'bg-[#f8faff] dark:bg-[#1e293b]' 
+                            : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 group-hover:bg-slate-50 dark:group-hover:bg-slate-700/50 transition-colors'
+                        }`}>
+                          <div className="flex items-center justify-end gap-1 transition-opacity duration-200">
                             <button
                               onClick={(e) => { e.stopPropagation(); startEditing(dept); }}
                               className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"

@@ -1,3 +1,5 @@
+import os
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,17 +22,19 @@ from app.models import project  # noqa: F401
 from app.models import upload_tracker # noqa: F401
 from app.models import budget # noqa: F401
 from app.models import project_sub_category # noqa: F401
+from app.models import settings # noqa: F401
 
 # Import routers
 from app.api.auth import router as auth_router
 from app.api.employees import router as employee_router
-from app.api.employee_access import router as employee_access_router
+from app.api.employees import router as employee_router
 from app.api import project as project_router
 from app.api import department as department_router
 from app.api.datasets import router as datasets_router
 from app.api.email import router as email_router  # Added email router
 from app.api import budget as budget_router
 from app.api.project_sub_category import router as sub_category_router
+from app.api.settings import router as settings_router
 from app.api.meetings import router as meetings_router
 
 Base.metadata.create_all(bind=engine)
@@ -80,7 +84,6 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix=API_PREFIX)
 app.include_router(employee_router, prefix=API_PREFIX)
-app.include_router(employee_access_router, prefix=API_PREFIX)
 app.include_router(project_router.router, prefix=API_PREFIX)
 app.include_router(department_router.router, prefix=API_PREFIX)
 app.include_router(datasets_router, prefix=API_PREFIX)
@@ -88,6 +91,14 @@ app.include_router(email_router, prefix=f"{API_PREFIX}/email", tags=["Email"]) #
 app.include_router(budget_router.router, prefix=f"{API_PREFIX}/budget", tags=["Budget"])
 app.include_router(sub_category_router, prefix=API_PREFIX)
 app.include_router(meetings_router, prefix="/api/meetings", tags=["Meetings"])
+app.include_router(settings_router, prefix=API_PREFIX)
+app.include_router(meetings_router, prefix="/api/meetings", tags=["Meetings"])
+
+# Static Files
+UPLOAD_DIR = "static/uploads/logos"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 #testing routes
 @app.get("/test-db")

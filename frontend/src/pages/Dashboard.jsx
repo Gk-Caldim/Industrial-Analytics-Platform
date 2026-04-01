@@ -9,7 +9,8 @@ import {
   setSelectedProjectFileId,
   setSelectedUploadFileId,
   setActiveProjectName,
-  setSidebarCollapsed
+  setSidebarCollapsed,
+  setBranding
 } from '../store/slices/navSlice';
 import { logout } from '../store/slices/authSlice';
 import {
@@ -59,8 +60,26 @@ const Dashboard = () => {
     selectedProjectFileId,
     selectedUploadFileId,
     activeProjectName,
-    sidebarCollapsed
+    sidebarCollapsed,
+    companyLogo,
+    companyName
   } = useSelector(state => state.nav);
+
+  // Fetch settings on mount
+  useEffect(() => {
+    const fetchCompanySettings = async () => {
+      try {
+        const response = await API.get('/settings/');
+        const settings = response.data;
+        const logo = settings.find(s => s.key === 'company_logo')?.value;
+        const name = settings.find(s => s.key === 'company_name')?.value;
+        dispatch(setBranding({ companyLogo: logo, companyName: name }));
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
+    };
+    fetchCompanySettings();
+  }, [dispatch]);
 
   const [currentTime, setCurrentTime] = useState('');
   const [currentDate, setCurrentDate] = useState('');
@@ -81,9 +100,7 @@ const Dashboard = () => {
   // Masters submodules
   const mastersSubmodules = useMemo(() => [
     { id: 'employee-master', name: 'Employee Master', path: 'masters/employees', icon: <Users className="h-5 w-5" />, color: '#000000' },
-    { id: 'employee-access', name: 'Employee Access', path: 'masters/access', icon: <Shield className="h-5 w-5" />, color: '#1a1a1a' },
     { id: 'project-master', name: 'Project Master', path: 'masters/project-master', icon: <FolderKanban className="h-5 w-5" />, color: '#333333' },
-    { id: 'part-master', name: 'Part Master', path: 'masters/parts', icon: <Package className="h-5 w-5" />, color: '#4d4d4d' },
     { id: 'department-master', name: 'Department Master', path: 'masters/departments', icon: <Building className="h-5 w-5" />, color: '#666666' },
   ], []);
 
@@ -844,26 +861,28 @@ const Dashboard = () => {
             {/*
               Simple submodule button for Budget Upload
             */}
-            <button
-              key="budget-upload"
-              onMouseEnter={() => setHoveredModule('budget-upload')}
-              onMouseLeave={() => setHoveredModule(null)}
-              onClick={() => handleModuleClick('budget-upload')}
-              className={`w-full flex items-center space-x-3.5 rounded-lg px-3 py-2.5 transition-all duration-300 ${
-                activeModule === 'budget-upload'
-                  ? 'bg-white/20 shadow-sm text-white'
-                  : hoveredModule === 'budget-upload'
-                    ? 'bg-white/15 shadow-sm text-white'
-                    : 'hover:bg-white/10 text-white'
-              }`}
-            >
-              <div className="text-white">
-                <FileUp className="h-5 w-5" />
-              </div>
-              <span className={`text-sm font-medium truncate text-white`}>
-                Budget Upload
-              </span>
-            </button>
+            {hasPermission('Budget Upload') && (
+              <button
+                key="budget-upload"
+                onMouseEnter={() => setHoveredModule('budget-upload')}
+                onMouseLeave={() => setHoveredModule(null)}
+                onClick={() => handleModuleClick('budget-upload')}
+                className={`w-full flex items-center space-x-3.5 rounded-lg px-3 py-2.5 transition-all duration-300 ${
+                  activeModule === 'budget-upload'
+                    ? 'bg-white/20 shadow-sm text-white'
+                    : hoveredModule === 'budget-upload'
+                      ? 'bg-white/15 shadow-sm text-white'
+                      : 'hover:bg-white/10 text-white'
+                }`}
+              >
+                <div className="text-white">
+                  <FileUp className="h-5 w-5" />
+                </div>
+                <span className={`text-sm font-medium truncate text-white`}>
+                  Budget Upload
+                </span>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -1205,14 +1224,13 @@ const Dashboard = () => {
           </div>
 
           {/* Logo Section */}
-          <div className="relative px-4 py-6 z-10">
+          <div className="relative px-6 py-4 z-10">
             {isSidebarExpanded ? (
               <div className="flex justify-center items-center">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-white/10 blur-xl rounded-full"></div>
+                <div className="relative w-full flex justify-center">
                   <img
-                    src="/caldimlogo.png"
-                    className="h-26 w-auto object-contain relative brightness-0 invert"
+                    src={companyLogo || "/caldimlogo.png"}
+                    className={`h-22 w-auto max-w-full object-contain relative ${!companyLogo ? 'brightness-0 invert' : ''}`}
                     alt="Company Logo"
                   />
                 </div>
@@ -1220,7 +1238,9 @@ const Dashboard = () => {
             ) : (
               <div className="flex justify-center py-2">
                 <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center shadow-md backdrop-blur-sm">
-                  <span className="text-white font-bold text-sm">CD</span>
+                  <span className="text-white font-bold text-sm">
+                    {companyName ? companyName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'CD'}
+                  </span>
                 </div>
               </div>
             )}

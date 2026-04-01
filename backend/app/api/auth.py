@@ -9,33 +9,30 @@ from app.core.security import (
     get_current_user,
 )
 from app.models.employee import Employee
-from app.models.employee_access import EmployeeAccess
 from app.models.user import User # Re-add User import for fallback
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 #login
 @router.post("/login")
 def login(data: dict, db: Session = Depends(get_db)):
-    # 1️ Check EmployeeAccess first
-    access_rule = (
-        db.query(EmployeeAccess)
-        .outerjoin(Employee, Employee.id == EmployeeAccess.employee_id)
-        .filter(
-            (EmployeeAccess.employee_email == data["email"]) |
-            (Employee.email == data["email"])
-        )
+    # 1. Check Employees table first
+    employee = (
+        db.query(Employee)
+        .filter(Employee.email == data["email"])
         .first()
     )
 
-    if access_rule:
-        # User found in EmployeeAccess
-        if not access_rule.hashed_password:
-            # Fallback to User table if no password set in EmployeeAccess
+    if employee:
+        # Check if password is set for this employee
+        if not employee.hashed_password:
+            # Fallback to User table if no password set in Employee
             user = db.query(User).filter(User.email == data["email"]).first()
             if user and verify_password(data["password"], user.hashed_password):
                  access_token = create_access_token({
                     "sub": str(user.id),
                     "email": user.email,
+                    "full_name": employee.name,
+                    "role": employee.role or "User"
                  })
                  refresh_token = create_refresh_token(str(user.id))
                  return {
@@ -45,57 +42,51 @@ def login(data: dict, db: Session = Depends(get_db)):
                         "id": user.id,
                         "email": user.email,
                         "employee_id": user.employee_id,
+                        "full_name": employee.name,
+                        "role": employee.role or "User",
+                        "permissions": employee.modules or []
                     },
                  }
             raise HTTPException(status_code=401, detail="Access not granted or password not set")
 
-        # Verify password against EmployeeAccess
-        if not verify_password(data["password"], access_rule.hashed_password):
+        # Verify password against Employee table
+        if not verify_password(data["password"], employee.hashed_password):
             raise HTTPException(status_code=401, detail="Invalid credentials")
 
-        email_to_use = access_rule.employee_email or (access_rule.employee.email if access_rule.employee else data["email"])
-        employee_code = access_rule.employee_code or (access_rule.employee.employee_id if access_rule.employee else None)
-
-        full_name = access_rule.employee_name or (access_rule.employee.name if access_rule.employee else "User")
-        
         access_token = create_access_token({
-            "sub": str(access_rule.employee_id),
-            "email": email_to_use,
-            "full_name": full_name,
-            "role": access_rule.access_level
+            "sub": str(employee.id),
+            "email": employee.email,
+            "full_name": employee.name,
+            "role": employee.role
         })
 
-        refresh_token = create_refresh_token(str(access_rule.employee_id))
+        refresh_token = create_refresh_token(str(employee.id))
 
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
             "user": {
-                "id": access_rule.employee_id,
-                "email": email_to_use,
-                "full_name": access_rule.employee_name or (access_rule.employee.name if access_rule.employee else "User"),
-                "employee_id": employee_code,
-                "role": access_rule.access_level,
-                "permissions": access_rule.modules or []
+                "id": employee.id,
+                "email": employee.email,
+                "full_name": employee.name,
+                "employee_id": employee.employee_id,
+                "role": employee.role,
+                "permissions": employee.modules or []
             },
         }
 
-    # 2️ Fallback to User table
+    # 2. Fallback to User table if not found in Employees
     user = db.query(User).filter(User.email == data["email"]).first()
     if not user:
          raise HTTPException(status_code=401, detail="Invalid credentials")
-    # Validate against User table
+    
     if not verify_password(data["password"], user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    # Try to find employee name for fallback user
-    employee = db.query(Employee).filter(Employee.employee_id == user.employee_id).first()
-    full_name = employee.name if employee else "User"
     
     access_token = create_access_token({
         "sub": str(user.id),
         "email": user.email,
-        "full_name": full_name,
+        "full_name": "User",
     })
     refresh_token = create_refresh_token(str(user.id))
     
@@ -105,7 +96,7 @@ def login(data: dict, db: Session = Depends(get_db)):
         "user": {
             "id": user.id,
             "email": user.email,
-            "full_name": full_name,
+            "full_name": "User",
             "employee_id": user.employee_id,
         },
     }

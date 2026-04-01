@@ -9,10 +9,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ProjectDashboard from './pages/ProjectDashboard';
 import UploadTrackers from './pages/Trackers/UploadTrackers';
 import EmployeeMaster from './pages/Masters/EmployeeMaster';
-import EmployeeAccess from './pages/Masters/EmployeeAccess';
 import ProjectMaster from './pages/Masters/ProjectMaster';
 import DepartmentMaster from './pages/Masters/DepartmentMaster';
-import PartMaster from './pages/Masters/PartMaster';
 import Masters from './pages/Masters/Masters';
 import MOMModule from './pages/mom/MOMModule';
 import MeetingsDashboardPage from './pages/mom/MeetingsDashboardPage';
@@ -22,9 +20,13 @@ import SystemSettings from './pages/Settings/SystemSettings';
 import BudgetUpload from './pages/Budget/BudgetUpload';
 import BudgetSummaryView from './pages/Budget/BudgetSummaryView';
 
+import { ThemeProvider } from './contexts/ThemeContext';
+
 function App() {
   return (
-    <ErrorBoundary>
+    <ThemeProvider>
+      <ErrorBoundary>
+
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -45,10 +47,8 @@ function App() {
             
             <Route path="masters" element={<Masters />} />
             <Route path="masters/employees" element={<EmployeeMaster />} />
-            <Route path="masters/access" element={<EmployeeAccess />} />
             <Route path="masters/project-master" element={<ProjectMaster />} />
             <Route path="masters/departments" element={<DepartmentMaster />} />
-            <Route path="masters/parts" element={<PartMaster />} />
             
             <Route path="mom" element={<MOMModule />} />
             <Route path="meetings" element={<MeetingsDashboardPage />} />
@@ -62,7 +62,8 @@ function App() {
         </Routes>
       </Router>
     </ErrorBoundary>
-  );
+  </ThemeProvider>
+);
 }
 
 export default App;
