@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Clock, MapPin, Users, Video, RefreshCw, Menu, ChevronLeft, ChevronRight, Check, X, Bell, Target, AlignLeft, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Video, RefreshCw, Menu, ChevronLeft, ChevronRight, Check, X, Bell, Target, AlignLeft, CheckCircle2, ArrowRight, Pencil } from 'lucide-react';
 import './ScheduleMeetingPage.css';
 import API from '../../utils/api'; // Assuming axios instance is set up
 
@@ -14,11 +14,28 @@ const ScheduleMeetingPage = () => {
   
   // --- Form State ---
   const [platform, setPlatform] = useState('');
-  const [duration, setDuration] = useState('60');
   const [meetingType, setMeetingType] = useState('quickSync');
   const [reminder, setReminder] = useState(30);
   const [description, setDescription] = useState('');
-  
+
+  // --- Duration (preset OR custom) ---
+  const [presetDuration, setPresetDuration] = useState(60); // minutes
+  const [useCustomTime, setUseCustomTime] = useState(false);
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [timeError, setTimeError] = useState('');
+
+  // --- Custom Reason (extension of meetingType) ---
+  const [customReasonInput, setCustomReasonInput] = useState('');
+
+  const presetDurations = [
+    { label: '15 min', value: 15 },
+    { label: '30 min', value: 30 },
+    { label: '45 min', value: 45 },
+    { label: '1 hr',  value: 60 },
+    { label: '1.5 hr', value: 90 },
+  ];
+
   // --- Attendees System ---
   const [attendees, setAttendees] = useState([]);
   const [attendeeInput, setAttendeeInput] = useState('');
@@ -55,11 +72,12 @@ const ScheduleMeetingPage = () => {
   }, []);
 
   const meetingTypes = [
-    { id: 'quickSync', label: 'Quick Sync', icon: <Clock className="w-4 h-4" /> },
-    { id: 'client', label: 'Client Meeting', icon: <Target className="w-4 h-4" /> },
-    { id: 'interview', label: 'Interview', icon: <Users className="w-4 h-4" /> },
-    { id: 'deepWork', label: 'Deep Work', icon: <AlignLeft className="w-4 h-4" /> },
-    { id: 'webinar', label: 'Webinar', icon: <Video className="w-4 h-4" /> },
+    { id: 'quickSync',  label: 'Quick Sync',     icon: <Clock className="w-4 h-4" /> },
+    { id: 'client',     label: 'Client Meeting', icon: <Target className="w-4 h-4" /> },
+    { id: 'interview',  label: 'Interview',      icon: <Users className="w-4 h-4" /> },
+    { id: 'deepWork',   label: 'Deep Work',      icon: <AlignLeft className="w-4 h-4" /> },
+    { id: 'webinar',    label: 'Webinar',         icon: <Video className="w-4 h-4" /> },
+    { id: 'custom',     label: 'Custom',          icon: <Pencil className="w-4 h-4" /> },
   ];
 
   // --- Helpers ---
@@ -81,6 +99,8 @@ const ScheduleMeetingPage = () => {
   const removeAttendee = (emailToRemove) => {
     setAttendees(attendees.filter(a => a !== emailToRemove));
     setSelectedTime(null);
+    setStartTime('');
+    setEndTime('');
   };
 
   // --- Handlers: Agenda ---
@@ -205,9 +225,92 @@ const ScheduleMeetingPage = () => {
     return days;
   };
 
+  // --- Custom Time Helpers ---
+  const computedDuration = useMemo(() => {
+    if (!startTime || !endTime) return null;
+    const [sh, sm] = startTime.split(':').map(Number);
+    const [eh, em] = endTime.split(':').map(Number);
+    const diffMins = (eh * 60 + em) - (sh * 60 + sm);
+    return diffMins > 0 ? diffMins : null;
+  }, [startTime, endTime]);
+
+  const effectiveDuration = useCustomTime ? computedDuration : presetDuration;
+
+  const formatDuration = (mins) => {
+    if (!mins) return '--';
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h === 0) return `${m} min`;
+    if (m === 0) return `${h} hr`;
+    return `${h} hr ${m} min`;
+  };
+
+  const to12Hour = (time24) => {
+    if (!time24) return '';
+    const [h, m] = time24.split(':').map(Number);
+    const period = h >= 12 ? 'PM' : 'AM';
+    const hour = h % 12 || 12;
+    return `${hour}:${String(m).padStart(2, '0')} ${period}`;
+  };
+
+  // Add preset duration minutes to a 24h time string
+  const addMinutes = (time24, mins) => {
+    const [h, m] = time24.split(':').map(Number);
+    const total = h * 60 + m + mins;
+    const nh = Math.floor(total / 60) % 24;
+    const nm = total % 60;
+    return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
+  };
+
+  const handleStartTimeChange = (val) => {
+    setStartTime(val);
+    setTimeError('');
+    if (endTime) {
+      const [sh, sm] = val.split(':').map(Number);
+      const [eh, em] = endTime.split(':').map(Number);
+      if ((eh * 60 + em) <= (sh * 60 + sm)) setTimeError('End time must be after start time.');
+    }
+    setSelectedTime(val ? to12Hour(val) : null);
+  };
+
+  const handleEndTimeChange = (val) => {
+    setEndTime(val);
+    setTimeError('');
+    if (startTime) {
+      const [sh, sm] = startTime.split(':').map(Number);
+      const [eh, em] = val.split(':').map(Number);
+      if ((eh * 60 + em) <= (sh * 60 + sm)) setTimeError('End time must be after start time.');
+    }
+  };
+
+  // When a timeslot is picked from Available Times panel
+  const handleTimeslotSelect = (time12) => {
+    if (loadingAvailability) return;
+    setSelectedTime(time12);
+    if (!useCustomTime) {
+      // Convert 12h to 24h for the custom pickers (in case user later switches)
+      const [timePart, period] = time12.split(' ');
+      let [h, m] = timePart.split(':').map(Number);
+      if (period === 'PM' && h !== 12) h += 12;
+      if (period === 'AM' && h === 12) h = 0;
+      const start24 = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      setStartTime(start24);
+      setEndTime(addMinutes(start24, presetDuration));
+      setTimeError('');
+    }
+  };
+
+  // Effective meeting title/reason
+  const effectiveTitle = meetingType === 'custom'
+    ? (customReasonInput.trim() || 'Custom Meeting')
+    : (meetingTypes.find(t => t.id === meetingType)?.label || 'Team Sync');
+
   // --- Handlers: Submission ---
   const validateForm = () => {
-    return selectedDate && selectedTime && platform && attendees.length > 0;
+    const hasTime = useCustomTime
+      ? (startTime && endTime && computedDuration && !timeError)
+      : selectedTime !== null;
+    return selectedDate && hasTime && platform && attendees.length > 0;
   };
 
   const handleSubmit = async (e) => {
@@ -217,13 +320,15 @@ const ScheduleMeetingPage = () => {
     setLoading(true); setError('');
 
     const payload = {
-      title: `${meetingTypes.find(t => t.id === meetingType)?.label || 'Team'} Sync`,
+      title: effectiveTitle,
       date: selectedDate.toISOString().split('T')[0],
-      time: selectedTime,
+      time: useCustomTime ? to12Hour(startTime) : selectedTime,
+      end_time: useCustomTime ? to12Hour(endTime) : (startTime ? to12Hour(addMinutes(startTime, presetDuration)) : null),
       platform,
-      duration_minutes: parseInt(duration),
+      duration_minutes: effectiveDuration,
       attendees,
-      description: description || agenda.join('\\n'),
+      description: description || agenda.join('\n'),
+      reason: meetingType === 'custom' ? customReasonInput : (meetingTypes.find(t => t.id === meetingType)?.label || ''),
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
       organizer_email: 'noreply@antigravity.com'
     };
@@ -245,6 +350,13 @@ const ScheduleMeetingPage = () => {
   const handleReset = () => {
      setSelectedDate(null);
      setSelectedTime(null);
+     setStartTime('');
+     setEndTime('');
+     setTimeError('');
+     setUseCustomTime(false);
+     setPresetDuration(60);
+     setMeetingType('quickSync');
+     setCustomReasonInput('');
      setAgenda([]);
      setAttendees([]);
      setDescription('');
@@ -263,19 +375,45 @@ const ScheduleMeetingPage = () => {
           </div>
         </div>
 
-        {/* Dynamic Type Selector */}
-        <div className="meeting-type-selector mb-6">
+        {/* Meeting Type / Reason Chips */}
+        <div className="meeting-type-selector mb-6 flex flex-wrap gap-2">
             {meetingTypes.map(type => (
                 <button
                     key={type.id}
                     className={`mt-chip ${meetingType === type.id ? 'active' : ''}`}
-                    onClick={() => setMeetingType(type.id)}
+                    onClick={() => {
+                      setMeetingType(type.id);
+                      if (type.id !== 'custom') setCustomReasonInput('');
+                    }}
                 >
                     {type.icon}
                     <span>{type.label}</span>
                 </button>
             ))}
         </div>
+
+        {/* Custom Reason Input — only visible when 'Custom' is selected */}
+        {meetingType === 'custom' && (
+          <div className="mb-5 animate-fadeIn">
+            <div className="relative">
+              <Pencil className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-indigo-400" />
+              <input
+                type="text"
+                className="w-full border border-indigo-200 bg-indigo-50/40 rounded-xl pl-9 pr-4 py-2.5 text-sm font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-300 placeholder-gray-400"
+                placeholder="e.g. Progress on project, Status check..."
+                value={customReasonInput}
+                onChange={(e) => setCustomReasonInput(e.target.value)}
+                autoFocus
+              />
+              {customReasonInput && (
+                <button type="button" onClick={() => setCustomReasonInput('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Calendar Card */}
         <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm mb-6 transition-all">
@@ -328,7 +466,7 @@ const ScheduleMeetingPage = () => {
                             <button
                                 key={time}
                                 className={`timeslot-btn ${selectedTime === time ? 'selected' : ''} ${loadingAvailability ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                onClick={() => !loadingAvailability && setSelectedTime(time)}
+                                onClick={() => handleTimeslotSelect(time)}
                                 disabled={loadingAvailability}
                             >
                                 {time}
@@ -349,8 +487,20 @@ const ScheduleMeetingPage = () => {
               <h4 className="font-bold text-indigo-900 mb-3 uppercase tracking-wider text-xs">Meeting Breakdown</h4>
               <div className="space-y-2 text-indigo-950 font-medium">
                   <div className="flex justify-between items-center">
-                    <span className="text-indigo-700 flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> Date & Time</span>
-                    <span>{selectedDate ? selectedDate.toLocaleDateString() : '--'} {selectedTime ? `@ ${selectedTime}` : ''}</span>
+                    <span className="text-indigo-700 flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" /> Date</span>
+                    <span>{selectedDate ? selectedDate.toLocaleDateString() : '--'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-indigo-700 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Time</span>
+                    <span className="font-mono">
+                      {useCustomTime
+                        ? (startTime && endTime ? `${to12Hour(startTime)} → ${to12Hour(endTime)}` : '--')
+                        : (selectedTime || '--')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-indigo-700 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> Duration</span>
+                    <span className={effectiveDuration ? 'text-indigo-900' : 'text-gray-400'}>{formatDuration(effectiveDuration)}</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-indigo-700 flex items-center gap-1.5"><Users className="w-3.5 h-3.5" /> Attendees</span>
@@ -359,6 +509,10 @@ const ScheduleMeetingPage = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-indigo-700 flex items-center gap-1.5"><Video className="w-3.5 h-3.5" /> Platform</span>
                     <span>{platform ? platforms.find(p => p.id === platform).name : '--'}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-1 border-t border-indigo-100 mt-1">
+                    <span className="text-indigo-700 flex items-center gap-1.5"><Pencil className="w-3.5 h-3.5" /> Type</span>
+                    <span className="text-xs truncate max-w-[55%] text-right">{effectiveTitle}</span>
                   </div>
               </div>
           </div>
@@ -430,29 +584,103 @@ const ScheduleMeetingPage = () => {
               </div>
             </div>
 
-            {/* Duration & Reminder Grid */}
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                   <label className="block text-sm font-semibold text-gray-800 mb-2">Duration</label>
-                   <select className="ui-select" value={duration} onChange={e => setDuration(e.target.value)}>
-                       <option value="15">15 mins</option>
-                       <option value="30">30 mins</option>
-                       <option value="45">45 mins</option>
-                       <option value="60">1 hour</option>
-                       <option value="90">1.5 hours</option>
-                   </select>
+            {/* Duration — Preset chips + optional Custom time range */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-indigo-500" /> Duration
+              </label>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {presetDurations.map(d => (
+                  <button
+                    key={d.value}
+                    type="button"
+                    onClick={() => {
+                      setPresetDuration(d.value);
+                      setUseCustomTime(false);
+                      // If a start time already exists, auto-recalculate end time
+                      if (startTime) setEndTime(addMinutes(startTime, d.value));
+                    }}
+                    className={`text-xs px-3 py-1.5 rounded-full font-semibold border transition-all duration-200 ${
+                      !useCustomTime && presetDuration === d.value
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                        : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300 hover:text-indigo-600'
+                    }`}
+                  >
+                    {!useCustomTime && presetDuration === d.value && <Check className="w-3 h-3 inline mr-1" />}
+                    {d.label}
+                  </button>
+                ))}
+                {/* Custom chip */}
+                <button
+                  type="button"
+                  onClick={() => setUseCustomTime(!useCustomTime)}
+                  className={`text-xs px-3 py-1.5 rounded-full font-semibold border transition-all duration-200 ${
+                    useCustomTime
+                      ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-violet-300 hover:text-violet-600'
+                  }`}
+                >
+                  {useCustomTime && <Check className="w-3 h-3 inline mr-1" />}
+                  Custom
+                </button>
+              </div>
+
+              {/* Custom time pickers — only shown when Custom chip is active */}
+              {useCustomTime && (
+                <div className="animate-fadeIn">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1 font-medium">Start</label>
+                      <input
+                        type="time"
+                        className={`ui-select font-mono text-sm tracking-wider ${
+                          startTime ? 'border-indigo-300 bg-indigo-50/40 text-indigo-800' : ''
+                        }`}
+                        value={startTime}
+                        onChange={(e) => handleStartTimeChange(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex items-end pb-1">
+                      <span className="text-gray-400 font-bold text-lg mt-5">→</span>
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1 font-medium">End</label>
+                      <input
+                        type="time"
+                        className={`ui-select font-mono text-sm tracking-wider ${
+                          endTime ? 'border-indigo-300 bg-indigo-50/40 text-indigo-800' : ''
+                        } ${timeError ? 'border-red-400 bg-red-50' : ''}`}
+                        value={endTime}
+                        min={startTime}
+                        onChange={(e) => handleEndTimeChange(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  {timeError && (
+                    <p className="text-xs text-red-500 mt-1.5 font-medium flex items-center gap-1">
+                      <X className="w-3 h-3" /> {timeError}
+                    </p>
+                  )}
+                  {computedDuration && !timeError && (
+                    <div className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
+                      <Check className="w-3 h-3" /> Duration: {formatDuration(computedDuration)}
+                    </div>
+                  )}
                 </div>
-                <div>
-                    <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center gap-1">
-                        <Bell className="w-3.5 h-3.5 text-gray-400" /> Reminder
-                    </label>
-                    <select className="ui-select" value={reminder} onChange={e => setReminder(Number(e.target.value))}>
-                        <option value={5}>5 min before</option>
-                        <option value={10}>10 min before</option>
-                        <option value={30}>30 min before</option>
-                        <option value={60}>1 hour before</option>
-                    </select>
-                </div>
+              )}
+            </div>
+
+            {/* Reminder */}
+            <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-2 flex items-center gap-1">
+                    <Bell className="w-3.5 h-3.5 text-gray-400" /> Reminder
+                </label>
+                <select className="ui-select" value={reminder} onChange={e => setReminder(Number(e.target.value))}>
+                    <option value={5}>5 min before</option>
+                    <option value={10}>10 min before</option>
+                    <option value={30}>30 min before</option>
+                    <option value={60}>1 hour before</option>
+                </select>
             </div>
             
             {/* Description fallback */}
