@@ -13,6 +13,9 @@ import ProjectMaster from './pages/Masters/ProjectMaster';
 import DepartmentMaster from './pages/Masters/DepartmentMaster';
 import Masters from './pages/Masters/Masters';
 import MOMModule from './pages/mom/MOMModule';
+import MeetingsDashboardPage from './pages/mom/MeetingsDashboardPage';
+import ScheduleMeetingPage from './pages/mom/ScheduleMeetingPage';
+import MeetingDetailsPage from './pages/mom/MeetingDetailsPage';
 import SystemSettings from './pages/Settings/SystemSettings';
 import BudgetUpload from './pages/Budget/BudgetUpload';
 import BudgetSummaryView from './pages/Budget/BudgetSummaryView';
@@ -48,6 +51,9 @@ function App() {
             <Route path="masters/departments" element={<DepartmentMaster />} />
             
             <Route path="mom" element={<MOMModule />} />
+            <Route path="meetings" element={<MeetingsDashboardPage />} />
+            <Route path="schedule-meeting" element={<ScheduleMeetingPage />} />
+            <Route path="meeting/:id" element={<MeetingDetailsPage />} />
             <Route path="settings" element={<SystemSettings />} />
           </Route>
 
