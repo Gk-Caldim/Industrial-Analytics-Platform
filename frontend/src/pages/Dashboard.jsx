@@ -603,6 +603,10 @@ const Dashboard = () => {
       dispatch(toggleExpansion('masters'));
     } else if (moduleId === 'uploads-main') {
       dispatch(toggleExpansion('uploads'));
+    } else if (moduleId === 'mom-module') {
+      if (!expandedModules['mom']) {
+        dispatch(setExpandedModules({ 'mom': true }));
+      }
     } else if (moduleId === 'upload-trackers') {
       if (uploadTrackerModules.length > 0 && !expandedModules['upload-trackers']) {
         dispatch(setExpandedModules({ 'upload-trackers': true }));
@@ -892,64 +896,75 @@ const Dashboard = () => {
   const renderMOMModule = () => {
     if (!hasPermission('MOM')) return null;
 
-    const isActive = activeModule === 'mom-module';
-    const isHovered = hoveredModule === 'mom-module';
+    const isExpanded = expandedModules['mom'];
+    const isActive = activeModule === 'mom-module' || activeModule === 'meetings';
+    const isHovered = hoveredModule === 'mom-main';
 
     return (
-      <button
-        key="mom-module"
-        onMouseEnter={() => setHoveredModule('mom-module')}
-        onMouseLeave={() => setHoveredModule(null)}
-        onClick={() => handleModuleClick('mom-module')}
-        className={`w-full flex items-center transition-all duration-300 mb-1.5 ${isSidebarExpanded ? 'px-4 py-3.5 space-x-3.5' : 'justify-center px-2 py-3.5'
-          } rounded-xl ${isActive
-            ? 'bg-white/20 shadow-md text-white'
-            : isHovered
-              ? 'bg-white/15 shadow-sm text-white'
-              : 'hover:bg-white/10 text-white'
-          }`}
-      >
-        <div className={`transition-colors text-white`}>
-          <MessageSquare className={`${isSidebarExpanded ? 'h-5 w-5' : 'h-5 w-5'}`} />
+      <div key="mom" className="mb-1.5">
+        <div
+          onMouseEnter={() => setHoveredModule('mom-main')}
+          onMouseLeave={() => setHoveredModule(null)}
+          onClick={() => handleModuleClick('mom-module')}
+          className={`w-full flex items-center cursor-pointer transition-all duration-300 ${isSidebarExpanded ? 'justify-between px-4 py-3.5' : 'justify-center px-2 py-3.5'
+            } rounded-xl ${isActive
+              ? 'bg-white/20 shadow-md text-white'
+              : isHovered
+                ? 'bg-white/15 shadow-sm text-white'
+                : 'hover:bg-white/10 text-white'
+            }`}
+        >
+          <div className={`flex items-center ${isSidebarExpanded ? 'space-x-3.5' : 'justify-center'}`}>
+            <div className={`transition-colors text-white`}>
+              <MessageSquare className={`${isSidebarExpanded ? 'h-5 w-5' : 'h-5 w-5'}`} />
+            </div>
+            {isSidebarExpanded && (
+              <span className={`font-semibold text-base text-white`}>
+                MOM
+              </span>
+            )}
+          </div>
+          {isSidebarExpanded && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleModuleExpansion('mom', e);
+              }}
+              className={`p-1.5 rounded-lg text-white ${isActive ? 'hover:bg-white/20' :
+                isHovered ? 'hover:bg-white/15' :
+                  'hover:bg-white/10'
+                }`}
+            >
+              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
+          )}
         </div>
-        {isSidebarExpanded && (
-          <span className={`font-semibold text-base text-white`}>
-            MOM
-          </span>
+
+        {isSidebarExpanded && isExpanded && (
+          <div className="ml-7 mt-1.5 space-y-1.5">
+            <button
+              key="meetings"
+              onMouseEnter={() => setHoveredModule('meetings')}
+              onMouseLeave={() => setHoveredModule(null)}
+              onClick={() => handleModuleClick('meetings')}
+              className={`w-full flex items-center space-x-3.5 rounded-lg px-3 py-2.5 transition-all duration-300 ${
+                activeModule === 'meetings'
+                  ? 'bg-white/20 shadow-sm text-white'
+                  : hoveredModule === 'meetings'
+                    ? 'bg-white/15 shadow-sm text-white'
+                    : 'hover:bg-white/10 text-white'
+              }`}
+            >
+              <div className="text-white">
+                <Calendar className="h-5 w-5" />
+              </div>
+              <span className={`text-sm font-medium truncate text-white`}>
+                Meetings
+              </span>
+            </button>
+          </div>
         )}
-      </button>
-    );
-  };
-
-  const renderScheduleMeetingModule = () => {
-    if (!hasPermission('MOM')) return null;
-
-    const isActive = activeModule === 'meetings';
-    const isHovered = hoveredModule === 'meetings';
-
-    return (
-      <button
-        key="meetings"
-        onMouseEnter={() => setHoveredModule('meetings')}
-        onMouseLeave={() => setHoveredModule(null)}
-        onClick={() => handleModuleClick('meetings')}
-        className={`w-full flex items-center transition-all duration-300 mb-1.5 ${isSidebarExpanded ? 'px-4 py-3.5 space-x-3.5' : 'justify-center px-2 py-3.5'
-          } rounded-xl ${isActive
-            ? 'bg-white/20 shadow-md text-white'
-            : isHovered
-              ? 'bg-white/15 shadow-sm text-white'
-              : 'hover:bg-white/10 text-white'
-          }`}
-      >
-        <div className={`transition-colors text-white`}>
-          <Calendar className={`${isSidebarExpanded ? 'h-5 w-5' : 'h-5 w-5'}`} />
-        </div>
-        {isSidebarExpanded && (
-          <span className={`font-semibold text-base text-white`}>
-            Meetings
-          </span>
-        )}
-      </button>
+      </div>
     );
   };
 
@@ -1250,7 +1265,6 @@ const Dashboard = () => {
           <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 relative z-10">
             {renderProjectDashboardModule()}
             {renderMOMModule()}
-            {renderScheduleMeetingModule()}
             {renderMastersModule()}
 
             <div className="space-y-1.5">

@@ -86,3 +86,9 @@ backend/test.db
 logs/
 *.tmp
 *.bak
+
+# =========================
+# Secrets
+# =========================
+backend/google_service_account.json
+

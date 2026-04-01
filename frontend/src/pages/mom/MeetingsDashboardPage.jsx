@@ -262,12 +262,7 @@ const MeetingsDashboardPage = () => {
                       <span className="text-xs text-gray-500 font-medium flex items-center gap-1">
                          <Users className="w-3 h-3" /> {m.attendees?.length || 0}
                       </span>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); navigate('/dashboard/mom'); }}
-                        className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 bg-indigo-50 px-2 py-1 rounded"
-                      >
-                         <FileText className="w-3 h-3" /> MOM Ready <ChevronRight className="w-3 h-3" />
-                      </button>
+                      <span className="text-[10px] font-bold text-gray-400">Archived</span>
                     </div>
                   </div>
                 ))}
