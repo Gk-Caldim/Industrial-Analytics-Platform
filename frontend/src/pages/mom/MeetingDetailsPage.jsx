@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Calendar, Clock, Users, Video, Edit, X, Copy, 
   ExternalLink, CheckCircle2, AlertCircle, FileText, 
-  Play, StopCircle, RefreshCw, Key
+  Play, StopCircle, RefreshCw, Key, ArrowLeft
 } from 'lucide-react';
 import './MeetingDetailsPage.css';
 import API from '../../utils/api';
@@ -219,6 +219,21 @@ const MeetingDetailsPage = () => {
 
       <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6 flex flex-col items-center">
           
+        {/* Back Button with Expand/Magnetic Effect */}
+        <div className="w-full flex justify-start mb-2">
+            <button 
+                onClick={() => navigate('/dashboard/meetings')} 
+                className="group flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-all duration-300 overflow-hidden hover:bg-indigo-50 px-2 hover:px-4 py-1.5 rounded-full"
+            >
+                <div className="bg-white group-hover:bg-indigo-100 p-1.5 rounded-full shadow-sm group-hover:shadow transition-all duration-300 transform group-hover:-translate-x-1">
+                    <ArrowLeft className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-semibold max-w-0 opacity-0 group-hover:max-w-xs group-hover:opacity-100 transition-all duration-500 whitespace-nowrap overflow-hidden">
+                    Back to Meetings
+                </span>
+            </button>
+        </div>
+
         {/* Header Section */}
         <div className="w-full bg-white border border-gray-200 rounded-2xl p-6 shadow-sm relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div className={`absolute top-0 left-0 w-1.5 h-full ${meetingStatus === 'live' ? 'bg-red-500' : meetingStatus === 'completed' ? 'bg-emerald-500' : meetingStatus === 'cancelled' ? 'bg-gray-400' : 'bg-indigo-500'}`}></div>
@@ -415,8 +430,13 @@ const MeetingDetailsPage = () => {
                             <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Direct Join Link</label>
                             <div className="flex">
                                 <input readOnly value={meeting.joinUrl} className="font-mono text-xs w-full bg-gray-50 border border-r-0 border-gray-200 p-2.5 rounded-l-lg outline-none" />
-                                <button onClick={() => handleCopy(meeting.joinUrl, 'link')} className="px-3 bg-gray-100 border border-l-0 border-gray-200 rounded-r-lg hover:bg-gray-200 transition-colors">
-                                    {copiedField === 'link' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-gray-600" />}
+                                <button onClick={() => handleCopy(meeting.joinUrl, 'link')} className="relative px-3 bg-gray-100 border border-l-0 border-gray-200 rounded-r-lg hover:bg-gray-200 transition-colors flex items-center justify-center min-w-[40px]">
+                                    {copiedField === 'link' ? (
+                                        <>
+                                          <CheckCircle2 className="w-4 h-4 text-emerald-600 animate-[bounce_0.5s_ease-out]" />
+                                          <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none animate-[bounce_1s_infinite]">Copied!</span>
+                                        </>
+                                    ) : <Copy className="w-4 h-4 text-gray-600" />}
                                 </button>
                             </div>
                         </div>
@@ -427,8 +447,13 @@ const MeetingDetailsPage = () => {
                               <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Meeting ID / Key</label>
                               <div className="flex">
                                   <input readOnly value={meeting.id} className="font-mono text-xs w-full bg-gray-50 border border-r-0 border-gray-200 p-2.5 rounded-l-lg outline-none" />
-                                  <button onClick={() => handleCopy(meeting.id, 'id')} className="px-3 bg-gray-100 border border-l-0 border-gray-200 rounded-r-lg hover:bg-gray-200 transition-colors">
-                                      {copiedField === 'id' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-gray-600" />}
+                                  <button onClick={() => handleCopy(meeting.id, 'id')} className="relative px-3 bg-gray-100 border border-l-0 border-gray-200 rounded-r-lg hover:bg-gray-200 transition-colors flex items-center justify-center min-w-[40px]">
+                                      {copiedField === 'id' ? (
+                                        <>
+                                          <CheckCircle2 className="w-4 h-4 text-emerald-600 animate-[bounce_0.5s_ease-out]" />
+                                          <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none animate-[bounce_1s_infinite]">Copied!</span>
+                                        </>
+                                      ) : <Copy className="w-4 h-4 text-gray-600" />}
                                   </button>
                               </div>
                           </div>
@@ -439,8 +464,13 @@ const MeetingDetailsPage = () => {
                               <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block flex items-center gap-1"><Key className="w-3 h-3" /> Passcode</label>
                               <div className="flex">
                                   <input readOnly value={meeting.passcode} className="font-mono text-sm tracking-widest font-bold w-full bg-indigo-50/50 border border-r-0 border-indigo-100 text-indigo-700 p-2.5 rounded-l-lg outline-none" />
-                                  <button onClick={() => handleCopy(meeting.passcode, 'passcode')} className="px-3 bg-indigo-50 border border-l-0 border-indigo-100 rounded-r-lg hover:bg-indigo-100 transition-colors">
-                                      {copiedField === 'passcode' ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-indigo-600" />}
+                                  <button onClick={() => handleCopy(meeting.passcode, 'passcode')} className="relative px-3 bg-indigo-50 border border-l-0 border-indigo-100 rounded-r-lg hover:bg-indigo-100 transition-colors flex items-center justify-center min-w-[40px]">
+                                      {copiedField === 'passcode' ? (
+                                        <>
+                                          <CheckCircle2 className="w-4 h-4 text-emerald-600 animate-[bounce_0.5s_ease-out]" />
+                                          <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none animate-[bounce_1s_infinite]">Copied!</span>
+                                        </>
+                                      ) : <Copy className="w-4 h-4 text-indigo-600" />}
                                   </button>
                               </div>
                           </div>
