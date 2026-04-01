@@ -37,7 +37,7 @@ const EmployeeMaster = () => {
     name: '',
     email: '',
     department: '',
-    role: 'User', 
+    role: 'Employee', 
     status: 'Active', 
     modules: [],
     password: '',
@@ -50,7 +50,7 @@ const EmployeeMaster = () => {
     name: '',
     email: '',
     department: '',
-    role: 'User',
+    role: 'Employee',
     status: 'Active',
     modules: [],
     password: '',
@@ -1315,17 +1315,14 @@ const EmployeeMaster = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Role <span className="text-red-500">*</span></label>
-                    <input
-                      list="predefined-roles"
-                      type="text"
+                    <select
                       value={newEmployee.role || ''}
                       onChange={(e) => handleNewEmployeeChange('role', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
-                      placeholder="Select or type role"
-                    />
-                    <datalist id="predefined-roles">
-                      {PREDEFINED_ROLES.map(r => <option key={r} value={r} />)}
-                    </datalist>
+                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black bg-white dark:bg-slate-800"
+                    >
+                      <option value="" disabled>Select role</option>
+                      {PREDEFINED_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
                   </div>
                 </div>
               </div>
@@ -1504,17 +1501,14 @@ const EmployeeMaster = () => {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Role <span className="text-red-500">*</span></label>
-                    <input
-                      list="edit-predefined-roles"
-                      type="text"
+                    <select
                       value={editForm.role || ''}
                       onChange={(e) => handleEditFormChange('role', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
-                      placeholder="Select or type role"
-                    />
-                    <datalist id="edit-predefined-roles">
-                      {PREDEFINED_ROLES.map(r => <option key={r} value={r} />)}
-                    </datalist>
+                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black bg-white dark:bg-slate-800"
+                    >
+                      <option value="" disabled>Select role</option>
+                      {PREDEFINED_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
                   </div>
                 </div>
               </div>

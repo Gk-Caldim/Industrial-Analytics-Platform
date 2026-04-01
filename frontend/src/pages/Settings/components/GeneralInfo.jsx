@@ -1,19 +1,46 @@
-import React from 'react';
-import { Building2, MapPin, Globe, Banknote, Upload, Trash2, ShieldCheck, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { Building2, MapPin, Globe, Banknote, Upload, Trash2, ShieldCheck, Info, Edit } from 'lucide-react';
+import ImageCropperModal from './ImageCropperModal';
 
 const GeneralInfo = ({ settings, onUpdate, onLogoUpload }) => {
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [imageToCrop, setImageToCrop] = useState(null);
+
   const getValue = (key) => settings.find(s => s.key === key)?.value || '';
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImageToCrop(reader.result);
+        setIsCropModalOpen(true);
+      };
+      reader.readAsDataURL(file);
+    }
+    // Reset input so the same file can be selected again
+    e.target.value = '';
+  };
+
+  const handleEditExistingLogo = async () => {
+    const currentLogo = getValue('company_logo');
+    if (!currentLogo) return;
+    
+    setImageToCrop(currentLogo);
+    setIsCropModalOpen(true);
+  };
+
+  const handleCropComplete = (croppedFile) => {
+    setIsCropModalOpen(false);
+    onLogoUpload(croppedFile);
+  };
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-right-8 duration-700">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-black text-slate-800 tracking-tight">Organization Landscape</h2>
-          <p className="text-slate-500 font-medium text-sm mt-1">Manage company identity, localization and operational basics</p>
-        </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-indigo-50/50 text-indigo-600 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-indigo-100/50 shadow-sm">
-          CURRENT PLAN: <span className="text-indigo-700">PRO</span>
-        </div>
+           </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -67,7 +94,8 @@ const GeneralInfo = ({ settings, onUpdate, onLogoUpload }) => {
                     <Globe className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <input
                       type="text"
-                      defaultValue="India"
+                      value={getValue('operational_country') || 'India'}
+                      onChange={(e) => onUpdate('operational_country', e.target.value)}
                       className="w-full h-14 pl-12 pr-6 bg-slate-50/50 border border-slate-200/80 rounded-2xl focus:ring-8 focus:ring-indigo-500/5 transition-all font-bold text-slate-700"
                     />
                   </div>
@@ -78,7 +106,11 @@ const GeneralInfo = ({ settings, onUpdate, onLogoUpload }) => {
                   </label>
                   <div className="relative">
                     <Banknote className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <select className="w-full h-14 pl-12 pr-10 bg-slate-50/50 border border-slate-200/80 rounded-2xl focus:ring-8 focus:ring-indigo-500/5 transition-all font-bold text-slate-700 appearance-none cursor-pointer">
+                    <select 
+                      value={getValue('base_currency') || 'USD ($)'}
+                      onChange={(e) => onUpdate('base_currency', e.target.value)}
+                      className="w-full h-14 pl-12 pr-10 bg-slate-50/50 border border-slate-200/80 rounded-2xl focus:ring-8 focus:ring-indigo-500/5 transition-all font-bold text-slate-700 appearance-none cursor-pointer"
+                    >
                       <option>USD ($)</option>
                       <option>INR (₹)</option>
                       <option>EUR (€)</option>
@@ -90,19 +122,7 @@ const GeneralInfo = ({ settings, onUpdate, onLogoUpload }) => {
                 </div>
               </div>
             </div>
-          </div>
-
-          {/* System Localization Mini-Card */}
-          <div className="bg-slate-50/50 p-6 rounded-3xl border border-dashed border-slate-200 flex items-center gap-6">
-             <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 flex-shrink-0">
-                <ShieldCheck className="h-6 w-6 text-indigo-500" />
-             </div>
-             <div className="flex-1">
-                <h4 className="text-sm font-black text-slate-800 tracking-tight">System Localization</h4>
-                <p className="text-[11px] text-slate-500 font-medium">Regional and time-based configurations</p>
-             </div>
-             <button className="px-5 h-10 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-white hover:shadow-md transition-all">Config</button>
-          </div>
+          </div> 
         </div>
 
         {/* Right Column: Logo & Additional Info */}
@@ -118,7 +138,6 @@ const GeneralInfo = ({ settings, onUpdate, onLogoUpload }) => {
               </div>
               <div className="text-left">
                 <h3 className="font-black text-slate-800 text-sm tracking-widest uppercase">Company Logo</h3>
-                <p className="text-[11px] text-slate-400 font-bold uppercase tracking-tight mt-0.5">Brand assets for system reporting</p>
               </div>
             </div>
 
@@ -129,6 +148,10 @@ const GeneralInfo = ({ settings, onUpdate, onLogoUpload }) => {
                     src={getValue('company_logo')} 
                     alt="Logo" 
                     className="max-h-full max-w-full object-contain rounded-2xl drop-shadow-sm"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "/caldimlogo.png";
+                    }}
                   />
                 ) : (
                   <>
@@ -141,45 +164,52 @@ const GeneralInfo = ({ settings, onUpdate, onLogoUpload }) => {
               </div>
               
               <input 
+                id="logo-upload-input"
                 type="file" 
-                onChange={onLogoUpload}
+                onChange={handleFileChange}
                 className="absolute inset-0 opacity-0 cursor-pointer" 
                 accept="image/*"
               />
             </div>
 
             <div className="flex flex-col gap-3 w-full">
-              <button className="w-full h-14 flex items-center justify-center gap-3 bg-indigo-50/50 text-indigo-600 rounded-2xl font-black text-xs tracking-widest hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100/50 group uppercase">
+              <button 
+                onClick={() => document.getElementById('logo-upload-input').click()}
+                className="w-full h-14 flex items-center justify-center gap-3 bg-indigo-50/50 text-indigo-600 rounded-2xl font-black text-xs tracking-widest hover:bg-indigo-600 hover:text-white transition-all border border-indigo-100/50 group uppercase"
+              >
                 <Upload className="h-5 w-5 group-hover:-translate-y-1 transition-transform" />
                 Upload New Logo
               </button>
-              {getValue('company_logo') && (
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={handleEditExistingLogo}
+                  disabled={!getValue('company_logo')}
+                  className="flex-1 h-12 flex items-center justify-center gap-2 bg-indigo-50/50 text-indigo-600 rounded-2xl font-black text-[10px] tracking-widest hover:bg-indigo-100 transition-all border border-indigo-100/30 uppercase disabled:opacity-30"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit Logo
+                </button>
                 <button 
                   onClick={() => onUpdate('company_logo', '')}
-                  className="w-full h-12 flex items-center justify-center gap-2 text-red-500 rounded-2xl font-black text-[10px] tracking-widest hover:bg-red-50 transition-all uppercase"
+                  className="flex-1 h-12 flex items-center justify-center gap-2 text-red-500 rounded-2xl font-black text-[10px] tracking-widest hover:bg-red-50 transition-all uppercase"
                 >
                   <Trash2 className="h-4 w-4" />
                   Remove Logo
                 </button>
-              )}
+              </div>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-slate-200/60 shadow-sm relative overflow-hidden group">
-             <div className="flex items-start gap-4">
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
-                   <Info className="h-5 w-5" />
-                </div>
-                <div>
-                   <h4 className="text-sm font-black text-slate-800 tracking-tight">Data Integrity</h4>
-                   <p className="text-[11px] text-slate-500 font-medium leading-relaxed mt-1">
-                      Organization data is utilized across all platform reports and PDF exports. Ensure accuracy before syncing.
-                   </p>
-                </div>
-             </div>
-          </div>
+          
         </div>
       </div>
+      {isCropModalOpen && (
+        <ImageCropperModal 
+          image={imageToCrop} 
+          onCropComplete={handleCropComplete} 
+          onCancel={() => setIsCropModalOpen(false)} 
+        />
+      )}
     </div>
   );
 };

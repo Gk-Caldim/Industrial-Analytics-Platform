@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { setBranding } from '../../store/slices/navSlice';
 import { 
   Plus, Search, Edit, Trash2, X, Check, 
   ChevronRight, Layout, Settings, Shield, 
@@ -16,10 +18,11 @@ import AccessControl from './components/AccessControl';
 import AuditHistory from './components/AuditHistory';
 
 const SystemSettings = () => {
+  const dispatch = useDispatch();
   const { themeSettings, updateThemeLocally, refreshTheme } = useTheme();
   const [settings, setSettings] = useState([]);
   const [modifiedSettings, setModifiedSettings] = useState({});
-  const [activeCategory, setActiveCategory] = useState('Access Control');
+  const [activeCategory, setActiveCategory] = useState('Organization');
   const [searchTerm, setSearchTerm] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState(null);
@@ -59,6 +62,43 @@ const SystemSettings = () => {
     setModifiedSettings(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleLogoUpload = async (imageSource) => {
+    let file;
+    if (imageSource instanceof File) {
+      file = imageSource;
+    } else {
+      file = imageSource.target.files[0];
+    }
+    
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      setIsSaving(true);
+      const response = await API.post('/settings/upload-logo', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      const logoUrl = response.data.url;
+      
+      // Update local state
+      setSettings(prev => prev.map(s => s.key === 'company_logo' ? { ...s, value: logoUrl } : s));
+      
+      // Update Redux globally
+      dispatch(setBranding({ companyLogo: logoUrl }));
+      
+      showNotification('Logo uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading logo:', error);
+      showNotification('Failed to upload logo', 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const syncUpdates = async () => {
     if (Object.keys(modifiedSettings).length === 0) return;
     setIsSaving(true);
@@ -68,6 +108,12 @@ const SystemSettings = () => {
         return { key, value, category: original?.category || 'General', type: original?.type || 'text' };
       });
       await API.patch('/settings/bulk', { settings: settingsToUpdate });
+      
+      // Update Redux if branding changed
+      if (modifiedSettings.company_name) {
+        dispatch(setBranding({ companyName: modifiedSettings.company_name }));
+      }
+
       if (modifiedSettings.primary_color || modifiedSettings.secondary_color || modifiedSettings.display_mode) {
         refreshTheme();
       }
@@ -84,7 +130,7 @@ const SystemSettings = () => {
   const renderContent = () => {
     switch(activeCategory) {
       case 'Organization':
-        return <GeneralInfo settings={settings} onUpdate={handleUpdate} />;
+        return <GeneralInfo settings={settings} onUpdate={handleUpdate} onLogoUpload={handleLogoUpload} />;
       case 'Access Control':
         return <AccessControl />;
       case 'Audit Logs':

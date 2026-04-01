@@ -156,7 +156,6 @@ const AccessControl = () => {
                  </div>
                  <div>
                     <h3 className="text-xl font-bold text-[#1E293B]">{selectedRole} Permissions</h3>
-                    <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Configure granular module-level access for the selected role.</p>
                  </div>
               </div>
               <div className="flex items-center gap-3">
