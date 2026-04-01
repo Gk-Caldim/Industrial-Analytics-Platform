@@ -738,7 +738,6 @@ const UploadTrackers = () => {
   // Department options - Updated to match ProjectDashboard
   const departmentOptions = [
     'Design Release',
-    'Part Development',
     'Build',
     'Gateway',
     'Validation',

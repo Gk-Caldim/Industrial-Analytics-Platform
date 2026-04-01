@@ -11,17 +11,17 @@ import SubCategoryModal from "../../components/SubCategoryModal";
 const ProjectMaster = () => {
   // Fixed columns matching backend Project model
   const initialColumns = [
-    { id: 'project_id', label: 'Project ID', visible: true, sortable: true, type: 'text', required: true },
     { id: 'name', label: 'Project Name', visible: true, sortable: true, type: 'text', required: true },
-    { id: 'manager', label: 'Project Manager', visible: true, sortable: true, type: 'manager_select', options: [], required: true },
     { id: 'employee_id', label: 'Employee ID', visible: true, sortable: true, type: 'employee_id', required: false },
     { id: 'employee_name', label: 'Employee Name', visible: true, sortable: true, type: 'employee_name', required: false },
-    { id: 'status', label: 'Status', visible: true, sortable: true, type: 'select', required: true },
-    { id: 'sub_category', label: 'Sub Category', visible: true, sortable: false, type: 'sub_category_button', required: false },
     { id: 'budget', label: 'Budget', visible: true, sortable: true, type: 'number', required: true },
     { id: 'utilized_budget', label: 'Utilized Budget', visible: true, sortable: true, type: 'number', required: false, readonly: true },
     { id: 'balance_budget', label: 'Balance Budget', visible: true, sortable: true, type: 'number', required: false, readonly: true },
     { id: 'timeline', label: 'Timeline', visible: true, sortable: true, type: 'text', required: false },
+    { id: 'status', label: 'Status', visible: true, sortable: true, type: 'select', required: true },
+    { id: 'sub_category', label: 'Sub Category', visible: true, sortable: false, type: 'sub_category_button', required: false },
+    { id: 'project_id', label: 'Project ID', visible: false, sortable: true, type: 'text', required: true },
+    { id: 'manager', label: 'Project Manager', visible: false, sortable: true, type: 'manager_select', options: [], required: true },
   ];
 
   // Status colors mapping
@@ -54,7 +54,7 @@ const ProjectMaster = () => {
 
   // Load columns from localStorage - Aggressive refresh with new key
   const [columns, setColumns] = useState(() => {
-    const CURRENT_STORAGE_KEY = 'master_project_data_config_v3';
+    const CURRENT_STORAGE_KEY = 'master_project_data_config_v4';
     // Clean up all old project_columns_v* keys
     Object.keys(localStorage).forEach(key => {
       if (key.startsWith('project_columns_v')) {
@@ -110,6 +110,10 @@ const ProjectMaster = () => {
   // Sub-category modal state
   const [showSubCategoryModal, setShowSubCategoryModal] = useState(false);
   const [activeSubCategoryProject, setActiveSubCategoryProject] = useState(null);
+
+  // View modal state
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewData, setViewData] = useState(null);
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
   const API_URL = `${API_BASE_URL}/projects`;
@@ -219,7 +223,7 @@ const ProjectMaster = () => {
 
   // Save columns to localStorage
   useEffect(() => {
-    localStorage.setItem('master_project_data_config_v3', JSON.stringify(columns));
+    localStorage.setItem('master_project_data_config_v4', JSON.stringify(columns));
   }, [columns]);
 
   // Checkbox Functions
@@ -1604,6 +1608,56 @@ const ProjectMaster = () => {
           </div>
         )}
 
+        {/* View Project Modal */}
+        {showViewModal && viewData && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                    <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white leading-none">Project Details</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Full information for {viewData.name}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-all"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+                  {columns.map((col) => (
+                    <div key={col.id} className="flex flex-col gap-1">
+                      <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{col.label}</span>
+                      <div className="px-3 py-2.5 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-slate-100 dark:border-slate-700 min-h-[42px] flex items-center">
+                        {renderCellContent(col, viewData[col.id], viewData)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex justify-end">
+                <button
+                  onClick={() => setShowViewModal(false)}
+                  className="px-6 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-sm shadow-sm"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <SubCategoryModal
           isOpen={showSubCategoryModal}
           onClose={() => setShowSubCategoryModal(false)}
@@ -1866,7 +1920,10 @@ const ProjectMaster = () => {
                           </th>
                         );
                       })}
-                      <th className="w-24"></th>
+                      {/* Actions Header - Sticky Right */}
+                      <th className="sticky right-0 bg-slate-100 dark:bg-slate-700 z-20 px-6 py-3 text-right font-medium border-l border-slate-200 dark:border-slate-700 w-24">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
 
@@ -1908,8 +1965,20 @@ const ProjectMaster = () => {
                             );
                           })}
                           {/* Actions Cell */}
-                          <td className="py-3 px-6 text-right whitespace-nowrap w-[100px]">
-                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          {/* Actions Cell - Sticky Right */}
+                          <td className={`sticky right-0 z-10 py-3 px-6 text-right whitespace-nowrap w-[100px] border-l border-slate-100 dark:border-slate-700 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.05)] ${
+                            selectedProjects.includes(proj.id) 
+                              ? 'bg-[#f8faff] dark:bg-[#1e293b]' 
+                              : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 group-hover:bg-slate-50 dark:group-hover:bg-slate-700/50 transition-colors'
+                          }`}>
+                            <div className="flex items-center justify-end gap-1 transition-opacity duration-200">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setViewData(proj); setShowViewModal(true); }}
+                                className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                                title="View Details"
+                              >
+                                <Eye className="h-4 w-4" />
+                              </button>
                               <button
                                 onClick={(e) => { e.stopPropagation(); startEditing(proj); }}
                                 className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"

@@ -21,7 +21,13 @@
   --glass-header-opacity: 0.6;
   --glass-header-bg: rgba(255, 255, 255, var(--glass-header-opacity));
   --glass-header-blur: blur(12px);
+
+  /* Branding Variables */
+  --primary-color: #6366f1;
+  --secondary-color: #0ea5e9;
+  --primary-color-rgb: 99, 102, 241; /* Default RGB for Indigo 500 */
 }
+
 
 @layer base {
   body {

@@ -17,6 +17,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
   const [editForm, setEditForm] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showDeletePrompt, setShowDeletePrompt] = useState(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
   
   // Use DEFAULT_COLUMNS directly - they're already in your specified order
   const [columns, setColumns] = useState(DEFAULT_COLUMNS);
@@ -824,7 +825,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
     if (column.type === 'action') {
       if (column.id === 'view_action') {
         return (
-          <div className="flex space-x-1">
+          <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
             <button 
               onClick={() => {/* Add view functionality */}}
               className="p-1 text-blue-600 hover:text-blue-800 bg-blue-50 rounded border border-blue-200"
@@ -837,7 +838,7 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
       }
       if (column.id === 'edit_action') {
         return (
-          <div className="flex space-x-1">
+          <div className="flex space-x-1 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 delay-75">
             <button 
               onClick={() => startEditing(meeting)}
               className="p-1 text-green-600 hover:text-green-800 bg-green-50 rounded border border-green-200"
@@ -849,15 +850,31 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
         );
       }
       if (column.id === 'delete_action') {
+        const isConfirming = confirmingDeleteId === meeting.id;
         return (
-          <div className="flex space-x-1">
-            <button 
-              onClick={() => showDeleteConfirmation(meeting.id, meeting.project_name)}
-              className="p-1 text-red-600 hover:text-red-800 bg-red-50 rounded border border-red-200"
-              title="Delete row"
-            >
-              <Icons.Trash2 className="h-3 w-3" />
-            </button>
+          <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 delay-150">
+            {isConfirming ? (
+              <button 
+                onClick={() => {
+                  if (onDeleteMeeting) onDeleteMeeting(meeting.id);
+                  setConfirmingDeleteId(null);
+                }}
+                onMouseLeave={() => setConfirmingDeleteId(null)}
+                className="px-2 py-0.5 text-[10px] sm:text-xs font-bold text-white bg-red-600 rounded shadow hover:bg-red-700 animate-[shake_0.5s_ease-in-out]"
+                style={{ animationIterationCount: '1' }}
+                title="Confirm delete"
+              >
+                Confirm?
+              </button>
+            ) : (
+              <button 
+                onClick={() => setConfirmingDeleteId(meeting.id)}
+                className="p-1 text-red-600 hover:text-red-800 bg-red-50 rounded border border-red-200"
+                title="Delete row"
+              >
+                <Icons.Trash2 className="h-3 w-3" />
+              </button>
+            )}
           </div>
         );
       }
@@ -904,8 +921,15 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
       );
     } else if (column.id === 'status') {
       const statusInfo = getStatusInfo(value);
+      const isLive = value === 'in-progress';
       return (
-        <span className={`px-2 py-1 rounded-full text-[10px] sm:text-xs font-medium ${statusInfo.color}`}>
+        <span className={`px-2 py-1 rounded-full text-[10px] sm:text-xs font-medium inline-flex items-center w-max transition-colors duration-500 ${statusInfo.color}`}>
+          {isLive && (
+            <span className="relative flex h-2 w-2 mr-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </span>
+          )}
           {statusInfo.label}
         </span>
       );
@@ -1369,11 +1393,10 @@ const MeetingTable = ({ meetings, onUpdateMeeting, onDeleteMeeting }) => {
               </tr>
             </thead>
             <tbody>
-              {/* Existing meetings */}
               {sortedMeetings.map((meeting) => (
                 <tr 
                   key={meeting.id} 
-                  className={`border-b border-gray-200 hover:bg-gray-50 ${meeting.is_summary ? 'bg-purple-50' : ''}`}
+                  className={`group border-b border-gray-200 hover:bg-gray-50 transition-colors duration-200 ${meeting.is_summary ? 'bg-purple-50' : ''}`}
                 >
                   {/* FULL ROW EDIT MODE */}
                   {editingId === meeting.id ? (

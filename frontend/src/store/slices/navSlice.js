@@ -11,6 +11,8 @@ const initialState = {
   selectedProjectFileId: JSON.parse(sessionStorage.getItem('selected_project_file_id')) || null,
   activeProjectName: sessionStorage.getItem('active_project_name') || null,
   sidebarCollapsed: false,
+  companyLogo: sessionStorage.getItem('company_logo') || null,
+  companyName: sessionStorage.getItem('company_name') || 'Industrial Analytics Platform',
 };
 
 const navSlice = createSlice({
@@ -57,6 +59,18 @@ const navSlice = createSlice({
     setSidebarCollapsed: (state, action) => {
       state.sidebarCollapsed = action.payload;
     },
+    setBranding: (state, action) => {
+      const { companyLogo, companyName } = action.payload;
+      if (companyLogo !== undefined) {
+        state.companyLogo = companyLogo;
+        if (companyLogo) sessionStorage.setItem('company_logo', companyLogo);
+        else sessionStorage.removeItem('company_logo');
+      }
+      if (companyName !== undefined) {
+        state.companyName = companyName;
+        sessionStorage.setItem('company_name', companyName);
+      }
+    },
   },
 });
 
@@ -67,7 +81,8 @@ export const {
   setSelectedUploadFileId,
   setSelectedProjectFileId,
   setActiveProjectName,
-  setSidebarCollapsed
+  setSidebarCollapsed,
+  setBranding
 } = navSlice.actions;
 
 export default navSlice.reducer;
