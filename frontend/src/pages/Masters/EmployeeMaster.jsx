@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, Copy, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import axios from 'axios';
 
@@ -8,15 +9,7 @@ const MODULE_LIST = [
   'Budget Upload', 'Settings'
 ];
 
-const PREDEFINED_ROLES = ['Super Admin', 'Admin', 'Manager', 'Employee', 'Intern'];
 
-const ROLE_PERMISSIONS = {
-  'Super Admin': [...MODULE_LIST],
-  'Admin': MODULE_LIST.filter(m => m !== 'Settings'),
-  'Manager': ['Dashboard', 'MOM', 'Project Master', 'Department Master', 'Upload Trackers'],
-  'Employee': ['Dashboard', 'MOM'],
-  'Intern': ['Dashboard']
-};
 
 const EmployeeMaster = () => {
   // Fixed columns - Simplified un-grouped structure with SaaS styling
@@ -104,6 +97,7 @@ const EmployeeMaster = () => {
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [showDeleteColumnPrompt, setShowDeleteColumnPrompt] = useState(null);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+  const [dynamicRoles, setDynamicRoles] = useState([]);
 
   // Filter Dropdown state
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -117,6 +111,15 @@ const EmployeeMaster = () => {
   // Temporary states for modal selections
   const [tempFrozenRows, setTempFrozenRows] = useState([]);
   const [tempFrozenColumns, setTempFrozenColumns] = useState([]);
+
+  // Get permissions from Redux store
+  const { user } = useSelector((state) => state.auth);
+  const userPermissions = user?.permissions || [];
+
+  const hasPermission = (module, action = null) => {
+    if (!action) return userPermissions.includes(module);
+    return userPermissions.includes(`${module}:${action}`);
+  };
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
@@ -138,6 +141,7 @@ const EmployeeMaster = () => {
     setError(null);
     try {
       await fetchEmployees();
+      await fetchDynamicRoles();
     } catch (err) {
       console.error("Error loading data:", err);
       setError("Failed to load data. Please try again.");
@@ -158,6 +162,17 @@ const EmployeeMaster = () => {
     } catch (err) {
       console.error("Error fetching employees", err);
       throw err;
+    }
+  };
+
+  const fetchDynamicRoles = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/roles/`);
+      if (Array.isArray(res.data)) {
+        setDynamicRoles(res.data);
+      }
+    } catch (err) {
+      console.error("Error fetching roles", err);
     }
   };
 
@@ -433,9 +448,12 @@ const EmployeeMaster = () => {
   const handleNewEmployeeChange = (field, value) => {
     setNewEmployee(prev => {
       const updated = { ...prev, [field]: value };
-      // Auto-toggle permissions if role is predefined
-      if (field === 'role' && ROLE_PERMISSIONS[value]) {
-        updated.modules = ROLE_PERMISSIONS[value];
+      // Auto-toggle permissions if role is dynamic
+      if (field === 'role') {
+        const roleObj = dynamicRoles.find(r => r.name === value);
+        if (roleObj) {
+          updated.modules = roleObj.permissions || [];
+        }
       }
       return updated;
     });
@@ -570,9 +588,12 @@ const EmployeeMaster = () => {
   const handleEditFormChange = (field, value) => {
     setEditForm(prev => {
       const updated = { ...prev, [field]: value };
-      // Auto-toggle permissions if role is predefined
-      if (field === 'role' && ROLE_PERMISSIONS[value]) {
-        updated.modules = ROLE_PERMISSIONS[value];
+      // Auto-toggle permissions if role is dynamic
+      if (field === 'role') {
+        const roleObj = dynamicRoles.find(r => r.name === value);
+        if (roleObj) {
+          updated.modules = roleObj.permissions || [];
+        }
       }
       return updated;
     });
@@ -1321,7 +1342,7 @@ const EmployeeMaster = () => {
                       className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black bg-white dark:bg-slate-800"
                     >
                       <option value="" disabled>Select role</option>
-                      {PREDEFINED_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                      {dynamicRoles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
                     </select>
                   </div>
                 </div>
@@ -1374,43 +1395,6 @@ const EmployeeMaster = () => {
                 </div>
               </div>
 
-              {/* Permissions Section */}
-              <div className="mb-6">
-                <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Permissions</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-y-6 gap-x-4">
-                  {MODULE_LIST.map((module) => {
-                    const isAllowed = (newEmployee.modules || []).includes(module);
-                    return (
-                      <div key={module} className="flex flex-col items-center text-center">
-                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-2 truncate w-full px-1">
-                          {module}
-                        </span>
-                        <div 
-                          onClick={() => {
-                            const current = newEmployee.modules || [];
-                            const updated = current.includes(module)
-                              ? current.filter(m => m !== module)
-                              : [...current, module];
-                            handleNewEmployeeChange('modules', updated);
-                          }}
-                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                            isAllowed ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'
-                          }`}
-                        >
-                          <span
-                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                              isAllowed ? 'translate-x-5' : 'translate-x-0'
-                            }`}
-                          />
-                        </div>
-                        <span className="text-[10px] mt-1 font-bold text-slate-400">
-                          {isAllowed ? 'ON' : 'OFF'}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
 
               <div className="flex justify-end space-x-2">
                 <button
@@ -1507,7 +1491,7 @@ const EmployeeMaster = () => {
                       className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black bg-white dark:bg-slate-800"
                     >
                       <option value="" disabled>Select role</option>
-                      {PREDEFINED_ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                      {dynamicRoles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
                     </select>
                   </div>
                 </div>
@@ -1560,43 +1544,6 @@ const EmployeeMaster = () => {
                 </div>
               </div>
 
-              {/* Permissions Section */}
-              <div className="mb-6">
-                <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Permissions</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-y-6 gap-x-4">
-                  {MODULE_LIST.map((module) => {
-                    const isAllowed = (editForm.modules || []).includes(module);
-                    return (
-                      <div key={module} className="flex flex-col items-center text-center">
-                        <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400 mb-2 truncate w-full px-1">
-                          {module}
-                        </span>
-                        <div 
-                          onClick={() => {
-                            const current = editForm.modules || [];
-                            const updated = current.includes(module)
-                              ? current.filter(m => m !== module)
-                              : [...current, module];
-                            handleEditFormChange('modules', updated);
-                          }}
-                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                            isAllowed ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'
-                          }`}
-                        >
-                          <span
-                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                              isAllowed ? 'translate-x-5' : 'translate-x-0'
-                            }`}
-                          />
-                        </div>
-                        <span className="text-[10px] mt-1 font-bold text-slate-400">
-                          {isAllowed ? 'ON' : 'OFF'}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
 
               <div className="flex justify-end space-x-2">
                 <button
@@ -1723,24 +1670,28 @@ const EmployeeMaster = () => {
                   <div className="flex gap-2 mt-2 sm:mt-0">
 
                     {/* Add Employee Button */}
-                    <button
-                      onClick={handleAddEmployeeClick}
-                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
-                      data-tooltip="Add employee"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span className="hidden sm:inline">Add Employee</span>
-                    </button>
+                    {hasPermission('Employee Master', 'ADD') && (
+                      <button
+                        onClick={handleAddEmployeeClick}
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
+                        data-tooltip="Add employee"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span className="hidden sm:inline">Add Employee</span>
+                      </button>
+                    )}
 
                     {/* Add Column Button */}
-                    <button
-                      onClick={() => setShowColumnModal(true)}
-                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 whitespace-nowrap master-table-tooltip"
-                      data-tooltip="Add column"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span className="hidden sm:inline">Add Column</span>
-                    </button>
+                    {hasPermission('Employee Master', 'CUSTOM_COLUMNS') && (
+                      <button
+                        onClick={() => setShowColumnModal(true)}
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 whitespace-nowrap master-table-tooltip"
+                        data-tooltip="Add column"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span className="hidden sm:inline">Add Column</span>
+                      </button>
+                    )}
 
                     {/* Export Button with Dropdown */}
                     <div className="relative">
@@ -2023,20 +1974,24 @@ const EmployeeMaster = () => {
                               : 'bg-white dark:bg-slate-800 group-hover:bg-slate-50 dark:group-hover:bg-slate-700/50'
                           }`}>
                             <div className="flex items-center justify-end gap-1 transition-opacity duration-200">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); startEditing(emp); }}
-                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
-                                title="Edit"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setShowDeletePrompt({ id: emp.id, name: emp.name }); }}
-                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
-                                title="Delete"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
+                              {hasPermission('Employee Master', 'EDIT') && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); startEditing(emp); }}
+                                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                                  title="Edit"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                              )}
+                              {hasPermission('Employee Master', 'DELETE') && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setShowDeletePrompt({ id: emp.id, name: emp.name }); }}
+                                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -2060,13 +2015,15 @@ const EmployeeMaster = () => {
                 {/* LEFT SIDE - Add Employee and Action Buttons */}
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1">
-                    <button
-                      onClick={handleAddEmployeeClick}
-                      className="flex items-center gap-1 h-10 px-3 text-xs border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 master-table-tooltip"
-                      data-tooltip="Add employee"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
+                    {hasPermission('Employee Master', 'ADD') && (
+                      <button
+                        onClick={handleAddEmployeeClick}
+                        className="flex items-center gap-1 h-10 px-3 text-xs border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 master-table-tooltip"
+                        data-tooltip="Add employee"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       onClick={toggleFreezeRow}
                       className={`flex items-center gap-1 h-10 px-3 text-xs border rounded master-table-tooltip ${frozenRows.length > 0

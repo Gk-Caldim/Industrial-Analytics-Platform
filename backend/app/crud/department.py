@@ -12,11 +12,10 @@ def create_department(db: Session, dept: DepartmentCreate):
     db_dept = Department(
         name=dept.name,
         head=dept.head,
-        budget=dept.budget,
+        project_name=dept.project_name,
         location=dept.location,
         employees=0,
         status="Active",
-        email=dept.email,
         custom_attributes=dept.custom_attributes
     )
     db.add(db_dept)

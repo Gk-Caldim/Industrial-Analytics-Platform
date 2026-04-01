@@ -14,10 +14,9 @@ const DepartmentMaster = () => {
     { id: 'name', label: 'Department Name', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'head', label: 'Department Head', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'employees', label: 'Employees', visible: true, sortable: true, type: 'number', required: true, deletable: false },
-    { id: 'budget', label: 'Budget', visible: true, sortable: true, type: 'number', required: true, deletable: false },
+    { id: 'project_name', label: 'Project Name', visible: true, sortable: true, type: 'text', required: false, deletable: false },
     { id: 'location', label: 'Location', visible: true, sortable: true, type: 'text', required: false, deletable: false },
     { id: 'status', label: 'Status', visible: true, sortable: true, type: 'select', required: true, deletable: false },
-    { id: 'email', label: 'Email', visible: true, sortable: false, type: 'email', required: false, deletable: false },
   ];
 
   // Status colors mapping
@@ -48,7 +47,7 @@ const DepartmentMaster = () => {
 
   // Load columns from localStorage
   const [columns, setColumns] = useState(() => {
-    const savedColumns = localStorage.getItem('department_columns_v3');
+    const savedColumns = localStorage.getItem('department_columns_v4');
     return savedColumns ? JSON.parse(savedColumns) : initialColumns;
   });
 
@@ -162,7 +161,7 @@ const DepartmentMaster = () => {
 
   // Save columns to localStorage
   useEffect(() => {
-    localStorage.setItem('department_columns_v3', JSON.stringify(columns));
+    localStorage.setItem('department_columns_v4', JSON.stringify(columns));
   }, [columns]);
 
   // Checkbox Functions
@@ -298,7 +297,7 @@ const DepartmentMaster = () => {
 
   const handleDeleteColumn = (columnId) => {
     const column = columns.find(col => col.id === columnId);
-    const isFixedColumn = ['department_id', 'name', 'head', 'employees', 'budget', 'location', 'status', 'email'].includes(columnId);
+    const isFixedColumn = ['department_id', 'name', 'head', 'employees', 'project_name', 'location', 'status'].includes(columnId);
 
     if (isFixedColumn) {
       setShowDeleteColumnPrompt({
@@ -461,10 +460,9 @@ const DepartmentMaster = () => {
       name: deptData.name || '',
       head: deptData.head || '',
       employees: parseInt(deptData.employees) || 0,
-      budget: parseFloat(deptData.budget) || 0,
+      project_name: deptData.project_name || '',
       location: deptData.location || '',
       status: deptData.status || 'Active',
-      email: deptData.email || '',
       custom_fields: {}
     };
 
@@ -821,20 +819,7 @@ const DepartmentMaster = () => {
           onChange={e => onChange(col.id, e.target.value)}
           className={inputClass}
           min="0"
-          step={col.id === 'budget' ? "1000" : "1"}
-          placeholder={`Enter ${col.label.toLowerCase()}`}
-        />
-        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-      </div>
-    );
-    if (col.type === 'email') return (
-      <div>
-        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
-        <input
-          type="email"
-          value={value || ''}
-          onChange={e => onChange(col.id, e.target.value)}
-          className={inputClass}
+          step="1"
           placeholder={`Enter ${col.label.toLowerCase()}`}
         />
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
@@ -1368,7 +1353,7 @@ const DepartmentMaster = () => {
               <h4 className="text-xs sm:text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Available Columns</h4>
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {columns.map((column) => {
-                  const isFixedColumn = ['department_id', 'name', 'head', 'employees', 'budget', 'location', 'status', 'email'].includes(column.id);
+                  const isFixedColumn = ['department_id', 'name', 'head', 'employees', 'project_name', 'location', 'status'].includes(column.id);
                   const isEditing = editingColumn === column.id;
 
                   return (

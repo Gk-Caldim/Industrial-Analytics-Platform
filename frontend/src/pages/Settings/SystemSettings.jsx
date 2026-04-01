@@ -15,6 +15,9 @@ import { useTheme } from '../../contexts/ThemeContext';
 import GeneralInfo from './components/GeneralInfo';
 import BrandingTheme from './components/BrandingTheme';
 import AccessControl from './components/AccessControl';
+import DepartmentControl from './components/DepartmentControl';
+import TrackerControl from './components/TrackerControl';
+import DashboardControl from './components/DashboardControl';
 import AuditHistory from './components/AuditHistory';
 
 const SystemSettings = () => {
@@ -23,6 +26,7 @@ const SystemSettings = () => {
   const [settings, setSettings] = useState([]);
   const [modifiedSettings, setModifiedSettings] = useState({});
   const [activeCategory, setActiveCategory] = useState('Organization');
+  const [activeSubCategory, setActiveSubCategory] = useState('Access Control');
   const [searchTerm, setSearchTerm] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState(null);
@@ -33,7 +37,17 @@ const SystemSettings = () => {
       group: 'GLOBAL SETTINGS', 
       items: [
         { id: 'Organization', label: 'Organization', icon: Boxes },
-        { id: 'Access Control', label: 'Access Control', icon: Shield },
+        { 
+          id: 'Controls', 
+          label: 'Controls', 
+          icon: Shield,
+          subItems: [
+            { id: 'Access Control', label: 'Access Control' },
+            { id: 'Department Control', label: 'Department Control' },
+            { id: 'Tracker Control', label: 'Tracker Control' },
+            { id: 'Dashboard Control', label: 'Dashboard Control' },
+          ]
+        },
         { id: 'Audit Logs', label: 'Audit Logs', icon: ClipboardList },
       ] 
     }
@@ -131,12 +145,23 @@ const SystemSettings = () => {
     switch(activeCategory) {
       case 'Organization':
         return <GeneralInfo settings={settings} onUpdate={handleUpdate} onLogoUpload={handleLogoUpload} />;
-      case 'Access Control':
-        return <AccessControl />;
+      case 'Controls':
+        switch(activeSubCategory) {
+          case 'Access Control':
+            return <AccessControl />;
+          case 'Department Control':
+            return <DepartmentControl />;
+          case 'Tracker Control':
+            return <TrackerControl />;
+          case 'Dashboard Control':
+            return <DashboardControl />;
+          default:
+            return <AccessControl />;
+        }
       case 'Audit Logs':
         return <AuditHistory />;
       default:
-        return <AccessControl />;
+        return <GeneralInfo settings={settings} onUpdate={handleUpdate} onLogoUpload={handleLogoUpload} />;
     }
   };
 
@@ -155,21 +180,49 @@ const SystemSettings = () => {
               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-4">{group.group}</h3>
               <div className="space-y-1">
                 {group.items.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveCategory(item.id)}
-                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group ${
-                      activeCategory === item.id 
-                      ? 'bg-indigo-50 text-indigo-600 font-bold' 
-                      : 'text-slate-500 hover:bg-slate-50'
-                    }`}
-                  >
-                    <item.icon className={`h-5 w-5 ${activeCategory === item.id ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
-                    <span className="text-[13px] tracking-tight">{item.label}</span>
-                    {activeCategory === item.id && (
-                       <div className="ml-auto w-1 h-1 bg-indigo-600 rounded-full" />
+                  <div key={item.id} className="space-y-1">
+                    <button
+                      onClick={() => {
+                        setActiveCategory(item.id);
+                        if (item.subItems && item.subItems.length > 0) {
+                          setActiveSubCategory(item.subItems[0].id);
+                        }
+                      }}
+                      className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group ${
+                        activeCategory === item.id 
+                        ? 'bg-indigo-50 text-indigo-600 font-bold' 
+                        : 'text-slate-500 hover:bg-slate-50'
+                      }`}
+                    >
+                      <item.icon className={`h-5 w-5 ${activeCategory === item.id ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
+                      <span className="text-[13px] tracking-tight">{item.label}</span>
+                      {item.subItems && (
+                        <ChevronRight className={`ml-auto h-4 w-4 transition-transform duration-300 ${activeCategory === item.id ? 'rotate-90 text-indigo-600' : 'text-slate-300'}`} />
+                      )}
+                      {!item.subItems && activeCategory === item.id && (
+                        <div className="ml-auto w-1 h-1 bg-indigo-600 rounded-full" />
+                      )}
+                    </button>
+
+                    {/* Sub Items */}
+                    {item.subItems && activeCategory === item.id && (
+                      <div className="pl-12 space-y-1 animate-in slide-in-from-top-2 duration-300">
+                        {item.subItems.map((subItem) => (
+                          <button
+                            key={subItem.id}
+                            onClick={() => setActiveSubCategory(subItem.id)}
+                            className={`w-full text-left px-4 py-2 rounded-lg text-[12px] font-medium transition-all ${
+                              activeSubCategory === subItem.id
+                              ? 'text-indigo-600 bg-indigo-50/50'
+                              : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                            }`}
+                          >
+                            {subItem.label}
+                          </button>
+                        ))}
+                      </div>
                     )}
-                  </button>
+                  </div>
                 ))}
               </div>
             </div>

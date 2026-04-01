@@ -9,7 +9,8 @@ from app.core.security import (
     get_current_user,
 )
 from app.models.employee import Employee
-from app.models.user import User # Re-add User import for fallback
+from app.models.user import User
+from app.models.role import Role # Import Role model
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 #login
@@ -35,6 +36,10 @@ def login(data: dict, db: Session = Depends(get_db)):
                     "role": employee.role or "User"
                  })
                  refresh_token = create_refresh_token(str(user.id))
+                 # Get permissions from Role table
+                 user_role = db.query(Role).filter(Role.name == (employee.role or "User")).first()
+                 permissions = user_role.permissions if user_role else []
+
                  return {
                     "access_token": access_token,
                     "refresh_token": refresh_token,
@@ -44,7 +49,7 @@ def login(data: dict, db: Session = Depends(get_db)):
                         "employee_id": user.employee_id,
                         "full_name": employee.name,
                         "role": employee.role or "User",
-                        "permissions": employee.modules or []
+                        "permissions": permissions
                     },
                  }
             raise HTTPException(status_code=401, detail="Access not granted or password not set")
@@ -62,6 +67,10 @@ def login(data: dict, db: Session = Depends(get_db)):
 
         refresh_token = create_refresh_token(str(employee.id))
 
+        # Get permissions from Role table
+        user_role = db.query(Role).filter(Role.name == employee.role).first()
+        permissions = user_role.permissions if user_role else []
+
         return {
             "access_token": access_token,
             "refresh_token": refresh_token,
@@ -71,7 +80,7 @@ def login(data: dict, db: Session = Depends(get_db)):
                 "full_name": employee.name,
                 "employee_id": employee.employee_id,
                 "role": employee.role,
-                "permissions": employee.modules or []
+                "permissions": permissions
             },
         }
 
@@ -105,5 +114,31 @@ def login(data: dict, db: Session = Depends(get_db)):
 
 # ---------- ME ----------
 @router.get("/me")
-def me(user=Depends(get_current_user)):
-    return user
+def me(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+    # Fetch latest employee data to get current role and permissions
+    employee = db.query(Employee).filter(Employee.id == int(current_user["sub"])).first()
+    if not employee:
+        # Fallback to User table if not found in Employees
+        user = db.query(User).filter(User.id == int(current_user["sub"])).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        return {
+            "id": user.id,
+            "email": user.email,
+            "full_name": "User",
+            "role": "User",
+            "permissions": []
+        }
+    
+    # Get permissions from Role table
+    user_role = db.query(Role).filter(Role.name == employee.role).first()
+    permissions = user_role.permissions if user_role else []
+    
+    return {
+        "id": employee.id,
+        "email": employee.email,
+        "full_name": employee.name,
+        "employee_id": employee.employee_id,
+        "role": employee.role,
+        "permissions": permissions
+    }
