@@ -29,18 +29,19 @@ def login(data: dict, db: Session = Depends(get_db)):
             # Fallback to User table if no password set in Employee
             user = db.query(User).filter(User.email == data["email"]).first()
             if user and verify_password(data["password"], user.hashed_password):
-                 access_token = create_access_token({
+                access_token = create_access_token({
                     "sub": str(user.id),
                     "email": user.email,
                     "full_name": employee.name,
+                    "employee_id": user.employee_id,
                     "role": employee.role or "User"
-                 })
-                 refresh_token = create_refresh_token(str(user.id))
-                 # Get permissions from Role table
-                 user_role = db.query(Role).filter(Role.name == (employee.role or "User")).first()
-                 permissions = user_role.permissions if user_role else []
+                })
+                refresh_token = create_refresh_token(str(user.id))
+                # Get permissions from Role table
+                user_role = db.query(Role).filter(Role.name == (employee.role or "User")).first()
+                permissions = user_role.permissions if user_role else []
 
-                 return {
+                return {
                     "access_token": access_token,
                     "refresh_token": refresh_token,
                     "user": {
@@ -51,7 +52,7 @@ def login(data: dict, db: Session = Depends(get_db)):
                         "role": employee.role or "User",
                         "permissions": permissions
                     },
-                 }
+                }
             raise HTTPException(status_code=401, detail="Access not granted or password not set")
 
         # Verify password against Employee table
@@ -62,6 +63,7 @@ def login(data: dict, db: Session = Depends(get_db)):
             "sub": str(employee.id),
             "email": employee.email,
             "full_name": employee.name,
+            "employee_id": employee.employee_id,
             "role": employee.role
         })
 
@@ -87,7 +89,7 @@ def login(data: dict, db: Session = Depends(get_db)):
     # 2. Fallback to User table if not found in Employees
     user = db.query(User).filter(User.email == data["email"]).first()
     if not user:
-         raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     
     if not verify_password(data["password"], user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -96,6 +98,7 @@ def login(data: dict, db: Session = Depends(get_db)):
         "sub": str(user.id),
         "email": user.email,
         "full_name": "User",
+        "employee_id": user.employee_id
     })
     refresh_token = create_refresh_token(str(user.id))
     

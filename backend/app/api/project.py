@@ -7,36 +7,114 @@ from app.schemas.project_column import ProjectColumnCreate, ProjectColumnUpdate,
 from app.crud import project as crud_project
 from app.crud import project_column as column_crud
 from app.core.database import get_db
+from app.core.security import get_current_user
 
 router = APIRouter(
     prefix="/projects",
     tags=["Projects"]
 )
 
+def check_project_permission(db_project, current_user, permission_type: str):
+    """
+    Check if the current user has permission for the project.
+    Permissions are checked in:
+    1. Global user role (Admin has all)
+    2. Project's manager list
+    3. Project's team_lead list
+    """
+    # 1. Global Admin Check
+    if current_user.get("role") == "Admin":
+        return True
+    
+    employee_id = current_user.get("employee_id")
+    if not employee_id:
+        return False
+        
+    # 2. Check Manager List
+    managers = db_project.manager or []
+    for m in managers:
+        if str(m.get("employeeId")) == str(employee_id):
+            return m.get("permissions", {}).get(permission_type, False)
+            
+    # 3. Check Team Lead List
+    leads = db_project.team_lead or []
+    for l in leads:
+        if str(l.get("employeeId")) == str(employee_id):
+            return l.get("permissions", {}).get(permission_type, False)
+            
+    return False
+
 @router.get("/", response_model=List[ProjectResponse])
-def list_projects(db: Session = Depends(get_db)):
-    return crud_project.get_projects(db)
+def list_projects(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """List all projects, filtered by user permissions"""
+    projects = crud_project.get_projects(db)
+    
+    # 1. Admin returns all
+    if current_user.get("role") == "Admin":
+        return projects
+        
+    # 2. Others filter by "view" permission
+    return [p for p in projects if check_project_permission(p, current_user, "view")]
 
 @router.post("/", response_model=ProjectResponse)
-def add_project(project: ProjectCreate, db: Session = Depends(get_db)):
+def add_project(
+    project: ProjectCreate, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Add a new project - Restricted to Admins"""
+    if current_user.get("role") != "Admin":
+        raise HTTPException(status_code=403, detail="Only Admins can create projects")
     return crud_project.create_project(db, project)
 
 @router.get("/{project_id}", response_model=ProjectResponse)
-def get_project(project_id: int, db: Session = Depends(get_db)):
+def get_project(
+    project_id: int, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get a single project with permission check"""
     db_project = crud_project.get_project(db, project_id)
     if db_project is None:
         raise HTTPException(status_code=404, detail="Project not found")
+        
+    if not check_project_permission(db_project, current_user, "view"):
+        raise HTTPException(status_code=403, detail="You do not have permission to view this project")
+        
     return db_project
 
 @router.put("/{project_id}", response_model=ProjectResponse)
-def update_project(project_id: int, project: ProjectCreate, db: Session = Depends(get_db)):
-    db_project = crud_project.update_project(db, project_id, project)
+def update_project(
+    project_id: int, 
+    project: ProjectCreate, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    db_project = crud_project.get_project(db, project_id)
     if db_project is None:
         raise HTTPException(status_code=404, detail="Project not found")
-    return db_project
+    
+    if not check_project_permission(db_project, current_user, "edit"):
+        raise HTTPException(status_code=403, detail="You do not have permission to edit this project")
+        
+    return crud_project.update_project(db, project_id, project)
 
 @router.delete("/{project_id}")
-def delete_project(project_id: int, db: Session = Depends(get_db)):
+def delete_project(
+    project_id: int, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    db_project = crud_project.get_project(db, project_id)
+    if db_project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if not check_project_permission(db_project, current_user, "delete"):
+        raise HTTPException(status_code=403, detail="You do not have permission to delete this project")
+
     try:
         success = crud_project.delete_project(db, project_id)
         if not success:
@@ -57,7 +135,20 @@ def delete_project(project_id: int, db: Session = Depends(get_db)):
             )
 
 @router.post("/bulk-delete")
-def bulk_delete_projects(project_ids: List[int], db: Session = Depends(get_db)):
+def bulk_delete_projects(
+    project_ids: List[int], 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    # Check permissions for all projects first
+    for pid in project_ids:
+        db_project = crud_project.get_project(db, pid)
+        if db_project and not check_project_permission(db_project, current_user, "delete"):
+            raise HTTPException(
+                status_code=403, 
+                detail=f"You do not have permission to delete project with ID {pid}"
+            )
+
     try:
         success = crud_project.bulk_delete_projects(db, project_ids)
         if not success:
