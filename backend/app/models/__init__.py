@@ -4,3 +4,4 @@ from app.models.department import Department
 from app.models.project import Project
 from app.models.upload_tracker import UploadTracker
 from app.models.role import Role
+from app.models.google_token import GoogleToken

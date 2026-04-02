@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Plus, Search, Edit, Trash2, Download, Filter, ChevronUp, ChevronDown, Check, Copy, Settings, Columns, Eye, EyeOff } from 'lucide-react';
-import axios from 'axios';
+import API from '../utils/api';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -58,7 +58,7 @@ const SubCategoryModal = ({ isOpen, onClose, project, showNotification, onRefres
   const fetchSubCategories = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE_URL}/project-sub-categories/${project.project_id}`);
+      const res = await API.get(`/project-sub-categories/${project.project_id}`);
       const data = (res.data || []).map(item => ({
         ...item,
         ...(item.custom_fields || {})
@@ -116,10 +116,10 @@ const SubCategoryModal = ({ isOpen, onClose, project, showNotification, onRefres
       if (editingId) {
         // Remove project_id from update payload to match SubCategoryUpdate schema
         const { project_id, ...updatePayload } = payload;
-        await axios.put(`${API_BASE_URL}/project-sub-categories/${editingId}`, updatePayload);
+        await API.put(`/project-sub-categories/${editingId}`, updatePayload);
         showNotification('Sub-category updated successfully');
       } else {
-        await axios.post(`${API_BASE_URL}/project-sub-categories/`, payload);
+        await API.post(`/project-sub-categories/`, payload);
         showNotification('Sub-category added successfully');
       }
       fetchSubCategories();
@@ -134,7 +134,7 @@ const SubCategoryModal = ({ isOpen, onClose, project, showNotification, onRefres
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this sub-category?')) {
       try {
-        await axios.delete(`${API_BASE_URL}/project-sub-categories/${id}`);
+        await API.delete(`/project-sub-categories/${id}`);
         showNotification('Sub-category deleted successfully');
         fetchSubCategories();
         if (onRefresh) onRefresh();

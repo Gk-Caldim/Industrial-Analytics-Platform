@@ -7,6 +7,7 @@ class RoleBase(BaseModel):
     name: str
     description: Optional[str] = None
     permissions: List[str] = []
+    is_default: Optional[int] = 0
 
     @field_validator("permissions", mode="before")
     @classmethod
@@ -30,5 +31,4 @@ class Role(RoleBase):
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

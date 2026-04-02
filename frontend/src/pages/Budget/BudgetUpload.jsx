@@ -10,6 +10,7 @@ import {
 import * as XLSX from 'xlsx';
 import API from '../../utils/api';
 import SearchableDropdown from '../../components/SearchableDropdown';
+import PermissionGuard from '../../components/PermissionGuard';
 
 const BudgetUpload = () => {
   // State for data
@@ -53,18 +54,18 @@ const BudgetUpload = () => {
   useEffect(() => {
     if (user) {
       let userName = user.full_name || user.name;
-      
+
       // Fallback: search in employees list if name is missing
       if (!userName && employees.length > 0 && user.employee_id) {
         const emp = employees.find(e => e.employee_id === user.employee_id);
         if (emp) userName = emp.name;
       }
-      
+
       if (!userName) userName = 'User';
-      
+
       const employeeId = user.employee_id || '';
       const uploadedByValue = employeeId ? `${userName} (${employeeId})` : userName;
-      
+
       setUploadForm(prev => ({
         ...prev,
         uploaded_by: uploadedByValue
@@ -178,12 +179,12 @@ const BudgetUpload = () => {
       setProgress(100);
       showNotification('Budget summary saved successfully');
       setShowUploadModal(false);
-      setUploadForm(prev => ({ 
-        ...prev, 
-        project: '', 
-        department: '', 
-        file: null, 
-        preview: [] 
+      setUploadForm(prev => ({
+        ...prev,
+        project: '',
+        department: '',
+        file: null,
+        preview: []
       }));
       fetchBudgets();
 
@@ -295,20 +296,22 @@ const BudgetUpload = () => {
       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full">
           {/* LEFT: UPLOAD SECTION */}
-          <div
-            className="border-2 border-dashed border-slate-200 rounded-2xl p-10 hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all group flex flex-col items-center justify-center"
-            onClick={() => setShowUploadModal(true)}
-          >
-            <div className="flex flex-col items-center justify-center text-center space-y-4">
-              <div className="p-4 bg-slate-50 rounded-full group-hover:bg-blue-100 transition-colors">
-                <Upload className="h-10 w-10 text-slate-400 group-hover:text-blue-600" />
-              </div>
-              <div>
-                <p className="text-lg font-semibold text-slate-800">Upload Budget</p>
-                <p className="text-sm text-slate-500 mt-1">Drag & drop or click to browse files</p>
+          <PermissionGuard permission="upload_budget">
+            <div
+              className="border-2 border-dashed border-slate-200 rounded-2xl p-10 hover:border-blue-400 hover:bg-blue-50/30 cursor-pointer transition-all group flex flex-col items-center justify-center"
+              onClick={() => setShowUploadModal(true)}
+            >
+              <div className="flex flex-col items-center justify-center text-center space-y-4">
+                <div className="p-4 bg-slate-50 rounded-full group-hover:bg-blue-100 transition-colors">
+                  <Upload className="h-10 w-10 text-slate-400 group-hover:text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-lg font-semibold text-slate-800">Upload Budget</p>
+                  <p className="text-sm text-slate-500 mt-1">Drag & drop or click to browse files</p>
+                </div>
               </div>
             </div>
-          </div>
+          </PermissionGuard>
 
           {/* RIGHT: DOWNLOAD SECTION */}
           <div
@@ -328,149 +331,153 @@ const BudgetUpload = () => {
         </div>
       </div>
 
-      {/* TOOLBAR SECTION - Matching Screenshot */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center justify-between gap-4">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <select
-                  value={projectFilter}
-                  onChange={(e) => setProjectFilter(e.target.value)}
-                  className="appearance-none flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer hover:bg-slate-100"
-                >
-                  <option value="All Projects">All Projects</option>
-                  {projects.map(p => (
-                    <option key={p.id} value={p.name}>{p.name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-slate-400" />
+      <PermissionGuard permission="view_budget">
+        {/* TOOLBAR SECTION - Matching Screenshot */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-gray-100">
+            <div className="flex items-center justify-between gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm"
+                />
               </div>
-              <button className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors shadow-sm">
-                <Download className="h-5 w-5" />
-              </button>
+
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <select
+                    value={projectFilter}
+                    onChange={(e) => setProjectFilter(e.target.value)}
+                    className="appearance-none flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 pr-10 text-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all cursor-pointer hover:bg-slate-100"
+                  >
+                    <option value="All Projects">All Projects</option>
+                    {projects.map(p => (
+                      <option key={p.id} value={p.name}>{p.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-slate-400" />
+                </div>
+                <button className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 hover:bg-slate-100 transition-colors shadow-sm">
+                  <Download className="h-5 w-5" />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* TABLE SECTION - Matching Screenshot */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="w-12 px-6 py-4">
-                  <div className="h-4 w-4 border-2 border-slate-300 rounded cursor-pointer"></div>
-                </th>
-                <th
-                  className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider cursor-pointer group"
-                  onClick={() => handleSort('project_name')}
-                >
-                  <div className="flex items-center gap-1">
-                    PROJECT NAME {getSortIcon('project_name')}
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  UPLOADED BY
-                </th>
-                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  DEPARTMENT
-                </th>
-                <th
-                  className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider cursor-pointer"
-                  onClick={() => handleSort('updated_at')}
-                >
-                  <div className="flex items-center gap-1">
-                    LAST UPDATED {getSortIcon('updated_at')}
-                  </div>
-                </th>
-                <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                  BUDGET SUMMARY
-                </th>
-                <th className="px-6 py-4 text-right"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {loading ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <RefreshCw className="h-8 w-8 text-blue-500 animate-spin" />
-                      <span className="text-sm font-medium text-slate-500">Loading budgets...</span>
+          {/* TABLE SECTION - Matching Screenshot */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-100">
+                  <th className="w-12 px-6 py-4">
+                    <div className="h-4 w-4 border-2 border-slate-300 rounded cursor-pointer"></div>
+                  </th>
+                  <th
+                    className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider cursor-pointer group"
+                    onClick={() => handleSort('project_name')}
+                  >
+                    <div className="flex items-center gap-1">
+                      PROJECT NAME {getSortIcon('project_name')}
                     </div>
-                  </td>
+                  </th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    UPLOADED BY
+                  </th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    DEPARTMENT
+                  </th>
+                  <th
+                    className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider cursor-pointer"
+                    onClick={() => handleSort('updated_at')}
+                  >
+                    <div className="flex items-center gap-1">
+                      LAST UPDATED {getSortIcon('updated_at')}
+                    </div>
+                  </th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    BUDGET SUMMARY
+                  </th>
+                  <th className="px-6 py-4 text-right"></th>
                 </tr>
-              ) : filteredAndSortedBudgets.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-slate-500 text-sm">
-                    No budget records found.
-                  </td>
-                </tr>
-              ) : (
-                filteredAndSortedBudgets.map((budget) => (
-                  <tr key={budget.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="h-4 w-4 border-2 border-slate-200 rounded group-hover:border-blue-400 transition-colors cursor-pointer"></div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="font-bold text-slate-900 text-[14px]">{budget.project_name}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="font-bold text-slate-900 text-[14px]">{budget.uploaded_by || 'N/A'}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="font-bold text-slate-900 text-[14px]">{budget.department || 'N/A'}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-slate-400" />
-                        <span className="font-medium text-slate-600 text-[14px]">
-                          {budget.updated_at ? new Date(budget.updated_at).toLocaleString() : 'N/A'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div 
-                        onClick={() => navigate(`/dashboard/budget-summary/${encodeURIComponent(budget.project_name)}`)}
-                        className="flex items-center gap-2 text-blue-600 font-medium text-[14px] cursor-pointer hover:underline"
-                      >
-                        <File className="h-4 w-4" />
-                        <span>Budget Summary</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          onClick={() => navigate(`/dashboard/budget-summary/${encodeURIComponent(budget.project_name)}`)}
-                          className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                        >
-                          <Eye className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() => setShowDeletePrompt(budget.project_name)}
-                          className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <Trash2 className="h-5 w-5" />
-                        </button>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-12 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <RefreshCw className="h-8 w-8 text-blue-500 animate-spin" />
+                        <span className="text-sm font-medium text-slate-500">Loading budgets...</span>
                       </div>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : filteredAndSortedBudgets.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-12 text-center text-slate-500 text-sm">
+                      No budget records found.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredAndSortedBudgets.map((budget) => (
+                    <tr key={budget.id} className="hover:bg-slate-50/50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="h-4 w-4 border-2 border-slate-200 rounded group-hover:border-blue-400 transition-colors cursor-pointer"></div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="font-bold text-slate-900 text-[14px]">{budget.project_name}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="font-bold text-slate-900 text-[14px]">{budget.uploaded_by || 'N/A'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="font-bold text-slate-900 text-[14px]">{budget.department || 'N/A'}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-slate-400" />
+                          <span className="font-medium text-slate-600 text-[14px]">
+                            {budget.updated_at ? new Date(budget.updated_at).toLocaleString() : 'N/A'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <div
+                          onClick={() => navigate(`/dashboard/budget-summary/${encodeURIComponent(budget.project_name)}`)}
+                          className="flex items-center gap-2 text-blue-600 font-medium text-[14px] cursor-pointer hover:underline"
+                        >
+                          <File className="h-4 w-4" />
+                          <span>Budget Summary</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => navigate(`/dashboard/budget-summary/${encodeURIComponent(budget.project_name)}`)}
+                            className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                          >
+                            <Eye className="h-5 w-5" />
+                          </button>
+                          <PermissionGuard permission="delete_budget">
+                            <button
+                              onClick={() => setShowDeletePrompt(budget.project_name)}
+                              className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              <Trash2 className="h-5 w-5" />
+                            </button>
+                          </PermissionGuard>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      </PermissionGuard>
 
       {/* UPLOAD MODAL - Enhanced matching screenshot modal style */}
       {showUploadModal && (
@@ -547,8 +554,8 @@ const BudgetUpload = () => {
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-2">File *</label>
                 <div className={`relative border-2 border-dashed rounded-2xl p-8 transition-all text-center ${uploadForm.file ? 'border-green-200 bg-green-50/30' :
-                    uploadErrors.file ? 'border-red-200 bg-red-50/30' :
-                      'border-slate-200 hover:border-blue-400 hover:bg-blue-50/30'
+                  uploadErrors.file ? 'border-red-200 bg-red-50/30' :
+                    'border-slate-200 hover:border-blue-400 hover:bg-blue-50/30'
                   }`}>
                   <input
                     type="file"
@@ -558,8 +565,8 @@ const BudgetUpload = () => {
                   />
                   <div className="flex flex-col items-center">
                     <div className={`p-4 rounded-full mb-3 ${uploadForm.file ? 'bg-green-100 text-green-600' :
-                        uploadErrors.file ? 'bg-red-100 text-red-600' :
-                          'bg-slate-100 text-slate-400'
+                      uploadErrors.file ? 'bg-red-100 text-red-600' :
+                        'bg-slate-100 text-slate-400'
                       }`}>
                       <Upload className="h-8 w-8" />
                     </div>
@@ -641,8 +648,8 @@ const BudgetUpload = () => {
       {notification.show && (
         <div className="fixed bottom-8 right-8 z-[100] animate-in slide-in-from-right-10 duration-500">
           <div className={`flex items-center gap-4 px-6 py-4 rounded-2xl shadow-2xl border ${notification.type === 'success'
-              ? 'bg-green-50 border-green-100 text-green-800'
-              : 'bg-red-50 border-red-100 text-red-800'
+            ? 'bg-green-50 border-green-100 text-green-800'
+            : 'bg-red-50 border-red-100 text-red-800'
             }`}>
             <div className={`p-2 rounded-full ${notification.type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
               {notification.type === 'success' ? (

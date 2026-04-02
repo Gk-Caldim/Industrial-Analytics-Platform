@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 from app.core.database import engine, Base, get_db
 from app.core.config import FRONTEND_URL, API_PREFIX
+from app.middleware.logging_middleware import ForbiddenLoggingMiddleware
 
 # Import models for table creation
 from app.models import user  # noqa: F401
@@ -26,6 +27,7 @@ from app.models import project_sub_category # noqa: F401
 from app.models import meeting # noqa: F401
 from app.models import user_session # noqa: F401
 from app.models import settings # noqa: F401
+from app.models import google_token  # noqa: F401  ← registers google_tokens table
 from app.models.role import Role  # noqa: F401
 
 # Import routers
@@ -41,13 +43,21 @@ from app.api.project_sub_category import router as sub_category_router
 from app.api.settings import router as settings_router
 from app.api.roles import router as role_router
 from app.api.meetings import router as meetings_router
+from app.crud.role import seed_default_roles
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="MyFastAPIApp",
     version="1.0.0",
-    #lifespan=lifespan,
 )
+
+@app.on_event("startup")
+async def startup_event():
+    db = next(get_db())
+    try:
+        seed_default_roles(db)
+    finally:
+        db.close()
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
