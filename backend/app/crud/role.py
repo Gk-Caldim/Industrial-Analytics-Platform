@@ -97,14 +97,13 @@ def seed_default_roles(db: Session):
             "permissions": ["Dashboard", "view_tracker"]
         }
     ]
-    
     for r in default_roles:
         existing = get_role_by_name(db, r["name"])
         if not existing:
             create_role(db, RoleCreate(**r))
         else:
-            # Update existing default role description/permissions if needed
+            # Update existing default role description but DO NOT overwrite permissions
+            # to preserve user-configured access controls across app restarts
             existing.description = r["description"]
             existing.is_default = 1
-            existing.permissions = r["permissions"]
             db.commit()

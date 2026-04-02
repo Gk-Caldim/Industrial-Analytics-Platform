@@ -398,7 +398,7 @@ const AccessControl = () => {
                             {isEnabled && perm.subPermissions && (
                               <div className="mt-6 pt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
                                 {perm.subPermissions.map(sub => {
-                                  const isSubEnabled = selectedRole.permissions?.includes(`${perm.name}:${sub.id}`);
+                                  const isSubEnabled = selectedRole.permissions?.includes(sub.id.includes('_') ? sub.id : `${perm.name}:${sub.id}`);
                                   return (
                                     <div key={sub.id} className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-100">
                                       <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">{sub.label}</span>
@@ -480,9 +480,10 @@ const AccessControl = () => {
                               <div
                                 onClick={() => {
                                   if (isChecked) {
-                                    setNewRolePermissions(newRolePermissions.filter(p => p !== perm.name && !p.startsWith(`${perm.name}:`)));
+                                    const subPermsToRemove = perm.subPermissions?.map(sp => sp.id.includes('_') ? sp.id : `${perm.name}:${sp.id}`) || [];
+                                    setNewRolePermissions(newRolePermissions.filter(p => p !== perm.name && !p.startsWith(`${perm.name}:`) && !subPermsToRemove.includes(p)));
                                   } else {
-                                    const subPerms = perm.subPermissions?.map(sp => `${perm.name}:${sp.id}`) || [];
+                                    const subPerms = perm.subPermissions?.map(sp => sp.id.includes('_') ? sp.id : `${perm.name}:${sp.id}`) || [];
                                     setNewRolePermissions([...newRolePermissions, perm.name, ...subPerms]);
                                   }
                                 }}

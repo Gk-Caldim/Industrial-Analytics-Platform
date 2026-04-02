@@ -89,7 +89,7 @@ def list_datasets(db: Annotated[Session, Depends(get_db)]):
     ]
 
 # 🔹 PREVIEW DATA (EYE BUTTON)
-@router.get("/{dataset_id}/view", dependencies=[Depends(check_permissions("view_tracker"))])
+@router.get("/{dataset_id}/excel-view", dependencies=[Depends(check_permissions("view_tracker"))])
 def get_excel_view(dataset_id: int, db: Annotated[Session, Depends(get_db)]):
     # Check cache first
     cache_key = (dataset_id, "excel_view")

@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional
 class ProjectBase(BaseModel):
     project_id: Optional[str] = None
     name: str
-    manager: str
+    manager: Any
     status: str = "Planning"
     budget: float = 0.0
     utilized_budget: float = 0.0
