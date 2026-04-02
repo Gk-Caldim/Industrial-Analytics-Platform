@@ -26,6 +26,7 @@ from app.models import project_sub_category # noqa: F401
 from app.models import meeting # noqa: F401
 from app.models import user_session # noqa: F401
 from app.models import settings # noqa: F401
+from app.models import google_token  # noqa: F401  ← registers google_tokens table
 from app.models.role import Role  # noqa: F401
 
 # Import routers
