@@ -1706,7 +1706,8 @@ const DepartmentMaster = () => {
             </div>
 
             {/* TABLE SECTION - SCROLLABLE */}
-            <div className="flex-1 overflow-auto relative" onClick={() => activeDropdownColumn && setActiveDropdownColumn(null)}>
+            <div className="master-table-scroll">
+              <div className="master-table-scroll-inner" onClick={() => activeDropdownColumn && setActiveDropdownColumn(null)}>
               <table className="master-table">
                 <thead className="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
                   <tr className="border-b border-slate-200 dark:border-slate-700">
@@ -1869,6 +1870,7 @@ const DepartmentMaster = () => {
                   )}
                 </tbody>
               </table>
+              </div>
             </div>
 
             {/* FOOTER SECTION */}

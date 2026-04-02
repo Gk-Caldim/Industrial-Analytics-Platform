@@ -9,6 +9,7 @@ from app.schemas.employee import EmployeeCreate, EmployeeUpdate, EmployeeOut
 from app.schemas.employee_column import EmployeeColumnCreate, EmployeeColumnUpdate, EmployeeColumnOut
 from app.crud import employee as employee_crud
 from app.crud import employee_column as column_crud
+from app.core.security import get_current_user
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
 
@@ -42,7 +43,11 @@ def get_employee(employee_id: int, db: Session = Depends(get_db)):
     return employee
 
 @router.post("", response_model=EmployeeOut, status_code=status.HTTP_201_CREATED)
-def create_employee(employee: EmployeeCreate, db: Session = Depends(get_db)):
+def create_employee(
+    employee: EmployeeCreate, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     """Create a new employee"""
     # Check if email already exists
     existing_employee = employee_crud.get_employee_by_email(db, employee.email)
@@ -66,7 +71,8 @@ def create_employee(employee: EmployeeCreate, db: Session = Depends(get_db)):
 def update_employee(
     employee_id: int,
     employee: EmployeeUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
 ):
     """Update an existing employee"""
     # If email is being updated, check if it's already taken
@@ -96,7 +102,11 @@ def update_employee(
         )
 
 @router.delete("/{employee_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_employee(employee_id: int, db: Session = Depends(get_db)):
+def delete_employee(
+    employee_id: int, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     """Delete an employee"""
     try:
         success = employee_crud.delete_employee(db, employee_id)
@@ -121,7 +131,11 @@ def delete_employee(employee_id: int, db: Session = Depends(get_db)):
             )
 
 @router.post("/bulk-delete", status_code=status.HTTP_204_NO_CONTENT)
-def bulk_delete_employees(employee_ids: List[int], db: Session = Depends(get_db)):
+def bulk_delete_employees(
+    employee_ids: List[int], 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     """Bulk delete employees"""
     try:
         success = employee_crud.bulk_delete_employees(db, employee_ids)
