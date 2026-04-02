@@ -11,6 +11,8 @@ class SubCategoryBase(BaseModel):
     balance: float = 0.0
     custom_fields: Dict[str, Any] = {}
 
+
+
 class SubCategoryCreate(SubCategoryBase):
     pass
 

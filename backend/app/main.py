@@ -1,9 +1,12 @@
+import os
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 import logging
+import traceback
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -20,17 +23,24 @@ from app.models import project  # noqa: F401
 from app.models import upload_tracker # noqa: F401
 from app.models import budget # noqa: F401
 from app.models import project_sub_category # noqa: F401
+from app.models import meeting # noqa: F401
+from app.models import user_session # noqa: F401
+from app.models import settings # noqa: F401
+from app.models.role import Role  # noqa: F401
 
 # Import routers
 from app.api.auth import router as auth_router
 from app.api.employees import router as employee_router
-from app.api.employee_access import router as employee_access_router
+from app.api.employees import router as employee_router
 from app.api import project as project_router
 from app.api import department as department_router
 from app.api.datasets import router as datasets_router
 from app.api.email import router as email_router  # Added email router
 from app.api import budget as budget_router
 from app.api.project_sub_category import router as sub_category_router
+from app.api.settings import router as settings_router
+from app.api.roles import router as role_router
+from app.api.meetings import router as meetings_router
 
 Base.metadata.create_all(bind=engine)
 app = FastAPI(
@@ -39,19 +49,23 @@ app = FastAPI(
     #lifespan=lifespan,
 )
 
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    logger.error(f"Validation Error: {exc.errors()}")
-    try:
-        body = await request.json()
-        logger.error(f"Request Body: {body}")
-    except Exception:
-        logger.error("Could not read request body")
-        
-    return JSONResponse(
-        status_code=422,
-        content={"detail": exc.errors(), "body": str(exc.body)},
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    error_msg = f"Unhandled Exception: {str(exc)}\n{traceback.format_exc()}"
+    logger.error(error_msg)
+    
+    # Return a JSON response with CORS headers if possible
+    response = JSONResponse(
+        status_code=500,
+        content={"detail": "Internal Server Error", "error": str(exc)}
     )
+    # Re-apply CORS headers manually because middleware might be skipped on crash
+    response.headers["Access-Control-Allow-Origin"] = "http://localhost:5173"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    
+    return response
 
 # CORS
 origins = [
@@ -79,13 +93,21 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix=API_PREFIX)
 app.include_router(employee_router, prefix=API_PREFIX)
-app.include_router(employee_access_router, prefix=API_PREFIX)
 app.include_router(project_router.router, prefix=API_PREFIX)
 app.include_router(department_router.router, prefix=API_PREFIX)
 app.include_router(datasets_router, prefix=API_PREFIX)
 app.include_router(email_router, prefix=f"{API_PREFIX}/email", tags=["Email"]) # Added email route
 app.include_router(budget_router.router, prefix=f"{API_PREFIX}/budget", tags=["Budget"])
 app.include_router(sub_category_router, prefix=API_PREFIX)
+app.include_router(settings_router, prefix=API_PREFIX)
+app.include_router(role_router, prefix=API_PREFIX)
+app.include_router(meetings_router, prefix="/api/meetings", tags=["Meetings"])
+
+# Static Files
+UPLOAD_DIR = "static/uploads/logos"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 #testing routes
 @app.get("/test-db")

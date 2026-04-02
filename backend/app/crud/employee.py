@@ -2,6 +2,7 @@
 from sqlalchemy.orm import Session
 from app.models.employee import Employee
 from app.schemas.employee import EmployeeCreate, EmployeeUpdate
+from app.core.security import hash_password
 from typing import List, Optional
 
 def get_employees(db: Session, skip: int = 0, limit: int = 1000) -> List[Employee]:
@@ -28,7 +29,12 @@ def create_employee(db: Session, employee: EmployeeCreate) -> Employee:
         if existing:
             raise ValueError(f"Employee with ID {employee.employee_id} already exists")
             
-    db_employee = Employee(**employee.model_dump())
+    data = employee.model_dump(exclude={"id"})
+    password = data.pop("password", None)
+    if password:
+        data["hashed_password"] = hash_password(password)
+        
+    db_employee = Employee(**data)
     db.add(db_employee)
     db.commit()
     db.refresh(db_employee)
@@ -54,6 +60,11 @@ def update_employee(db: Session, employee_id: int, employee: EmployeeUpdate) -> 
             existing = get_employee_by_employee_id(db, update_data['employee_id'])
             if existing and existing.id != employee_id:
                 raise ValueError(f"Employee with ID {update_data['employee_id']} already exists")
+    
+    # Handle password update
+    password = update_data.pop("password", None)
+    if password:
+        update_data["hashed_password"] = hash_password(password)
             
     for field, value in update_data.items():
         setattr(db_employee, field, value)

@@ -9,13 +9,14 @@ import {
   setSelectedProjectFileId,
   setSelectedUploadFileId,
   setActiveProjectName,
-  setSidebarCollapsed
+  setSidebarCollapsed,
+  setBranding
 } from '../store/slices/navSlice';
 import { logout } from '../store/slices/authSlice';
 import {
   Layout as LayoutIcon, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, ChevronLeft, Check, Save, Settings,
   Users, Shield, FolderKanban, Package, Building, Database, FileUp, LogOut, Menu, User as UserIcon, Bell, ChevronRight, Projector, FileText, Globe, Clock, BarChart3, PieChart, LineChart,
-  MessageSquare, Layers, FolderTree
+  MessageSquare, Layers, FolderTree, Calendar
 } from 'lucide-react';
 
 import API from "../utils/api";
@@ -59,8 +60,26 @@ const Dashboard = () => {
     selectedProjectFileId,
     selectedUploadFileId,
     activeProjectName,
-    sidebarCollapsed
+    sidebarCollapsed,
+    companyLogo,
+    companyName
   } = useSelector(state => state.nav);
+
+  // Fetch settings on mount
+  useEffect(() => {
+    const fetchCompanySettings = async () => {
+      try {
+        const response = await API.get('/settings/');
+        const settings = response.data;
+        const logo = settings.find(s => s.key === 'company_logo')?.value;
+        const name = settings.find(s => s.key === 'company_name')?.value;
+        dispatch(setBranding({ companyLogo: logo, companyName: name }));
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
+    };
+    fetchCompanySettings();
+  }, [dispatch]);
 
   const [currentTime, setCurrentTime] = useState('');
   const [currentDate, setCurrentDate] = useState('');
@@ -81,9 +100,7 @@ const Dashboard = () => {
   // Masters submodules
   const mastersSubmodules = useMemo(() => [
     { id: 'employee-master', name: 'Employee Master', path: 'masters/employees', icon: <Users className="h-5 w-5" />, color: '#000000' },
-    { id: 'employee-access', name: 'Employee Access', path: 'masters/access', icon: <Shield className="h-5 w-5" />, color: '#1a1a1a' },
     { id: 'project-master', name: 'Project Master', path: 'masters/project-master', icon: <FolderKanban className="h-5 w-5" />, color: '#333333' },
-    { id: 'part-master', name: 'Part Master', path: 'masters/parts', icon: <Package className="h-5 w-5" />, color: '#4d4d4d' },
     { id: 'department-master', name: 'Department Master', path: 'masters/departments', icon: <Building className="h-5 w-5" />, color: '#666666' },
   ], []);
 
@@ -328,6 +345,8 @@ const Dashboard = () => {
     }
     else if (path.includes('/dashboard/masters')) dispatch(setActiveModule('masters-main'));
     else if (path.includes('/dashboard/mom')) dispatch(setActiveModule('mom-module'));
+    else if (path.includes('/dashboard/meetings')) dispatch(setActiveModule('meetings'));
+    else if (path.includes('/dashboard/schedule-meeting')) dispatch(setActiveModule('schedule-meeting'));
     else if (path.includes('/dashboard/settings')) dispatch(setActiveModule('system-settings'));
   }, [location.pathname, dispatch, mastersSubmodules, otherModules]);
 
@@ -511,6 +530,8 @@ const Dashboard = () => {
     if (activeModule === 'project-dashboard') return 'Project Dashboard';
     if (activeModule === 'masters-main') return 'Masters';
     if (activeModule === 'mom-module') return 'Minutes of Meeting';
+    if (activeModule === 'meetings') return 'Meetings Console';
+    if (activeModule === 'schedule-meeting') return 'Schedule Meeting';
 
     const allModules = [...mastersModules, ...mastersSubmodules, ...uploadsModules, ...uploadsSubmodules, ...otherModules];
     const module = allModules.find(m => m.id === activeModule);
@@ -558,6 +579,8 @@ const Dashboard = () => {
     const module = allModules.find(m => m.id === moduleId);
     if (module) path = module.path;
     else if (moduleId === 'mom-module') path = 'mom';
+    else if (moduleId === 'meetings') path = 'meetings';
+    else if (moduleId === 'schedule-meeting') path = 'schedule-meeting';
 
     navigate(`/dashboard/${path}`);
 
@@ -580,6 +603,10 @@ const Dashboard = () => {
       dispatch(toggleExpansion('masters'));
     } else if (moduleId === 'uploads-main') {
       dispatch(toggleExpansion('uploads'));
+    } else if (moduleId === 'mom-module') {
+      if (!expandedModules['mom']) {
+        dispatch(setExpandedModules({ 'mom': true }));
+      }
     } else if (moduleId === 'upload-trackers') {
       if (uploadTrackerModules.length > 0 && !expandedModules['upload-trackers']) {
         dispatch(setExpandedModules({ 'upload-trackers': true }));
@@ -838,26 +865,28 @@ const Dashboard = () => {
             {/*
               Simple submodule button for Budget Upload
             */}
-            <button
-              key="budget-upload"
-              onMouseEnter={() => setHoveredModule('budget-upload')}
-              onMouseLeave={() => setHoveredModule(null)}
-              onClick={() => handleModuleClick('budget-upload')}
-              className={`w-full flex items-center space-x-3.5 rounded-lg px-3 py-2.5 transition-all duration-300 ${
-                activeModule === 'budget-upload'
-                  ? 'bg-white/20 shadow-sm text-white'
-                  : hoveredModule === 'budget-upload'
-                    ? 'bg-white/15 shadow-sm text-white'
-                    : 'hover:bg-white/10 text-white'
-              }`}
-            >
-              <div className="text-white">
-                <FileUp className="h-5 w-5" />
-              </div>
-              <span className={`text-sm font-medium truncate text-white`}>
-                Budget Upload
-              </span>
-            </button>
+            {hasPermission('Budget Upload') && (
+              <button
+                key="budget-upload"
+                onMouseEnter={() => setHoveredModule('budget-upload')}
+                onMouseLeave={() => setHoveredModule(null)}
+                onClick={() => handleModuleClick('budget-upload')}
+                className={`w-full flex items-center space-x-3.5 rounded-lg px-3 py-2.5 transition-all duration-300 ${
+                  activeModule === 'budget-upload'
+                    ? 'bg-white/20 shadow-sm text-white'
+                    : hoveredModule === 'budget-upload'
+                      ? 'bg-white/15 shadow-sm text-white'
+                      : 'hover:bg-white/10 text-white'
+                }`}
+              >
+                <div className="text-white">
+                  <FileUp className="h-5 w-5" />
+                </div>
+                <span className={`text-sm font-medium truncate text-white`}>
+                  Budget Upload
+                </span>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -867,32 +896,75 @@ const Dashboard = () => {
   const renderMOMModule = () => {
     if (!hasPermission('MOM')) return null;
 
-    const isActive = activeModule === 'mom-module';
-    const isHovered = hoveredModule === 'mom-module';
+    const isExpanded = expandedModules['mom'];
+    const isActive = activeModule === 'mom-module' || activeModule === 'meetings';
+    const isHovered = hoveredModule === 'mom-main';
 
     return (
-      <button
-        key="mom-module"
-        onMouseEnter={() => setHoveredModule('mom-module')}
-        onMouseLeave={() => setHoveredModule(null)}
-        onClick={() => handleModuleClick('mom-module')}
-        className={`w-full flex items-center transition-all duration-300 ${isSidebarExpanded ? 'px-4 py-3.5 space-x-3.5' : 'justify-center px-2 py-3.5'
-          } rounded-xl ${isActive
-            ? 'bg-white/20 shadow-md text-white'
-            : isHovered
-              ? 'bg-white/15 shadow-sm text-white'
-              : 'hover:bg-white/10 text-white'
-          }`}
-      >
-        <div className={`transition-colors text-white`}>
-          <MessageSquare className={`${isSidebarExpanded ? 'h-5 w-5' : 'h-5 w-5'}`} />
+      <div key="mom" className="mb-1.5">
+        <div
+          onMouseEnter={() => setHoveredModule('mom-main')}
+          onMouseLeave={() => setHoveredModule(null)}
+          onClick={() => handleModuleClick('mom-module')}
+          className={`w-full flex items-center cursor-pointer transition-all duration-300 ${isSidebarExpanded ? 'justify-between px-4 py-3.5' : 'justify-center px-2 py-3.5'
+            } rounded-xl ${isActive
+              ? 'bg-white/20 shadow-md text-white'
+              : isHovered
+                ? 'bg-white/15 shadow-sm text-white'
+                : 'hover:bg-white/10 text-white'
+            }`}
+        >
+          <div className={`flex items-center ${isSidebarExpanded ? 'space-x-3.5' : 'justify-center'}`}>
+            <div className={`transition-colors text-white`}>
+              <MessageSquare className={`${isSidebarExpanded ? 'h-5 w-5' : 'h-5 w-5'}`} />
+            </div>
+            {isSidebarExpanded && (
+              <span className={`font-semibold text-base text-white`}>
+                MOM
+              </span>
+            )}
+          </div>
+          {isSidebarExpanded && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleModuleExpansion('mom', e);
+              }}
+              className={`p-1.5 rounded-lg text-white ${isActive ? 'hover:bg-white/20' :
+                isHovered ? 'hover:bg-white/15' :
+                  'hover:bg-white/10'
+                }`}
+            >
+              {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </button>
+          )}
         </div>
-        {isSidebarExpanded && (
-          <span className={`font-semibold text-base text-white`}>
-            MOM
-          </span>
+
+        {isSidebarExpanded && isExpanded && (
+          <div className="ml-7 mt-1.5 space-y-1.5">
+            <button
+              key="meetings"
+              onMouseEnter={() => setHoveredModule('meetings')}
+              onMouseLeave={() => setHoveredModule(null)}
+              onClick={() => handleModuleClick('meetings')}
+              className={`w-full flex items-center space-x-3.5 rounded-lg px-3 py-2.5 transition-all duration-300 ${
+                activeModule === 'meetings'
+                  ? 'bg-white/20 shadow-sm text-white'
+                  : hoveredModule === 'meetings'
+                    ? 'bg-white/15 shadow-sm text-white'
+                    : 'hover:bg-white/10 text-white'
+              }`}
+            >
+              <div className="text-white">
+                <Calendar className="h-5 w-5" />
+              </div>
+              <span className={`text-sm font-medium truncate text-white`}>
+                Meetings
+              </span>
+            </button>
+          </div>
         )}
-      </button>
+      </div>
     );
   };
 
@@ -1167,14 +1239,13 @@ const Dashboard = () => {
           </div>
 
           {/* Logo Section */}
-          <div className="relative px-4 py-6 z-10">
+          <div className="relative px-6 py-4 z-10">
             {isSidebarExpanded ? (
               <div className="flex justify-center items-center">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-white/10 blur-xl rounded-full"></div>
+                <div className="relative w-full flex justify-center">
                   <img
-                    src="/caldimlogo.png"
-                    className="h-26 w-auto object-contain relative brightness-0 invert"
+                    src={companyLogo || "/caldimlogo.png"}
+                    className={`h-22 w-auto max-w-full object-contain relative ${!companyLogo ? 'brightness-0 invert' : ''}`}
                     alt="Company Logo"
                   />
                 </div>
@@ -1182,7 +1253,9 @@ const Dashboard = () => {
             ) : (
               <div className="flex justify-center py-2">
                 <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center shadow-md backdrop-blur-sm">
-                  <span className="text-white font-bold text-sm">CD</span>
+                  <span className="text-white font-bold text-sm">
+                    {companyName ? companyName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'CD'}
+                  </span>
                 </div>
               </div>
             )}

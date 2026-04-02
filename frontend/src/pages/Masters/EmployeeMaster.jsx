@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, Copy, ArrowUp, ArrowDown, Filter } from 'lucide-react';
 import axios from 'axios';
+
+const MODULE_LIST = [
+  'Dashboard', 'MOM', 'Employee Master', 'Project Master', 
+  'Department Master', 'Upload Trackers', 
+  'Budget Upload', 'Settings'
+];
+
+
 
 const EmployeeMaster = () => {
   // Fixed columns - Simplified un-grouped structure with SaaS styling
@@ -9,17 +18,39 @@ const EmployeeMaster = () => {
     { id: 'name', label: 'Name', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'email', label: 'Email', visible: true, sortable: true, type: 'email', required: true, deletable: false },
     { id: 'department', label: 'Department', visible: true, sortable: true, type: 'text', required: true, deletable: false },
-    { id: 'role', label: 'Role', visible: true, sortable: true, type: 'text', required: true, deletable: false },
-    { id: 'status', label: 'Status', visible: true, sortable: true, type: 'text', required: true, deletable: false },
+    { id: 'role', label: 'Role', visible: true, sortable: true, type: 'select', required: true, deletable: false },
+    { id: 'status', label: 'Status', visible: true, sortable: true, type: 'select', required: true, deletable: false },
   ];
 
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [newEmployee, setNewEmployee] = useState({});
+  const [newEmployee, setNewEmployee] = useState({ 
+    employee_id: '',
+    name: '',
+    email: '',
+    department: '',
+    role: 'Employee', 
+    status: 'Active', 
+    modules: [],
+    password: '',
+    confirmPassword: ''
+  });
   const [searchTerm, setSearchTerm] = useState('');
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({});
+  const [editForm, setEditForm] = useState({ 
+    employee_id: '',
+    name: '',
+    email: '',
+    department: '',
+    role: 'Employee',
+    status: 'Active',
+    modules: [],
+    password: '',
+    confirmPassword: '' 
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDeletePrompt, setShowDeletePrompt] = useState(null);
   const [showColumnModal, setShowColumnModal] = useState(false);
   const [newColumnName, setNewColumnName] = useState('');
@@ -66,6 +97,7 @@ const EmployeeMaster = () => {
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [showDeleteColumnPrompt, setShowDeleteColumnPrompt] = useState(null);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+  const [dynamicRoles, setDynamicRoles] = useState([]);
 
   // Filter Dropdown state
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -79,6 +111,15 @@ const EmployeeMaster = () => {
   // Temporary states for modal selections
   const [tempFrozenRows, setTempFrozenRows] = useState([]);
   const [tempFrozenColumns, setTempFrozenColumns] = useState([]);
+
+  // Get permissions from Redux store
+  const { user } = useSelector((state) => state.auth);
+  const userPermissions = user?.permissions || [];
+
+  const hasPermission = (module, action = null) => {
+    if (!action) return userPermissions.includes(module);
+    return userPermissions.includes(`${module}:${action}`);
+  };
 
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 
@@ -100,6 +141,7 @@ const EmployeeMaster = () => {
     setError(null);
     try {
       await fetchEmployees();
+      await fetchDynamicRoles();
     } catch (err) {
       console.error("Error loading data:", err);
       setError("Failed to load data. Please try again.");
@@ -120,6 +162,17 @@ const EmployeeMaster = () => {
     } catch (err) {
       console.error("Error fetching employees", err);
       throw err;
+    }
+  };
+
+  const fetchDynamicRoles = async () => {
+    try {
+      const res = await axios.get(`${API_BASE_URL}/roles/`);
+      if (Array.isArray(res.data)) {
+        setDynamicRoles(res.data);
+      }
+    } catch (err) {
+      console.error("Error fetching roles", err);
     }
   };
 
@@ -384,18 +437,46 @@ const EmployeeMaster = () => {
       name: '',
       email: '',
       department: '',
-      role: '',
-      status: 'Active'
+      status: 'Active',
+      password: '',
+      confirmPassword: '',
+      modules: []
     });
   };
 
   // Handle new employee input change
   const handleNewEmployeeChange = (field, value) => {
-    setNewEmployee({ ...newEmployee, [field]: value });
+    setNewEmployee(prev => {
+      const updated = { ...prev, [field]: value };
+      // Auto-toggle permissions if role is dynamic
+      if (field === 'role') {
+        const roleObj = dynamicRoles.find(r => r.name === value);
+        if (roleObj) {
+          updated.modules = roleObj.permissions || [];
+        }
+      }
+      return updated;
+    });
   };
 
   // Save new employee
   const saveNewEmployee = async () => {
+    if (!newEmployee.employee_id || !newEmployee.name || !newEmployee.email || !newEmployee.department) {
+      showNotification('Please fill in all required fields marked with *', 'error');
+      return;
+    }
+
+    if (!newEmployee.password) {
+      showNotification('Password is required', 'error');
+      return;
+    }
+
+    if (newEmployee.password !== newEmployee.confirmPassword) {
+      showNotification('Passwords do not match', 'error');
+      return;
+    }
+
+    setLoading(true);
     try {
       const payload = {
         ...newEmployee,
@@ -411,6 +492,8 @@ const EmployeeMaster = () => {
       console.error(err);
       const msg = err.response?.data?.detail || err.message;
       showNotification('Error saving employee: ' + msg, 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -448,18 +531,37 @@ const EmployeeMaster = () => {
   const startEditing = (employee) => {
     setEditForm({
       ...employee,
-      id: employee.id
+      id: employee.id,
+      password: '',
+      confirmPassword: '',
+      modules: employee.modules || []
     });
     setEditingId(employee.id);
   };
 
   // Save employee edit
   const saveEdit = async () => {
+    if (!editForm.employee_id || !editForm.name || !editForm.email || !editForm.department) {
+      showNotification('Please fill in all required fields marked with *', 'error');
+      return;
+    }
+
+    if (editForm.password && editForm.password !== editForm.confirmPassword) {
+      showNotification('Passwords do not match', 'error');
+      return;
+    }
+
+    setLoading(true);
     try {
       const payload = {
         ...editForm,
         employee_id: editForm.employee_id || null
       };
+      // Remove confirmPassword from payload
+      delete payload.confirmPassword;
+      // If password is empty, don't send it to avoid overwriting with empty
+      if (!payload.password) delete payload.password;
+
       await axios.put(`${API_BASE_URL}/employees/${editingId}`, payload);
       await fetchEmployees();
       setEditingId(null);
@@ -471,6 +573,8 @@ const EmployeeMaster = () => {
       console.error(err);
       const msg = err.response?.data?.detail || err.message;
       showNotification('Error updating employee: ' + msg, 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -482,7 +586,17 @@ const EmployeeMaster = () => {
 
   // Handle edit form change
   const handleEditFormChange = (field, value) => {
-    setEditForm({ ...editForm, [field]: value });
+    setEditForm(prev => {
+      const updated = { ...prev, [field]: value };
+      // Auto-toggle permissions if role is dynamic
+      if (field === 'role') {
+        const roleObj = dynamicRoles.find(r => r.name === value);
+        if (roleObj) {
+          updated.modules = roleObj.permissions || [];
+        }
+      }
+      return updated;
+    });
   };
 
   // Add new column
@@ -687,12 +801,33 @@ const EmployeeMaster = () => {
       return (
         <div className="flex items-center gap-2">
           <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          <span className={`px-2 py-0.5 rounded-full text-[11px] font-medium ${
+            isActive ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400'
+          }`}>
             {value || 'Inactive'}
           </span>
         </div>
       );
     }
+    
+    if (column.id === 'role') {
+      const getRoleStyles = (role) => {
+        switch (role) {
+          case 'Admin': return 'bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-500/10 dark:text-purple-400 dark:border-purple-500/20';
+          case 'Manager': return 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20';
+          case 'User': return 'bg-slate-50 text-slate-700 border-slate-100 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20';
+          case 'Intern': return 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20';
+          default: return 'bg-slate-50 text-slate-700 border-slate-100';
+        }
+      };
+      
+      return (
+        <span className={`px-2 py-0.5 rounded border text-[11px] font-medium ${getRoleStyles(value)}`}>
+          {value || 'User'}
+        </span>
+      );
+    }
+
     if (column.id === 'employee_id') {
       return (
         <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value || '-'}</span>
@@ -1189,16 +1324,6 @@ const EmployeeMaster = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Role <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      value={newEmployee.role || ''}
-                      onChange={(e) => handleNewEmployeeChange('role', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
-                      placeholder="Enter role"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Status <span className="text-red-500">*</span></label>
                     <select
                       value={newEmployee.status || 'Active'}
@@ -1209,8 +1334,67 @@ const EmployeeMaster = () => {
                       <option value="Inactive">Inactive</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Role <span className="text-red-500">*</span></label>
+                    <select
+                      value={newEmployee.role || ''}
+                      onChange={(e) => handleNewEmployeeChange('role', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black bg-white dark:bg-slate-800"
+                    >
+                      <option value="" disabled>Select role</option>
+                      {dynamicRoles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
+
+              {/* Password Section */}
+              <div className="mb-6">
+                <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center">
+                  Password <span className="text-red-500 ml-1">*</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={newEmployee.password || ''}
+                        onChange={(e) => handleNewEmployeeChange('password', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black pr-10"
+                        placeholder="Enter new password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm Password</label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={newEmployee.confirmPassword || ''}
+                        onChange={(e) => handleNewEmployeeChange('confirmPassword', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black pr-10"
+                        placeholder="Confirm new password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
 
               <div className="flex justify-end space-x-2">
                 <button
@@ -1253,15 +1437,6 @@ const EmployeeMaster = () => {
                 <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Basic Information</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">System ID</label>
-                    <input
-                      type="text"
-                      value={editForm.id || ''}
-                      disabled
-                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-800/80"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Employee ID <span className="text-red-500">*</span></label>
                     <input
                       type="text"
@@ -1298,15 +1473,6 @@ const EmployeeMaster = () => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Role <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      value={editForm.role || ''}
-                      onChange={(e) => handleEditFormChange('role', e.target.value)}
-                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black"
-                    />
-                  </div>
-                  <div>
                     <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Status <span className="text-red-500">*</span></label>
                     <select
                       value={editForm.status || 'Active'}
@@ -1317,8 +1483,67 @@ const EmployeeMaster = () => {
                       <option value="Inactive">Inactive</option>
                     </select>
                   </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Role <span className="text-red-500">*</span></label>
+                    <select
+                      value={editForm.role || ''}
+                      onChange={(e) => handleEditFormChange('role', e.target.value)}
+                      className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black bg-white dark:bg-slate-800"
+                    >
+                      <option value="" disabled>Select role</option>
+                      {dynamicRoles.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
+                    </select>
+                  </div>
                 </div>
               </div>
+
+               {/* Password Section */}
+               <div className="mb-6">
+                <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">
+                  Password <span className="text-slate-400 font-normal">(Leave blank to keep current)</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={editForm.password || ''}
+                        onChange={(e) => handleEditFormChange('password', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black pr-10"
+                        placeholder="Enter new password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm Password</label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={editForm.confirmPassword || ''}
+                        onChange={(e) => handleEditFormChange('confirmPassword', e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black pr-10"
+                        placeholder="Confirm new password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
 
               <div className="flex justify-end space-x-2">
                 <button
@@ -1445,24 +1670,28 @@ const EmployeeMaster = () => {
                   <div className="flex gap-2 mt-2 sm:mt-0">
 
                     {/* Add Employee Button */}
-                    <button
-                      onClick={handleAddEmployeeClick}
-                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
-                      data-tooltip="Add employee"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span className="hidden sm:inline">Add Employee</span>
-                    </button>
+                    {hasPermission('Employee Master', 'ADD') && (
+                      <button
+                        onClick={handleAddEmployeeClick}
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm bg-blue-600 text-white rounded hover:bg-blue-700 whitespace-nowrap"
+                        data-tooltip="Add employee"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span className="hidden sm:inline">Add Employee</span>
+                      </button>
+                    )}
 
                     {/* Add Column Button */}
-                    <button
-                      onClick={() => setShowColumnModal(true)}
-                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 whitespace-nowrap master-table-tooltip"
-                      data-tooltip="Add column"
-                    >
-                      <Plus className="h-4 w-4" />
-                      <span className="hidden sm:inline">Add Column</span>
-                    </button>
+                    {hasPermission('Employee Master', 'CUSTOM_COLUMNS') && (
+                      <button
+                        onClick={() => setShowColumnModal(true)}
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 whitespace-nowrap master-table-tooltip"
+                        data-tooltip="Add column"
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span className="hidden sm:inline">Add Column</span>
+                      </button>
+                    )}
 
                     {/* Export Button with Dropdown */}
                     <div className="relative">
@@ -1683,8 +1912,10 @@ const EmployeeMaster = () => {
                           </th>
                         );
                       })}
-                      {/* Empty TH for Actions Row */}
-                      <th className="w-24"></th>
+                      {/* Actions Header - Sticky Right */}
+                      <th className="sticky right-0 bg-slate-100 dark:bg-slate-700 z-20 px-6 py-3 text-right font-medium border-l border-slate-200 dark:border-slate-700 w-24">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
 
@@ -1736,23 +1967,31 @@ const EmployeeMaster = () => {
                               </td>
                             );
                           })}
-                          {/* Actions Cell */}
-                          <td className="py-3 px-6 text-right whitespace-nowrap w-[100px]">
-                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); startEditing(emp); }}
-                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
-                                title="Edit"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); setShowDeletePrompt({ id: emp.id, name: emp.name }); }}
-                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
-                                title="Delete"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
+                          {/* Actions Cell - Sticky Right */}
+                          <td className={`sticky right-0 z-10 py-3 px-6 text-right whitespace-nowrap w-[100px] border-l border-slate-100 dark:border-slate-700 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.05)] ${
+                            selectedEmployees.includes(emp.id) 
+                              ? 'bg-[#f8faff] dark:bg-[#1e293b]' 
+                              : 'bg-white dark:bg-slate-800 group-hover:bg-slate-50 dark:group-hover:bg-slate-700/50'
+                          }`}>
+                            <div className="flex items-center justify-end gap-1 transition-opacity duration-200">
+                              {hasPermission('Employee Master', 'EDIT') && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); startEditing(emp); }}
+                                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                                  title="Edit"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                              )}
+                              {hasPermission('Employee Master', 'DELETE') && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setShowDeletePrompt({ id: emp.id, name: emp.name }); }}
+                                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1776,13 +2015,15 @@ const EmployeeMaster = () => {
                 {/* LEFT SIDE - Add Employee and Action Buttons */}
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1">
-                    <button
-                      onClick={handleAddEmployeeClick}
-                      className="flex items-center gap-1 h-10 px-3 text-xs border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 master-table-tooltip"
-                      data-tooltip="Add employee"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </button>
+                    {hasPermission('Employee Master', 'ADD') && (
+                      <button
+                        onClick={handleAddEmployeeClick}
+                        className="flex items-center gap-1 h-10 px-3 text-xs border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 master-table-tooltip"
+                        data-tooltip="Add employee"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    )}
                     <button
                       onClick={toggleFreezeRow}
                       className={`flex items-center gap-1 h-10 px-3 text-xs border rounded master-table-tooltip ${frozenRows.length > 0
