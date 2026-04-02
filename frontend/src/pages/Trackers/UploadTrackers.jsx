@@ -15,6 +15,7 @@ import API from '../../utils/api';
 import FileContentViewer from './FileContentViewer';
 import { getEmployees } from '../../utils/employeeApi';
 import SearchableDropdown from '../../components/SearchableDropdown';
+import PermissionGuard from '../../components/PermissionGuard';
 
 // ============================================================================
 // DUAL SIDEBAR MANAGER - Two Independent Hierarchies
@@ -1936,268 +1937,278 @@ const UploadTrackers = () => {
         /* Original Upload Trackers content */
         <>
           {/* UPLOAD AREA */}
-          <div className="bg-white border border-gray-300 rounded p-4 sm:p-6">
-            <div className="text-center">
-              <div
-                className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-8 hover:border-gray-400 hover:bg-gray-50 cursor-pointer transition-colors"
-                onClick={openUploadModal}
-              >
-                <div className="space-y-2 sm:space-y-3">
-                  <Upload className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto" />
-                  <div>
-                    <p className="font-medium text-sm sm:text-base">Drag & drop files or click to browse</p>
-                    <p className="text-xs text-gray-500">Supports: CSV, Excel, JSON, TXT (Max 50MB)</p>
-                  </div>
-                </div>
-              </div>
-
-              {selectedFile && (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <File className="h-4 w-4 text-blue-600" />
-                      <span className="text-sm font-medium">{getDisplayFileName(selectedFile.name)}</span>
+          <PermissionGuard permission="upload_tracker">
+            <div className="bg-white border border-gray-300 rounded p-4 sm:p-6">
+              <div className="text-center">
+                <div
+                  className="border-2 border-dashed border-gray-300 rounded-xl p-4 sm:p-8 hover:border-gray-400 hover:bg-gray-50 cursor-pointer transition-colors"
+                  onClick={openUploadModal}
+                >
+                  <div className="space-y-2 sm:space-y-3">
+                    <Upload className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400 mx-auto" />
+                    <div>
+                      <p className="font-medium text-sm sm:text-base">Drag & drop files or click to browse</p>
+                      <p className="text-xs text-gray-500">Supports: CSV, Excel, JSON, TXT (Max 50MB)</p>
                     </div>
-                    <span className="text-xs text-gray-600">
-                      {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB
-                    </span>
                   </div>
                 </div>
-              )}
 
-              {uploading && (
-                <div className="mt-4 sm:mt-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs sm:text-sm font-medium">Uploading...</span>
-                    <span className="text-xs sm:text-sm text-gray-600">{progress}%</span>
+                {selectedFile && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <File className="h-4 w-4 text-blue-600" />
+                        <span className="text-sm font-medium">{getDisplayFileName(selectedFile.name)}</span>
+                      </div>
+                      <span className="text-xs text-gray-600">
+                        {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB
+                      </span>
+                    </div>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
-                    <div
-                      className="bg-blue-600 h-1.5 sm:h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${progress}%` }}
-                    ></div>
+                )}
+
+                {uploading && (
+                  <div className="mt-4 sm:mt-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs sm:text-sm font-medium">Uploading...</span>
+                      <span className="text-xs sm:text-sm text-gray-600">{progress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
+                      <div
+                        className="bg-blue-600 h-1.5 sm:h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${progress}%` }}
+                      ></div>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
+          </PermissionGuard>
 
           {/* MAIN BORDER CONTAINER */}
-          <div className="bg-white border border-gray-300 rounded mx-0">
+          <PermissionGuard permission="view_tracker">
+            <div className="bg-white border border-gray-300 rounded mx-0">
 
-            {/* TOOLBAR SECTION */}
-            <div className="p-4 border-b border-gray-300">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              {/* TOOLBAR SECTION */}
+              <div className="p-4 border-b border-gray-300">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
 
-                {/* LEFT SIDE - Search */}
-                <div className="flex flex-1 flex-col sm:flex-row gap-2 sm:gap-2 items-start sm:items-center">
-                  {/* Search */}
-                  <div className="relative w-full sm:w-auto">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search..."
-                      value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
-                      className="w-full sm:w-48 h-10 pl-9 pr-3 text-xs sm:text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black"
-                    />
+                  {/* LEFT SIDE - Search */}
+                  <div className="flex flex-1 flex-col sm:flex-row gap-2 sm:gap-2 items-start sm:items-center">
+                    {/* Search */}
+                    <div className="relative w-full sm:w-auto">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full sm:w-48 h-10 pl-9 pr-3 text-xs sm:text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black"
+                      />
+                    </div>
                   </div>
-                </div>
 
-                {/* RIGHT SIDE - Filter and Export */}
-                <div className="flex gap-2 mt-2 sm:mt-0">
-                  {/* Department Filter */}
-                  <div className="relative">
-                    <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Filter by department..."
-                      value={departmentFilter}
-                      onChange={(e) => setDepartmentFilter(e.target.value)}
-                      className="h-10 pl-9 pr-3 text-xs sm:text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black w-full sm:w-48"
-                    />
-                    {departmentFilter && (
+                  {/* RIGHT SIDE - Filter and Export */}
+                  <div className="flex gap-2 mt-2 sm:mt-0">
+                    {/* Department Filter */}
+                    <div className="relative">
+                      <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Filter by department..."
+                        value={departmentFilter}
+                        onChange={(e) => setDepartmentFilter(e.target.value)}
+                        className="h-10 pl-9 pr-3 text-xs sm:text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-black w-full sm:w-48"
+                      />
+                      {departmentFilter && (
+                        <button
+                          onClick={() => setDepartmentFilter('')}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="h-3 w-3 sm:h-4 sm:w-4" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Export Button with Dropdown */}
+                    <div className="relative">
                       <button
-                        onClick={() => setDepartmentFilter('')}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                        onClick={() => setShowExportDropdown(!showExportDropdown)}
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50"
                       >
-                        <X className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <Download className="h-4 w-4" />
                       </button>
-                    )}
-                  </div>
 
-                  {/* Export Button with Dropdown */}
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowExportDropdown(!showExportDropdown)}
-                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-gray-50"
-                    >
-                      <Download className="h-4 w-4" />
-                    </button>
-
-                    {/* Export Dropdown */}
-                    {showExportDropdown && (
-                      <>
-                        <div
-                          className="fixed inset-0 z-40"
-                          onClick={() => setShowExportDropdown(false)}
-                        />
-                        <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-300 rounded shadow-lg z-50">
-                          <button
-                            onClick={() => handleExportClick('excel')}
-                            className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            Export as Excel
-                          </button>
-                          <button
-                            onClick={() => handleExportClick('csv')}
-                            className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            Export as CSV
-                          </button>
-                          <button
-                            onClick={() => handleExportClick('json')}
-                            className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            Export as JSON
-                          </button>
-                          <button
-                            onClick={() => handleExportClick('pdf')}
-                            className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
-                          >
-                            Export as PDF
-                          </button>
-                        </div>
-                      </>
-                    )}
+                      {/* Export Dropdown */}
+                      {showExportDropdown && (
+                        <>
+                          <div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setShowExportDropdown(false)}
+                          />
+                          <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-300 rounded shadow-lg z-50">
+                            <button
+                              onClick={() => handleExportClick('excel')}
+                              className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                              Export as Excel
+                            </button>
+                            <button
+                              onClick={() => handleExportClick('csv')}
+                              className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                              Export as CSV
+                            </button>
+                            <button
+                              onClick={() => handleExportClick('json')}
+                              className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                              Export as JSON
+                            </button>
+                            <button
+                              onClick={() => handleExportClick('pdf')}
+                              className="block w-full text-left px-4 py-2 text-xs sm:text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                              Export as PDF
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* TABLE SECTION */}
-            <div className="overflow-auto max-h-[calc(100vh-300px)] bg-white rounded-lg shadow-sm border border-gray-200">
-              <table className="min-w-full text-xs sm:text-sm">
-                <thead className="bg-gray-50 sticky top-0 z-10">
-                  <tr className="border-b-2 border-slate-200">
-                    {/* Checkbox column */}
-                    <th className="text-left py-3.5 px-4 font-semibold text-slate-600 cursor-pointer whitespace-nowrap w-12 hover:bg-slate-100/80 transition-colors">
-                      <div className="flex items-center justify-center">
-                        <button
-                          onClick={toggleSelectAll}
-                          className="p-1 text-slate-400 hover:text-slate-600 transition-colors"
-                        >
-                          {selectAll ? (
-                            <CheckSquare className="h-4 w-4 text-blue-600" />
-                          ) : (
-                            <Square className="h-4 w-4" />
-                          )}
-                        </button>
-                      </div>
-                    </th>
-                    {visibleColumns.map(col => (
-                      <th
-                        key={col.id}
-                        className="text-left py-3.5 px-4 font-semibold text-slate-600 cursor-pointer hover:bg-slate-100/80 transition-colors whitespace-nowrap"
-                        onClick={() => col.sortable && handleSort(col.id)}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <span className="uppercase tracking-wider text-[10px]">{col.label}</span>
-                          {col.sortable && getSortIcon(col.id)}
+              {/* TABLE SECTION */}
+              <div className="overflow-auto max-h-[calc(100vh-300px)] bg-white rounded-lg shadow-sm border border-gray-200">
+                <table className="min-w-full text-xs sm:text-sm">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
+                    <tr className="border-b-2 border-slate-200">
+                      {/* Checkbox column */}
+                      <th className="text-left py-3.5 px-4 font-semibold text-slate-600 cursor-pointer whitespace-nowrap w-12 hover:bg-slate-100/80 transition-colors">
+                        <div className="flex items-center justify-center">
+                          <button
+                            onClick={toggleSelectAll}
+                            className="p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                          >
+                            {selectAll ? (
+                              <CheckSquare className="h-4 w-4 text-blue-600" />
+                            ) : (
+                              <Square className="h-4 w-4" />
+                            )}
+                          </button>
                         </div>
                       </th>
-                    ))}
-                    <th className="text-left py-3.5 px-4 font-semibold text-slate-600 whitespace-nowrap uppercase tracking-wider text-[10px]">Actions</th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-gray-100">
-                  {sortedTrackers.map((tracker) => (
-                    <tr
-                      key={tracker.id}
-                      className={`hover:bg-blue-50/50 transition-colors border-b border-gray-100 ${selectedTrackers.includes(tracker.id) ? 'bg-blue-50' : 'even:bg-gray-50/30'
-                        }`}
-                    >
-                      {/* Checkbox cell */}
-                      <td className="py-3 px-4 whitespace-nowrap w-10">
-                        <div className="flex items-center justify-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedTrackers.includes(tracker.id)}
-                            onChange={() => toggleTrackerSelection(tracker.id)}
-                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                        </div>
-                      </td>
                       {visibleColumns.map(col => (
-                        <td key={col.id} className="py-3 px-4 whitespace-nowrap">
-                          {renderCellContent(col, tracker[col.id], tracker)}
-                        </td>
+                        <th
+                          key={col.id}
+                          className="text-left py-3.5 px-4 font-semibold text-slate-600 cursor-pointer hover:bg-slate-100/80 transition-colors whitespace-nowrap"
+                          onClick={() => col.sortable && handleSort(col.id)}
+                        >
+                          <div className="flex items-center space-x-2">
+                            <span className="uppercase tracking-wider text-[10px]">{col.label}</span>
+                            {col.sortable && getSortIcon(col.id)}
+                          </div>
+                        </th>
                       ))}
-                      <td className="py-3 px-4 whitespace-nowrap text-left">
-                        <div className="flex items-center space-x-2">
-                          <button
-                            onClick={() => openFileDirectly(tracker.id)}
-                            className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
-                            title="View File"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => showDeleteConfirmation(tracker.id, getDisplayFileName(tracker.fileName, tracker.project))}
-                            className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"
-                            title="Delete"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </td>
+                      <th className="text-left py-3.5 px-4 font-semibold text-slate-600 whitespace-nowrap uppercase tracking-wider text-[10px]">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
 
-            {/* FOOTER SECTION */}
-            <div className="px-4 py-3 border-t border-gray-300 text-xs text-gray-900 flex flex-col sm:flex-row items-center justify-between gap-2 bg-white">
-              {/* LEFT SIDE - Upload and Action Buttons */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={openUploadModal}
-                  className="flex items-center gap-1 h-10 px-3 text-xs border border-gray-300 rounded hover:bg-gray-50"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
+                  <tbody className="divide-y divide-gray-100">
+                    {sortedTrackers.map((tracker) => (
+                      <tr
+                        key={tracker.id}
+                        className={`hover:bg-blue-50/50 transition-colors border-b border-gray-100 ${selectedTrackers.includes(tracker.id) ? 'bg-blue-50' : 'even:bg-gray-50/30'
+                          }`}
+                      >
+                        {/* Checkbox cell */}
+                        <td className="py-3 px-4 whitespace-nowrap w-10">
+                          <div className="flex items-center justify-center">
+                            <input
+                              type="checkbox"
+                              checked={selectedTrackers.includes(tracker.id)}
+                              onChange={() => toggleTrackerSelection(tracker.id)}
+                              className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            />
+                          </div>
+                        </td>
+                        {visibleColumns.map(col => (
+                          <td key={col.id} className="py-3 px-4 whitespace-nowrap">
+                            {renderCellContent(col, tracker[col.id], tracker)}
+                          </td>
+                        ))}
+                        <td className="py-3 px-4 whitespace-nowrap text-left">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={() => openFileDirectly(tracker.id)}
+                              className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-full transition-colors"
+                              title="View File"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </button>
+                            <PermissionGuard permission="delete_tracker">
+                              <button
+                                onClick={() => showDeleteConfirmation(tracker.id, getDisplayFileName(tracker.fileName, tracker.project))}
+                                className="p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-full transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </PermissionGuard>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-                {/* Delete button only */}
-                {selectedTrackers.length > 0 && (
-                  <div className="flex items-center gap-1 ml-1">
+              {/* FOOTER SECTION */}
+              <div className="px-4 py-3 border-t border-gray-300 text-xs text-gray-900 flex flex-col sm:flex-row items-center justify-between gap-2 bg-white">
+                {/* LEFT SIDE - Upload and Action Buttons */}
+                <div className="flex items-center gap-2">
+                  <PermissionGuard permission="upload_tracker">
                     <button
-                      onClick={handleBulkDelete}
-                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                      title={selectedTrackers.length === 1 ? "Delete selected upload" : "Delete selected uploads"}
+                      onClick={openUploadModal}
+                      className="flex items-center gap-1 h-10 px-3 text-xs border border-gray-300 rounded hover:bg-gray-50"
                     >
-                      <Trash2 className="h-4 w-4" />
-                      {selectedTrackers.length > 1 && <span>Delete ({selectedTrackers.length})</span>}
+                      <Plus className="h-4 w-4" />
                     </button>
-                  </div>
-                )}
-              </div>
+                  </PermissionGuard>
 
-              {/* RIGHT SIDE - Info */}
-              <div className="flex items-center gap-4">
-                <span>
-                  Showing {sortedTrackers.length} of {trackers.length} uploads
-                  {departmentFilter && ` (Filtered by: ${departmentFilter})`}
-                </span>
-                {selectedTrackers.length > 0 && (
-                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
-                    {selectedTrackers.length} selected
+                  {/* Delete button only */}
+                  {selectedTrackers.length > 0 && (
+                    <div className="flex items-center gap-1 ml-1">
+                      <PermissionGuard permission="delete_tracker">
+                        <button
+                          onClick={handleBulkDelete}
+                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-gray-300 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                          title={selectedTrackers.length === 1 ? "Delete selected upload" : "Delete selected uploads"}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          {selectedTrackers.length > 1 && <span>Delete ({selectedTrackers.length})</span>}
+                        </button>
+                      </PermissionGuard>
+                    </div>
+                  )}
+                </div>
+
+                {/* RIGHT SIDE - Info */}
+                <div className="flex items-center gap-4">
+                  <span>
+                    Showing {sortedTrackers.length} of {trackers.length} uploads
+                    {departmentFilter && ` (Filtered by: ${departmentFilter})`}
                   </span>
-                )}
+                  {selectedTrackers.length > 0 && (
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                      {selectedTrackers.length} selected
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
+          </PermissionGuard>
         </>
       )}
     </div>

@@ -16,7 +16,8 @@ def create_role(db: Session, role: RoleCreate):
     db_role = Role(
         name=role.name,
         description=role.description,
-        permissions=role.permissions
+        permissions=role.permissions,
+        is_default=getattr(role, "is_default", 0)
     )
     db.add(db_role)
     db.commit()
@@ -40,19 +41,70 @@ def delete_role(db: Session, role_id: int):
     db_role = get_role(db, role_id)
     if not db_role:
         return None
+    if getattr(db_role, "is_default", 0) == 1:
+        # Prevent deletion of default roles
+        return None
     db.delete(db_role)
     db.commit()
     return db_role
 
 def seed_default_roles(db: Session):
     default_roles = [
-        {"name": "Super Admin", "description": "Full system access.", "permissions": ["Dashboard", "MOM", "Employee Master", "Project Master", "Department Master", "Upload Trackers", "Budget Upload", "Settings"]},
-        {"name": "Admin", "description": "Administrative access excluding settings.", "permissions": ["Dashboard", "MOM", "Employee Master", "Project Master", "Department Master", "Upload Trackers", "Budget Upload"]},
-        {"name": "Manager", "description": "Operational and management access.", "permissions": ["Dashboard", "MOM", "Project Master", "Department Master", "Upload Trackers"]},
-        {"name": "Employee", "description": "Standard user access.", "permissions": ["Dashboard", "MOM"]},
-        {"name": "Intern", "description": "Restricted dashboard-only access.", "permissions": ["Dashboard"]}
+        {
+            "name": "Super Admin", 
+            "description": "Full system access and security oversight.", 
+            "is_default": 1,
+            "permissions": [
+                "Dashboard", "MOM", "Employee Master", "Project Master", "Department Master", 
+                "Upload Trackers", "Budget Upload", "Settings",
+                "upload_tracker", "view_tracker", "delete_tracker",
+                "upload_budget", "view_budget", "delete_budget"
+            ]
+        },
+        {
+            "name": "Admin", 
+            "description": "Full system configuration and master data oversight.", 
+            "is_default": 1,
+            "permissions": [
+                "Dashboard", "MOM", "Employee Master", "Project Master", "Department Master", 
+                "Upload Trackers", "Budget Upload",
+                "upload_tracker", "view_tracker", "delete_tracker",
+                "upload_budget", "view_budget", "delete_budget"
+            ]
+        },
+        {
+            "name": "Project Manager", 
+            "description": "Project lifecycle and resource tracking.", 
+            "is_default": 1,
+            "permissions": [
+                "Dashboard", "MOM", "Project Master", "Upload Trackers",
+                "upload_tracker", "view_tracker", "view_budget"
+            ]
+        },
+        {
+            "name": "Team Lead", 
+            "description": "Operations planning, approvals, and report generation.", 
+            "is_default": 1,
+            "permissions": [
+                "Dashboard", "MOM", "Upload Trackers",
+                "upload_tracker", "view_tracker"
+            ]
+        },
+        {
+            "name": "Employee", 
+            "description": "Standard user access.", 
+            "is_default": 1,
+            "permissions": ["Dashboard", "view_tracker"]
+        }
     ]
     
     for r in default_roles:
-        if not get_role_by_name(db, r["name"]):
+        existing = get_role_by_name(db, r["name"])
+        if not existing:
             create_role(db, RoleCreate(**r))
+        else:
+            # Update existing default role description/permissions if needed
+            existing.description = r["description"]
+            existing.is_default = 1
+            existing.permissions = r["permissions"]
+            db.commit()
