@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import { X, Plus, Search, Edit, Trash2, Download, Filter, ChevronUp, ChevronDown, Check, Copy, Settings, Columns, Eye, EyeOff } from 'lucide-react';
 import API from '../utils/api';
 import * as XLSX from 'xlsx';
@@ -6,6 +7,12 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
 const SubCategoryModal = ({ isOpen, onClose, project, showNotification, onRefresh }) => {
+  const { user } = useSelector(state => state.auth);
+  const isAdmin = user?.role === 'Admin' || user?.role === 'Super Admin';
+  const permissions = user?.permissions || [];
+  const canEdit = isAdmin || permissions.includes('Project Master:EDIT-SUBCATEGORY');
+  const canDelete = isAdmin || permissions.includes('Project Master:DELETE-SUBCATEGORY');
+
   const initialColumns = [
     { id: 'sub_category', label: 'Sub-category', visible: true, sortable: true, type: 'text', required: true },
     { id: 'unit_type', label: 'Unit Type', visible: true, sortable: true, type: 'text', required: false },
@@ -265,12 +272,14 @@ const SubCategoryModal = ({ isOpen, onClose, project, showNotification, onRefres
             />
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button 
-              onClick={() => setIsAdding(true)}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
-            >
-              <Plus className="h-4 w-4" /> Add Sub-category
-            </button>
+            {canEdit && (
+              <button 
+                onClick={() => setIsAdding(true)}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+              >
+                <Plus className="h-4 w-4" /> Add Sub-category
+              </button>
+            )}
             <button 
               onClick={() => setShowColumnModal(true)}
               className="p-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all border border-slate-200 dark:border-slate-700"
@@ -347,9 +356,11 @@ const SubCategoryModal = ({ isOpen, onClose, project, showNotification, onRefres
                   </div>
                   <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-2">No sub-categories found</h3>
                   <p className="text-slate-400 dark:text-slate-500 text-sm mb-8 max-w-xs leading-relaxed">It seems there's no data matching your query or this project has no sub-modules yet.</p>
-                  <button onClick={() => setIsAdding(true)} className="flex items-center gap-2 text-blue-600 font-bold hover:text-blue-700 bg-blue-50 dark:bg-blue-900/20 px-6 py-3 rounded-xl transition-all">
-                    <Plus className="h-5 w-5" /> Start by adding one
-                  </button>
+                  {canEdit && (
+                    <button onClick={() => setIsAdding(true)} className="flex items-center gap-2 text-blue-600 font-bold hover:text-blue-700 bg-blue-50 dark:bg-blue-900/20 px-6 py-3 rounded-xl transition-all">
+                      <Plus className="h-5 w-5" /> Start by adding one
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="relative">
@@ -384,20 +395,24 @@ const SubCategoryModal = ({ isOpen, onClose, project, showNotification, onRefres
                           ))}
                           <td className="px-6 py-4.5 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
-                              <button 
-                                onClick={() => startEdit(item)}
-                                className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 rounded-xl transition-all"
-                                title="Edit Entry"
-                              >
-                                <Edit className="h-4.5 w-4.5" />
-                              </button>
-                              <button 
-                                onClick={() => handleDelete(item.id)}
-                                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/40 rounded-xl transition-all"
-                                title="Permanently Delete"
-                              >
-                                <Trash2 className="h-4.5 w-4.5" />
-                              </button>
+                              {canEdit && (
+                                <button 
+                                  onClick={() => startEdit(item)}
+                                  className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/40 rounded-xl transition-all"
+                                  title="Edit Entry"
+                                >
+                                  <Edit className="h-4.5 w-4.5" />
+                                </button>
+                              )}
+                              {canDelete && (
+                                <button 
+                                  onClick={() => handleDelete(item.id)}
+                                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/40 rounded-xl transition-all"
+                                  title="Permanently Delete"
+                                >
+                                  <Trash2 className="h-4.5 w-4.5" />
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
