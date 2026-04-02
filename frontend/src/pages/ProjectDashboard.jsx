@@ -10,6 +10,7 @@ import ExcelTableViewer from '../components/ExcelTableViewer';
 import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings, Download, GripVertical } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import PdfPreviewModal from '../components/PdfPreviewModal';
 
 
 import { HotTable } from '@handsontable/react';
@@ -293,6 +294,7 @@ const ProjectTitleDashboard = () => {
   const [maximizedChart, setMaximizedChart] = useState(null);
   const [showAxisSelector, setShowAxisSelector] = useState(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
   const showSimulateModal = searchParams.get('configure') === 'true';
   const setShowSimulateModal = (show) => {
     if (show) {
@@ -3247,6 +3249,27 @@ const ProjectTitleDashboard = () => {
                   <Mail className="h-4 w-4" />
                   Send Mail
                 </button>
+
+                <button
+                  onClick={() => setShowPdfPreview(true)}
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '14px',
+                    borderRadius: '4px',
+                    border: '1px solid white',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    outline: 'none'
+                  }}
+                >
+                  <Download className="h-4 w-4" />
+                  Preview PDF
+                </button>
               </>
             )}
           </div>
@@ -4003,6 +4026,19 @@ const ProjectTitleDashboard = () => {
               </div>
             </div>
             {/* End project-dashboard-main-content */}
+            
+            <PdfPreviewModal
+              show={showPdfPreview}
+              onClose={() => setShowPdfPreview(false)}
+              activeProject={activeProject}
+              milestones={milestones}
+              criticalIssues={criticalIssues}
+              sopData={sopData}
+              summaryData={summaryData}
+              visibleSections={visibleSections}
+              availablePhases={availablePhases}
+              getTrackerForPhase={getTrackerForPhase}
+            />
           </>
         )}
       </div>
