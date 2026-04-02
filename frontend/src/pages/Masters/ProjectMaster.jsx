@@ -1320,6 +1320,10 @@ const ProjectMaster = () => {
       return <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value || '-'}</span>;
     }
     if (col.type === 'sub_category_button') {
+      const hasViewPermission = isAdmin || (currentUser?.permissions || []).includes('Project Master:VIEW-SUBCATEGORY');
+      if (!hasViewPermission) {
+        return <span className="text-slate-400 text-xs flex items-center justify-center">-</span>;
+      }
       return (
         <button
           onClick={(e) => {

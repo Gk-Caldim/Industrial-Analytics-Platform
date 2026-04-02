@@ -6,6 +6,14 @@ import {
 } from 'lucide-react';
 import API from '../../../utils/api';
 
+const ROLE_ORDER = {
+  'Super Admin': 1,
+  'Admin': 2,
+  'Project Manager': 3,
+  'Team Lead': 4,
+  'Employee': 5
+};
+
 const AccessControl = () => {
   const [roles, setRoles] = useState([]);
   const [selectedRole, setSelectedRole] = useState(null);
@@ -51,7 +59,16 @@ const AccessControl = () => {
             { id: 'CUSTOM_COLUMNS', label: 'Add Custom Columns' }
           ]
         },
-        { name: 'Project Master', description: 'Project lifecycle and resource tracking', tags: ['MANAGE'] },
+        {
+          name: 'Project Master',
+          description: 'Project lifecycle and resource tracking',
+          tags: ['MANAGE'],
+          subPermissions: [
+            { id: 'VIEW-SUBCATEGORY', label: 'View Subcategory' },
+            { id: 'EDIT-SUBCATEGORY', label: 'Edit Subcategory' },
+            { id: 'DELETE-SUBCATEGORY', label: 'Delete Subcategory' }
+          ]
+        },
         { name: 'Department Master', description: 'Organizational hierarchy and departments', tags: ['MANAGE'] },
       ]
     },
@@ -88,15 +105,31 @@ const AccessControl = () => {
     fetchRoles();
   }, []);
 
+  const sortRoles = (rolesList) => {
+    return [...rolesList].sort((a, b) => {
+      const orderA = ROLE_ORDER[a.name] || 999;
+      const orderB = ROLE_ORDER[b.name] || 999;
+
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+
+      // For roles with the same priority (mostly custom roles), sort alphabetically
+      return a.name.localeCompare(b.name);
+    });
+  };
+
   const fetchRoles = async () => {
     try {
       setLoading(true);
       const response = await API.get('/roles/');
-      setRoles(response.data);
-      if (response.data.length > 0 && !selectedRole) {
-        setSelectedRole(response.data[0]);
+      const sortedRoles = sortRoles(response.data);
+      setRoles(sortedRoles);
+      
+      if (sortedRoles.length > 0 && !selectedRole) {
+        setSelectedRole(sortedRoles[0]);
       } else if (selectedRole) {
-        const updated = response.data.find(r => r.id === selectedRole.id);
+        const updated = sortedRoles.find(r => r.id === selectedRole.id);
         if (updated) setSelectedRole(updated);
       }
     } catch (error) {
@@ -167,7 +200,7 @@ const AccessControl = () => {
         description: newRoleDescription,
         permissions: newRolePermissions
       });
-      const updatedRoles = [...roles, response.data];
+      const updatedRoles = sortRoles([...roles, response.data]);
       setRoles(updatedRoles);
       setSelectedRole(response.data);
       setShowCreateModal(false);
@@ -295,13 +328,8 @@ const AccessControl = () => {
                       <div className="flex items-center justify-between mb-1">
                         <h4 className="text-base font-bold text-[#1E293B]">{role.name}</h4>
                       </div>
-                      <p className="text-xs text-slate-500 font-medium leading-relaxed mb-3">
-                        {role.description || 'Custom security role.'}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{role.permissions?.length || 0} Modules Active</span>
-                      </div>
+                      
+                      
                     </div>
                   </div>
                 </button>
