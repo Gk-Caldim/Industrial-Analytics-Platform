@@ -1,5 +1,7 @@
 from fastapi import APIRouter, UploadFile, Form, HTTPException, File, Depends
 from sqlalchemy.orm import Session
+from typing import Annotated
+from app.core.permissions import check_permissions
 from sqlalchemy import text
 from typing import Optional, List, Any
 import pandas as pd
@@ -66,8 +68,8 @@ def get_dataset_df(dataset: Dataset, db: Session) -> pd.DataFrame:
         rows = db.query(DatasetRow).filter_by(dataset_id=dataset.id).all()
         return pd.DataFrame([r.row_data for r in rows])
 
-@router.get("/")
-def list_datasets(db: Session = Depends(get_db)):
+@router.get("/", dependencies=[Depends(check_permissions("view_tracker"))])
+def list_datasets(db: Annotated[Session, Depends(get_db)]):
     datasets = db.query(Dataset).order_by(Dataset.id.desc()).all()
     return [
         {
@@ -87,8 +89,8 @@ def list_datasets(db: Session = Depends(get_db)):
     ]
 
 # 🔹 PREVIEW DATA (EYE BUTTON)
-@router.get("/{dataset_id}/excel-view")
-def get_excel_view(dataset_id: int, db: Session = Depends(get_db)):
+@router.get("/{dataset_id}/excel-view", dependencies=[Depends(check_permissions("view_tracker"))])
+def get_excel_view(dataset_id: int, db: Annotated[Session, Depends(get_db)]):
     # Check cache first
     cache_key = (dataset_id, "excel_view")
     cached_data = global_dataset_cache.get(cache_key)
@@ -161,7 +163,7 @@ def get_excel_view(dataset_id: int, db: Session = Depends(get_db)):
 
 
 # 🔹 DOWNLOAD DATA AGAIN
-@router.get("/{dataset_id}/download")
+@router.get("/{dataset_id}/download", dependencies=[Depends(check_permissions("view_tracker"))])
 def download_dataset(
     dataset_id: int, 
     format: Optional[str] = Query(None),
@@ -461,7 +463,7 @@ def process_excel(file_bytes: bytes):
 
     return data
 
-@router.post("/upload")
+@router.post("/upload", dependencies=[Depends(check_permissions("upload_tracker"))])
 async def upload_dataset(
     file: UploadFile = File(...),
     industry: Optional[str] = Form(None),
@@ -659,8 +661,8 @@ def update_dataset_metadata(
     
     return {"message": "Dataset metadata updated successfully"}
 
-@router.delete("/{dataset_id}")
-def delete_dataset(dataset_id: int, db: Session = Depends(get_db)):
+@router.delete("/{dataset_id}", dependencies=[Depends(check_permissions("delete_tracker"))])
+def delete_dataset(dataset_id: int, db: Annotated[Session, Depends(get_db)]):
     dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
 
     if not dataset:
