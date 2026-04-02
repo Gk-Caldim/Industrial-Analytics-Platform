@@ -43,6 +43,7 @@ from app.api.project_sub_category import router as sub_category_router
 from app.api.settings import router as settings_router
 from app.api.roles import router as role_router
 from app.api.meetings import router as meetings_router
+from app.api.teams import router as teams_router
 from app.crud.role import seed_default_roles
 
 Base.metadata.create_all(bind=engine)
@@ -112,6 +113,7 @@ app.include_router(sub_category_router, prefix=API_PREFIX)
 app.include_router(settings_router, prefix=API_PREFIX)
 app.include_router(role_router, prefix=API_PREFIX)
 app.include_router(meetings_router, prefix="/api/meetings", tags=["Meetings"])
+app.include_router(teams_router)  # prefix already set to /api/teams inside the router
 
 # Static Files
 UPLOAD_DIR = "static/uploads/logos"
