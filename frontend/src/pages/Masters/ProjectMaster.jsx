@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Filter, Download, Eye, EyeOff, Briefcase, DollarSign, Users, TrendingUp, CheckCircle, Clock, AlertTriangle, FileText, Calendar, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, ArrowUp, ArrowDown, Copy } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Filter, Download, Eye, EyeOff, Briefcase, DollarSign, Users, TrendingUp, CheckCircle, Clock, AlertTriangle, FileText, Calendar, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, ArrowUp, ArrowDown, Copy, FolderTree } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -27,7 +27,7 @@ const ProjectMaster = () => {
     { id: 'employee_name', label: 'Employee Name', visible: false, sortable: true, type: 'employee_name', required: false },
     { id: 'utilized_budget', label: 'Utilized Budget', visible: true, sortable: true, type: 'number', required: false, readonly: true },
     { id: 'balance_budget', label: 'Balance Budget', visible: true, sortable: true, type: 'number', required: false, readonly: true },
-    { id: 'sub_category', label: 'Sub Category', visible: true, sortable: false, type: 'sub_category_button', required: false },
+    { id: 'detailed_view', label: 'Detailed View', visible: true, sortable: false, type: 'detailed_view_button', required: false },
   ];
 
   // Status colors mapping
@@ -124,7 +124,7 @@ const ProjectMaster = () => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
   const API_URL = `${API_BASE_URL}/projects`;
 
-  const fixedColumnIds = ['id', 'project_id', 'name', 'manager', 'team_lead', 'status', 'budget', 'utilized_budget', 'balance_budget', 'timeline', 'employee_id', 'employee_name', 'sub_category', 'created_at', 'updated_at'];
+  const fixedColumnIds = ['id', 'project_id', 'name', 'manager', 'team_lead', 'status', 'budget', 'utilized_budget', 'balance_budget', 'timeline', 'employee_id', 'employee_name', 'detailed_view', 'created_at', 'updated_at'];
 
   const defaultPermissions = {
     view: true,
@@ -1273,7 +1273,7 @@ const ProjectMaster = () => {
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
     );
-    if (col.type === 'sub_category_button') return null;
+
 
     return (
       <div>
@@ -1319,28 +1319,27 @@ const ProjectMaster = () => {
         </span>
       );
     }
-    if (col.id === 'project_id') {
-      return <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value || '-'}</span>;
+    if (col.id === 'balance_budget') {
+      return <span className={`font-semibold ${value < 0 ? 'text-red-500' : 'text-emerald-600'}`}>${(value || 0).toLocaleString()}</span>;
     }
-    if (col.type === 'sub_category_button') {
-      const hasViewPermission = isAdmin || (currentUser?.permissions || []).includes('Project Master:VIEW-SUBCATEGORY');
-      if (!hasViewPermission) {
-        return <span className="text-slate-400 text-xs flex items-center justify-center">-</span>;
-      }
+    if (col.type === 'detailed_view_button') {
       return (
         <button
           onClick={(e) => {
             e.stopPropagation();
-            setActiveSubCategoryProject(row);
-            setShowSubCategoryModal(true);
+            navigate(`/dashboard/masters/project-detail/${row.id}`);
           }}
-          className="text-blue-600 hover:text-blue-800 font-medium text-xs bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-all shadow-sm flex items-center gap-1.5"
+          className="text-indigo-600 hover:text-indigo-800 font-medium text-xs bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-all shadow-sm flex items-center gap-1.5"
         >
-          <Briefcase className="h-3 w-3" />
-          Manage
+          <Eye size={14}/>
+          Detailed View
         </button>
       );
     }
+    if (col.id === 'project_id') {
+      return <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value || '-'}</span>;
+    }
+
     if (col.type === 'manager_multiselect' || col.type === 'team_lead_multiselect') {
       const users = Array.isArray(value) ? value : [];
       if (users.length === 0) return <span className="text-sm text-slate-400">—</span>;
@@ -2098,7 +2097,20 @@ const ProjectMaster = () => {
               {/* Footer */}
               <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50 flex-shrink-0">
                 <p className="text-xs text-slate-400"><span className="text-red-500">*</span> Required fields</p>
-                <div className="flex gap-3">
+                <div className="flex gap-3 w-full items-center">
+                  {(isAdmin || (currentUser?.permissions || []).includes('Project Master:VIEW-SUBCATEGORY')) && (
+                    <button
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        setActiveSubCategoryProject(editForm);
+                        setShowSubCategoryModal(true);
+                      }}
+                      className="px-4 py-2 text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors flex items-center gap-2 mr-auto"
+                    >
+                      <FolderTree className="h-4 w-4" />
+                      Sub Categories
+                    </button>
+                  )}
                   <button
                     onClick={cancelEdit}
                     className="px-5 py-2 text-sm font-medium border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-300"
@@ -2156,7 +2168,19 @@ const ProjectMaster = () => {
               </div>
 
               {/* Modal Footer */}
-              <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex justify-end">
+              <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center">
+                {(isAdmin || (currentUser?.permissions || []).includes('Project Master:VIEW-SUBCATEGORY')) && (
+                  <button
+                    onClick={() => { 
+                      setActiveSubCategoryProject(viewData);
+                      setShowSubCategoryModal(true);
+                    }}
+                    className="px-4 py-2 text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors flex items-center gap-2"
+                  >
+                    <FolderTree className="h-4 w-4" />
+                    Manage Sub Categories
+                  </button>
+                )}
                 <button
                   onClick={() => setShowViewModal(false)}
                   className="px-6 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-sm shadow-sm"
@@ -2496,13 +2520,6 @@ const ProjectMaster = () => {
                               : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 group-hover:bg-slate-50 dark:group-hover:bg-slate-700/50 transition-colors'
                           }`}>
                             <div className="flex items-center justify-end gap-1 transition-opacity duration-200">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/masters/project-detail/${proj.id}`); }}
-                                className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
-                                title="View Details"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </button>
                               {hasProjectPermission(proj, 'edit') && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); startEditing(proj); }}
@@ -2519,6 +2536,19 @@ const ProjectMaster = () => {
                                   title="Delete"
                                 >
                                   <Trash2 className="h-4 w-4" />
+                                </button>
+                              )}
+                              {(isAdmin || (currentUser?.permissions || []).includes('Project Master:VIEW-SUBCATEGORY')) && (
+                                <button
+                                  onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    setActiveSubCategoryProject(proj);
+                                    setShowSubCategoryModal(true);
+                                  }}
+                                  className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                                  title="Manage Sub Categories"
+                                >
+                                  <FolderTree className="h-4 w-4" />
                                 </button>
                               )}
                             </div>

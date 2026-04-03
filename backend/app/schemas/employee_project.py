@@ -25,6 +25,7 @@ class EmployeeProjectResponse(EmployeeProjectBase):
     updated_at: datetime
     employee_name: Optional[str] = None # Added for convenience in UI
     employee_email: Optional[str] = None
+    employee_department: Optional[str] = None
 
     class Config:
         orm_mode = True

@@ -12,10 +12,12 @@ const DepartmentMaster = () => {
   const initialColumns = [
     { id: 'department_id', label: 'Department ID', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'name', label: 'Department Name', visible: true, sortable: true, type: 'text', required: true, deletable: false },
-    { id: 'head', label: 'Department Head', visible: true, sortable: true, type: 'text', required: true, deletable: false },
-    { id: 'employees', label: 'Employees', visible: true, sortable: true, type: 'number', required: true, deletable: false },
-    { id: 'project_name', label: 'Project Name', visible: true, sortable: true, type: 'text', required: false, deletable: false },
+    { id: 'employees', label: 'Employees', visible: true, sortable: true, type: 'number', required: false, deletable: false, readonly: true },
+    { id: 'project_name', label: 'Project Name', visible: true, sortable: true, type: 'select', required: false, deletable: false },
     { id: 'location', label: 'Location', visible: true, sortable: true, type: 'text', required: false, deletable: false },
+    { id: 'budget_allocation', label: 'Budget Allocation', visible: true, sortable: true, type: 'number', required: false, deletable: false },
+    { id: 'utilized_budget', label: 'Utilized Budget', visible: true, sortable: true, type: 'number', required: false, deletable: false },
+    { id: 'balance_budget', label: 'Balance Budget', visible: true, sortable: true, type: 'number', required: false, deletable: false, readonly: true },
     { id: 'status', label: 'Status', visible: true, sortable: true, type: 'select', required: true, deletable: false },
   ];
 
@@ -47,7 +49,7 @@ const DepartmentMaster = () => {
 
   // Load columns from localStorage
   const [columns, setColumns] = useState(() => {
-    const savedColumns = localStorage.getItem('department_columns_v4');
+    const savedColumns = localStorage.getItem('department_columns_v5');
     return savedColumns ? JSON.parse(savedColumns) : initialColumns;
   });
 
@@ -99,11 +101,23 @@ const DepartmentMaster = () => {
     }, 3000);
   };
 
+  const [projectList, setProjectList] = useState([]);
+
   // Fetch data on mount
   useEffect(() => {
     fetchData();
     fetchEmployees();
+    fetchProjects();
   }, []);
+
+  const fetchProjects = async () => {
+    try {
+      const res = await API.get('/projects/');
+      setProjectList(res.data || []);
+    } catch (err) {
+      console.error("Error fetching projects", err);
+    }
+  };
 
   const fetchEmployees = async () => {
     try {
@@ -133,8 +147,8 @@ const DepartmentMaster = () => {
       const res = await API.get('/departments/');
       if (Array.isArray(res.data)) {
         const transformedDepts = res.data.map(dept => {
-          const { custom_fields, ...rest } = dept;
-          return { ...rest, ...(custom_fields || {}) };
+          const { custom_attributes, ...rest } = dept;
+          return { ...rest, ...(custom_attributes || {}) };
         });
         setDepartments(transformedDepts);
       } else {
@@ -161,7 +175,7 @@ const DepartmentMaster = () => {
 
   // Save columns to localStorage
   useEffect(() => {
-    localStorage.setItem('department_columns_v4', JSON.stringify(columns));
+    localStorage.setItem('department_columns_v5', JSON.stringify(columns));
   }, [columns]);
 
   // Checkbox Functions
@@ -297,7 +311,7 @@ const DepartmentMaster = () => {
 
   const handleDeleteColumn = (columnId) => {
     const column = columns.find(col => col.id === columnId);
-    const isFixedColumn = ['department_id', 'name', 'head', 'employees', 'project_name', 'location', 'status'].includes(columnId);
+    const isFixedColumn = ['department_id', 'name', 'employees', 'project_name', 'location', 'status'].includes(columnId);
 
     if (isFixedColumn) {
       setShowDeleteColumnPrompt({
@@ -453,22 +467,25 @@ const DepartmentMaster = () => {
 
   // Transform department for API save
   const transformDeptForSave = (deptData) => {
-    const fixedColumnIds = ['department_id', 'name', 'head', 'employees', 'budget', 'location', 'status', 'email'];
+    const fixedColumnIds = ['department_id', 'name', 'head', 'employees', 'project_name', 'location', 'status', 'budget_allocation', 'utilized_budget', 'balance_budget'];
 
     const payload = {
       department_id: deptData.department_id || null,
       name: deptData.name || '',
-      head: deptData.head || '',
+      head: deptData.head || null,
       employees: parseInt(deptData.employees) || 0,
       project_name: deptData.project_name || '',
       location: deptData.location || '',
+      budget_allocation: parseFloat(deptData.budget_allocation) || 0.0,
+      utilized_budget: parseFloat(deptData.utilized_budget) || 0.0,
+      balance_budget: (parseFloat(deptData.budget_allocation) || 0.0) - (parseFloat(deptData.utilized_budget) || 0.0),
       status: deptData.status || 'Active',
-      custom_fields: {}
+      custom_attributes: {}
     };
 
     Object.keys(deptData).forEach(key => {
-      if (!fixedColumnIds.includes(key) && key !== 'custom_fields' && key !== 'id') {
-        payload.custom_fields[key] = deptData[key];
+      if (!fixedColumnIds.includes(key) && key !== 'custom_attributes' && key !== 'id') {
+        payload.custom_attributes[key] = deptData[key];
       }
     });
 
@@ -778,10 +795,19 @@ const DepartmentMaster = () => {
 
   // Handle new department input change
   const handleInputChange = (field, value, isEdit = false) => {
+    const updated = isEdit ? { ...editForm, [field]: value } : { ...newDept, [field]: value };
+    
+    // Auto-calculate balance if allocation or utilized changes
+    if (field === 'budget_allocation' || field === 'utilized_budget') {
+      const alloc = parseFloat(field === 'budget_allocation' ? value : updated.budget_allocation) || 0;
+      const util = parseFloat(field === 'utilized_budget' ? value : updated.utilized_budget) || 0;
+      updated.balance_budget = (alloc - util).toString();
+    }
+
     if (isEdit) {
-      setEditForm({ ...editForm, [field]: value });
+      setEditForm(updated);
     } else {
-      setNewDept({ ...newDept, [field]: value });
+      setNewDept(updated);
     }
     // Clear validation error for this field when user starts typing
     if (validationErrors[field]) {
@@ -815,12 +841,13 @@ const DepartmentMaster = () => {
         <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
         <input
           type="number"
-          value={value || ''}
+          value={value || (col.readonly ? (col.id === 'balance_budget' ? '0' : '') : '')}
           onChange={e => onChange(col.id, e.target.value)}
-          className={inputClass}
+          className={`${inputClass} ${col.readonly ? 'bg-slate-50 dark:bg-slate-900/50 cursor-not-allowed opacity-75' : ''}`}
           min="0"
-          step="1"
-          placeholder={`Enter ${col.label.toLowerCase()}`}
+          step="0.01"
+          readOnly={col.readonly}
+          placeholder={col.readonly ? "Auto-calculated" : `Enter ${col.label.toLowerCase()}`}
         />
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
@@ -833,6 +860,19 @@ const DepartmentMaster = () => {
           value={value}
           onChange={(val) => onChange(col.id, val)}
           placeholder="Select or enter Department Name"
+        />
+        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      </div>
+    );
+
+    if (col.id === 'project_name') return (
+      <div>
+        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
+        <SearchableDropdown
+          options={projectList.map(p => p.name)}
+          value={value}
+          onChange={(val) => onChange(col.id, val)}
+          placeholder="Select Project"
         />
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
@@ -961,8 +1001,21 @@ const DepartmentMaster = () => {
         </div>
       );
     }
-    if (column.id === 'budget') {
-      return <span className="text-sm text-slate-700">${(parseFloat(value) || 0).toLocaleString()}</span>;
+    if (column.id === 'budget' || column.id === 'budget_allocation' || column.id === 'utilized_budget' || column.id === 'balance_budget') {
+      const isNegative = parseFloat(value) < 0;
+      let textColor = 'text-slate-700 dark:text-slate-300';
+      
+      if (column.id === 'balance_budget') {
+        textColor = isNegative ? 'text-red-600 font-semibold' : 'text-emerald-600 font-semibold';
+      } else if (column.id === 'utilized_budget') {
+        textColor = 'text-amber-600';
+      }
+
+      return (
+        <span className={`text-sm ${textColor}`}>
+          ${(parseFloat(value) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </span>
+      );
     }
     if (column.id === 'department_id') {
       return <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value || '-'}</span>;

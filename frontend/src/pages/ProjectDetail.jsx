@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, FolderTree, Activity, DollarSign, Calendar, Clock, Edit } from 'lucide-react';
 import API from '../utils/api';
 import ManageTeamModal from '../components/project/ManageTeamModal';
+import ProjectSubCategoryMaster from '../components/project/ProjectSubCategoryMaster';
+import { CheckCircle, AlertCircle } from 'lucide-react';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -13,6 +15,13 @@ const ProjectDetail = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [showTeamModal, setShowTeamModal] = useState(false);
+  const [notification, setNotification] = useState(null);
+  const [departments, setDepartments] = useState([]);
+
+  const showNotif = (msg, type = 'success') => {
+    setNotification({ msg, type });
+    setTimeout(() => setNotification(null), 4000);
+  };
 
   useEffect(() => {
     fetchProjectData();
@@ -31,6 +40,10 @@ const ProjectDetail = () => {
       // Fetch Audit Logs
       const logRes = await API.get(`/audit-logs?entity_id=${projRes.data.project_id}&module=Project`);
       setLogs(logRes.data);
+      
+      // Fetch Departments for budget breakdown
+      const deptRes = await API.get('/departments/');
+      setDepartments(deptRes.data || []);
       
     } catch (error) {
       console.error(error);
@@ -125,6 +138,18 @@ const ProjectDetail = () => {
       {/* Content wrapper */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
         
+        {/* Notifications */}
+        {notification && (
+          <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300 shadow-sm border ${
+            notification.type === 'error' 
+              ? 'bg-red-50 text-red-800 border-red-100 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800' 
+              : 'bg-emerald-50 text-emerald-800 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800'
+          }`}>
+            {notification.type === 'error' ? <AlertCircle size={20}/> : <CheckCircle size={20}/>}
+            <span className="font-medium">{notification.msg}</span>
+          </div>
+        )}
+        
         {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -132,17 +157,73 @@ const ProjectDetail = () => {
               {/* Main Info Card */}
               <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
                 <h2 className="text-lg font-semibold mb-6 text-slate-800 dark:text-white">Project Details</h2>
-                <div className="grid grid-cols-2 gap-y-6 gap-x-8">
-                  <div>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">Timeline</span>
-                    <p className="font-medium text-slate-800 dark:text-white mt-1 flex items-center gap-2">
-                        <Calendar size={16} className="text-slate-400"/> {project.timeline || 'Not Set'}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-sm text-slate-500 dark:text-slate-400">Total Budget</span>
-                    <p className="font-medium text-slate-800 dark:text-white mt-1">${project.budget?.toLocaleString() || '0.00'}</p>
-                  </div>
+                {(() => {
+                  const projectDepts = departments.filter(d => d.project_name === project.name);
+                  const totalAlloc = projectDepts.reduce((sum, d) => sum + (d.budget_allocation || 0), 0);
+                  const totalUtil = projectDepts.reduce((sum, d) => sum + (d.utilized_budget || 0), 0);
+                  const totalBalance = totalAlloc - totalUtil;
+
+                  return (
+                    <div className="grid grid-cols-2 gap-y-6 gap-x-8">
+                      <div>
+                        <span className="text-sm text-slate-500 dark:text-slate-400">Timeline</span>
+                        <p className="font-medium text-slate-800 dark:text-white mt-1 flex items-center gap-2">
+                            <Calendar size={16} className="text-slate-400"/> {project.timeline || 'Not Set'}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-slate-500 dark:text-slate-400">Total Allocation</span>
+                        <p className="font-semibold text-slate-800 dark:text-white mt-1 text-lg">${totalAlloc.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-slate-500 dark:text-slate-400">Utilized Budget</span>
+                        <p className="font-semibold text-amber-600 dark:text-amber-400 mt-1 text-lg">${totalUtil.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                      </div>
+                      <div>
+                        <span className="text-sm text-slate-500 dark:text-slate-400">Balance Budget</span>
+                        <p className={`font-bold mt-1 text-lg ${totalBalance < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                          ${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Department wise budget breakdown */}
+              <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                  <h2 className="text-base font-semibold text-slate-800 dark:text-white">Department wise Budget Breakdown</h2>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-50 dark:bg-slate-800/30 text-slate-500 uppercase text-[10px] font-bold tracking-wider">
+                      <tr>
+                        <th className="px-6 py-3">Department</th>
+                        <th className="px-6 py-3">Allocation</th>
+                        <th className="px-6 py-3">Utilized</th>
+                        <th className="px-6 py-3 text-right">Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                      {departments.filter(d => d.project_name === project.name).length === 0 ? (
+                        <tr>
+                          <td colSpan="4" className="px-6 py-8 text-center text-slate-400 italic">No department budgets mapped to this project.</td>
+                        </tr>
+                      ) : (
+                        departments.filter(d => d.project_name === project.name).map(dept => (
+                          <tr key={dept.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                            <td className="px-6 py-3.5 font-medium text-slate-800 dark:text-white">{dept.name}</td>
+                            <td className="px-6 py-3.5 text-slate-600 dark:text-slate-400">${(dept.budget_allocation || 0).toLocaleString()}</td>
+                            <td className="px-6 py-3.5 text-amber-600 font-medium">${(dept.utilized_budget || 0).toLocaleString()}</td>
+                            <td className={`px-6 py-3.5 text-right font-bold ${(dept.balance_budget || 0) < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                              ${(dept.balance_budget || 0).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -158,7 +239,10 @@ const ProjectDetail = () => {
                   {team.slice(0, 5).map(m => (
                     <div key={m.id} className="flex flex-col border-b border-slate-100 dark:border-slate-700 pb-2 last:border-0 last:pb-0">
                       <span className="font-medium text-sm text-slate-800 dark:text-white">{m.employee_name}</span>
-                      <span className="text-xs text-slate-500">{m.role}</span>
+                      <div className="flex items-center justify-between mt-0.5">
+                        <span className="text-xs text-slate-500">{m.role}</span>
+                        <span className="text-[10px] bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500 uppercase font-semibold">{m.employee_department || 'N/A'}</span>
+                      </div>
                     </div>
                   ))}
                   {team.length > 5 && <div className="text-xs text-indigo-600 pt-2 text-center clickable" onClick={()=>setActiveTab('team')}>View all members...</div>}
@@ -182,6 +266,7 @@ const ProjectDetail = () => {
                 <thead className="bg-slate-50 dark:bg-slate-800/50">
                   <tr>
                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Employee</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Department</th>
                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Role</th>
                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Allocation</th>
                   </tr>
@@ -192,6 +277,9 @@ const ProjectDetail = () => {
                         <td className="px-6 py-4">
                             <div className="font-medium text-slate-800 dark:text-white">{m.employee_name}</div>
                             <div className="text-xs text-slate-500">{m.employee_id}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                            <span className="text-sm text-slate-600 dark:text-slate-400">{m.employee_department || '-'}</span>
                         </td>
                         <td className="px-6 py-4">
                             <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full text-xs">{m.role}</span>
@@ -232,8 +320,19 @@ const ProjectDetail = () => {
           </div>
         )}
         
+        {/* SUB CATEGORY TAB */}
+        {activeTab === 'subcategories' && (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                <ProjectSubCategoryMaster 
+                    project={project} 
+                    showNotification={showNotif}
+                    inline={true}
+                />
+            </div>
+        )}
+
         {/* OTHER TABS OMITTED FOR BREVITY IN POC */}
-        {(activeTab === 'subcategories' || activeTab === 'budget') && (
+        {activeTab === 'budget' && (
             <div className="p-12 text-center text-slate-500 bg-slate-100/50 dark:bg-slate-800/50 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl">
                 Module construction in progress for enhanced view.
             </div>
