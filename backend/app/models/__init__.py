@@ -5,3 +5,6 @@ from app.models.project import Project
 from app.models.upload_tracker import UploadTracker
 from app.models.role import Role
 from app.models.google_token import GoogleToken
+from app.models.employee_project import EmployeeProjectMap
+from app.models.project_permission import ProjectPermission
+from app.models.audit_log import AuditLog

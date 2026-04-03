@@ -92,3 +92,12 @@ logs/
 # =========================
 backend/google_service_account.json
 
+
+# =========================
+# Antigravity / Skills
+# =========================
+skills/
+
+# Microsoft Teams delegated OAuth token — contains refresh token, never commit
+ms_token.json
+backend/ms_token.json

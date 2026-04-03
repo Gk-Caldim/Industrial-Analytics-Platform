@@ -6,6 +6,14 @@ import {
 } from 'lucide-react';
 import API from '../../../utils/api';
 
+const ROLE_ORDER = {
+  'Super Admin': 1,
+  'Admin': 2,
+  'Project Manager': 3,
+  'Team Lead': 4,
+  'Employee': 5
+};
+
 const AccessControl = () => {
   const [roles, setRoles] = useState([]);
   const [selectedRole, setSelectedRole] = useState(null);
@@ -51,7 +59,16 @@ const AccessControl = () => {
             { id: 'CUSTOM_COLUMNS', label: 'Add Custom Columns' }
           ]
         },
-        { name: 'Project Master', description: 'Project lifecycle and resource tracking', tags: ['MANAGE'] },
+        {
+          name: 'Project Master',
+          description: 'Project lifecycle and resource tracking',
+          tags: ['MANAGE'],
+          subPermissions: [
+            { id: 'VIEW-SUBCATEGORY', label: 'View Subcategory' },
+            { id: 'EDIT-SUBCATEGORY', label: 'Edit Subcategory' },
+            { id: 'DELETE-SUBCATEGORY', label: 'Delete Subcategory' }
+          ]
+        },
         { name: 'Department Master', description: 'Organizational hierarchy and departments', tags: ['MANAGE'] },
       ]
     },
@@ -88,15 +105,31 @@ const AccessControl = () => {
     fetchRoles();
   }, []);
 
+  const sortRoles = (rolesList) => {
+    return [...rolesList].sort((a, b) => {
+      const orderA = ROLE_ORDER[a.name] || 999;
+      const orderB = ROLE_ORDER[b.name] || 999;
+
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+
+      // For roles with the same priority (mostly custom roles), sort alphabetically
+      return a.name.localeCompare(b.name);
+    });
+  };
+
   const fetchRoles = async () => {
     try {
       setLoading(true);
       const response = await API.get('/roles/');
-      setRoles(response.data);
-      if (response.data.length > 0 && !selectedRole) {
-        setSelectedRole(response.data[0]);
+      const sortedRoles = sortRoles(response.data);
+      setRoles(sortedRoles);
+
+      if (sortedRoles.length > 0 && !selectedRole) {
+        setSelectedRole(sortedRoles[0]);
       } else if (selectedRole) {
-        const updated = response.data.find(r => r.id === selectedRole.id);
+        const updated = sortedRoles.find(r => r.id === selectedRole.id);
         if (updated) setSelectedRole(updated);
       }
     } catch (error) {
@@ -167,7 +200,7 @@ const AccessControl = () => {
         description: newRoleDescription,
         permissions: newRolePermissions
       });
-      const updatedRoles = [...roles, response.data];
+      const updatedRoles = sortRoles([...roles, response.data]);
       setRoles(updatedRoles);
       setSelectedRole(response.data);
       setShowCreateModal(false);
@@ -212,12 +245,14 @@ const AccessControl = () => {
   const Toggle = ({ enabled, onChange, disabled }) => (
     <button
       onClick={() => !disabled && onChange && onChange(!enabled)}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${enabled ? 'bg-[#1E3A8A]' : 'bg-slate-200'
-        } ${disabled ? 'opacity-30 cursor-not-allowed' : ''}`}
+      type="button"
+      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1E3A8A] focus-visible:ring-opacity-75 ${enabled ? 'bg-[#1E3A8A]' : 'bg-slate-200'
+        } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
+      <span className="sr-only">Toggle permission</span>
       <span
         aria-hidden="true"
-        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enabled ? 'translate-x-5' : 'translate-x-0'
+        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-300 ease-in-out ${enabled ? 'translate-x-[18px]' : 'translate-x-0.5'
           }`}
       />
     </button>
@@ -233,7 +268,7 @@ const AccessControl = () => {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
       {/* Notification Banner */}
       {notification.show && (
         <div className={`fixed bottom-8 right-8 px-6 py-4 rounded-2xl shadow-2xl z-[200] flex items-center gap-3 animate-in fade-in slide-in-from-right-8 duration-300 border ${notification.type === 'success'
@@ -251,57 +286,52 @@ const AccessControl = () => {
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-4xl font-bold text-[#1E293B]">Access Control</h2>
-        </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 h-12 px-6 bg-[#1E3A8A] text-white rounded-xl font-bold text-sm hover:bg-[#1e2e6b] transition-all shadow-lg active:scale-95"
-        >
-          <Shield className="h-4 w-4" />
-          Create Custom Role
-        </button>
+      <div className="mb-4">
+        <h2 className="text-3xl font-bold text-[#1E293B]">Access Control</h2>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         {/* Left Column: Available Roles */}
-        <div className="lg:col-span-4 space-y-6">
-          <div className="flex items-center justify-between px-2">
-            <h3 className="text-sm font-bold text-slate-800">Available Roles</h3>
-            <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-md text-[10px] font-black">{roles.length} Total</span>
+        <div className="xl:col-span-3 lg:col-span-4 space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Available Roles</h3>
+              <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded text-[10px] font-bold">{roles.length}</span>
+            </div>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-1.5 h-7 px-2.5 bg-indigo-50 text-indigo-600 rounded-md font-bold text-[10px] hover:bg-indigo-100 transition-colors uppercase tracking-wider"
+            >
+              <Plus className="h-3 w-3" />
+              Create
+            </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {roles.map((role) => (
               <div key={role.id} className="relative group">
                 <button
                   onClick={() => setSelectedRole(role)}
-                  className={`w-full text-left p-6 rounded-2xl border transition-all relative overflow-hidden ${selectedRole?.id === role.id
-                    ? 'bg-white border-[#1E3A8A] shadow-xl shadow-indigo-100/50'
+                  className={`w-full text-left p-4 rounded-xl border transition-all relative overflow-hidden ${selectedRole?.id === role.id
+                    ? 'bg-white border-[#1E3A8A] shadow-lg shadow-indigo-100/40'
                     : 'bg-white/50 border-slate-100 hover:border-slate-200 hover:bg-white'
                     }`}
                 >
                   {selectedRole?.id === role.id && (
-                    <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#1E3A8A]" />
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#1E3A8A]" />
                   )}
 
-                  <div className="flex items-start gap-4 pr-8">
-                    <div className={`p-3 rounded-xl shadow-sm border ${selectedRole?.id === role.id ? 'bg-indigo-50 border-indigo-100 text-indigo-600' : 'bg-slate-100 border-slate-200 text-slate-400'
+                  <div className="flex items-center gap-3 pr-6">
+                    <div className={`p-2 rounded-lg shadow-sm border ${selectedRole?.id === role.id ? 'bg-indigo-50 border-indigo-100 text-indigo-600' : 'bg-slate-100 border-slate-200 text-slate-400'
                       }`}>
-                      <Shield className="h-5 w-5" />
+                      <Shield className="h-4 w-4" />
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <h4 className="text-base font-bold text-[#1E293B]">{role.name}</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-bold text-[#1E293B]">{role.name}</h4>
                       </div>
-                      <p className="text-xs text-slate-500 font-medium leading-relaxed mb-3">
-                        {role.description || 'Custom security role.'}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 bg-indigo-600 rounded-full" />
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">{role.permissions?.length || 0} Modules Active</span>
-                      </div>
+
+
                     </div>
                   </div>
                 </button>
@@ -309,9 +339,9 @@ const AccessControl = () => {
                 {!role.is_default && (
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDeleteRole(role); }}
-                    className="absolute top-4 right-4 p-2 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                    className="absolute top-1/2 -translate-y-1/2 right-3 p-1.5 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all bg-white shadow-sm rounded-md border border-slate-100"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 )}
               </div>
@@ -320,30 +350,30 @@ const AccessControl = () => {
         </div>
 
         {/* Right Column: Permissions Dashboard */}
-        <div className="lg:col-span-8 bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[800px]">
+        <div className="xl:col-span-9 lg:col-span-8 bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden flex flex-col min-h-[500px]">
           {selectedRole ? (
             <>
-              <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
-                <div className="flex items-center gap-6">
-                  <div className="w-14 h-14 bg-[#1E3A8A] rounded-2xl flex items-center justify-center text-white shadow-lg">
-                    <Shield className="h-6 w-6" />
+              <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-white sticky top-0 z-10">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 bg-[#1E3A8A] rounded-xl flex items-center justify-center text-white shadow-md">
+                    <Shield className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-[#1E293B]">{selectedRole.name} Permissions</h3>
+                    <h3 className="text-lg font-bold text-[#1E293B]">{selectedRole.name} Permissions</h3>
 
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setSelectedRole(roles.find(r => r.id === selectedRole.id))}
-                    className="h-12 px-6 bg-slate-100 text-slate-600 rounded-xl font-bold text-xs hover:bg-slate-200 transition-all"
+                    className="h-9 px-4 bg-slate-100 text-slate-600 rounded-lg font-bold text-xs hover:bg-slate-200 transition-all"
                   >
                     Discard
                   </button>
                   <button
                     onClick={handleSaveChanges}
                     disabled={saving}
-                    className="h-12 px-6 bg-[#1E3A8A] text-white rounded-xl font-bold text-xs shadow-lg shadow-indigo-100 hover:bg-[#1e2e6b] transition-all disabled:opacity-50 flex items-center gap-2"
+                    className="h-9 px-4 bg-[#1E3A8A] text-white rounded-lg font-bold text-xs shadow-md shadow-indigo-100 hover:bg-[#1e2e6b] transition-all disabled:opacity-50 flex items-center gap-2"
                   >
                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                     Save Changes
@@ -351,40 +381,30 @@ const AccessControl = () => {
                 </div>
               </div>
 
-              <div className="p-8 space-y-12">
+              <div className="p-6 space-y-4 bg-slate-50/30">
                 {permissionsGroups.map((group) => (
-                  <div key={group.id} className="space-y-6">
-                    <div className="flex items-center gap-4">
-                      <div className="p-2 bg-slate-100 rounded-lg text-slate-500">
-                        {group.id === 'core' ? <LayoutDashboard className="h-4 w-4" /> :
-                          group.id === 'masters' ? <Boxes className="h-4 w-4" /> :
-                            <Settings className="h-4 w-4" />}
-                      </div>
-                      <h4 className="text-[11px] font-black text-slate-400 tracking-[0.2em]">{group.label}</h4>
-                      <div className="flex-1 h-px bg-slate-100" />
-                    </div>
-
-                    <div className="space-y-4">
+                  <div key={group.id} className="space-y-3">
+                    <div className="space-y-3">
                       {group.permissions.map((perm) => {
                         const isEnabled = selectedRole.permissions?.includes(perm.name);
                         return (
                           <div
                             key={perm.name}
-                            className={`p-6 rounded-2xl border transition-all ${perm.special ? 'bg-indigo-50/30 border-indigo-100/50' : 'bg-[#F8FAFC]/50 border-slate-100 hover:bg-white hover:border-slate-200'
+                            className={`p-4 rounded-xl border transition-all ${perm.special ? 'bg-indigo-50/30 border-indigo-100/50' : 'bg-white border-slate-200 hover:border-indigo-200 hover:shadow-sm'
                               } ${!isEnabled && !perm.special ? 'opacity-60' : ''}`}
                           >
-                            <div className="flex items-start justify-between gap-6">
-                              <div className="flex-1 space-y-3">
-                                <div className="flex items-center gap-4 flex-wrap">
+                            <div className="flex items-center justify-between gap-4">
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center gap-3 flex-wrap">
                                   {perm.special && <Lock className="h-4 w-4 text-indigo-600" />}
-                                  <h5 className="text-[15px] font-bold text-[#1E293B]">{perm.name}</h5>
+                                  <h5 className="text-sm font-bold text-[#1E293B]">{perm.name}</h5>
                                   {perm.tags?.map(tag => (
-                                    <span key={tag} className="px-2 py-0.5 bg-indigo-600/5 text-indigo-600 text-[9px] font-black tracking-widest uppercase rounded border border-indigo-100/50">
+                                    <span key={tag} className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-black tracking-widest uppercase rounded border border-indigo-100">
                                       {tag}
                                     </span>
                                   ))}
                                 </div>
-                                <p className="text-xs text-slate-500 font-medium leading-relaxed">
+                                <p className="text-xs text-slate-500 font-medium">
                                   {perm.description}
                                 </p>
                               </div>
@@ -396,12 +416,12 @@ const AccessControl = () => {
 
                             {/* Granular Sub-Permissions */}
                             {isEnabled && perm.subPermissions && (
-                              <div className="mt-6 pt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in slide-in-from-top-2 duration-300">
+                              <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-3 animate-in slide-in-from-top-2 duration-300">
                                 {perm.subPermissions.map(sub => {
                                   const isSubEnabled = selectedRole.permissions?.includes(sub.id.includes('_') ? sub.id : `${perm.name}:${sub.id}`);
                                   return (
-                                    <div key={sub.id} className="flex items-center justify-between p-3 rounded-xl bg-white border border-slate-100">
-                                      <span className="text-xs font-bold text-slate-600 uppercase tracking-tight">{sub.label}</span>
+                                    <div key={sub.id} className="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-colors">
+                                      <span className="text-[11px] font-bold text-slate-600 uppercase tracking-tight">{sub.label}</span>
                                       <Toggle
                                         enabled={isSubEnabled}
                                         onChange={() => handleTogglePermission(perm.name, sub.id)}
@@ -426,7 +446,7 @@ const AccessControl = () => {
             </div>
           )}
 
-          <div className="mt-auto p-8 bg-slate-50/50 border-t border-slate-100">
+          <div className="mt-auto p-4 bg-slate-50/50 border-t border-slate-100">
             <p className="text-[10px] text-slate-400 font-bold text-center uppercase tracking-widest">
               Role Synchronization Active • Security Level: High
             </p>
@@ -471,7 +491,6 @@ const AccessControl = () => {
                 <div className="max-h-[300px] overflow-y-auto pr-2 space-y-4 custom-scrollbar">
                   {permissionsGroups.map(group => (
                     <div key={group.id} className="space-y-2">
-                      <h5 className="text-[10px] font-black text-slate-300 uppercase tracking-widest px-1">{group.label}</h5>
                       <div className="grid grid-cols-1 gap-2">
                         {group.permissions.map(perm => {
                           const isChecked = newRolePermissions.includes(perm.name);
