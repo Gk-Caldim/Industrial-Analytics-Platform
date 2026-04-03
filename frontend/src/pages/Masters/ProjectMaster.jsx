@@ -2538,19 +2538,6 @@ const ProjectMaster = () => {
                                   <Trash2 className="h-4 w-4" />
                                 </button>
                               )}
-                              {(isAdmin || (currentUser?.permissions || []).includes('Project Master:VIEW-SUBCATEGORY')) && (
-                                <button
-                                  onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    setActiveSubCategoryProject(proj);
-                                    setShowSubCategoryModal(true);
-                                  }}
-                                  className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
-                                  title="Manage Sub Categories"
-                                >
-                                  <FolderTree className="h-4 w-4" />
-                                </button>
-                              )}
                             </div>
                           </td>
                         </tr>
