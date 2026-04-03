@@ -10,7 +10,10 @@ import { getEmployees } from "../../utils/employeeApi";
 import SearchableDropdown from "../../components/SearchableDropdown";
 import SubCategoryModal from "../../components/SubCategoryModal";
 
+import { useNavigate } from 'react-router-dom';
+
 const ProjectMaster = () => {
+  const navigate = useNavigate();
   // Fixed columns matching backend Project model
   const initialColumns = [
     { id: 'project_id', label: 'Project ID', visible: true, sortable: true, type: 'text', required: true },
@@ -1320,6 +1323,10 @@ const ProjectMaster = () => {
       return <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value || '-'}</span>;
     }
     if (col.type === 'sub_category_button') {
+      const hasViewPermission = isAdmin || (currentUser?.permissions || []).includes('Project Master:VIEW-SUBCATEGORY');
+      if (!hasViewPermission) {
+        return <span className="text-slate-400 text-xs flex items-center justify-center">-</span>;
+      }
       return (
         <button
           onClick={(e) => {
@@ -2490,7 +2497,7 @@ const ProjectMaster = () => {
                           }`}>
                             <div className="flex items-center justify-end gap-1 transition-opacity duration-200">
                               <button
-                                onClick={(e) => { e.stopPropagation(); setViewData(proj); setShowViewModal(true); }}
+                                onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/masters/project-detail/${proj.id}`); }}
                                 className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
                                 title="View Details"
                               >

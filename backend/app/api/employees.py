@@ -67,6 +67,34 @@ def create_employee(
             detail=f"Error creating employee: {str(e)}"
         )
 
+@router.post("/bulk", response_model=List[EmployeeOut], status_code=status.HTTP_201_CREATED)
+def bulk_create_employees(
+    employees: List[EmployeeCreate],
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Bulk create employees (useful for Excel imports)"""
+    created_employees = []
+    errors = []
+    
+    for emp in employees:
+        existing = employee_crud.get_employee_by_email(db, emp.email)
+        if existing:
+            errors.append(f"Email {emp.email} already exists")
+            continue
+            
+        try:
+            new_emp = employee_crud.create_employee(db, emp)
+            created_employees.append(new_emp)
+        except Exception as e:
+            errors.append(f"Error creating {emp.email}: {str(e)}")
+            
+    if errors and len(created_employees) == 0:
+        raise HTTPException(status_code=400, detail="All imports failed: " + ", ".join(errors))
+        
+    return created_employees
+
+
 @router.put("/{employee_id}", response_model=EmployeeOut)
 def update_employee(
     employee_id: int,
