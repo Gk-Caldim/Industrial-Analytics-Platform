@@ -178,8 +178,8 @@ const SystemSettings = () => {
                         }
                       }}
                       className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group ${activeCategory === item.id
-                          ? 'bg-indigo-50 text-indigo-600 font-bold'
-                          : 'text-slate-500 hover:bg-slate-50'
+                        ? 'bg-indigo-50 text-indigo-600 font-bold'
+                        : 'text-slate-500 hover:bg-slate-50'
                         }`}
                     >
                       <item.icon className={`h-5 w-5 ${activeCategory === item.id ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
@@ -200,8 +200,8 @@ const SystemSettings = () => {
                             key={subItem.id}
                             onClick={() => setActiveSubCategory(subItem.id)}
                             className={`w-full text-left px-4 py-2 rounded-lg text-[12px] font-medium transition-all ${activeSubCategory === subItem.id
-                                ? 'text-indigo-600 bg-indigo-50/50'
-                                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                              ? 'text-indigo-600 bg-indigo-50/50'
+                              : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
                               }`}
                           >
                             {subItem.label}
