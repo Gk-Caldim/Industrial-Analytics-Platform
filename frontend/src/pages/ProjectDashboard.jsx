@@ -1099,6 +1099,21 @@ const ProjectTitleDashboard = () => {
   };
 
 
+
+  // Capture chart images and open PDF preview
+  const handleOpenPdfPreview = () => {
+    const capturedImages = {};
+    Object.keys(chartRefs.current).forEach(id => {
+      const instance = chartRefs.current[id]?.getEchartsInstance();
+      if (instance) {
+        capturedImages[id] = instance.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#fff' });
+      }
+    });
+    setPdfChartImages(capturedImages);
+    setShowEmailModal(false);
+    setShowPdfPreview(true);
+  };
+
   // Helper function to add header and footer to PDF pages
   const addPdfHeaderFooter = (pdf, margin, pdfWidth, pdfHeight, pageNum) => {
     const totalPages = Math.ceil(pdf.internal.getNumberOfPages());
@@ -3117,6 +3132,7 @@ const ProjectTitleDashboard = () => {
         availablePhases={availablePhases}
         getTrackerForPhase={getTrackerForPhase}
         handleSendEmail={handleSendEmail}
+        onPreviewPdf={handleOpenPdfPreview}
       />
 
       {/* Simulate Modal */}
@@ -3250,26 +3266,7 @@ const ProjectTitleDashboard = () => {
                   Send Mail
                 </button>
 
-                <button
-                  onClick={() => setShowPdfPreview(true)}
-                  style={{
-                    padding: '8px 16px',
-                    fontSize: '14px',
-                    borderRadius: '4px',
-                    border: '1px solid white',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    outline: 'none'
-                  }}
-                >
-                  <Download className="h-4 w-4" />
-                  Preview PDF
-                </button>
+
               </>
             )}
           </div>
@@ -4038,6 +4035,12 @@ const ProjectTitleDashboard = () => {
               visibleSections={visibleSections}
               availablePhases={availablePhases}
               getTrackerForPhase={getTrackerForPhase}
+              budgetTableData={budgetTableData}
+              submoduleData={submoduleData}
+              selectedBudgetProject={selectedBudgetProject}
+              masterProjects={masterProjects}
+              budgetCurrency={budgetCurrency}
+              chartImages={pdfChartImages}
             />
           </>
         )}
@@ -4065,7 +4068,8 @@ const EmailModal = ({
   removeEmailInput,
   availablePhases,
   getTrackerForPhase,
-  handleSendEmail
+  handleSendEmail,
+  onPreviewPdf
 }) => {
   if (!show) return null;
 
@@ -4507,6 +4511,26 @@ const EmailModal = ({
               }}
             >
               Cancel
+            </button>
+
+            <button
+              onClick={onPreviewPdf}
+              style={{
+                padding: '10px 20px',
+                fontSize: '14px',
+                borderRadius: '4px',
+                border: '1px solid #1e3a5f',
+                backgroundColor: 'white',
+                color: '#1e3a5f',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+            >
+              <Download className="h-4 w-4" />
+              Preview PDF
             </button>
 
             <button

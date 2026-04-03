@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { X, Download, Edit, Maximize2 } from 'lucide-react';
+import { X, Download, Edit } from 'lucide-react';
 
 const PdfPreviewModal = ({ 
   show, 
@@ -13,7 +13,13 @@ const PdfPreviewModal = ({
   summaryData, 
   visibleSections,
   availablePhases,
-  getTrackerForPhase
+  getTrackerForPhase,
+  budgetTableData,
+  submoduleData,
+  selectedBudgetProject,
+  masterProjects,
+  budgetCurrency,
+  chartImages
 }) => {
   const reportRef = useRef();
 
@@ -25,16 +31,45 @@ const PdfPreviewModal = ({
       scale: 2,
       useCORS: true,
       logging: false,
+      allowTaint: true,
     });
-    const imgData = canvas.toDataURL('image/png');
+
     const pdf = new jsPDF('p', 'mm', 'a4');
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    const pdfWidth = pdf.internal.pageSize.getWidth();   // 210mm
+    const pdfHeight = pdf.internal.pageSize.getHeight(); // 297mm
+
+    // Convert 1mm → pixels at scale 2 (96dpi → 3.7795 px/mm * 2)
+    const pxPerMm = (canvas.width / pdfWidth);
+    const pageHeightPx = pdfHeight * pxPerMm;
+
+    const totalHeightPx = canvas.height;
+    let pageTop = 0;
+    let pageIndex = 0;
+
+    while (pageTop < totalHeightPx) {
+      // Create a temporary canvas for this page slice
+      const pageCanvas = document.createElement('canvas');
+      const sliceHeight = Math.min(pageHeightPx, totalHeightPx - pageTop);
+      pageCanvas.width = canvas.width;
+      pageCanvas.height = pageHeightPx; // always full page height (blank remainder)
+
+      const ctx = pageCanvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+      ctx.drawImage(canvas, 0, pageTop, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+
+      const imgData = pageCanvas.toDataURL('image/png');
+
+      if (pageIndex > 0) pdf.addPage();
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+      pageTop += pageHeightPx;
+      pageIndex++;
+    }
+
     pdf.save(`${activeProject?.name || 'Project'}_Dashboard_Report.pdf`);
   };
+
 
   const getStatusPill = (status) => {
     const colors = {
@@ -60,6 +95,23 @@ const PdfPreviewModal = ({
       </span>
     );
   };
+
+  // Gather all visible phases/trackers that have data
+  const visiblePhaseList = [
+    { id: 'design', label: 'Design' },
+    { id: 'partDevelopment', label: 'Part Development' },
+    { id: 'build', label: 'Build' },
+    { id: 'gateway', label: 'Gateway' },
+    { id: 'validation', label: 'Validation' },
+    { id: 'qualityIssues', label: 'Quality Issues' },
+    ...(activeProject?.submodules || []).map(sub => ({ id: sub.id, label: sub.displayName || sub.name, isDynamic: true }))
+  ].filter((phase, index, self) => {
+    const isDuplicate = self.findIndex(p => p.id === phase.id) !== index;
+    if (isDuplicate) return false;
+    return visibleSections[phase.id] && availablePhases[phase.id];
+  });
+
+  const budgetStatus = masterProjects?.find(p => p.name === selectedBudgetProject)?.status || activeProject?.status || 'Active';
 
   return (
     <div style={{
@@ -134,13 +186,34 @@ const PdfPreviewModal = ({
           <div ref={reportRef} style={{
             backgroundColor: 'white',
             width: '100%',
-            minHeight: '297mm', // A4 Aspect Ratio
+            minHeight: '297mm',
             padding: '30px',
             margin: '0 auto',
             boxShadow: '0 0 10px rgba(0,0,0,0.05)',
             fontFamily: 'Inter, sans-serif'
           }}>
-            {/* Top Bar (Header) */}
+            {/* Project Title */}
+            <div style={{
+              textAlign: 'center',
+              marginBottom: '20px',
+              paddingBottom: '16px',
+              borderBottom: '3px solid #1e3a5f'
+            }}>
+              <h1 style={{
+                fontSize: '24px',
+                fontWeight: '900',
+                color: '#1e3a5f',
+                margin: '0 0 4px 0',
+                letterSpacing: '-0.02em'
+              }}>
+                {activeProject?.name || 'Project Dashboard'}
+              </h1>
+              <div style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>
+                Industrial Analytics Platform — Dashboard Report
+              </div>
+            </div>
+
+            {/* Header */}
             <div style={{
               display: 'flex', 
               justifyContent: 'space-between', 
@@ -160,7 +233,7 @@ const PdfPreviewModal = ({
                     borderRadius: '15px', 
                     marginLeft: '8px',
                     fontWeight: '800'
-                  }}>{sopData?.[0]?.daysToGo || '20'} days to go</span>
+                  }}>{sopData?.[0]?.daysToGo || '—'} days to go</span>
                 </div>
                 <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#1e3a5f' }}>
                   Status: <span style={{ 
@@ -171,7 +244,7 @@ const PdfPreviewModal = ({
                     marginLeft: '8px',
                     border: '1px solid #fed7aa',
                     fontWeight: '800'
-                  }}>{sopData?.[0]?.status || 'Likely Delay'}</span>
+                  }}>{sopData?.[0]?.status || '—'}</span>
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -194,225 +267,254 @@ const PdfPreviewModal = ({
             </div>
 
             {/* Milestones Section */}
-            <div style={{ marginBottom: '25px' }}>
-              <div style={{ 
-                backgroundColor: '#1e3a5f', 
-                color: 'white', 
-                padding: '10px 15px', 
-                fontWeight: 'bold', 
-                fontSize: '15px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <span>Milestones</span>
-                <Edit className="h-4 w-4" />
-              </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e2e8f0' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f8fafc' }}>
-                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>Categories</th>
-                    {['A', 'B', 'C', 'D', 'E', 'F'].map(cat => (
-                      <th key={cat} style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>{cat}</th>
-                    ))}
-                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>Implementation</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {milestones.map((m, idx) => (
-                    <React.Fragment key={idx}>
-                      <tr>
-                        <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 'bold', color: '#1e3a5f' }}>Plan</td>
-                        {['a', 'b', 'c', 'd', 'e', 'f'].map(key => (
-                          <td key={key} style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#445164' }}>{m.plan[key]}</td>
-                        ))}
-                        <td style={{ padding: '10px', border: '1px solid #e2e8f0' }}>
-                          {getStatusPill(m.plan.implementation)}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 'bold', color: '#059669' }}>Actual/Outlook</td>
-                        {['a', 'b', 'c', 'd', 'e', 'f'].map(key => (
-                          <td key={key} style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#445164' }}>{m.actual[key]}</td>
-                        ))}
-                        <td style={{ padding: '10px', border: '1px solid #e2e8f0' }}>
-                          {getStatusPill(m.actual.implementation)}
-                        </td>
-                      </tr>
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Critical Issues Summary Section */}
-            <div style={{ marginBottom: '25px' }}>
-              <div style={{ 
-                backgroundColor: '#1e3a5f', 
-                color: 'white', 
-                padding: '10px 15px', 
-                fontWeight: 'bold', 
-                fontSize: '15px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <span>Critical Issues Summary</span>
-                <Edit className="h-4 w-4" />
-              </div>
-              <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e2e8f0' }}>
-                <thead>
-                  <tr style={{ backgroundColor: '#f8fafc' }}>
-                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>S.No</th>
-                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>List of Top Critical Issues</th>
-                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>Responsibility</th>
-                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>Function</th>
-                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>Target date for Closure</th>
-                    <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {criticalIssues.map((issue, idx) => (
-                    <tr key={idx}>
-                      <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 'bold' }}>{idx + 1}</td>
-                      <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#1e3a5f' }}>{issue.issue}</td>
-                      <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#445164' }}>{issue.responsibility}</td>
-                      <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#445164' }}>{issue.function}</td>
-                      <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#445164' }}>{issue.targetDate}</td>
-                      <td style={{ padding: '10px', border: '1px solid #e2e8f0' }}>{getStatusPill(issue.status)}</td>
+            {visibleSections?.milestones && milestones?.length > 0 && (
+              <div style={{ marginBottom: '25px' }}>
+                <div style={{ 
+                  backgroundColor: '#1e3a5f', 
+                  color: 'white', 
+                  padding: '10px 15px', 
+                  fontWeight: 'bold', 
+                  fontSize: '15px'
+                }}>
+                  <span>Milestones</span>
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e2e8f0' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8fafc' }}>
+                      <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>Categories</th>
+                      {['A', 'B', 'C', 'D', 'E', 'F'].map(cat => (
+                        <th key={cat} style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>{cat}</th>
+                      ))}
+                      <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>Implementation</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {milestones.map((m, idx) => (
+                      <React.Fragment key={idx}>
+                        <tr>
+                          <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 'bold', color: '#1e3a5f' }}>Plan</td>
+                          {['a', 'b', 'c', 'd', 'e', 'f'].map(key => (
+                            <td key={key} style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#445164' }}>{m.plan[key]}</td>
+                          ))}
+                          <td style={{ padding: '10px', border: '1px solid #e2e8f0' }}>
+                            {getStatusPill(m.plan.implementation)}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 'bold', color: '#059669' }}>Actual/Outlook</td>
+                          {['a', 'b', 'c', 'd', 'e', 'f'].map(key => (
+                            <td key={key} style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#445164' }}>{m.actual[key]}</td>
+                          ))}
+                          <td style={{ padding: '10px', border: '1px solid #e2e8f0' }}>
+                            {getStatusPill(m.actual.implementation)}
+                          </td>
+                        </tr>
+                      </React.Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
 
-            {/* Project Metrics Summary Section */}
-            <div style={{ marginBottom: '25px' }}>
-              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '15px' }}>Project Metrics Summary</div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
-                {[
-                  { id: 'design', label: 'Design' },
-                  { id: 'partDevelopment', label: 'Part Development' },
-                  { id: 'build', label: 'Build' },
-                  { id: 'gateway', label: 'Gateway' },
-                  { id: 'validation', label: 'Validation' },
-                  { id: 'qualityIssues', label: 'Quality Issues' }
-                ].map(phase => {
-                    const isVisible = visibleSections[phase.id] && availablePhases[phase.id];
-                    if (!isVisible) return null;
-                    
+            {/* Critical Issues Section */}
+            {visibleSections?.criticalIssues && criticalIssues?.length > 0 && (
+              <div style={{ marginBottom: '25px' }}>
+                <div style={{ 
+                  backgroundColor: '#1e3a5f', 
+                  color: 'white', 
+                  padding: '10px 15px', 
+                  fontWeight: 'bold', 
+                  fontSize: '15px'
+                }}>
+                  <span>Critical Issues Summary</span>
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e2e8f0' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8fafc' }}>
+                      <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>S.No</th>
+                      <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>List of Top Critical Issues</th>
+                      <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>Responsibility</th>
+                      <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>Function</th>
+                      <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>Target date for Closure</th>
+                      <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {criticalIssues.map((issue, idx) => (
+                      <tr key={idx}>
+                        <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', fontWeight: 'bold' }}>{idx + 1}</td>
+                        <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#1e3a5f' }}>{issue.issue}</td>
+                        <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#445164' }}>{issue.responsibility}</td>
+                        <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#445164' }}>{issue.function}</td>
+                        <td style={{ padding: '10px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#445164' }}>{issue.targetDate}</td>
+                        <td style={{ padding: '10px', border: '1px solid #e2e8f0' }}>{getStatusPill(issue.status)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Budget Summary - Real Table from API */}
+            {visibleSections?.budget && (
+              <div style={{ marginBottom: '25px' }}>
+                <div style={{ 
+                  backgroundColor: '#1e3a5f', 
+                  color: 'white', 
+                  padding: '10px 15px', 
+                  fontWeight: 'bold', 
+                  fontSize: '15px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span>Budget Summary{selectedBudgetProject ? ` — ${selectedBudgetProject}` : ''}</span>
+                  <span style={{ fontSize: '12px', fontWeight: 'normal', opacity: 0.85 }}>
+                    Status: {budgetStatus}
+                  </span>
+                </div>
+                {budgetTableData && budgetTableData.length > 1 ? (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e2e8f0', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#f8fafc' }}>
+                        {budgetTableData[0].map((h, i) => (
+                          <th key={i} style={{ padding: '10px 12px', textAlign: 'left', border: '1px solid #e2e8f0', color: '#475569', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {budgetTableData.slice(1).map((row, idx) => {
+                        const isTotal = row[0] && row[0].toString().startsWith('Total');
+                        const isCategory = row[0] && (row[0] === 'CAPEX' || row[0] === 'Revenue');
+                        const fw = isTotal || isCategory ? 'bold' : 'normal';
+                        const color = isTotal ? '#1e3a5f' : '#475569';
+                        return (
+                          <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isTotal ? '#f0f7ff' : 'white' }}>
+                            {row.map((cell, colIdx) => (
+                              <td key={colIdx} style={{ padding: '10px 12px', border: '1px solid #e2e8f0', fontWeight: fw, color: color }}>
+                                {budgetCurrency && colIdx > 1 && cell !== '' && cell !== null && !isNaN(Number(cell)) 
+                                  ? `${budgetCurrency}${Number(cell).toLocaleString()}` 
+                                  : cell}
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#64748b', border: '1px solid #e2e8f0', fontSize: '13px' }}>
+                    No budget data available
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Resource Summary */}
+            {visibleSections?.resource && (
+              <div style={{ marginBottom: '25px' }}>
+                <div style={{ 
+                  backgroundColor: '#1e3a5f', 
+                  color: 'white', 
+                  padding: '10px 15px', 
+                  fontWeight: 'bold', 
+                  fontSize: '15px'
+                }}>
+                  Resource Summary
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e2e8f0', fontSize: '12px' }}>
+                  <tbody>
+                    <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '10px 15px', color: '#64748b', width: '50%', border: '1px solid #e2e8f0' }}>Deployed</td>
+                      <td style={{ padding: '10px 15px', fontWeight: 'bold', color: '#1e3a5f', border: '1px solid #e2e8f0' }}>{summaryData?.resourceDeployed}</td>
+                      <td style={{ padding: '10px 15px', color: '#64748b', width: '50%', border: '1px solid #e2e8f0' }}>Shortage</td>
+                      <td style={{ padding: '10px 15px', fontWeight: 'bold', color: '#ef4444', border: '1px solid #e2e8f0' }}>{summaryData?.resourceShortage}</td>
+                    </tr>
+                    <tr>
+                      <td style={{ padding: '10px 15px', color: '#64748b', border: '1px solid #e2e8f0' }}>Utilized</td>
+                      <td style={{ padding: '10px 15px', fontWeight: 'bold', color: '#1e3a5f', border: '1px solid #e2e8f0' }}>{summaryData?.resourceUtilized}</td>
+                      <td style={{ padding: '10px 15px', color: '#64748b', border: '1px solid #e2e8f0' }}>Under Utilized</td>
+                      <td style={{ padding: '10px 15px', fontWeight: 'bold', color: '#f59e0b', border: '1px solid #e2e8f0' }}>{summaryData?.resourceUnderUtilized}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Quality Summary */}
+            {visibleSections?.quality && (
+              <div style={{ marginBottom: '25px' }}>
+                <div style={{ 
+                  backgroundColor: '#1e3a5f', 
+                  color: 'white', 
+                  padding: '10px 15px', 
+                  fontWeight: 'bold', 
+                  fontSize: '15px'
+                }}>
+                  Quality Summary
+                </div>
+                <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e2e8f0', fontSize: '12px' }}>
+                  <tbody>
+                    <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '10px 15px', color: '#64748b', width: '50%', border: '1px solid #e2e8f0' }}>Total Issues</td>
+                      <td style={{ padding: '10px 15px', fontWeight: 'bold', color: '#1e3a5f', border: '1px solid #e2e8f0' }}>{summaryData?.qualityTotal}</td>
+                      <td style={{ padding: '10px 15px', color: '#64748b', width: '50%', border: '1px solid #e2e8f0' }}>Action Completed</td>
+                      <td style={{ padding: '10px 15px', fontWeight: 'bold', color: '#10b981', border: '1px solid #e2e8f0' }}>{summaryData?.qualityCompleted}</td>
+                    </tr>
+                    <tr>
+                      <td style={{ padding: '10px 15px', color: '#64748b', border: '1px solid #e2e8f0' }}>Open Issues</td>
+                      <td style={{ padding: '10px 15px', fontWeight: 'bold', color: '#ef4444', border: '1px solid #e2e8f0' }}>{summaryData?.qualityOpen}</td>
+                      <td style={{ padding: '10px 15px', color: '#64748b', border: '1px solid #e2e8f0' }}>No. of Critical Issues</td>
+                      <td style={{ padding: '10px 15px', fontWeight: 'bold', color: '#ef4444', border: '1px solid #e2e8f0' }}>{summaryData?.qualityCritical}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Project Metrics — Chart Images from dashboard */}
+            {visiblePhaseList.length > 0 && (
+              <div style={{ marginBottom: '25px' }}>
+                <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f', marginBottom: '15px', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px' }}>
+                  Project Metrics Summary
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+                  {visiblePhaseList.map(phase => {
+                    const imgSrc = chartImages?.[phase.id];
                     return (
-                      <div key={phase.id} style={{ border: '1px solid #e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div key={phase.id} style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden' }}>
                         <div style={{ 
                           backgroundColor: '#1e3a5f', 
                           color: 'white', 
                           padding: '8px 12px', 
                           fontSize: '13px', 
-                          fontWeight: 'bold',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
+                          fontWeight: 'bold'
                         }}>
-                          <span>{phase.label}</span>
-                          <div style={{ display: 'flex', gap: '4px' }}>
-                            <div style={{ backgroundColor: '#2d4b7c', padding: '2px 8px', borderRadius: '4px', fontSize: '10px' }}>..</div>
-                            <div style={{ backgroundColor: '#2d4b7c', padding: '2px 8px', borderRadius: '4px', fontSize: '10px' }}>Configure</div>
-                            <div style={{ backgroundColor: '#2d4b7c', padding: '2px 8px', borderRadius: '4px', fontSize: '10px' }}>Max</div>
+                          {phase.label}
+                        </div>
+                        {imgSrc ? (
+                          <img
+                            src={imgSrc}
+                            alt={phase.label}
+                            style={{ width: '100%', height: 'auto', display: 'block', backgroundColor: '#fff' }}
+                          />
+                        ) : (
+                          <div style={{ height: '160px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f8fafc' }}>
+                            <span style={{ fontSize: '22px', marginBottom: '8px' }}>📊</span>
+                            <span style={{ fontSize: '11px', color: '#94a3b8', textAlign: 'center', padding: '0 12px' }}>
+                              No chart data — configure axes in the dashboard first
+                            </span>
                           </div>
-                        </div>
-                        <div style={{ height: '180px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fcfdff' }}>
-                          <span style={{ fontSize: '24px', color: '#f1f5f9' }}>⚙️</span>
-                          <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#1e3a5f', marginTop: '10px' }}>Configure Attributes</span>
-                          <span style={{ fontSize: '9px', color: '#64748b', textAlign: 'center', padding: '0 20px', marginTop: '5px' }}>
-                            Please select the X and Y axes in the settings to visualize this chart.
-                          </span>
-                        </div>
+                        )}
                       </div>
                     );
-                })}
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Bottom Summary Section */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
-              {/* Budget Summary */}
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '10px 15px', fontWeight: 'bold', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Budget Summary</span>
-                  <Edit className="h-4 w-4" />
-                </div>
-                <div style={{ padding: '15px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
-                    <span style={{ color: '#64748b' }}>Approved:</span>
-                    <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetApproved}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
-                    <span style={{ color: '#64748b' }}>Utilized:</span>
-                    <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetUtilized}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
-                    <span style={{ color: '#64748b' }}>Balance:</span>
-                    <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.budgetBalance}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '12px' }}>
-                    <span style={{ color: '#64748b' }}>Utilization Outlook:</span>
-                    <span style={{ fontWeight: 'bold', color: '#10b981' }}>{summaryData.budgetOutlook}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Resource Summary */}
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '10px 15px', fontWeight: 'bold', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Resource Summary</span>
-                  <Edit className="h-4 w-4" />
-                </div>
-                <div style={{ padding: '15px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
-                    <span style={{ color: '#64748b' }}>Deployed:</span>
-                    <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.resourceDeployed}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
-                    <span style={{ color: '#64748b' }}>Utilized:</span>
-                    <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.resourceUtilized}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
-                    <span style={{ color: '#64748b' }}>Shortage:</span>
-                    <span style={{ fontWeight: 'bold', color: '#ef4444' }}>{summaryData.resourceShortage}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '12px' }}>
-                    <span style={{ color: '#64748b' }}>Under Utilized:</span>
-                    <span style={{ fontWeight: 'bold', color: '#f59e0b' }}>{summaryData.resourceUnderUtilized}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Quality Summary */}
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
-                <div style={{ backgroundColor: '#1e3a5f', color: 'white', padding: '10px 15px', fontWeight: 'bold', fontSize: '13px', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Quality Summary</span>
-                  <Edit className="h-4 w-4" />
-                </div>
-                <div style={{ padding: '15px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
-                    <span style={{ color: '#64748b' }}>Total Issues:</span>
-                    <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{summaryData.qualityTotal}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
-                    <span style={{ color: '#64748b' }}>Action Completed:</span>
-                    <span style={{ fontWeight: 'bold', color: '#10b981' }}>{summaryData.qualityCompleted}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '12px' }}>
-                    <span style={{ color: '#64748b' }}>Open Issues:</span>
-                    <span style={{ fontWeight: 'bold', color: '#ef4444' }}>{summaryData.qualityOpen}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '15px', fontSize: '12px' }}>
-                    <span style={{ color: '#64748b' }}>No of Critical Issues:</span>
-                    <span style={{ fontWeight: 'bold', color: '#ef4444' }}>{summaryData.qualityCritical}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
