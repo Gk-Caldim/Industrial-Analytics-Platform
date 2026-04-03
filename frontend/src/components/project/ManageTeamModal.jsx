@@ -160,32 +160,51 @@ const ManageTeamModal = ({ isOpen, onClose, project, onTeamUpdated }) => {
             ) : team.length === 0 ? (
               <div className="p-8 text-center text-slate-500">No team members assigned yet.</div>
             ) : (
-              <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                {team.map((member) => (
-                  <div key={member.id} className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold">
-                        {member.employee_name ? member.employee_name.charAt(0).toUpperCase() : '?'}
-                      </div>
-                      <div>
-                        <div className="font-medium text-slate-800 dark:text-white">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-50/50 dark:bg-slate-800/30 text-slate-500 uppercase text-[10px] font-bold tracking-wider">
+                    <tr>
+                      <th className="px-4 py-3">ID</th>
+                      <th className="px-4 py-3">Name</th>
+                      <th className="px-4 py-3">Dept</th>
+                      <th className="px-4 py-3">Email</th>
+                      <th className="px-4 py-3">Role</th>
+                      <th className="px-4 py-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                    {team.map((member) => (
+                      <tr key={member.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors">
+                        <td className="px-4 py-3">
+                          <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400 font-medium">{member.employee_id}</span>
+                        </td>
+                        <td className="px-4 py-3 font-medium text-slate-800 dark:text-white">
                           {member.employee_name || member.employee_id}
-                        </div>
-                        <div className="text-xs text-slate-500 flex items-center gap-2">
-                          <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 rounded-full">{member.role}</span>
-                          {member.employee_email && <span>{member.employee_email}</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <button 
-                      onClick={() => handleRemove(member.id)}
-                      className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                      title="Remove Member"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                ))}
+                        </td>
+                        <td className="px-4 py-3 text-slate-500">
+                          {member.employee_department || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-slate-500 lowercase max-w-[120px] truncate" title={member.employee_email}>
+                          {member.employee_email || '-'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-[10px] font-medium border border-indigo-100 dark:border-indigo-800/50">
+                            {member.employee_role || '-'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <button 
+                            onClick={() => handleRemove(member.id)}
+                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors inline-flex"
+                            title="Remove Member"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

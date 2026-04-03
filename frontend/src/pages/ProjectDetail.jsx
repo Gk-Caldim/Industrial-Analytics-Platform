@@ -5,6 +5,7 @@ import API from '../utils/api';
 import ManageTeamModal from '../components/project/ManageTeamModal';
 import ProjectSubCategoryMaster from '../components/project/ProjectSubCategoryMaster';
 import { CheckCircle, AlertCircle } from 'lucide-react';
+import ReactECharts from 'echarts-for-react';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -265,31 +266,34 @@ const ProjectDetail = () => {
               <table className="w-full text-left">
                 <thead className="bg-slate-50 dark:bg-slate-800/50">
                   <tr>
-                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Employee</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Employee ID</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Employee Name</th>
                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Department</th>
+                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Email</th>
                     <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Role</th>
-                    <th className="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Allocation</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                   {team.map(m => (
                     <tr key={m.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700/50">
                         <td className="px-6 py-4">
-                            <div className="font-medium text-slate-800 dark:text-white">{m.employee_name}</div>
-                            <div className="text-xs text-slate-500">{m.employee_id}</div>
+                            <span className="text-xs font-mono bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400 font-medium">{m.employee_id}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                            <span className="font-medium text-sm text-slate-800 dark:text-white">{m.employee_name}</span>
                         </td>
                         <td className="px-6 py-4">
                             <span className="text-sm text-slate-600 dark:text-slate-400">{m.employee_department || '-'}</span>
                         </td>
                         <td className="px-6 py-4">
-                            <span className="px-2 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full text-xs">{m.role}</span>
+                            <span className="text-sm text-slate-600 dark:text-slate-400 lowercase">{m.employee_email || '-'}</span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-                            {m.allocation_percentage}%
+                        <td className="px-6 py-4">
+                            <span className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-full text-xs font-medium border border-indigo-100 dark:border-indigo-800/50">{m.employee_role || '-'}</span>
                         </td>
                     </tr>
                   ))}
-                  {team.length === 0 && <tr><td colSpan="3" className="px-6 py-8 text-center text-slate-500">No team members assigned yet.</td></tr>}
+                  {team.length === 0 && <tr><td colSpan="5" className="px-6 py-8 text-center text-slate-500">No team members assigned yet.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -331,11 +335,324 @@ const ProjectDetail = () => {
             </div>
         )}
 
-        {/* OTHER TABS OMITTED FOR BREVITY IN POC */}
+        {/* BUDGET TAB */}
         {activeTab === 'budget' && (
-            <div className="p-12 text-center text-slate-500 bg-slate-100/50 dark:bg-slate-800/50 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl">
-                Module construction in progress for enhanced view.
-            </div>
+          <div className="space-y-6">
+            {(() => {
+              const projectDepts = departments.filter(d => d.project_name === project.name);
+              const masterBudget = project.budget || 0;
+              const totalAlloc = projectDepts.reduce((sum, d) => sum + (d.budget_allocation || 0), 0);
+              const totalUtil  = projectDepts.reduce((sum, d) => sum + (d.utilized_budget  || 0), 0);
+              const totalBal   = totalAlloc - totalUtil;
+              const unallocated= masterBudget - totalAlloc;
+              const utilPct    = totalAlloc > 0 ? (totalUtil / totalAlloc) * 100 : 0;
+              const allocPct   = masterBudget > 0 ? (totalAlloc / masterBudget) * 100 : 0;
+
+              const fmt = (n) => n >= 1_000_000
+                ? `$${(n/1_000_000).toFixed(2)}M`
+                : n >= 1_000 ? `$${(n/1_000).toFixed(1)}K` : `$${n.toLocaleString()}`;
+
+              /* ---------- CHART 1: Donut â€“ Allocation Split ---------- */
+              const donutOption = {
+                backgroundColor: 'transparent',
+                tooltip: {
+                  trigger: 'item',
+                  formatter: p => `<b>${p.name}</b><br/>Allocation: ${fmt(p.value)}<br/>Share: ${p.percent.toFixed(1)}%`
+                },
+                legend: { bottom: 0, left: 'center', icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { color: '#94a3b8', fontSize: 11 } },
+                series: [{
+                  type: 'pie',
+                  radius: ['48%', '72%'],
+                  center: ['50%', '44%'],
+                  avoidLabelOverlap: true,
+                  itemStyle: { borderRadius: 6, borderColor: '#f8fafc', borderWidth: 3 },
+                  label: { show: false },
+                  emphasis: {
+                    scale: true,
+                    label: { show: true, fontSize: 13, fontWeight: 'bold', formatter: p => `${p.percent.toFixed(1)}%` }
+                  },
+                  data: projectDepts.map(d => ({ value: d.budget_allocation || 0, name: d.name }))
+                }],
+                color: ['#6366f1','#8b5cf6','#ec4899','#f43f5e','#f59e0b','#10b981','#06b6d4','#3b82f6','#14b8a6']
+              };
+
+              /* ---------- CHART 2: Grouped Bar â€“ Alloc vs Util ---------- */
+              const barOption = {
+                backgroundColor: 'transparent',
+                tooltip: {
+                  trigger: 'axis',
+                  axisPointer: { type: 'shadow' },
+                  formatter: params => {
+                    const dept = params[0].name;
+                    return params.map(p => `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:4px"></span><b>${p.seriesName}</b>: ${fmt(p.value)}`).join('<br/>');
+                  }
+                },
+                legend: { top: 0, right: 0, icon: 'roundRect', itemWidth: 10, itemHeight: 10, textStyle: { color: '#94a3b8', fontSize: 11 } },
+                grid: { left: 16, right: 16, bottom: 40, top: 36, containLabel: true },
+                xAxis: {
+                  type: 'category',
+                  data: projectDepts.map(d => d.name.length > 12 ? d.name.slice(0, 12) + 'â€¦' : d.name),
+                  axisLabel: { color: '#94a3b8', fontSize: 10, rotate: 20 },
+                  axisLine: { lineStyle: { color: '#e2e8f0' } }
+                },
+                yAxis: {
+                  type: 'value',
+                  axisLabel: { color: '#94a3b8', fontSize: 10, formatter: v => fmt(v) },
+                  splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } }
+                },
+                series: [
+                  {
+                    name: 'Allocated',
+                    type: 'bar',
+                    barMaxWidth: 28,
+                    data: projectDepts.map(d => d.budget_allocation || 0),
+                    itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#818cf8' }, { offset: 1, color: '#6366f1' }] }, borderRadius: [4, 4, 0, 0] }
+                  },
+                  {
+                    name: 'Utilized',
+                    type: 'bar',
+                    barMaxWidth: 28,
+                    data: projectDepts.map(d => d.utilized_budget || 0),
+                    itemStyle: { color: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: [{ offset: 0, color: '#fde68a' }, { offset: 1, color: '#f59e0b' }] }, borderRadius: [4, 4, 0, 0] }
+                  }
+                ]
+              };
+
+              /* ---------- CHART 3: Horizontal Bar â€“ Utilisation % ---------- */
+              const hBarOption = {
+                backgroundColor: 'transparent',
+                tooltip: {
+                  trigger: 'axis',
+                  axisPointer: { type: 'shadow' },
+                  formatter: params => {
+                    const p = params[0];
+                    const dept = projectDepts.find(d => d.name === p.name || d.name.startsWith(p.name.replace('â€¦', '')));
+                    const bal = dept ? fmt(dept.balance_budget || 0) : '$0';
+                    return `<b>${p.name}</b><br/>Utilization: <b>${p.value.toFixed(1)}%</b><br/>Balance: ${bal}`;
+                  }
+                },
+                grid: { left: 100, right: 24, bottom: 16, top: 16, containLabel: false },
+                xAxis: {
+                  type: 'value', max: 100,
+                  axisLabel: { formatter: '{value}%', color: '#94a3b8', fontSize: 10 },
+                  splitLine: { lineStyle: { color: '#f1f5f9', type: 'dashed' } }
+                },
+                yAxis: {
+                  type: 'category',
+                  data: projectDepts.map(d => d.name.length > 14 ? d.name.slice(0, 14) + 'â€¦' : d.name),
+                  axisLabel: { color: '#64748b', fontSize: 10 },
+                  axisLine: { show: false },
+                  axisTick: { show: false }
+                },
+                series: [{
+                  type: 'bar',
+                  barMaxWidth: 16,
+                  data: projectDepts.map(d => {
+                    const pct = d.budget_allocation > 0 ? Math.min((d.utilized_budget / d.budget_allocation) * 100, 100) : 0;
+                    return {
+                      value: pct,
+                      itemStyle: {
+                        color: pct > 90 ? { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: '#f87171' }, { offset: 1, color: '#ef4444' }] }
+                             : pct > 70 ? { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: '#fde68a' }, { offset: 1, color: '#f59e0b' }] }
+                             :            { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: '#a5b4fc' }, { offset: 1, color: '#6366f1' }] },
+                        borderRadius: [0, 6, 6, 0]
+                      }
+                    };
+                  }),
+                  label: { show: true, position: 'right', formatter: p => `${p.value.toFixed(1)}%`, color: '#64748b', fontSize: 10 },
+                  backgroundStyle: { color: '#f1f5f9', borderRadius: [0, 6, 6, 0] },
+                  showBackground: true
+                }]
+              };
+
+              const healthBadge = pct => {
+                if (pct > 90) return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Critical</span>;
+                if (pct > 70) return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">At Risk</span>;
+                return <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">On Track</span>;
+              };
+
+              return (
+                <>
+                  {/* â”€â”€ TOP REPORT BANNER â”€â”€ */}
+                  <div className="bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 rounded-2xl p-6 text-white shadow-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                      <div>
+                        <p className="text-indigo-200 text-xs font-semibold uppercase tracking-widest">Budget Analysis Report</p>
+                        <h2 className="text-xl font-bold mt-0.5">{project.name}</h2>
+                      </div>
+                      <div className="flex gap-2 flex-wrap">
+                        <span className="px-3 py-1 rounded-full bg-white/20 text-xs font-semibold">{project.status || 'Active'}</span>
+                        {allocPct > 100 && <span className="px-3 py-1 rounded-full bg-red-400/40 text-xs font-bold">âš  Over-allocated</span>}
+                        {utilPct > 90 && <span className="px-3 py-1 rounded-full bg-amber-400/40 text-xs font-bold">âš  Critical Burn</span>}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {[
+                        { label: 'Master Budget', value: fmt(masterBudget), sub: 'Project Master total' },
+                        { label: 'Dept Allocated', value: fmt(totalAlloc), sub: `${allocPct.toFixed(1)}% of master` },
+                        { label: 'Utilized', value: fmt(totalUtil), sub: `${utilPct.toFixed(1)}% of allocation` },
+                        { label: 'Dept Balance', value: fmt(totalBal), sub: 'Remaining in depts', highlight: totalBal < 0 }
+                      ].map(c => (
+                        <div key={c.label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+                          <p className="text-indigo-200 text-[10px] font-semibold uppercase tracking-wider">{c.label}</p>
+                          <p className={`text-2xl font-extrabold mt-1 ${c.highlight ? 'text-red-300' : 'text-white'}`}>{c.value}</p>
+                          <p className="text-indigo-200/80 text-[10px] mt-0.5">{c.sub}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Dual progress bar: Allocation vs Master, Util vs Alloc */}
+                    <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <div className="flex justify-between text-xs text-indigo-200 mb-1">
+                          <span>Allocation coverage</span><span>{allocPct.toFixed(1)}%</span>
+                        </div>
+                        <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${allocPct > 100 ? 'bg-red-400' : 'bg-white'}`} style={{ width: `${Math.min(allocPct, 100)}%` }} />
+                        </div>
+                      </div>
+                      <div>
+                        <div className="flex justify-between text-xs text-indigo-200 mb-1">
+                          <span>Budget utilization</span><span>{utilPct.toFixed(1)}%</span>
+                        </div>
+                        <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full transition-all ${utilPct > 90 ? 'bg-red-400' : utilPct > 70 ? 'bg-yellow-300' : 'bg-emerald-400'}`} style={{ width: `${Math.min(utilPct, 100)}%` }} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Unallocated stat */}
+                    {masterBudget > 0 && (
+                      <div className="mt-4 flex items-center gap-2 text-sm bg-white/10 rounded-xl px-4 py-2 w-fit border border-white/20">
+                        <span className="text-indigo-200">Unallocated Budget:</span>
+                        <span className={`font-bold ${unallocated < 0 ? 'text-red-300' : 'text-emerald-300'}`}>{fmt(Math.abs(unallocated))}</span>
+                        <span className="text-indigo-200 text-xs">{unallocated < 0 ? '(over-allocated)' : 'available'}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* â”€â”€ CHARTS ROW â”€â”€ */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Donut */}
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Allocation Split</p>
+                      <h3 className="text-sm font-semibold text-slate-800 dark:text-white mt-0.5 mb-4">By Department</h3>
+                      <div className="h-[260px]">
+                        {projectDepts.length > 0
+                          ? <ReactECharts option={donutOption} style={{ height: '100%', width: '100%' }} />
+                          : <div className="flex h-full items-center justify-center text-slate-400 text-sm">No department data</div>
+                        }
+                      </div>
+                    </div>
+
+                    {/* Grouped Bar */}
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Comparison</p>
+                      <h3 className="text-sm font-semibold text-slate-800 dark:text-white mt-0.5 mb-4">Allocated vs Utilized</h3>
+                      <div className="h-[260px]">
+                        {projectDepts.length > 0
+                          ? <ReactECharts option={barOption} style={{ height: '100%', width: '100%' }} />
+                          : <div className="flex h-full items-center justify-center text-slate-400 text-sm">No department data</div>
+                        }
+                      </div>
+                    </div>
+
+                    {/* Horizontal Utilisation Bar */}
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Burn Rate</p>
+                      <h3 className="text-sm font-semibold text-slate-800 dark:text-white mt-0.5 mb-4">Utilization % per Dept</h3>
+                      <div className="h-[260px]">
+                        {projectDepts.length > 0
+                          ? <ReactECharts option={hBarOption} style={{ height: '100%', width: '100%' }} />
+                          : <div className="flex h-full items-center justify-center text-slate-400 text-sm">No department data</div>
+                        }
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* â”€â”€ DETAIL TABLE â”€â”€ */}
+                  <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800 dark:text-white">Department-wise Budget Detail</h3>
+                        <p className="text-[10px] text-slate-400 mt-0.5">{projectDepts.length} departments linked to this project</p>
+                      </div>
+                      <div className="flex gap-2 text-[10px] items-center">
+                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>On Track</span>
+                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>At Risk</span>
+                        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 inline-block"></span>Critical</span>
+                      </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 dark:bg-slate-900/40 text-slate-400 text-[10px] uppercase tracking-wider font-bold">
+                          <tr>
+                            <th className="px-6 py-3 text-left">Department</th>
+                            <th className="px-6 py-3 text-right">Allocated</th>
+                            <th className="px-6 py-3 text-right">Utilized</th>
+                            <th className="px-6 py-3 text-right">Balance</th>
+                            <th className="px-6 py-3 text-center min-w-[140px]">Utilization</th>
+                            <th className="px-6 py-3 text-center">Health</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
+                          {projectDepts.length === 0 && (
+                            <tr><td colSpan="6" className="px-6 py-10 text-center text-slate-400 italic text-sm">No departments allocated to this project yet.</td></tr>
+                          )}
+                          {projectDepts.map(d => {
+                            const uPct = d.budget_allocation > 0 ? Math.min((d.utilized_budget / d.budget_allocation) * 100, 100) : 0;
+                            const bal = d.balance_budget || 0;
+                            return (
+                              <tr key={d.id} className="hover:bg-indigo-50/30 dark:hover:bg-slate-700/30 transition-colors">
+                                <td className="px-6 py-3.5">
+                                  <span className="font-semibold text-slate-800 dark:text-white">{d.name}</span>
+                                </td>
+                                <td className="px-6 py-3.5 text-right font-mono text-slate-700 dark:text-slate-300">{fmt(d.budget_allocation || 0)}</td>
+                                <td className="px-6 py-3.5 text-right font-mono text-amber-600 dark:text-amber-400 font-semibold">{fmt(d.utilized_budget || 0)}</td>
+                                <td className={`px-6 py-3.5 text-right font-mono font-bold ${bal < 0 ? 'text-red-500' : 'text-emerald-600'}`}>{fmt(bal)}</td>
+                                <td className="px-6 py-3.5">
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex-1 h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                      <div
+                                        className={`h-full rounded-full transition-all duration-500 ${uPct > 90 ? 'bg-red-500' : uPct > 70 ? 'bg-amber-400' : 'bg-indigo-500'}`}
+                                        style={{ width: `${uPct}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-[10px] text-slate-500 w-8 text-right">{uPct.toFixed(0)}%</span>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-3.5 text-center">{healthBadge(uPct)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                        {projectDepts.length > 0 && (
+                          <tfoot className="bg-slate-50 dark:bg-slate-900/40 border-t-2 border-slate-200 dark:border-slate-600">
+                            <tr>
+                              <td className="px-6 py-3 text-xs font-bold text-slate-600 dark:text-slate-300">Totals</td>
+                              <td className="px-6 py-3 text-right font-mono text-xs font-bold text-slate-700 dark:text-slate-300">{fmt(totalAlloc)}</td>
+                              <td className="px-6 py-3 text-right font-mono text-xs font-bold text-amber-600">{fmt(totalUtil)}</td>
+                              <td className={`px-6 py-3 text-right font-mono text-xs font-bold ${totalBal < 0 ? 'text-red-500' : 'text-emerald-600'}`}>{fmt(totalBal)}</td>
+                              <td className="px-6 py-3 text-center">
+                                <div className="flex items-center gap-2 justify-center">
+                                  <div className="w-20 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                                    <div className={`h-full rounded-full ${utilPct > 90 ? 'bg-red-500' : utilPct > 70 ? 'bg-amber-400' : 'bg-indigo-500'}`} style={{ width: `${Math.min(utilPct, 100)}%` }} />
+                                  </div>
+                                  <span className="text-[10px] text-slate-500">{utilPct.toFixed(0)}%</span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-3 text-center">{healthBadge(utilPct)}</td>
+                            </tr>
+                          </tfoot>
+                        )}
+                      </table>
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
         )}
 
       </div>

@@ -33,6 +33,7 @@ def get_project_team(
             alloc_dict['employee_name'] = emp.name
             alloc_dict['employee_email'] = emp.email
             alloc_dict['employee_department'] = emp.department
+            alloc_dict['employee_role'] = emp.role
         result.append(alloc_dict)
         
     return result
@@ -75,6 +76,7 @@ def assign_team_member(
         alloc_dict['employee_name'] = emp.name
         alloc_dict['employee_email'] = emp.email
         alloc_dict['employee_department'] = emp.department
+        alloc_dict['employee_role'] = emp.role
         
     return alloc_dict
 

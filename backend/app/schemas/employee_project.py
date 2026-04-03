@@ -26,6 +26,7 @@ class EmployeeProjectResponse(EmployeeProjectBase):
     employee_name: Optional[str] = None # Added for convenience in UI
     employee_email: Optional[str] = None
     employee_department: Optional[str] = None
+    employee_role: Optional[str] = None
 
     class Config:
         orm_mode = True
