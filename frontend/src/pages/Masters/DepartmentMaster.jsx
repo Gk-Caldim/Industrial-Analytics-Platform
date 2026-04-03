@@ -50,7 +50,9 @@ const DepartmentMaster = () => {
   // Load columns from localStorage
   const [columns, setColumns] = useState(() => {
     const savedColumns = localStorage.getItem('department_columns_v5');
-    return savedColumns ? JSON.parse(savedColumns) : initialColumns;
+    const cols = savedColumns ? JSON.parse(savedColumns) : initialColumns;
+    // Always ensure 'head' is removed even if in localStorage
+    return cols.filter(col => col.id !== 'head');
   });
 
   const [editingColumn, setEditingColumn] = useState(null);
@@ -1503,7 +1505,7 @@ const DepartmentMaster = () => {
             <div className="mb-6">
               <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">Department Information</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {columns.map((col) => (
+                {columns.filter(col => !col.readonly && col.id !== 'employees' && col.id !== 'head').map((col) => (
                   <div key={col.id}>
                     {renderInput(col, newDept[col.id], (f, v) => handleInputChange(f, v), validationErrors[col.id], true)}
                   </div>
@@ -1560,7 +1562,7 @@ const DepartmentMaster = () => {
                     className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded bg-slate-50 dark:bg-slate-800/80"
                   />
                 </div>
-                {columns.filter(col => col.id !== 'id').map((col) => (
+                {columns.filter(col => col.id !== 'id' && !col.readonly && col.id !== 'employees' && col.id !== 'head').map((col) => (
                   <div key={col.id}>
                     {renderInput(col, editForm[col.id], (f, v) => handleInputChange(f, v, true), validationErrors[col.id], true)}
                   </div>
