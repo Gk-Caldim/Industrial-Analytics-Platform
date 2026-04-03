@@ -19,6 +19,7 @@ import MeetingDetailsPage from './pages/mom/MeetingDetailsPage';
 import SystemSettings from './pages/Settings/SystemSettings';
 import BudgetUpload from './pages/Budget/BudgetUpload';
 import BudgetSummaryView from './pages/Budget/BudgetSummaryView';
+import ProjectDetail from './pages/ProjectDetail';
 
 import { ThemeProvider } from './contexts/ThemeContext';
 
@@ -49,6 +50,7 @@ function App() {
             <Route path="masters/employees" element={<EmployeeMaster />} />
             <Route path="masters/project-master" element={<ProjectMaster />} />
             <Route path="masters/departments" element={<DepartmentMaster />} />
+            <Route path="masters/project-detail/:id" element={<ProjectDetail />} />
             
             <Route path="mom" element={<MOMModule />} />
             <Route path="meetings" element={<MeetingsDashboardPage />} />
