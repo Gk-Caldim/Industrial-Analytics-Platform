@@ -238,12 +238,16 @@ const ProjectDetail = () => {
                 </div>
                 <div className="space-y-3">
                   {team.slice(0, 5).map(m => (
-                    <div key={m.id} className="flex flex-col border-b border-slate-100 dark:border-slate-700 pb-2 last:border-0 last:pb-0">
-                      <span className="font-medium text-sm text-slate-800 dark:text-white">{m.employee_name}</span>
-                      <div className="flex items-center justify-between mt-0.5">
-                        <span className="text-xs text-slate-500">{m.role}</span>
-                        <span className="text-[10px] bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-500 uppercase font-semibold">{m.employee_department || 'N/A'}</span>
+                    <div key={m.id} className="flex flex-col border-b border-slate-100 dark:border-slate-700 py-3 last:border-0 last:pb-0">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 font-semibold tracking-tight">#{m.employee_id}</span>
+                          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+                          <span className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 capitalize">{m.employee_role || 'Member'}</span>
+                        </div>
+                        <span className="text-[9px] bg-slate-100 dark:bg-slate-700/50 px-1.5 py-0.5 rounded text-slate-500 dark:text-slate-400 uppercase font-bold tracking-wider">{m.employee_department || 'N/A'}</span>
                       </div>
+                      <span className="font-bold text-sm text-slate-800 dark:text-white leading-tight">{m.employee_name}</span>
                     </div>
                   ))}
                   {team.length > 5 && <div className="text-xs text-indigo-600 pt-2 text-center clickable" onClick={()=>setActiveTab('team')}>View all members...</div>}
