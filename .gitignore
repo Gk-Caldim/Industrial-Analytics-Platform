@@ -92,3 +92,9 @@ logs/
 # =========================
 backend/google_service_account.json
 
+
+# =========================
+# Antigravity / Skills
+# =========================
+skills/
+
