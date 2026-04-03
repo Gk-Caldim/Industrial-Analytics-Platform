@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { setBranding } from '../../store/slices/navSlice';
 import {
   Plus, Search, Edit, Trash2, X, Check,
@@ -17,6 +17,7 @@ import BrandingTheme from './components/BrandingTheme';
 import AccessControl from './components/AccessControl';
 
 import AuditHistory from './components/AuditHistory';
+import ApplicationAccess from './components/ApplicationAccess';
 
 const SystemSettings = () => {
   const dispatch = useDispatch();
@@ -28,6 +29,14 @@ const SystemSettings = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [notification, setNotification] = useState(null);
+  const user = useSelector((state) => state.auth.user);
+  const userRole = user?.role?.toLowerCase() || '';
+  const isAdmin = userRole === 'admin' || userRole === 'super admin';
+
+  useEffect(() => {
+    console.log('SystemSettings: Current user role:', user?.role);
+    console.log('SystemSettings: isAdmin:', isAdmin);
+  }, [user, isAdmin]);
 
   // Categories definition matching Enterprise Console reference
   const sidebarCategories = [
@@ -41,6 +50,8 @@ const SystemSettings = () => {
           icon: Shield,
           subItems: [
             { id: 'Access Control', label: 'Access Control' },
+            { id: 'Application Access', label: 'Application Access' }, // Temporarily visible for debugging
+            // ...(isAdmin ? [{ id: 'Application Access', label: 'Application Access' }] : []),
           ]
         },
         { id: 'Audit Logs', label: 'Audit Logs', icon: ClipboardList },
@@ -144,6 +155,8 @@ const SystemSettings = () => {
         switch (activeSubCategory) {
           case 'Access Control':
             return <AccessControl />;
+          case 'Application Access':
+            return <ApplicationAccess />;
           default:
             return <AccessControl />;
         }

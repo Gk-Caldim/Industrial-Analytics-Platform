@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { setUser as setReduxUser } from '../store/slices/authSlice';
 import API from '../utils/api';
 
 const AuthContext = createContext({});
@@ -8,23 +10,30 @@ export const useAuth = () => useContext(AuthContext);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const token = sessionStorage.getItem('token');
-    const storedUser = sessionStorage.getItem('user');
-
-    if (token && storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-        //authenticate using tokens
-        // Don't validate token if /api/auth/me endpoint doesn't exist
-        // validateToken(token);
-      } catch {
-        logout();
-      }
+    if (token) {
+      validateToken();
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
+
+  const validateToken = async () => {
+    try {
+      const response = await API.get('/auth/me');
+      const userData = response.data;
+      setUser(userData);
+      dispatch(setReduxUser(userData));
+    } catch (error) {
+      console.error('AuthContext: Token validation failed', error);
+      logout();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const login = async (email, password) => {
     console.log('AuthContext: Attempting login for', email);
@@ -40,8 +49,8 @@ export const AuthProvider = ({ children }) => {
       const { access_token, user } = response.data;
 
       sessionStorage.setItem('token', access_token);
-      sessionStorage.setItem('user', JSON.stringify(user));
       setUser(user);
+      dispatch(setReduxUser(user));
 
       return { success: true };
     } catch (error) {
