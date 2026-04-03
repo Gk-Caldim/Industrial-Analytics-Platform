@@ -54,11 +54,19 @@ function parseTranscriptFile(rawText) {
       continue;
     }
 
-    // John Smith: text... (no timestamp)
-    const speakerOnly = line.match(/^([A-Z][a-z]+(?: [A-Z][a-z]+)+):\s+(.+)/);
-    if (speakerOnly) {
+    // Gokul (00:07): text...
+    const timeInParen = line.match(/^([A-Za-z0-9\s]+?)\s*\(([\d:]+)\):\s+(.+)/);
+    if (timeInParen) {
       if (currentEntry) entries.push(currentEntry);
-      currentEntry = { type: 'speech', time: null, speaker: speakerOnly[1], text: speakerOnly[2].trim() };
+      currentEntry = { type: 'speech', time: timeInParen[2], speaker: timeInParen[1].trim(), text: timeInParen[3].trim() };
+      continue;
+    }
+
+    // Gokul: text... (no timestamp, allows single names)
+    const speakerOnly = line.match(/^([A-Za-z0-9][A-Za-z0-9\s]*):\s+(.+)/);
+    if (speakerOnly && speakerOnly[1].length < 40) { // prevent matching long sentences ending in colon
+      if (currentEntry) entries.push(currentEntry);
+      currentEntry = { type: 'speech', time: null, speaker: speakerOnly[1].trim(), text: speakerOnly[2].trim() };
       continue;
     }
 
@@ -125,11 +133,12 @@ const SpeechToText = ({ onProcessSpeech, switchToTable }) => {
   const [timerVal, setTimerVal] = useState(0);
   const timerRef = useRef(null);
 
-  // ── Transcript state ────────────────────────────────────────────
+  // ── Transcript state ───────────────────────────────────────────────
   const [entries, setEntries] = useState([]);
   const [interimText, setInterimText] = useState('');
   const [hasUploadedTranscript, setHasUploadedTranscript] = useState(false);
   const [isAddingPoints, setIsAddingPoints] = useState(false);
+  const [failedEntryIds, setFailedEntryIds] = useState(new Set()); // IDs of entries that failed to save
   const transcriptRef = useRef(null);
 
   // ── Speaker colour map ──────────────────────────────────────────
@@ -180,33 +189,38 @@ const SpeechToText = ({ onProcessSpeech, switchToTable }) => {
     return null;
   };
 
-  const postEntryToBackend = async (entry) => {
-    const meetingId = await ensureMeeting();
-    if (!meetingId) return;
-    try {
-      await fetch(`/api/meetings/${meetingId}/entries/`, {
+  // ── Backend save: fire-and-forget, marks failed entries ──────────
+  const saveToBackend = (entry) => {
+    ensureMeeting().then(meetingId => {
+      if (!meetingId) return;
+      fetch(`/api/meetings/${meetingId}/entries/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-CSRFToken': getCookie('csrftoken'),
         },
         body: JSON.stringify(entry),
+      }).catch(() => {
+        // Mark this entry with a retry dot
+        setFailedEntryIds(prev => new Set([...prev, entry.id]));
       });
-    } catch (err) {
-      console.warn('Failed to save entry:', err);
-    }
+    });
+  };
+
+  const retryEntry = (entry) => {
+    setFailedEntryIds(prev => { const next = new Set(prev); next.delete(entry.id); return next; });
+    saveToBackend(entry);
   };
 
   const flushBuffer = () => {
     clearTimeout(debounceTimerRef.current);
     const text = bufferRef.current.trim();
     bufferRef.current = '';
-    // Require at least 3 words before committing, unless force-flushed (stopAndFlush)
+    // Require at least 2 words before committing, unless force-flushed
     if (!text) return;
     const wordCount = text.split(/\s+/).length;
-    if (wordCount < 3 && !forceFlushRef.current) {
-      // Put back into buffer for next accumulation
-      bufferRef.current = text;
+    if (wordCount < 2 && !forceFlushRef.current) {
+      bufferRef.current = text; // put back
       return;
     }
     forceFlushRef.current = false;
@@ -224,13 +238,14 @@ const SpeechToText = ({ onProcessSpeech, switchToTable }) => {
       text,
       isAdditional: isAddingPointsRef.current,
     };
+    // ① Optimistic UI — add to state IMMEDIATELY, no waiting
     setEntries(prev => [...prev, entry]);
     setInterimText('');
-    // Fire-and-forget backend save
-    postEntryToBackend(entry).catch(() => {});
+    // ② Fire-and-forget backend save (non-blocking)
+    saveToBackend(entry);
   };
 
-  // Force-flush flag (set true before manual stop so 3-word minimum is skipped)
+  // Force-flush flag (set true before manual stop so 2-word minimum is skipped)
   const forceFlushRef = useRef(false);
 
   const scheduleDebouncedFlush = (text) => {
@@ -239,7 +254,8 @@ const SpeechToText = ({ onProcessSpeech, switchToTable }) => {
     if (/[.?!]\s*$/.test(text)) {
       debounceTimerRef.current = setTimeout(() => flushBuffer(), 50);
     } else {
-      debounceTimerRef.current = setTimeout(() => flushBuffer(), 1800);
+      // 400ms — fast enough to feel instant, enough to catch next word
+      debounceTimerRef.current = setTimeout(() => flushBuffer(), 400);
     }
   };
 
@@ -365,7 +381,9 @@ const SpeechToText = ({ onProcessSpeech, switchToTable }) => {
 
     // ── onerror: per-error handling ──
     rec.onerror = (e) => {
-      console.warn('SpeechRecognition error:', e.error);
+      if (e.error !== 'no-speech') {
+        console.warn('SpeechRecognition error:', e.error);
+      }
 
       switch (e.error) {
         case 'no-speech':
@@ -875,8 +893,20 @@ const SpeechToText = ({ onProcessSpeech, switchToTable }) => {
                         </div>
                         {!isLast && <div className="flex-1 w-px bg-gray-100" />}
                       </div>
-                      <div className="flex-1 py-3 pl-3 pr-4">
-                        <div className="mb-0.5 font-medium" style={{ fontSize: 11, color: c.text }}>{entry.speaker}</div>
+                      <div className="flex-1 py-3 pl-3 pr-4 relative group">
+                        <div className="flex justify-between items-start mb-0.5">
+                          <div className="font-medium" style={{ fontSize: 11, color: c.text }}>{entry.speaker}</div>
+                          {failedEntryIds.has(entry.id) && (
+                            <button
+                              onClick={() => retryEntry(entry)}
+                              title="Failed to save to backend. Click to retry."
+                              className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#FEF2F2] text-[#DC2626] border border-[#FEE2E2] hover:bg-[#FEE2E2] transition-colors"
+                            >
+                              <div className="w-1.5 h-1.5 rounded-full bg-[#DC2626]" />
+                              <span className="text-[10px] font-medium">Retry save</span>
+                            </button>
+                          )}
+                        </div>
                         <div className="text-slate-700 leading-relaxed" style={{ fontSize: 13 }}>{entry.text}</div>
                       </div>
                     </div>
