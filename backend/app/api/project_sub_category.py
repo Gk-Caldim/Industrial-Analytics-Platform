@@ -5,6 +5,8 @@ from typing import List
 from app.schemas.project_sub_category import SubCategoryCreate, SubCategoryUpdate, SubCategoryResponse
 from app.crud import project_sub_category as crud
 from app.core.database import get_db
+from app.core.security import get_current_user
+from app.models.audit_log import AuditLog
 
 router = APIRouter(
     prefix="/project-sub-categories",
@@ -17,22 +19,76 @@ def list_sub_categories(project_id: str, db: Session = Depends(get_db)):
     return crud.get_sub_categories_by_project(db, project_id)
 
 @router.post("/", response_model=SubCategoryResponse)
-def add_sub_category(sub_category: SubCategoryCreate, db: Session = Depends(get_db)):
+def add_sub_category(
+    sub_category: SubCategoryCreate, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     """Add a new sub-category"""
-    return crud.create_sub_category(db, sub_category)
+    db_sub = crud.create_sub_category(db, sub_category)
+    
+    # Audit Log
+    db.add(AuditLog(
+        user_id=current_user.get("employee_id") or "System",
+        action="CREATED",
+        module="Sub Category",
+        entity_id=db_sub.project_id,
+        details={"sub_category": db_sub.sub_category, "estimated_value": db_sub.estimated_value}
+    ))
+    db.commit()
+    
+    return db_sub
 
 @router.put("/{sub_category_id}", response_model=SubCategoryResponse)
-def update_sub_category(sub_category_id: int, sub_category: SubCategoryUpdate, db: Session = Depends(get_db)):
+def update_sub_category(
+    sub_category_id: int, 
+    sub_category: SubCategoryUpdate, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     """Update a sub-category"""
     db_sub = crud.update_sub_category(db, sub_category_id, sub_category)
     if db_sub is None:
         raise HTTPException(status_code=404, detail="Sub-category not found")
+        
+    # Audit Log
+    db.add(AuditLog(
+        user_id=current_user.get("employee_id") or "System",
+        action="UPDATED",
+        module="Sub Category",
+        entity_id=db_sub.project_id,
+        details={"sub_category": db_sub.sub_category, "utilized_value": db_sub.utilized_value}
+    ))
+    db.commit()
+    
     return db_sub
 
 @router.delete("/{sub_category_id}")
-def delete_sub_category(sub_category_id: int, db: Session = Depends(get_db)):
+def delete_sub_category(
+    sub_category_id: int, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     """Delete a sub-category"""
+    db_sub = db.query(crud.ProjectSubCategory).filter(crud.ProjectSubCategory.id == sub_category_id).first()
+    if not db_sub:
+        raise HTTPException(status_code=404, detail="Sub-category not found")
+        
+    project_id = db_sub.project_id
+    sub_cat_name = db_sub.sub_category
+
     success = crud.delete_sub_category(db, sub_category_id)
     if not success:
         raise HTTPException(status_code=404, detail="Sub-category not found")
+        
+    # Audit Log
+    db.add(AuditLog(
+        user_id=current_user.get("employee_id") or "System",
+        action="DELETED",
+        module="Sub Category",
+        entity_id=project_id,
+        details={"sub_category": sub_cat_name}
+    ))
+    db.commit()
+        
     return {"message": "Sub-category deleted successfully"}
