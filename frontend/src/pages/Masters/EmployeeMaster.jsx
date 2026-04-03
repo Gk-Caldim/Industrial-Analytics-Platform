@@ -467,13 +467,8 @@ const EmployeeMaster = () => {
       return;
     }
 
-    if (!newEmployee.password) {
-      showNotification('Password is required', 'error');
-      return;
-    }
-
-    if (newEmployee.password !== newEmployee.confirmPassword) {
-      showNotification('Passwords do not match', 'error');
+    if (!newEmployee.employee_id || !newEmployee.name || !newEmployee.email || !newEmployee.department) {
+      showNotification('Please fill in all required fields marked with *', 'error');
       return;
     }
 
@@ -1360,52 +1355,6 @@ const EmployeeMaster = () => {
                 </div>
               </div>
 
-              {/* Password Section */}
-              <div className="mb-6">
-                <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center">
-                  Password <span className="text-red-500 ml-1">*</span>
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="relative">
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={newEmployee.password || ''}
-                        onChange={(e) => handleNewEmployeeChange('password', e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black pr-10"
-                        placeholder="Enter new password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm Password</label>
-                    <div className="relative">
-                      <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={newEmployee.confirmPassword || ''}
-                        onChange={(e) => handleNewEmployeeChange('confirmPassword', e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black pr-10"
-                        placeholder="Confirm new password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      >
-                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
 
               <div className="flex justify-end space-x-2">

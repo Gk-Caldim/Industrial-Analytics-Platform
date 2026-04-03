@@ -50,8 +50,7 @@ const SystemSettings = () => {
           icon: Shield,
           subItems: [
             { id: 'Access Control', label: 'Access Control' },
-            { id: 'Application Access', label: 'Application Access' }, // Temporarily visible for debugging
-            // ...(isAdmin ? [{ id: 'Application Access', label: 'Application Access' }] : []),
+            ...(isAdmin ? [{ id: 'Application Access', label: 'Application Access' }] : []),
           ]
         },
         { id: 'Audit Logs', label: 'Audit Logs', icon: ClipboardList },
