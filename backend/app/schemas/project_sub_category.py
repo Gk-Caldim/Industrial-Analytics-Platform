@@ -28,5 +28,4 @@ class SubCategoryUpdate(BaseModel):
 class SubCategoryResponse(SubCategoryBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

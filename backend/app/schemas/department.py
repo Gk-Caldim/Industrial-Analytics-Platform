@@ -31,5 +31,4 @@ class DepartmentUpdate(BaseModel):
 class DepartmentResponse(DepartmentBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

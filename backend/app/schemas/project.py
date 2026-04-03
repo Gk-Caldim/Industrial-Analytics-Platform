@@ -1,10 +1,12 @@
 from pydantic import BaseModel
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 class ProjectBase(BaseModel):
     project_id: Optional[str] = None
     name: str
-    manager: str
+    manager: List[Dict[str, Any]] = []
+    team_lead: Optional[List[Dict[str, Any]]] = []
+    manager: Any
     status: str = "Planning"
     budget: float = 0.0
     utilized_budget: float = 0.0
@@ -20,5 +22,4 @@ class ProjectCreate(ProjectBase):
 class ProjectResponse(ProjectBase):
     id: int
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}

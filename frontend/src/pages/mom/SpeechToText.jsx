@@ -1,47 +1,29 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import { AudioRecorder } from 'react-audio-voice-recorder';
-import axios from 'axios';
 import {
   Upload,
   Volume2,
   Play,
   Square,
   Trash2,
-  FileAudio,
+  FileText,
   X,
   UploadCloud,
   Loader2,
-  ScanText,
-  FileText,
   MessageSquare,
   Settings,
-  Info,
-  Monitor,
-  Video,
-  StopCircle,
-  MonitorPlay,
-  MessageCircle, // Speech/speaker icon for live speech
-  MicOff, // Mic off icon for when not listening
+  MessageCircle,
+  MicOff,
+  FileUp,
 } from 'lucide-react';
 
 const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [audioFile, setAudioFile] = useState(null);
-  const [audioUrl, setAudioUrl] = useState(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [transcriptionMode, setTranscriptionMode] = useState('live'); // 'live', 'upload', or 'screen'
+  const [transcriptFile, setTranscriptFile] = useState(null);
+  const [transcriptionMode, setTranscriptionMode] = useState('live'); // 'live' or 'upload'
   const [transcript, setTranscript] = useState('');
   const [transcriptionStatus, setTranscriptionStatus] = useState('');
-  const [isScreenRecording, setIsScreenRecording] = useState(false);
-  const [screenStream, setScreenStream] = useState(null);
-  const [screenMediaRecorder, setScreenMediaRecorder] = useState(null);
-  const [screenRecordingChunks, setScreenRecordingChunks] = useState([]);
-  const [screenRecordingUrl, setScreenRecordingUrl] = useState(null);
-  const [screenRecordingFile, setScreenRecordingFile] = useState(null);
-  
-  const audioRef = useRef(null);
+  const [uploadError, setUploadError] = useState('');
 
   const {
     transcript: liveTranscript,
@@ -57,19 +39,7 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
     }
   }, [liveTranscript, transcriptionMode]);
 
-  useEffect(() => {
-    return () => {
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
-      if (screenRecordingUrl) {
-        URL.revokeObjectURL(screenRecordingUrl);
-      }
-      if (screenStream) {
-        screenStream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [audioUrl, screenRecordingUrl, screenStream]);
+
 
   const startListening = () => {
     SpeechRecognition.startListening({
@@ -83,218 +53,55 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
     SpeechRecognition.stopListening();
   };
 
-  const handleFileUpload = (event) => {
+  const handleTranscriptFileUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    if (!file.type.startsWith('audio/')) {
-      alert('Please upload an audio file (MP3, WAV, M4A, etc.)');
+    const allowedTypes = [
+      'text/plain',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/pdf',
+    ];
+    const allowedExtensions = ['.txt', '.doc', '.docx', '.pdf'];
+    const fileExt = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+
+    if (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExt)) {
+      setUploadError('Please upload a text file (.txt, .doc, .docx, or .pdf)');
       return;
     }
-    if (file.size > 50 * 1024 * 1024) {
-      alert('File size too large. Please upload audio less than 50MB');
-      return;
-    }
-    
-    setAudioFile(file);
-    setTranscript('');
-    setTranscriptionStatus('');
-
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
-    const url = URL.createObjectURL(file);
-    setAudioUrl(url);
-  };
-
-  const handleAudioRecordingComplete = (blob) => {
-    const file = new File([blob], `recording-${Date.now()}.webm`, { type: blob.type });
-    setAudioFile(file);
-    setTranscript('');
-    setTranscriptionStatus('');
-
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
-    const url = URL.createObjectURL(blob);
-    setAudioUrl(url);
-  };
-
-  const removeAudio = () => {
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
-    setAudioFile(null);
-    setAudioUrl(null);
-    setUploadProgress(0);
-    setTranscript('');
-    setTranscriptionStatus('');
-  };
-
-  const removeScreenRecording = () => {
-    if (screenRecordingUrl) URL.revokeObjectURL(screenRecordingUrl);
-    setScreenRecordingFile(null);
-    setScreenRecordingUrl(null);
-    setUploadProgress(0);
-    setTranscript('');
-    setTranscriptionStatus('');
-  };
-
-  const startScreenRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
-          displaySurface: 'monitor',
-          frameRate: 30,
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        },
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          sampleRate: 44100
-        },
-        surfaceSwitching: 'include',
-        systemAudio: 'include'
-      });
-
-      setScreenStream(stream);
-      setIsScreenRecording(true);
-      
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm;codecs=vp9,opus',
-        videoBitsPerSecond: 2500000
-      });
-      
-      const chunks = [];
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunks.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
-        const url = URL.createObjectURL(blob);
-        setScreenRecordingUrl(url);
-        
-        const file = new File([blob], `screen-recording-${Date.now()}.webm`, { type: blob.type });
-        setScreenRecordingFile(file);
-        setAudioFile(null);
-        
-        stream.getTracks().forEach(track => track.stop());
-        setScreenStream(null);
-        setScreenRecordingChunks([]);
-      };
-
-      setScreenMediaRecorder(mediaRecorder);
-      setScreenRecordingChunks(chunks);
-      mediaRecorder.start();
-
-      stream.getVideoTracks()[0].onended = () => {
-        if (mediaRecorder.state !== 'inactive') {
-          mediaRecorder.stop();
-          setIsScreenRecording(false);
-        }
-      };
-
-    } catch (error) {
-      console.error('Error starting screen recording:', error);
-      if (error.name !== 'NotAllowedError') {
-        alert('Screen recording failed or was cancelled.');
-      }
-    }
-  };
-
-  const stopScreenRecording = () => {
-    if (screenMediaRecorder && screenMediaRecorder.state !== 'inactive') {
-      screenMediaRecorder.stop();
-      setIsScreenRecording(false);
-      setScreenMediaRecorder(null);
-    }
-  };
-
-  const getCurrentFile = () => {
-    if (transcriptionMode === 'upload') return audioFile;
-    if (transcriptionMode === 'screen') return screenRecordingFile;
-    return null;
-  };
-
-  const transcribeMedia = async () => {
-    const file = getCurrentFile();
-    if (!file) {
-      alert(`Please ${transcriptionMode === 'screen' ? 'record' : 'upload'} a ${transcriptionMode === 'screen' ? 'screen' : 'audio'} file first`);
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError('File size too large. Please upload a file less than 10MB');
       return;
     }
 
-    setIsTranscribing(true);
-    setUploadProgress(0);
-    setTranscriptionStatus(`Processing ${transcriptionMode}...`);
+    setUploadError('');
+    setTranscriptFile(file);
+    setTranscriptionStatus('');
 
-    try {
-      const formData = new FormData();
-      formData.append('media', file);
-      formData.append('media_type', transcriptionMode);
-      formData.append('language', 'en-US');
-
-      const progressInterval = setInterval(() => {
-        setUploadProgress((prev) => {
-          if (prev >= 90) {
-            clearInterval(progressInterval);
-            return 90;
-          }
-          return prev + 10;
-        });
-      }, 300);
-
-      const response = await axios.post('/api/transcribe/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 90) / progressEvent.total);
-          setUploadProgress(percentCompleted);
-        },
-      });
-
-      clearInterval(progressInterval);
-      setUploadProgress(100);
-
-      if (response.data.success) {
-        setTranscript(response.data.transcript);
-        setTranscriptionStatus(`${transcriptionMode === 'screen' ? 'Screen' : 'Audio'} transcription completed successfully!`);
-
-        setTimeout(() => {
-          processTranscript(response.data.transcript);
-        }, 1000);
-      } else {
-        setTranscriptionStatus('Transcription failed. Please try again.');
-      }
-    } catch (error) {
-      console.error('Transcription error:', error);
-
-      if (error.response?.status === 404 || error.code === 'ERR_NETWORK') {
-        setTranscriptionStatus('Using demo transcription (API not configured)');
-
-        const sampleTranscript = `
-          We need to update the marketing campaign by next week. John will handle the social media posts.
-          The budget needs approval from finance department. The deadline is 15/12/2024.
-          Technical team should complete the API integration within 3 days.
-          We must prioritize the customer feedback system as it's urgent.
-          Design team will present mockups on Friday.
-          Marketing needs to prepare the quarterly report by end of month.
-          Sales team should follow up with potential clients next week.
-          The new product launch is scheduled for next month.
-        `;
-
-        setTranscript(sampleTranscript);
-        setUploadProgress(100);
-
-        setTimeout(() => {
-          processTranscript(sampleTranscript);
-        }, 1000);
-      } else {
-        setTranscriptionStatus('Error transcribing media. Please try again.');
-      }
-    } finally {
-      setIsTranscribing(false);
-      setTimeout(() => setUploadProgress(0), 2000);
-    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target.result;
+      // Store into transcript (same state used by Live Transcript display)
+      setTranscript(text);
+      setTranscriptionStatus('Transcript loaded successfully!');
+      // Switch back to live mode so the Live Transcript section is visible
+      setTranscriptionMode('live');
+    };
+    reader.onerror = () => {
+      setUploadError('Failed to read the file. Please try again.');
+    };
+    reader.readAsText(file);
   };
+
+  const removeTranscriptFile = () => {
+    setTranscriptFile(null);
+    setTranscript('');
+    setTranscriptionStatus('');
+    setUploadError('');
+  };
+
+
 
   const determineCriticality = (text) => {
     const textLower = text.toLowerCase();
@@ -457,24 +264,9 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
 
       await onProcessSpeech(meetingPoints);
 
-      if (transcriptionMode === 'live') {
-        resetLiveTranscript();
-      } else {
-        setTranscript('');
-      }
-      if (transcriptionMode === 'upload') {
-        setAudioFile(null);
-        if (audioUrl) {
-          URL.revokeObjectURL(audioUrl);
-          setAudioUrl(null);
-        }
-      } else if (transcriptionMode === 'screen') {
-        setScreenRecordingFile(null);
-        if (screenRecordingUrl) {
-          URL.revokeObjectURL(screenRecordingUrl);
-          setScreenRecordingUrl(null);
-        }
-      }
+      resetLiveTranscript();
+      setTranscript('');
+      setTranscriptFile(null);
     } catch (error) {
       console.error('Error processing transcript:', error);
       alert('Error converting to meeting points');
@@ -516,7 +308,7 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
           <h3 className="text-base font-medium text-gray-900">Transcription Mode</h3>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => setTranscriptionMode('live')}
             className={`flex items-center justify-center gap-2 p-4 rounded-lg border transition-all ${
@@ -537,20 +329,8 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
                 : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
           >
-            <Upload className="h-5 w-5" />
-            <span className="text-sm font-medium">Upload Audio</span>
-          </button>
-
-          <button
-            onClick={() => setTranscriptionMode('screen')}
-            className={`flex items-center justify-center gap-2 p-4 rounded-lg border transition-all ${
-              transcriptionMode === 'screen'
-                ? 'bg-black text-white border-black'
-                : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-            }`}
-          >
-            <Monitor className="h-5 w-5" />
-            <span className="text-sm font-medium">Share Screen</span>
+            <FileUp className="h-5 w-5" />
+            <span className="text-sm font-medium">Upload Transcript</span>
           </button>
         </div>
       </div>
@@ -631,294 +411,91 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
         </div>
       )}
 
-      {/* Audio Upload Section */}
+      {/* Upload Transcript Section */}
       {transcriptionMode === 'upload' && (
         <div className="bg-white border border-gray-300 rounded-lg p-4">
           <div className="flex items-center gap-2 mb-4">
-            <MessageCircle className="h-5 w-5 text-gray-600" />
-            <h3 className="text-base font-medium text-gray-900">Upload Audio Recording</h3>
+            <FileUp className="h-5 w-5 text-gray-600" />
+            <h3 className="text-base font-medium text-gray-900">Upload Transcript File</h3>
           </div>
 
-          <div className="space-y-6">
-            {/* File Upload */}
-            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-gray-400 transition-colors">
+          <div className="space-y-4">
+            {/* File Upload Drop Zone */}
+            <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-gray-400 transition-colors">
               <div className="flex flex-col items-center">
-                <UploadCloud className="h-10 w-10 text-gray-400 mb-3" />
-                <p className="text-sm text-gray-600 mb-2">
-                  Upload recorded meeting audio
+                <UploadCloud className="h-12 w-12 text-gray-400 mb-3" />
+                <p className="text-sm font-medium text-gray-700 mb-1">
+                  Upload your meeting transcript
                 </p>
                 <p className="text-xs text-gray-500 mb-4">
-                  Supports MP3, WAV, M4A, WEBM (max 50MB)
+                  Supports .txt, .doc, .docx files (max 10MB)
                 </p>
-
                 <label className="cursor-pointer">
                   <input
                     type="file"
-                    accept="audio/*"
-                    onChange={handleFileUpload}
+                    accept=".txt,.doc,.docx,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={handleTranscriptFileUpload}
                     className="hidden"
+                    id="transcript-file-input"
                   />
-                  <div className="px-5 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium">
-                    Choose Audio File
+                  <div className="px-6 py-2.5 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium flex items-center gap-2">
+                    <FileUp className="h-4 w-4" />
+                    Choose Transcript File
                   </div>
                 </label>
               </div>
             </div>
 
-            {/* Audio Recorder */}
-            <div>
-              <p className="text-sm font-medium text-gray-700 mb-3">Or record audio directly:</p>
-              <div className="border border-gray-200 rounded-lg p-4">
-                <AudioRecorder
-                  onRecordingComplete={handleAudioRecordingComplete}
-                  audioTrackConstraints={{
-                    noiseSuppression: true,
-                    echoCancellation: true,
-                  }}
-                  showVisualizer={true}
-                  downloadOnSavePress={false}
-                  downloadFileExtension="webm"
-                />
-              </div>
-            </div>
-
-            {/* Audio Preview */}
-            {audioFile && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <FileAudio className="h-6 w-6 text-blue-600" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {audioFile.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {`${(audioFile.size / (1024 * 1024)).toFixed(2)} MB • ${audioFile.type}`}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={removeAudio}
-                    className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                {/* Audio Player */}
-                {audioUrl && (
-                  <div className="space-y-2">
-                    <audio
-                      ref={audioRef}
-                      src={audioUrl}
-                      controls
-                      className="w-full rounded-lg"
-                    />
-                    <p className="text-xs text-gray-500 text-center">
-                      Click play to preview the audio
-                    </p>
-                  </div>
-                )}
-
-                {/* Upload Progress */}
-                {uploadProgress > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>{transcriptionStatus}</span>
-                      <span>{uploadProgress}%</span>
-                    </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-blue-600 transition-all duration-300"
-                        style={{ width: `${uploadProgress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Transcribe Button */}
-                <button
-                  onClick={transcribeMedia}
-                  disabled={isTranscribing}
-                  className={`w-full flex items-center justify-center gap-3 py-3.5 rounded-lg transition-all ${
-                    isTranscribing
-                      ? 'opacity-50 cursor-not-allowed bg-gray-100'
-                      : 'bg-black text-white hover:bg-gray-800'
-                  }`}
-                >
-                  {isTranscribing ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      <span className="text-sm font-medium">Transcribing audio...</span>
-                    </>
-                  ) : (
-                    <>
-                      <ScanText className="h-5 w-5" />
-                      <span className="text-sm font-medium">
-                        Transcribe Audio to Text
-                      </span>
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Screen Recording Section */}
-      {transcriptionMode === 'screen' && (
-        <div className="bg-white border border-gray-300 rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Monitor className="h-5 w-5 text-gray-600" />
-            <h3 className="text-base font-medium text-gray-900">Screen Recording</h3>
-          </div>
-
-          <div className="space-y-6">
-            {/* Screen Recording Controls */}
-            <div className="text-center p-6 border-2 border-dashed border-gray-300 rounded-xl">
-              <MonitorPlay className="h-12 w-12 mx-auto text-gray-400 mb-3" />
-              <p className="text-sm text-gray-600 mb-2">Record your screen with audio</p>
-              <p className="text-xs text-gray-500 mb-4">
-                Share your entire screen, application window, or browser tab with audio
-              </p>
-              
-              <div className="flex flex-col sm:flex-row justify-center gap-4">
-                {!isScreenRecording ? (
-                  <button
-                    onClick={startScreenRecording}
-                    className="px-6 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                  >
-                    <Monitor className="h-5 w-5" />
-                    Start Screen Recording
-                  </button>
-                ) : (
-                  <button
-                    onClick={stopScreenRecording}
-                    className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                  >
-                    <StopCircle className="h-5 w-5" />
-                    Stop Recording
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {isScreenRecording && (
+            {/* Error message */}
+            {uploadError && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <div className="flex space-x-1">
-                    <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse"></div>
-                    <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="h-2 w-2 bg-red-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                  </div>
-                  <span className="text-sm text-red-700 font-medium">Screen recording in progress</span>
-                </div>
-                <p className="text-xs text-red-600 mt-1">
-                  Click "Stop Recording" when finished, or stop sharing from your browser
-                </p>
+                <p className="text-sm text-red-700">{uploadError}</p>
               </div>
             )}
 
-            {/* Screen Recording Preview */}
-            {screenRecordingFile && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Video className="h-6 w-6 text-gray-600" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {screenRecordingFile.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Screen recording with audio
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={removeScreenRecording}
-                    className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                {/* Video Player */}
-                {screenRecordingUrl && (
-                  <div className="space-y-2">
-                    <video
-                      src={screenRecordingUrl}
-                      controls
-                      className="w-full rounded-lg border border-gray-200"
-                    />
-                    <p className="text-xs text-gray-500 text-center">
-                      Click play to preview your screen recording
+            {/* Success / File Info */}
+            {transcriptFile && (
+              <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-6 w-6 text-green-600" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{transcriptFile.name}</p>
+                    <p className="text-xs text-gray-500">
+                      {`${(transcriptFile.size / 1024).toFixed(1)} KB — loaded into Live Transcript`}
                     </p>
                   </div>
-                )}
-
-                {/* Upload Progress */}
-                {uploadProgress > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm text-gray-600">
-                      <span>{transcriptionStatus}</span>
-                      <span>{uploadProgress}%</span>
-                    </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-black transition-all duration-300"
-                        style={{ width: `${uploadProgress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Transcribe Button */}
+                </div>
                 <button
-                  onClick={transcribeMedia}
-                  disabled={isTranscribing}
-                  className={`w-full flex items-center justify-center gap-3 py-3.5 rounded-lg transition-all ${
-                    isTranscribing
-                      ? 'opacity-50 cursor-not-allowed bg-gray-100'
-                      : 'bg-black text-white hover:bg-gray-800'
-                  }`}
+                  onClick={removeTranscriptFile}
+                  className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
                 >
-                  {isTranscribing ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      <span className="text-sm font-medium">Transcribing screen recording...</span>
-                    </>
-                  ) : (
-                    <>
-                      <ScanText className="h-5 w-5" />
-                      <span className="text-sm font-medium">
-                        Transcribe Screen Recording
-                      </span>
-                    </>
-                  )}
+                  <X className="h-5 w-5" />
                 </button>
+              </div>
+            )}
+
+            {transcriptionStatus && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-700 font-medium">{transcriptionStatus}</p>
+                <p className="text-xs text-blue-600 mt-1">Switched to Live Transcript view — review and convert to meeting points.</p>
               </div>
             )}
           </div>
         </div>
       )}
+
+
 
       {/* Transcript Display */}
       <div className="bg-white border border-gray-300 rounded-lg overflow-hidden">
         <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-base font-medium text-gray-900">
-                {transcriptionMode === 'live' ? 'Live Transcript' : 
-                 transcriptionMode === 'upload' ? 'Audio Transcript' : 
-                 'Screen Recording Transcript'}
-              </h3>
+              <h3 className="text-base font-medium text-gray-900">Live Transcript</h3>
               <p className="text-xs text-gray-600">
-                {transcriptionMode === 'live'
-                  ? 'Speech appears here in real-time'
-                  : transcriptionMode === 'upload'
-                  ? 'Transcribed text from audio appears here'
-                  : 'Transcribed text from screen recording appears here'}
+                {transcript
+                  ? 'Transcript content — review and convert to meeting points'
+                  : 'Speech appears here in real-time, or upload a transcript file'}
               </p>
             </div>
             {transcript && (
@@ -966,23 +543,11 @@ const SpeechToText = ({ onProcessSpeech, meetings = [] }) => {
                     )
                 )}
               </div>
-            ) : transcriptionMode === 'live' ? (
-              <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                <MessageCircle className="h-10 w-10 mb-3 opacity-50" />
-                <p className="text-sm">Start speaking to see transcript here</p>
-                <p className="text-xs mt-1">Click "Start Speech" button above</p>
-              </div>
-            ) : transcriptionMode === 'upload' ? (
-              <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                <MessageCircle className="h-10 w-10 mb-3 opacity-50" />
-                <p className="text-sm">Upload and transcribe audio to see transcript here</p>
-                <p className="text-xs mt-1">Click "Transcribe Audio to Text" button above</p>
-              </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                <Monitor className="h-10 w-10 mb-3 opacity-50" />
-                <p className="text-sm">Record and transcribe screen recording to see transcript here</p>
-                <p className="text-xs mt-1">Click "Transcribe Screen Recording" button above</p>
+                <MessageCircle className="h-10 w-10 mb-3 opacity-50" />
+                <p className="text-sm">Start speaking, or upload a transcript file</p>
+                <p className="text-xs mt-1">Use "Live Speech" or "Upload Transcript" above</p>
               </div>
             )}
           </div>

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { setBranding } from '../../store/slices/navSlice';
-import { 
-  Plus, Search, Edit, Trash2, X, Check, 
-  ChevronRight, Layout, Settings, Shield, 
+import {
+  Plus, Search, Edit, Trash2, X, Check,
+  ChevronRight, Layout, Settings, Shield,
   Palette, FileText, Bell, Globe, Search as SearchIcon,
   RefreshCcw, Save, AlertCircle, Inbox, Command, Activity, Cpu, Briefcase, Boxes, ClipboardList, ShieldCheck,
   CreditCard, Key, Activity as ActivityIcon, HelpCircle, BookOpen, Menu, User, LifeBuoy
@@ -15,9 +15,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 import GeneralInfo from './components/GeneralInfo';
 import BrandingTheme from './components/BrandingTheme';
 import AccessControl from './components/AccessControl';
-import DepartmentControl from './components/DepartmentControl';
-import TrackerControl from './components/TrackerControl';
-import DashboardControl from './components/DashboardControl';
+
 import AuditHistory from './components/AuditHistory';
 
 const SystemSettings = () => {
@@ -33,23 +31,20 @@ const SystemSettings = () => {
 
   // Categories definition matching Enterprise Console reference
   const sidebarCategories = [
-    { 
-      group: 'GLOBAL SETTINGS', 
+    {
+      group: 'GLOBAL SETTINGS',
       items: [
         { id: 'Organization', label: 'Organization', icon: Boxes },
-        { 
-          id: 'Controls', 
-          label: 'Controls', 
+        {
+          id: 'Controls',
+          label: 'Controls',
           icon: Shield,
           subItems: [
             { id: 'Access Control', label: 'Access Control' },
-            { id: 'Department Control', label: 'Department Control' },
-            { id: 'Tracker Control', label: 'Tracker Control' },
-            { id: 'Dashboard Control', label: 'Dashboard Control' },
           ]
         },
         { id: 'Audit Logs', label: 'Audit Logs', icon: ClipboardList },
-      ] 
+      ]
     }
   ];
 
@@ -83,7 +78,7 @@ const SystemSettings = () => {
     } else {
       file = imageSource.target.files[0];
     }
-    
+
     if (!file) return;
 
     const formData = new FormData();
@@ -97,13 +92,13 @@ const SystemSettings = () => {
         },
       });
       const logoUrl = response.data.url;
-      
+
       // Update local state
       setSettings(prev => prev.map(s => s.key === 'company_logo' ? { ...s, value: logoUrl } : s));
-      
+
       // Update Redux globally
       dispatch(setBranding({ companyLogo: logoUrl }));
-      
+
       showNotification('Logo uploaded successfully');
     } catch (error) {
       console.error('Error uploading logo:', error);
@@ -122,7 +117,7 @@ const SystemSettings = () => {
         return { key, value, category: original?.category || 'General', type: original?.type || 'text' };
       });
       await API.patch('/settings/bulk', { settings: settingsToUpdate });
-      
+
       // Update Redux if branding changed
       if (modifiedSettings.company_name) {
         dispatch(setBranding({ companyName: modifiedSettings.company_name }));
@@ -142,19 +137,13 @@ const SystemSettings = () => {
   };
 
   const renderContent = () => {
-    switch(activeCategory) {
+    switch (activeCategory) {
       case 'Organization':
         return <GeneralInfo settings={settings} onUpdate={handleUpdate} onLogoUpload={handleLogoUpload} />;
       case 'Controls':
-        switch(activeSubCategory) {
+        switch (activeSubCategory) {
           case 'Access Control':
             return <AccessControl />;
-          case 'Department Control':
-            return <DepartmentControl />;
-          case 'Tracker Control':
-            return <TrackerControl />;
-          case 'Dashboard Control':
-            return <DashboardControl />;
           default:
             return <AccessControl />;
         }
@@ -170,8 +159,8 @@ const SystemSettings = () => {
       {/* Sidebar Navigation - Enterprise Console Design */}
       <aside className="w-[300px] bg-[#FFFFFF] border-r border-slate-100 flex flex-col relative z-20">
         <div className="p-8 pt-10 mb-8">
-           <h1 className="text-xl font-bold text-[#1E293B] tracking-tight">Enterprise Console</h1>
-           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">ADMINISTRATION</p>
+          <h1 className="text-xl font-bold text-[#1E293B] tracking-tight">Enterprise Console</h1>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">ADMINISTRATION</p>
         </div>
 
         <nav className="flex-1 px-4 space-y-12">
@@ -188,11 +177,10 @@ const SystemSettings = () => {
                           setActiveSubCategory(item.subItems[0].id);
                         }
                       }}
-                      className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group ${
-                        activeCategory === item.id 
-                        ? 'bg-indigo-50 text-indigo-600 font-bold' 
-                        : 'text-slate-500 hover:bg-slate-50'
-                      }`}
+                      className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 group ${activeCategory === item.id
+                          ? 'bg-indigo-50 text-indigo-600 font-bold'
+                          : 'text-slate-500 hover:bg-slate-50'
+                        }`}
                     >
                       <item.icon className={`h-5 w-5 ${activeCategory === item.id ? 'text-indigo-600' : 'text-slate-400 group-hover:text-slate-600'}`} />
                       <span className="text-[13px] tracking-tight">{item.label}</span>
@@ -211,11 +199,10 @@ const SystemSettings = () => {
                           <button
                             key={subItem.id}
                             onClick={() => setActiveSubCategory(subItem.id)}
-                            className={`w-full text-left px-4 py-2 rounded-lg text-[12px] font-medium transition-all ${
-                              activeSubCategory === subItem.id
-                              ? 'text-indigo-600 bg-indigo-50/50'
-                              : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
-                            }`}
+                            className={`w-full text-left px-4 py-2 rounded-lg text-[12px] font-medium transition-all ${activeSubCategory === subItem.id
+                                ? 'text-indigo-600 bg-indigo-50/50'
+                                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50'
+                              }`}
                           >
                             {subItem.label}
                           </button>
@@ -230,43 +217,42 @@ const SystemSettings = () => {
         </nav>
 
         <div className="p-6 border-t border-slate-50 space-y-4">
-           <button 
-             onClick={syncUpdates}
-             disabled={!Object.keys(modifiedSettings).length || isSaving}
-             className="w-full h-12 bg-[#1E3A8A] text-white rounded-xl font-bold text-xs tracking-widest flex items-center justify-center gap-3 hover:bg-indigo-900 transition-all shadow-lg shadow-indigo-100/50 disabled:opacity-30 disabled:shadow-none"
-           >
-              <RefreshCcw className={`h-4 w-4 ${isSaving ? 'animate-spin' : ''}`} />
-              SYNC UPDATES
-           </button>
-           
-           <div className="space-y-1">
-              <button className="flex items-center gap-4 px-4 py-3 w-full text-slate-500 hover:text-indigo-600 transition-colors">
-                 <HelpCircle className="h-5 w-5" />
-                 <span className="text-[13px] font-medium">Support</span>
-              </button>
-              <button className="flex items-center gap-4 px-4 py-3 w-full text-slate-500 hover:text-indigo-600 transition-colors">
-                 <BookOpen className="h-5 w-5" />
-                 <span className="text-[13px] font-medium">Documentation</span>
-              </button>
-           </div>
+          <button
+            onClick={syncUpdates}
+            disabled={!Object.keys(modifiedSettings).length || isSaving}
+            className="w-full h-12 bg-[#1E3A8A] text-white rounded-xl font-bold text-xs tracking-widest flex items-center justify-center gap-3 hover:bg-indigo-900 transition-all shadow-lg shadow-indigo-100/50 disabled:opacity-30 disabled:shadow-none"
+          >
+            <RefreshCcw className={`h-4 w-4 ${isSaving ? 'animate-spin' : ''}`} />
+            SYNC UPDATES
+          </button>
+
+          <div className="space-y-1">
+            <button className="flex items-center gap-4 px-4 py-3 w-full text-slate-500 hover:text-indigo-600 transition-colors">
+              <HelpCircle className="h-5 w-5" />
+              <span className="text-[13px] font-medium">Support</span>
+            </button>
+            <button className="flex items-center gap-4 px-4 py-3 w-full text-slate-500 hover:text-indigo-600 transition-colors">
+              <BookOpen className="h-5 w-5" />
+              <span className="text-[13px] font-medium">Documentation</span>
+            </button>
+          </div>
         </div>
       </aside>
 
       {/* Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        
+
 
         <main className="flex-1 overflow-y-auto p-12 scroll-smooth">
           <div className="max-w-7xl mx-auto">
-             {notification && (
-                <div className={`fixed top-8 left-1/2 -translate-x-1/2 px-8 py-3 rounded-2xl shadow-2xl z-50 animate-in slide-in-from-top-10 duration-500 flex items-center gap-4 ${
-                  notification.type === 'success' ? 'bg-[#1E293B] text-white' : 'bg-red-600 text-white'
+            {notification && (
+              <div className={`fixed top-8 left-1/2 -translate-x-1/2 px-8 py-3 rounded-2xl shadow-2xl z-50 animate-in slide-in-from-top-10 duration-500 flex items-center gap-4 ${notification.type === 'success' ? 'bg-[#1E293B] text-white' : 'bg-red-600 text-white'
                 }`}>
-                  <Check className="h-5 w-5 text-emerald-400" />
-                  <span className="text-[11px] font-black tracking-widest uppercase">{notification.message}</span>
-                </div>
-             )}
-             {renderContent()}
+                <Check className="h-5 w-5 text-emerald-400" />
+                <span className="text-[11px] font-black tracking-widest uppercase">{notification.message}</span>
+              </div>
+            )}
+            {renderContent()}
           </div>
         </main>
       </div>

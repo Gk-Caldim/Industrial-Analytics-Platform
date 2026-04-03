@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, Copy, ArrowUp, ArrowDown, Filter } from 'lucide-react';
-import axios from 'axios';
+import API from '../../utils/api';
 
 const MODULE_LIST = [
   'Dashboard', 'MOM', 'Employee Master', 'Project Master', 
@@ -153,7 +153,7 @@ const EmployeeMaster = () => {
 
   const fetchEmployees = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/employees`);
+      const res = await API.get('/employees');
       if (Array.isArray(res.data)) {
         setEmployees(res.data);
       } else {
@@ -167,7 +167,7 @@ const EmployeeMaster = () => {
 
   const fetchDynamicRoles = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/roles/`);
+      const res = await API.get('/roles/');
       if (Array.isArray(res.data)) {
         setDynamicRoles(res.data);
       }
@@ -264,7 +264,7 @@ const EmployeeMaster = () => {
 
     try {
       // Use bulk delete endpoint for better performance
-      await axios.post(`${API_BASE_URL}/employees/bulk-delete`, selectedEmployees);
+      await API.post('/employees/bulk-delete', selectedEmployees);
 
       await fetchEmployees();
       setSelectedEmployees([]);
@@ -482,7 +482,7 @@ const EmployeeMaster = () => {
         ...newEmployee,
         employee_id: newEmployee.employee_id || null
       };
-      await axios.post(`${API_BASE_URL}/employees`, payload);
+      await API.post('/employees', payload);
       await fetchEmployees();
       setShowAddEmployeeModal(false);
       setNewEmployee({});
@@ -507,7 +507,7 @@ const EmployeeMaster = () => {
   const confirmDeleteEmployee = async () => {
     if (showDeletePrompt) {
       try {
-        await axios.delete(`${API_BASE_URL}/employees/${showDeletePrompt.id}`);
+        await API.delete(`/employees/${showDeletePrompt.id}`);
         await fetchEmployees();
         setShowDeletePrompt(null);
         if (paginatedEmployees.length === 1 && currentPage > 1) {
@@ -562,7 +562,7 @@ const EmployeeMaster = () => {
       // If password is empty, don't send it to avoid overwriting with empty
       if (!payload.password) delete payload.password;
 
-      await axios.put(`${API_BASE_URL}/employees/${editingId}`, payload);
+      await API.put(`/employees/${editingId}`, payload);
       await fetchEmployees();
       setEditingId(null);
       setEditForm({});
@@ -1754,7 +1754,8 @@ const EmployeeMaster = () => {
               </div>
 
               {/* TABLE SECTION - SCROLLABLE */}
-              <div className="flex-1 overflow-auto relative">
+              <div className="master-table-scroll">
+                <div className="master-table-scroll-inner">
                 <table className="master-table">
                   <thead className="bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
                     <tr className="border-b border-slate-200 dark:border-slate-700">
@@ -2008,6 +2009,7 @@ const EmployeeMaster = () => {
                     )}
                   </tbody>
                 </table>
+                </div>
               </div>
 
               {/* FOOTER SECTION */}

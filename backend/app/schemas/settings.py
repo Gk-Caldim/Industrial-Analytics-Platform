@@ -16,8 +16,7 @@ class SystemSettingUpdate(BaseModel):
 class SystemSetting(SystemSettingBase):
     id: int
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 class BulkSettingsUpdate(BaseModel):
     settings: List[SystemSettingBase]
