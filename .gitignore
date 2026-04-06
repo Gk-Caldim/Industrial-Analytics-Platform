@@ -96,6 +96,7 @@ backend/google_service_account.json
 # =========================
 # Antigravity / Skills
 # =========================
+skills/
 full-stack-orchestration-full-stack-feature/
 senior-fullstack/
 

@@ -48,29 +48,31 @@ function parseTranscriptFile(rawText) {
   let currentEntry = null;
 
   for (const line of lines) {
-    const full = line.match(/\[?(\d{1,2}:\d{2}\s?[AP]M)\]?\s+([^:]+):\s+(.+)/);
+    // Format 1: [10:30 AM] Speaker Name: The text
+    const full = line.match(/^\[?(\d{1,2}:\d{2}\s?(?:[AP]M)?)\]?\s*(.*?):\s+(.+)/i);
     if (full) {
       if (currentEntry) entries.push(currentEntry);
-      currentEntry = { type: 'speech', time: full[1], speaker: full[2].trim(), text: full[3].trim() };
+      currentEntry = { type: 'speech', time: full[1].trim(), speaker: full[2].trim(), text: full[3].trim() };
       continue;
     }
 
-    const timeInParen = line.match(/^([A-Za-z0-9\s]+?)\s*\(([:\d]+)\):\s+(.+)/);
+    // Format 2: Speaker Name (10:30 AM): The text
+    const timeInParen = line.match(/^([^()]+?)\s*\(([\d:]+\s?(?:[AP]M)?)\):\s+(.+)/i);
     if (timeInParen) {
       if (currentEntry) entries.push(currentEntry);
-      currentEntry = { type: 'speech', time: timeInParen[2], speaker: timeInParen[1].trim(), text: timeInParen[3].trim() };
+      currentEntry = { type: 'speech', time: timeInParen[2].trim(), speaker: timeInParen[1].trim(), text: timeInParen[3].trim() };
       continue;
     }
 
-    const speakerOnly = line.match(/^([A-Za-z0-9][A-Za-z0-9\s]*):\s+(.+)/);
-    if (speakerOnly && speakerOnly[1].length < 40) {
+    // Format 3: Speaker Name: The text
+    const speakerOnly = line.match(/^([^:]{1,30}):\s+(.+)/);
+    if (speakerOnly && !line.toLowerCase().startsWith('http')) {
       if (currentEntry) entries.push(currentEntry);
       currentEntry = { type: 'speech', time: null, speaker: speakerOnly[1].trim(), text: speakerOnly[2].trim() };
       continue;
     }
 
     const lower = line.toLowerCase();
-
     if (lower.startsWith('decision')) {
       if (currentEntry) entries.push(currentEntry);
       currentEntry = { type: 'decision', text: line.replace(/^decisions?:?\s*/i, '').trim() };
@@ -187,11 +189,7 @@ const SpeechToText = ({ onProcessSpeech, switchToTable }) => {
     const text = bufferRef.current.trim();
     bufferRef.current = '';
     if (!text) return;
-    const wordCount = text.split(/\s+/).length;
-    if (wordCount < 2 && !forceFlushRef.current) {
-      bufferRef.current = text;
-      return;
-    }
+
     forceFlushRef.current = false;
 
     const color = getSpeakerColor(currentUser.name);
@@ -213,10 +211,11 @@ const SpeechToText = ({ onProcessSpeech, switchToTable }) => {
 
   const scheduleDebouncedFlush = (text) => {
     clearTimeout(debounceTimerRef.current);
+    // If text ends with punctuation, flush faster to show the sentence concluded
     if (/[.?!]\s*$/.test(text)) {
-      debounceTimerRef.current = setTimeout(() => flushBuffer(), 600); // Increased to wait for user to finish thought
+      debounceTimerRef.current = setTimeout(() => flushBuffer(), 400);
     } else {
-      debounceTimerRef.current = setTimeout(() => flushBuffer(), 1500); // Give plenty of time between pauses
+      debounceTimerRef.current = setTimeout(() => flushBuffer(), 1200);
     }
   };
 
@@ -239,9 +238,9 @@ const SpeechToText = ({ onProcessSpeech, switchToTable }) => {
           audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
         }
         stream = await navigator.mediaDevices.getUserMedia({ audio: true }).catch(err => {
-           console.warn('Microphone visualization error:', err);
-           setMicError('Microphone access needed for visualizer.');
-           return null;
+          console.warn('Microphone visualization error:', err);
+          setMicError('Microphone access needed for visualizer.');
+          return null;
         });
         if (!isActive || !stream) return;
         const source = audioContextRef.current.createMediaStreamSource(stream);
@@ -456,12 +455,17 @@ const SpeechToText = ({ onProcessSpeech, switchToTable }) => {
     if (recordingState === 'IDLE') {
       manualStopRef.current = false;
       setMicError('');
-      
+
       try {
+        // Resume/Start AudioContext on user gesture
+        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+          audioContextRef.current.resume();
+        }
+
         const rec = initRecognition();
         if (!rec) throw new Error("Recognition failed to initialize");
         recognitionRef.current = rec;
-        rec.start(); 
+        rec.start();
         setRecordingState('RECORDING');
       } catch (err) {
         console.error('Failed to start speech recognition:', err);
@@ -810,18 +814,18 @@ const SpeechToText = ({ onProcessSpeech, switchToTable }) => {
                     onClick={recordingState === 'IDLE' ? toggleRecord : undefined}
                     title={recordingState === 'IDLE' ? 'Click or press Space to start recording' : undefined}
                     className={`flex items-end justify-center gap-[2px] w-full max-w-[220px] h-16 px-4 py-3 rounded-2xl border transition-all duration-200 ${recordingState === 'IDLE'
-                        ? 'border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/40 cursor-pointer'
-                        : 'border-transparent cursor-default'
+                      ? 'border-gray-200 hover:border-indigo-300 hover:bg-indigo-50/40 cursor-pointer'
+                      : 'border-transparent cursor-default'
                       }`}
                   >
                     {waveHeights.map((h, i) => (
                       <div
                         key={i}
                         className={`rounded-full flex-shrink-0 transition-all ease-in-out ${recordingState === 'RECORDING'
-                            ? 'bg-red-500'
-                            : recordingState === 'PAUSED'
-                              ? 'bg-amber-400'
-                              : 'bg-gray-300'
+                          ? 'bg-red-500'
+                          : recordingState === 'PAUSED'
+                            ? 'bg-amber-400'
+                            : 'bg-gray-300'
                           }`}
                         style={{
                           width: '3px',
