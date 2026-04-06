@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Users, Video, RefreshCw, Menu, ChevronLeft, ChevronRight, Check, X, Bell, Target, AlignLeft, CheckCircle2, ArrowRight, Pencil } from 'lucide-react';
 import './ScheduleMeetingPage.css';
 import API from '../../utils/api'; // Assuming axios instance is set up
 
 const ScheduleMeetingPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   // --- Calendar State ---
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
@@ -59,6 +60,19 @@ const ScheduleMeetingPage = () => {
     { id: 'meet', name: 'Google Meet', icon: 'G', color: '#00832D' },
     { id: 'zoho', name: 'Zoho Mail', icon: 'Z', color: '#005CE3' }
   ];
+
+  // --- Pre-fill date from calendar "+ Add one" click ---
+  useEffect(() => {
+    const prefilledDate = location.state?.prefilledDate;
+    if (prefilledDate) {
+      const d = new Date(prefilledDate);
+      if (!isNaN(d.getTime())) {
+        setSelectedDate(d);
+        setCurrentMonth(d.getMonth());
+        setCurrentYear(d.getFullYear());
+      }
+    }
+  }, []); // run once on mount
 
   // --- Auth Intercept Effects ---
   useEffect(() => {
@@ -289,18 +303,17 @@ const ScheduleMeetingPage = () => {
   // When a timeslot is picked from Available Times panel
   const handleTimeslotSelect = (time12) => {
     if (loadingAvailability) return;
+    setUseCustomTime(false);
     setSelectedTime(time12);
-    if (!useCustomTime) {
-      // Convert 12h to 24h for the custom pickers (in case user later switches)
-      const [timePart, period] = time12.split(' ');
-      let [h, m] = timePart.split(':').map(Number);
-      if (period === 'PM' && h !== 12) h += 12;
-      if (period === 'AM' && h === 12) h = 0;
-      const start24 = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-      setStartTime(start24);
-      setEndTime(addMinutes(start24, presetDuration));
-      setTimeError('');
-    }
+    // Convert 12h to 24h for the custom pickers (in case user later switches)
+    const [timePart, period] = time12.split(' ');
+    let [h, m] = timePart.split(':').map(Number);
+    if (period === 'PM' && h !== 12) h += 12;
+    if (period === 'AM' && h === 12) h = 0;
+    const start24 = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    setStartTime(start24);
+    setEndTime(addMinutes(start24, presetDuration));
+    setTimeError('');
   };
 
   // Effective meeting title/reason
@@ -366,9 +379,8 @@ const ScheduleMeetingPage = () => {
         });
 
         if (resp.data.success) {
-          const joinUrl = resp.data.join_url;
-          // Open Teams meeting in new tab, same as GMeet behaviour
-          if (joinUrl) window.open(joinUrl, '_blank');
+          // POST-SCHEDULE REDIRECT (Correct Flow Architecture)
+          // No window.open to external URL here.
           navigate(`/dashboard/meeting/${resp.data.meeting_id}`);
         } else {
           setError(resp.data.error || 'Failed to schedule Teams meeting.');
@@ -391,7 +403,8 @@ const ScheduleMeetingPage = () => {
       platform,
       duration_minutes: effectiveDuration,
       attendees,
-      description: description || agenda.join('\n'),
+      description: description || '',
+      agenda_text: agenda.join('\n'),
       reason: meetingType === 'custom' ? customReasonInput : (meetingTypes.find(t => t.id === meetingType)?.label || ''),
       timezone: tz,
       organizer_email: 'noreply@antigravity.com'
@@ -400,8 +413,8 @@ const ScheduleMeetingPage = () => {
     try {
       const resp = await API.post('/meetings/publish', payload);
       if (resp.data.success) {
-        const joinUrl = resp.data.meeting?.join_url || resp.data.meeting?.joinUrl;
-        if (joinUrl) window.open(joinUrl, '_blank');
+        // POST-SCHEDULE REDIRECT (Correct Flow Architecture)
+        // No window.open to external URL here.
         navigate(`/dashboard/meeting/${resp.data.meeting.id}`);
       } else {
         setError(resp.data.error || 'Failed to schedule meeting.');
@@ -522,21 +535,39 @@ const ScheduleMeetingPage = () => {
 
             {availableTimeslots.length === 0 && !loadingAvailability ? (
               <div className="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                <p className="text-gray-500 text-sm font-medium">No slots available on this date for the selected attendees.</p>
-                <p className="text-gray-400 text-xs mt-1 block">Try selecting another date or removing external attendees.</p>
+                <p className="text-gray-500 text-sm font-medium">No slots available on this date.</p>
+                <button type="button" onClick={() => setUseCustomTime(true)} className="mt-4 text-xs bg-white border border-gray-200 px-4 py-2 rounded-lg font-bold text-gray-700 hover:text-indigo-600 hover:border-indigo-300 shadow-sm transition-all focus:outline-none">
+                  Set Custom Time
+                </button>
               </div>
             ) : (
-              <div className="timeslot-grid">
+              <div className="timeslot-grid items-center flex flex-wrap gap-2">
                 {availableTimeslots.map(time => (
                   <button
                     key={time}
-                    className={`timeslot-btn ${selectedTime === time ? 'selected' : ''} ${loadingAvailability ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`timeslot-btn ${selectedTime === time && !useCustomTime ? 'selected' : ''} ${loadingAvailability ? 'opacity-50 cursor-not-allowed' : ''}`}
                     onClick={() => handleTimeslotSelect(time)}
                     disabled={loadingAvailability}
                   >
                     {time}
                   </button>
                 ))}
+                
+                <div className={`flex items-center gap-2 border p-1 rounded-xl transition-colors ${useCustomTime ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 bg-white hover:border-indigo-300'}`}>
+                  <span className="text-xs text-gray-500 font-medium pl-2 whitespace-nowrap">Custom:</span>
+                  <input 
+                    type="time" 
+                    className="flex-1 bg-transparent border-none text-sm font-mono tracking-wider focus:ring-0 !p-1.5 cursor-pointer text-gray-700 outline-none"
+                    value={startTime}
+                    onChange={(e) => {
+                      setUseCustomTime(true);
+                      handleStartTimeChange(e.target.value);
+                      if (presetDuration && (!endTime || useCustomTime === false)) {
+                         setEndTime(addMinutes(e.target.value, presetDuration));
+                      }
+                    }}
+                  />
+                </div>
               </div>
             )}
           </div>

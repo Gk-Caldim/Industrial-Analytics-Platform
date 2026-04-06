@@ -1,4 +1,5 @@
 from sqlalchemy import func
+from sqlalchemy.orm import Session
 from app.models.department import Department
 from app.models.employee import Employee
 from app.schemas.department import DepartmentCreate, DepartmentUpdate
