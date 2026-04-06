@@ -15,7 +15,7 @@ import useCurrency from "../../hooks/useCurrency";
 
 const ProjectMaster = () => {
   const navigate = useNavigate();
-  const { format, symbol } = useCurrency();
+  const { format, symbol, code, convert } = useCurrency();
   // Fixed columns matching backend Project model
   const initialColumns = [
     { id: 'project_id', label: 'Project ID', visible: true, sortable: true, type: 'text', required: true },
@@ -588,7 +588,13 @@ const ProjectMaster = () => {
     }
 
     try {
-      const payload = transformProjectForSave(newProject);
+      const convertedForm = {
+        ...newProject,
+        budget: convert(newProject.budget || 0, code, 'USD'),
+        utilized_budget: convert(newProject.utilized_budget || 0, code, 'USD'),
+        balance_budget: convert(newProject.balance_budget || 0, code, 'USD'),
+      };
+      const payload = transformProjectForSave(convertedForm);
       await API.post('/projects', payload);
       await fetchProjects();
       setShowAddProjectModal(false);
@@ -641,7 +647,10 @@ const ProjectMaster = () => {
   const startEditing = (project) => {
     setEditForm({
       ...project,
-      id: project.id
+      id: project.id,
+      budget: convert(project.budget || 0, 'USD', code),
+      utilized_budget: convert(project.utilized_budget || 0, 'USD', code),
+      balance_budget: convert(project.balance_budget || 0, 'USD', code),
     });
     setEditingId(project.id);
     setValidationErrors({});
@@ -656,7 +665,13 @@ const ProjectMaster = () => {
     }
 
     try {
-      const payload = transformProjectForSave(editForm);
+      const convertedForm = {
+        ...editForm,
+        budget: convert(editForm.budget || 0, code, 'USD'),
+        utilized_budget: convert(editForm.utilized_budget || 0, code, 'USD'),
+        balance_budget: convert(editForm.balance_budget || 0, code, 'USD'),
+      };
+      const payload = transformProjectForSave(convertedForm);
       await API.put(`/projects/${editingId}`, payload);
       await fetchProjects();
       setEditingId(null);
@@ -1880,7 +1895,7 @@ const ProjectMaster = () => {
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Budget <span className="text-red-500">*</span></label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">{symbol}</span>
                       <input
                         type="number"
                         value={newProject.budget || ''}

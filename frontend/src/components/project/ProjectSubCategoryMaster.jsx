@@ -8,7 +8,7 @@ import 'jspdf-autotable';
 import useCurrency from '../../hooks/useCurrency';
 
 const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline = false }) => {
-  const { format, symbol } = useCurrency();
+  const { format, symbol, code, convert } = useCurrency();
   const { user } = useSelector(state => state.auth);
   const isAdmin = user?.role === 'Admin' || user?.role === 'Super Admin';
   const permissions = user?.permissions || [];
@@ -100,14 +100,21 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
         return isNaN(parsed) ? 0 : parsed;
       };
 
+      const convertedFormData = {
+        ...formData,
+        estimated_value: convert(formData.estimated_value || 0, code, 'USD'),
+        utilized_value: convert(formData.utilized_value || 0, code, 'USD'),
+        balance: convert(formData.balance || 0, code, 'USD'),
+      };
+
       let payload = {
         project_id: project.project_id,
-        sub_category: formData.sub_category,
-        unit_type: formData.unit_type || '',
-        no_of_counts_per_unit: safeFloat(formData.no_of_counts_per_unit),
-        estimated_value: safeFloat(formData.estimated_value),
-        utilized_value: safeFloat(formData.utilized_value),
-        balance: safeFloat(formData.balance),
+        sub_category: convertedFormData.sub_category,
+        unit_type: convertedFormData.unit_type || '',
+        no_of_counts_per_unit: safeFloat(convertedFormData.no_of_counts_per_unit),
+        estimated_value: safeFloat(convertedFormData.estimated_value),
+        utilized_value: safeFloat(convertedFormData.utilized_value),
+        balance: safeFloat(convertedFormData.balance),
         custom_fields: {}
       };
 
@@ -149,7 +156,12 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
   };
 
   const startEdit = (item) => {
-    setFormData(item);
+    setFormData({
+      ...item,
+      estimated_value: convert(item.estimated_value || 0, 'USD', code),
+      utilized_value: convert(item.utilized_value || 0, 'USD', code),
+      balance: convert(item.balance || 0, 'USD', code),
+    });
     setEditingId(item.id);
     setIsAdding(true);
   };
