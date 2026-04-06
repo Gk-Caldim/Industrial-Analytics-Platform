@@ -4096,6 +4096,7 @@ const ProjectTitleDashboard = () => {
               masterProjects={masterProjects}
               budgetCurrency={budgetCurrency}
               chartImages={pdfChartImages}
+              isCapturing={isCapturingPdf}
             />
           </>
         )}
