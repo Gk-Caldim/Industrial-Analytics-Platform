@@ -6,7 +6,7 @@ import {
   ChevronRight, Layout, Settings, Shield,
   Palette, FileText, Bell, Globe, Search as SearchIcon,
   RefreshCcw, Save, AlertCircle, Inbox, Command, Activity, Cpu, Briefcase, Boxes, ClipboardList, ShieldCheck,
-  CreditCard, Key, Activity as ActivityIcon, HelpCircle, BookOpen, Menu, User, LifeBuoy
+  CreditCard, Key, Activity as ActivityIcon, HelpCircle, BookOpen, Menu, User, LifeBuoy, Link as LinkIcon
 } from 'lucide-react';
 import API from '../../utils/api';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -18,6 +18,7 @@ import AccessControl from './components/AccessControl';
 
 import AuditHistory from './components/AuditHistory';
 import ApplicationAccess from './components/ApplicationAccess';
+import Connections from './components/Connections';
 
 const SystemSettings = () => {
   const dispatch = useDispatch();
@@ -54,6 +55,7 @@ const SystemSettings = () => {
           ]
         },
         { id: 'Audit Logs', label: 'Audit Logs', icon: ClipboardList },
+        { id: 'Connections', label: 'Connections', icon: LinkIcon },
       ]
     }
   ];
@@ -77,7 +79,13 @@ const SystemSettings = () => {
   };
 
   const handleUpdate = (key, value) => {
-    setSettings(prev => prev.map(s => s.key === key ? { ...s, value } : s));
+    setSettings(prev => {
+      const exists = prev.find(s => s.key === key);
+      if (exists) {
+        return prev.map(s => s.key === key ? { ...s, value } : s);
+      }
+      return [...prev, { key, value }];
+    });
     setModifiedSettings(prev => ({ ...prev, [key]: value }));
   };
 
@@ -164,6 +172,8 @@ const SystemSettings = () => {
         }
       case 'Audit Logs':
         return <AuditHistory />;
+      case 'Connections':
+        return <Connections settings={settings} onUpdate={handleUpdate} />;
       default:
         return <GeneralInfo settings={settings} onUpdate={handleUpdate} onLogoUpload={handleLogoUpload} />;
     }

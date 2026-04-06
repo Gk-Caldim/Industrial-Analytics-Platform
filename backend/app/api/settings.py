@@ -14,23 +14,33 @@ router = APIRouter(prefix="/settings", tags=["Settings"])
 def get_settings(db: Session = Depends(get_db)):
     settings = db.query(SystemSettingModel).all()
     
-    # Initial setup if no settings exist
-    if not settings:
-        default_settings = [
-            {"category": "Organization", "key": "company_name", "value": "Industrial Analytics Platform", "type": "text"},
-            {"category": "Organization", "key": "company_logo", "value": "", "type": "image"},
-            {"category": "Organization", "key": "hq_address", "value": "123 Tech City, Industrial Park", "type": "text"},
-            {"category": "Organization", "key": "operational_country", "value": "India", "type": "text"},
-            {"category": "Organization", "key": "base_currency", "value": "USD ($)", "type": "select"},
-            {"category": "Branding", "key": "primary_color", "value": "#6366f1", "type": "color"},
-            {"category": "Branding", "key": "secondary_color", "value": "#0ea5e9", "type": "color"},
-            {"category": "Branding", "key": "display_mode", "value": "light", "type": "select"},
-            {"category": "System", "key": "auto_backup", "value": "true", "type": "toggle"},
-            {"category": "System", "key": "notifications_enabled", "value": "true", "type": "toggle"}
-        ]
-        for ds in default_settings:
+    # Initial setup / ensure all default settings exist
+    default_settings = [
+        {"category": "Organization", "key": "company_name", "value": "Industrial Analytics Platform", "type": "text"},
+        {"category": "Organization", "key": "company_logo", "value": "", "type": "image"},
+        {"category": "Organization", "key": "hq_address", "value": "123 Tech City, Industrial Park", "type": "text"},
+        {"category": "Organization", "key": "operational_country", "value": "India", "type": "text"},
+        {"category": "Organization", "key": "base_currency", "value": "USD ($)", "type": "select"},
+        {"category": "Branding", "key": "primary_color", "value": "#6366f1", "type": "color"},
+        {"category": "Branding", "key": "secondary_color", "value": "#0ea5e9", "type": "color"},
+        {"category": "Branding", "key": "display_mode", "value": "light", "type": "select"},
+        {"category": "System", "key": "auto_backup", "value": "true", "type": "toggle"},
+        {"category": "System", "key": "notifications_enabled", "value": "true", "type": "toggle"},
+        {"category": "Connections", "key": "smtp_host", "value": "smtp.gmail.com", "type": "text"},
+        {"category": "Connections", "key": "smtp_port", "value": "587", "type": "number"},
+        {"category": "Connections", "key": "smtp_user", "value": "", "type": "text"},
+        {"category": "Connections", "key": "smtp_pass", "value": "", "type": "text"}
+    ]
+    
+    existing_keys = {s.key for s in settings}
+    added = False
+    for ds in default_settings:
+        if ds["key"] not in existing_keys:
             db_setting = SystemSettingModel(**ds)
             db.add(db_setting)
+            added = True
+    
+    if added:
         db.commit()
         settings = db.query(SystemSettingModel).all()
         
