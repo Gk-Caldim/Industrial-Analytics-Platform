@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import useCurrency from '../hooks/useCurrency';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { X, Download, ArrowUp, ArrowDown, Maximize2, Minimize2, Settings, GripVertical } from 'lucide-react';
@@ -20,7 +21,8 @@ const PdfPreviewModal = ({
   selectedBudgetProject,
   masterProjects,
   budgetCurrency,
-  chartImages
+  chartImages,
+  isCapturing = false
 }) => {
   const reportRef = useRef();
   const [isMaximized, setIsMaximized] = useState(true);
@@ -38,7 +40,9 @@ const PdfPreviewModal = ({
   };
   const { format, symbol } = useCurrency();
 
-  if (!show) return null;
+  if (!show && !isCapturing) return null;
+
+  const isHiddenCapture = isCapturing && !show;
 
   const downloadPdf = async () => {
     const element = reportRef.current;
@@ -195,41 +199,45 @@ const PdfPreviewModal = ({
 
   return (
     <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.7)',
+      backgroundColor: isHiddenCapture ? 'transparent' : 'rgba(0,0,0,0.7)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 3000,
-      padding: '40px'
+      zIndex: isHiddenCapture ? -1000 : 3000,
+      padding: isHiddenCapture ? '0' : '40px',
+      visibility: isHiddenCapture ? 'hidden' : 'visible',
+      pointerEvents: isHiddenCapture ? 'none' : 'auto',
+      overflow: isHiddenCapture ? 'hidden' : 'auto',
+      height: isHiddenCapture ? '0' : '100%',
+      width: isHiddenCapture ? '0' : '100%',
+      position: 'fixed',
+      top: 0,
+      left: 0
     }}>
         <div style={{
-          backgroundColor: '#f8fafc',
+          backgroundColor: isHiddenCapture ? 'transparent' : '#f8fafc',
           borderRadius: '0',
-          width: '100vw',
-          height: '100vh',
-          maxHeight: '100vh',
+          width: isHiddenCapture ? 'auto' : '100vw',
+          height: isHiddenCapture ? 'auto' : '100vh',
+          maxHeight: isHiddenCapture ? 'none' : '100vh',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: 'none',
           transition: 'all 0.3s ease-in-out',
-          overflow: 'hidden'
+          overflow: isHiddenCapture ? 'visible' : 'hidden'
         }}>
         {/* Modal Controls */}
-        <div style={{
-          padding: '10px 20px',
-          backgroundColor: 'white',
-          borderBottom: '1px solid #e2e8f0',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          gap: '12px',
-          zIndex: 10
-        }}>
+        {!isHiddenCapture && (
+          <div style={{
+            padding: '10px 20px',
+            backgroundColor: 'white',
+            borderBottom: '1px solid #e2e8f0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            gap: '12px',
+            zIndex: 10
+          }}>
           <button
             onClick={downloadPdf}
             style={{
@@ -296,14 +304,15 @@ const PdfPreviewModal = ({
             <X size={20} />
           </button>
         </div>
+        )}
 
         {/* PDF Content Area */}
         <div style={{ 
-          overflowY: 'auto', 
+          overflowY: isHiddenCapture ? 'visible' : 'auto', 
           flex: 1, 
-          padding: '20px 40px', 
+          padding: isHiddenCapture ? '0' : '20px 40px', 
           display: 'flex', 
-          backgroundColor: '#e2e8f0',
+          backgroundColor: isHiddenCapture ? 'transparent' : '#e2e8f0',
           justifyContent: 'center',
           position: 'relative'
         }}>
@@ -385,23 +394,25 @@ const PdfPreviewModal = ({
           )}
 
           <div ref={reportRef} style={{
-            backgroundColor: '#e2e8f0',
+            backgroundColor: isHiddenCapture ? 'transparent' : '#e2e8f0',
             width: '100%',
             maxWidth: '900px',
-            margin: '0',
+            margin: isHiddenCapture ? '0' : '0',
             display: 'flex',
             flexDirection: 'column',
             gap: '20px',
             transition: 'all 0.3s ease-in-out'
           }}>
             {pagesDef.map((pageContent, pageIdx) => (
-              <div key={pageIdx} style={{
+              <div key={pageIdx} className="pdf-page-container" style={{
                 backgroundColor: 'white',
                 minHeight: '297mm',
                 padding: '40px 60px',
-                boxShadow: '0 0 10px rgba(0,0,0,0.05)',
-                fontFamily: 'Inter, sans-serif'
+                boxShadow: isHiddenCapture ? 'none' : '0 0 10px rgba(0,0,0,0.05)',
+                fontFamily: 'Inter, sans-serif',
+                position: 'relative'
               }}>
+                <div className="pdf-printable-area" style={{ height: '100%' }}>
                 {renderHeader(pageIdx + 1, pagesDef.length)}
 
 
@@ -420,52 +431,6 @@ const PdfPreviewModal = ({
                               <th key={cat} style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>{cat}</th>
                             ))}
                             <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>Implementation</th>
-            {/* Budget Summary - Real Table from API */}
-            {visibleSections?.budget && (
-              <div style={{ marginBottom: '25px' }}>
-                <div style={{ 
-                  backgroundColor: '#1e3a5f', 
-                  color: 'white', 
-                  padding: '10px 15px', 
-                  fontWeight: 'bold', 
-                  fontSize: '15px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
-                }}>
-                  <span>Budget Summary{selectedBudgetProject ? ` — ${selectedBudgetProject}` : ''}</span>
-                  <span style={{ fontSize: '12px', fontWeight: 'normal', opacity: 0.85 }}>
-                    Status: {budgetStatus}
-                  </span>
-                </div>
-                {budgetTableData && budgetTableData.length > 1 ? (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e2e8f0', fontSize: '12px' }}>
-                    <thead>
-                      <tr style={{ backgroundColor: '#f8fafc' }}>
-                        {budgetTableData[0].map((h, i) => (
-                          <th key={i} style={{ padding: '10px 12px', textAlign: 'left', border: '1px solid #e2e8f0', color: '#475569', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-                            {h}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {budgetTableData.slice(1).map((row, idx) => {
-                        const isTotal = row[0] && row[0].toString().startsWith('Total');
-                        const isCategory = row[0] && (row[0] === 'CAPEX' || row[0] === 'Revenue');
-                        const fw = isTotal || isCategory ? 'bold' : 'normal';
-                        const color = isTotal ? '#1e3a5f' : '#475569';
-                        return (
-                          <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isTotal ? '#f0f7ff' : 'white' }}>
-                            {row.map((cell, colIdx) => {
-                              const isAmount = colIdx >= 2;
-                              const num = parseFloat(String(cell).replace(/[^0-9.-]+/g, ''));
-                              return (
-                                <td key={colIdx} style={{ padding: '10px 12px', border: '1px solid #e2e8f0', fontWeight: fw, color: color }}>
-                                  {isAmount && !isNaN(num) ? format(num) : cell}
-                                </td>
-                              );
-                            })}
                           </tr>
                         </thead>
                         <tbody>
@@ -626,6 +591,7 @@ const PdfPreviewModal = ({
                   ) : null;
                   return null;
                 })}
+                </div>
               </div>
             ))}
           </div>
