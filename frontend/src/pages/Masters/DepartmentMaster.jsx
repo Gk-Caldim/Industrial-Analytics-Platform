@@ -7,8 +7,10 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { getEmployees } from "../../utils/employeeApi";
 import SearchableDropdown from "../../components/SearchableDropdown";
+import useCurrency from "../../hooks/useCurrency";
 
 const DepartmentMaster = () => {
+  const { format, symbol } = useCurrency();
   // Fixed columns matching backend Department model
   const initialColumns = [
     { id: 'department_id', label: 'Department ID', visible: true, sortable: true, type: 'text', required: true, deletable: false },
@@ -847,22 +849,32 @@ const DepartmentMaster = () => {
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
     );
-    if (col.type === 'number') return (
-      <div>
-        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
-        <input
-          type="number"
-          value={value || (col.readonly ? (col.id === 'balance_budget' ? '0' : '') : '')}
-          onChange={e => onChange(col.id, e.target.value)}
-          className={`${inputClass} ${col.readonly ? 'bg-slate-50 dark:bg-slate-900/50 cursor-not-allowed opacity-75' : ''}`}
-          min="0"
-          step="0.01"
-          readOnly={col.readonly}
-          placeholder={col.readonly ? "Auto-calculated" : `Enter ${col.label.toLowerCase()}`}
-        />
-        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-      </div>
-    );
+    if (col.type === 'number') {
+      const isBudget = ['budget', 'budget_allocation', 'utilized_budget', 'balance_budget'].includes(col.id);
+      return (
+        <div>
+          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
+          <div className="relative">
+            {isBudget && (
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">
+                {symbol}
+              </span>
+            )}
+            <input
+              type="number"
+              value={value || (col.readonly ? (col.id === 'balance_budget' ? '0' : '') : '')}
+              onChange={e => onChange(col.id, e.target.value)}
+              className={`${inputClass} ${col.readonly ? 'bg-slate-50 dark:bg-slate-900/50 cursor-not-allowed opacity-75' : ''} ${isBudget ? 'pl-8' : ''}`}
+              min="0"
+              step="0.01"
+              readOnly={col.readonly}
+              placeholder={col.readonly ? "Auto-calculated" : `Enter ${col.label.toLowerCase()}`}
+            />
+          </div>
+          {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+        </div>
+      );
+    }
     if (col.id === 'name') return (
       <div>
         <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
@@ -918,11 +930,15 @@ const DepartmentMaster = () => {
     });
   };
 
-  const handleExport = (format) => {
+  const handleExport = (formatType) => {
     const dataToExport = sortedDepartments.map(dept => {
       const row = {};
       columns.filter(col => col.visible).forEach(col => {
-        row[col.label] = dept[col.id] || '';
+        let val = dept[col.id] || '';
+        if (['budget', 'budget_allocation', 'utilized_budget', 'balance_budget'].includes(col.id)) {
+          val = format(parseFloat(val) || 0);
+        }
+        row[col.label] = val;
       });
       return row;
     });
@@ -965,8 +981,14 @@ const DepartmentMaster = () => {
   const exportToPDF = (data) => {
     const doc = new jsPDF();
     const tableColumn = columns.filter(col => col.visible).map(col => col.label);
-    const tableRows = data.map(dept =>
-      columns.filter(col => col.visible).map(col => dept[col.label] || '')
+    const tableRows = sortedDepartments.map(dept =>
+      columns.filter(col => col.visible).map(col => {
+        let val = dept[col.id] || '';
+        if (['budget', 'budget_allocation', 'utilized_budget', 'balance_budget'].includes(col.id)) {
+          return format(parseFloat(val) || 0);
+        }
+        return val;
+      })
     );
 
     doc.autoTable({
@@ -1024,7 +1046,7 @@ const DepartmentMaster = () => {
 
       return (
         <span className={`text-sm ${textColor}`}>
-          ${(parseFloat(value) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {format(parseFloat(value) || 0)}
         </span>
       );
     }

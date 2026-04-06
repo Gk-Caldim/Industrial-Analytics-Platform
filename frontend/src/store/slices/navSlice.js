@@ -13,6 +13,8 @@ const initialState = {
   sidebarCollapsed: false,
   companyLogo: sessionStorage.getItem('company_logo') || null,
   companyName: sessionStorage.getItem('company_name') || 'Industrial Analytics Platform',
+  baseCurrency: sessionStorage.getItem('base_currency') || 'USD ($)',
+  exchangeRates: JSON.parse(sessionStorage.getItem('exchange_rates')) || { 'USD': 1, 'INR': 83.2, 'EUR': 0.92 }
 };
 
 const navSlice = createSlice({
@@ -60,7 +62,7 @@ const navSlice = createSlice({
       state.sidebarCollapsed = action.payload;
     },
     setBranding: (state, action) => {
-      const { companyLogo, companyName } = action.payload;
+      const { companyLogo, companyName, baseCurrency } = action.payload;
       if (companyLogo !== undefined) {
         state.companyLogo = companyLogo;
         if (companyLogo) sessionStorage.setItem('company_logo', companyLogo);
@@ -70,6 +72,14 @@ const navSlice = createSlice({
         state.companyName = companyName;
         sessionStorage.setItem('company_name', companyName);
       }
+      if (baseCurrency !== undefined) {
+        state.baseCurrency = baseCurrency;
+        sessionStorage.setItem('base_currency', baseCurrency);
+      }
+    },
+    setExchangeRates: (state, action) => {
+      state.exchangeRates = action.payload;
+      sessionStorage.setItem('exchange_rates', JSON.stringify(action.payload));
     },
   },
 });
@@ -82,7 +92,8 @@ export const {
   setSelectedProjectFileId,
   setActiveProjectName,
   setSidebarCollapsed,
-  setBranding
+  setBranding,
+  setExchangeRates
 } = navSlice.actions;
 
 export default navSlice.reducer;

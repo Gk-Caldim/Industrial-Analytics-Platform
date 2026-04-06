@@ -11,6 +11,8 @@ from app.schemas.department_column import DepartmentColumnCreate, DepartmentColu
 from app.crud import department as crud_department
 from app.crud import department_column as column_crud
 from app.core.database import get_db
+from app.core.security import get_current_user
+from app.utils.audit import log_activity, generate_diff_summary
 
 router = APIRouter(
     prefix="/departments",
@@ -99,18 +101,66 @@ def get_department(department_id: int, db: Session = Depends(get_db)):
     return db_dept
 
 @router.post("/", response_model=DepartmentResponse)
-def add_department(dept: DepartmentCreate, db: Session = Depends(get_db)):
-    return crud_department.create_department(db, dept)
+def add_department(
+    dept: DepartmentCreate, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    new_dept = crud_department.create_department(db, dept)
+    
+    # Audit Logging
+    log_activity(
+        db=db,
+        user_id=current_user.get("employee_id") or current_user.get("id"),
+        action="CREATE DEPARTMENT",
+        module="Departments",
+        entity_id=str(new_dept.id),
+        details={
+            "targetRole": "Department",
+            "summary": f"Created department: {new_dept.department_name}",
+            "details": f"New department ID: {new_dept.id}"
+        }
+    )
+    return new_dept
 
 @router.put("/{department_id}", response_model=DepartmentResponse)
-def update_department(department_id: int, dept: DepartmentUpdate, db: Session = Depends(get_db)):
+def update_department(
+    department_id: int, 
+    dept: DepartmentUpdate, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    db_dept_old = crud_department.get_department(db, department_id)
+    if not db_dept_old:
+        raise HTTPException(status_code=404, detail="Department not found")
+        
+    diff_summary = generate_diff_summary(db_dept_old, dept)
+    
     db_dept = crud_department.update_department(db, department_id, dept)
     if not db_dept:
         raise HTTPException(status_code=404, detail="Department not found")
+        
+    # Audit Logging
+    log_activity(
+        db=db,
+        user_id=current_user.get("employee_id") or current_user.get("id"),
+        action="UPDATE DEPARTMENT",
+        module="Departments",
+        entity_id=str(department_id),
+        details={
+            "targetRole": "Department",
+            "summary": f"Updated {db_dept.department_name}: {diff_summary}",
+            "details": f"Modified department record ID: {department_id}"
+        }
+    )
     return db_dept
 
 @router.delete("/{department_id}", response_model=DepartmentResponse)
-def delete_department(department_id: int, db: Session = Depends(get_db)):
+def delete_department(
+    department_id: int, 
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
     """Delete a department"""
     logger.info(f"Deleting department with ID: {department_id}")
     try:
@@ -118,6 +168,20 @@ def delete_department(department_id: int, db: Session = Depends(get_db)):
         if not db_dept:
             logger.warning(f"Department with ID {department_id} not found")
             raise HTTPException(status_code=404, detail="Department not found")
+            
+        # Audit Logging
+        log_activity(
+            db=db,
+            user_id=current_user.get("employee_id") or current_user.get("id"),
+            action="DELETE DEPARTMENT",
+            module="Departments",
+            entity_id=str(department_id),
+            details={
+                "targetRole": "Department",
+                "summary": f"Removed department: {db_dept.department_name}",
+                "details": f"Deleted department record ID: {department_id}"
+            }
+        )
         logger.info(f"Successfully deleted department with ID: {department_id}")
         return db_dept
     except Exception as e:

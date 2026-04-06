@@ -129,8 +129,11 @@ const SystemSettings = () => {
       await API.patch('/settings/bulk', { settings: settingsToUpdate });
 
       // Update Redux if branding changed
-      if (modifiedSettings.company_name) {
-        dispatch(setBranding({ companyName: modifiedSettings.company_name }));
+      if (modifiedSettings.company_name || modifiedSettings.base_currency) {
+        dispatch(setBranding({ 
+          companyName: modifiedSettings.company_name,
+          baseCurrency: modifiedSettings.base_currency
+        }));
       }
 
       if (modifiedSettings.primary_color || modifiedSettings.secondary_color || modifiedSettings.display_mode) {

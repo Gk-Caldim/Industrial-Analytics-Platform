@@ -10,6 +10,7 @@ from app.schemas.employee_column import EmployeeColumnCreate, EmployeeColumnUpda
 from app.crud import employee as employee_crud
 from app.crud import employee_column as column_crud
 from app.core.security import get_current_user
+from app.utils.audit import log_activity, generate_diff_summary
 
 router = APIRouter(prefix="/employees", tags=["Employees"])
 
@@ -59,6 +60,20 @@ def create_employee(
     
     try:
         new_employee = employee_crud.create_employee(db, employee)
+        
+        # Audit Logging
+        log_activity(
+            db=db,
+            user_id=current_user.get("employee_id") or current_user.get("id"),
+            action="CREATE EMPLOYEE",
+            module="Employees",
+            entity_id=str(new_employee.id),
+            details={
+                "targetRole": new_employee.role,
+                "summary": f"Added employee: {new_employee.name}",
+                "details": f"Created employee record with ID: {new_employee.id}"
+            }
+        )
         return new_employee
     except Exception as e:
         db.rollback()
@@ -113,12 +128,31 @@ def update_employee(
             )
     
     try:
-        updated_employee = employee_crud.update_employee(db, employee_id, employee)
-        if not updated_employee:
+        # Get old state for diff
+        old_employee = employee_crud.get_employee(db, employee_id)
+        if not old_employee:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Employee with id {employee_id} not found"
             )
+            
+        diff_summary = generate_diff_summary(old_employee, employee)
+        
+        updated_employee = employee_crud.update_employee(db, employee_id, employee)
+        
+        # Audit Logging
+        log_activity(
+            db=db,
+            user_id=current_user.get("employee_id") or current_user.get("id"),
+            action="UPDATE EMPLOYEE",
+            module="Employees",
+            entity_id=str(employee_id),
+            details={
+                "targetRole": updated_employee.role,
+                "summary": f"Updated {updated_employee.name}: {diff_summary}",
+                "details": f"Modified employee record ID: {employee_id}"
+            }
+        )
         return updated_employee
     except HTTPException:
         raise
@@ -137,11 +171,29 @@ def delete_employee(
 ):
     """Delete an employee"""
     try:
+        # Get employee info before deletion for logging
+        employee = employee_crud.get_employee(db, employee_id)
+        
         success = employee_crud.delete_employee(db, employee_id)
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Employee with id {employee_id} not found"
+            )
+            
+        # Audit Logging
+        if employee:
+            log_activity(
+                db=db,
+                user_id=current_user.get("employee_id") or current_user.get("id"),
+                action="DELETE EMPLOYEE",
+                module="Employees",
+                entity_id=str(employee_id),
+                details={
+                    "targetRole": employee.role,
+                    "summary": f"Terminated/Deleted employee: {employee.name}",
+                    "details": f"Removed employee record ID: {employee_id}"
+                }
             )
         return None
     except Exception as e:
