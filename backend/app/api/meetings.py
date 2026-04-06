@@ -21,10 +21,12 @@ GET  /api/meetings/{meeting_id}   — get one meeting
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends, Request
 from fastapi.responses import RedirectResponse, JSONResponse
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Any
 import uuid
 import os
+import json
 import logging
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -55,9 +57,26 @@ class ScheduleRequest(BaseModel):
     time: str
     platform: str
     duration_minutes: Optional[int] = 60
-    attendees: Optional[List[str]] = []
+    attendees: Optional[List[Any]] = []
+    agenda_text: Optional[str] = None
     timezone: Optional[str] = "UTC"
     organizer_email: Optional[str] = "unknown@example.com"
+
+class MeetingUpdateRequest(BaseModel):
+    date: Optional[str] = None
+    time: Optional[str] = None
+    platform: Optional[str] = None
+    duration: Optional[int] = None
+    attendees: Optional[List[Any]] = None
+    agenda: Optional[List[str]] = None
+    agenda_text: Optional[str] = None
+    description: Optional[str] = None
+
+class CancelRequest(BaseModel):
+    reason: Optional[str] = None
+    note: Optional[str] = None
+    notify_attendees: Optional[bool] = True
+    cancelled_by: Optional[str] = "Host"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -228,6 +247,14 @@ async def list_meetings(db: Session = Depends(get_db)):
     meetings = db.query(Meeting).all()
     results = []
     for m in meetings:
+        
+        # parse attendees
+        attendees_list = []
+        try:
+            attendees_list = json.loads(m.attendees) if m.attendees else []
+        except Exception:
+            attendees_list = []
+            
         results.append({
             "id":           m.id,
             "title":        m.title,
@@ -240,6 +267,12 @@ async def list_meetings(db: Session = Depends(get_db)):
             "meetingCode":  m.meeting_code,
             "status":       m.status,
             "duration":     m.duration_minutes,
+            "attendees":    attendees_list,
+            "agenda_text":  m.agenda_text,
+            "action_item_count": m.action_item_count,
+            "actual_duration_minutes": m.actual_duration_minutes,
+            "attendance_rate": m.attendance_rate,
+            "mom_generated": m.mom_generated,
         })
     return {"success": True, "meetings": results}
 
@@ -319,7 +352,8 @@ async def publish_meeting(
         join_url=join_url,
         meeting_code=meeting_code,
         organizer_email=req.organizer_email,
-        attendees=str(req.attendees),
+        attendees=json.dumps(req.attendees),
+        agenda_text=req.agenda_text,
         status="scheduled",
         invites_sent=True,
     )
@@ -352,12 +386,19 @@ async def get_meeting(meeting_id: str, db: Session = Depends(get_db)):
     if not meeting:
         raise HTTPException(status_code=404, detail="Meeting not found")
 
-    import ast
     attendees_list = []
     try:
-        attendees_list = ast.literal_eval(meeting.attendees) if meeting.attendees else []
+        attendees_list = json.loads(meeting.attendees) if meeting.attendees else []
     except Exception:
-        attendees_list = [meeting.attendees] if meeting.attendees else []
+        import ast
+        try:
+            attendees_list = ast.literal_eval(meeting.attendees) if meeting.attendees else []
+        except:
+             attendees_list = [meeting.attendees] if meeting.attendees else []
+
+    agenda_list = []
+    if meeting.agenda_text:
+        agenda_list = [t for t in meeting.agenda_text.split('\n') if t.strip()]
 
     return {
         "success": True,
@@ -374,6 +415,58 @@ async def get_meeting(meeting_id: str, db: Session = Depends(get_db)):
             "meeting_code": meeting.meeting_code,
             "meetingCode":  meeting.meeting_code,
             "attendees":    attendees_list,
+            "agenda":       agenda_list,
+            "agenda_text":  meeting.agenda_text,
             "status":       meeting.status,
+            "cancellation_reason": meeting.cancellation_reason,
+            "cancellation_note": meeting.cancellation_note,
+            "cancelled_by": meeting.cancelled_by,
         },
     }
+
+@router.patch("/{meeting_id}")
+async def update_meeting(meeting_id: str, req: MeetingUpdateRequest, db: Session = Depends(get_db)):
+    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    if req.date is not None: meeting.date = req.date
+    if req.time is not None: meeting.time = req.time
+    if req.platform is not None: meeting.platform = req.platform
+    if req.duration is not None: meeting.duration_minutes = req.duration
+    if req.attendees is not None: meeting.attendees = json.dumps(req.attendees)
+    if req.description is not None: meeting.description = req.description
+    
+    if req.agenda_text is not None:
+        meeting.agenda_text = req.agenda_text
+    elif req.agenda is not None:
+        # backward compat loop
+        meeting.agenda_text = '\n'.join(req.agenda)
+        
+    db.commit()
+    db.refresh(meeting)
+    
+    # re-fetch wrapper
+    return await get_meeting(meeting.id, db=db)
+
+@router.post("/{meeting_id}/cancel")
+async def cancel_meeting(meeting_id: str, req: CancelRequest, db: Session = Depends(get_db)):
+    meeting = db.query(Meeting).filter(Meeting.id == meeting_id).first()
+    if not meeting:
+        raise HTTPException(status_code=404, detail="Meeting not found")
+
+    meeting.status = "cancelled"
+    meeting.cancellation_reason = req.reason
+    meeting.cancellation_note = req.note
+    meeting.cancelled_by = req.cancelled_by
+    meeting.cancelled_at = datetime.now(timezone.utc)
+    meeting.attendees_notified = req.notify_attendees
+    
+    db.commit()
+    db.refresh(meeting)
+    
+    # Mocking email trigger
+    if req.notify_attendees:
+        logger.info(f"Triggering email notifications for meeting {meeting.id} cancellation")
+        
+    return {"success": True, "message": "Meeting successfully cancelled."}
