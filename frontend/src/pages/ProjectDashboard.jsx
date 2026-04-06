@@ -340,6 +340,7 @@ const ProjectTitleDashboard = () => {
       validation: true,
       qualityCheck: true
     },
+    includePdf: true,
     emailInputs: [''],
     ccInputs: [''],
     bccInputs: ['']
@@ -384,6 +385,7 @@ const ProjectTitleDashboard = () => {
     resource: false,
     quality: false,
     design: false,
+    partDevelopment: false,
     build: false,
     gateway: false,
     validation: false,
@@ -428,6 +430,7 @@ const ProjectTitleDashboard = () => {
         resource: false,
         quality: false,
         design: false,
+        partDevelopment: false,
         build: false,
         gateway: false,
         validation: false,
@@ -441,6 +444,7 @@ const ProjectTitleDashboard = () => {
   const availablePhases = useMemo(() => {
     const phases = {
       design: false,
+      partDevelopment: false,
       build: false,
       gateway: false,
       validation: false,
@@ -464,6 +468,7 @@ const ProjectTitleDashboard = () => {
     });
 
     phases.design = isAvailable('Design Release', ['design']);
+    phases.partDevelopment = isAvailable('Part Development', ['part', 'development']);
     phases.build = isAvailable('Build', ['build']);
     phases.gateway = isAvailable('Gateway', ['gateway']);
     phases.validation = isAvailable('Validation', ['validation']);
@@ -482,6 +487,7 @@ const ProjectTitleDashboard = () => {
 
     const mapping = {
       design: { dept: 'Design Release', aliases: ['design'] },
+      partDevelopment: { dept: 'Part Development', aliases: ['part', 'development'] },
       build: { dept: 'Build', aliases: ['build'] },
       gateway: { dept: 'Gateway', aliases: ['gateway'] },
       validation: { dept: 'Validation', aliases: ['validation'] },
@@ -883,6 +889,7 @@ const ProjectTitleDashboard = () => {
       resource: false,
       quality: false,
       design: false,
+      partDevelopment: false,
       build: false,
       gateway: false,
       validation: false,
@@ -981,12 +988,20 @@ const ProjectTitleDashboard = () => {
   const handleSelectAllVisibility = () => {
     const dynamicTrackerKeys = (activeProject?.submodules || []).map(sub => sub.id);
     const availableSectionKeys = [
-      'milestones', 'criticalIssues', 'sopTables',
+      'milestones', 'criticalIssues',
       'budget', 'resource', 'quality',
-      ...['design', 'build', 'gateway', 'validation', 'qualityIssues'],
-      ...dynamicTrackerKeys
+      ...['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'],
+      ...(activeProject?.submodules || [])
+        .filter(sub => {
+          const defaultIds = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
+          return !defaultIds.some(id => {
+            const tracker = getTrackerForPhase(id);
+            return tracker && tracker.id === sub.id;
+          });
+        })
+        .map(sub => sub.id)
     ].filter(key => {
-      if (['design', 'build', 'gateway', 'validation', 'qualityIssues'].includes(key)) {
+      if (['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(key)) {
         return availablePhases[key];
       }
       return true;
@@ -1033,7 +1048,7 @@ const ProjectTitleDashboard = () => {
   // Handle select all sections for email
   const handleSelectAll = () => {
     const availableSectionKeys = Object.keys(emailData.selectedSections).filter(key => {
-      const metricKeys = ['design', 'build', 'gateway', 'validation', 'qualityIssues'];
+      const metricKeys = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
       if (metricKeys.includes(key)) return availablePhases[key];
       return true;
     });
@@ -1119,7 +1134,6 @@ const ProjectTitleDashboard = () => {
       }
     });
     setPdfChartImages(capturedImages);
-    setShowEmailModal(false);
     setShowPdfPreview(true);
   };
 
@@ -1313,7 +1327,28 @@ const ProjectTitleDashboard = () => {
   const renderSimulateModal = () => {
     if (!showSimulateModal) return null;
 
-    const allSelected = Object.values(tempVisibleSections).every(value => value);
+    const dynamicTrackerKeys = (activeProject?.submodules || []).map(sub => sub.id);
+    const availableSectionKeys = [
+      'milestones', 'criticalIssues',
+      'budget', 'resource', 'quality',
+      ...['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'],
+      ...(activeProject?.submodules || [])
+        .filter(sub => {
+          const defaultIds = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
+          return !defaultIds.some(id => {
+            const tracker = getTrackerForPhase(id);
+            return tracker && tracker.id === sub.id;
+          });
+        })
+        .map(sub => sub.id)
+    ].filter(key => {
+      if (['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(key)) {
+        return availablePhases[key];
+      }
+      return true;
+    });
+
+    const allSelected = availableSectionKeys.every(key => tempVisibleSections[key]);
 
     return (
       <div style={{
@@ -1530,7 +1565,7 @@ const ProjectTitleDashboard = () => {
                 )}
               </div>
               <div style={{ marginTop: '10px', fontSize: '12px', color: '#1e3a5f', fontWeight: 'bold' }}>
-                Total visible sections: {Object.values(tempVisibleSections).filter(v => v).length}
+                Total visible sections: {availableSectionKeys.filter(key => tempVisibleSections[key]).length}
               </div>
             </div>
           </div>
@@ -3250,7 +3285,7 @@ const ProjectTitleDashboard = () => {
                     (activeProject?.submodules || []).forEach(sub => {
                       sections[sub.id] = true;
                     });
-                    setEmailData(prev => ({ ...prev, selectedSections: sections }));
+                    setEmailData(prev => ({ ...prev, selectedSections: sections, includePdf: true }));
                     setShowEmailModal(true);
                   }}
                   style={{
@@ -3712,7 +3747,7 @@ const ProjectTitleDashboard = () => {
 
                       <div style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gridTemplateColumns: 'repeat(2, 1fr)',
                         gap: '24px',
                         width: '100%'
                       }}>
@@ -3727,10 +3762,21 @@ const ProjectTitleDashboard = () => {
                           // Also include all submodules as potential chart sources
                           ...(activeProject?.submodules || []).map(sub => ({ id: sub.id, label: sub.displayName || sub.name, isDynamic: true }))
                         ].filter((phase, index, self) => {
-                          // Filter out duplicates and check visibility/availability
+                          // 1. Filter out exact ID duplicates
                           const isDuplicate = self.findIndex(p => p.id === phase.id) !== index;
                           if (isDuplicate) return false;
 
+                          // 2. If this is a dynamic entry, filter it out if it is already covered by a default category mapping
+                          if (phase.isDynamic) {
+                            const defaultIds = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
+                            const isAlreadyMapped = defaultIds.some(id => {
+                              const tracker = getTrackerForPhase(id);
+                              return tracker && tracker.id === phase.id;
+                            });
+                            if (isAlreadyMapped) return false;
+                          }
+
+                          // 3. Check visibility and availability
                           const isVisible = visibleSections[phase.id];
                           const isAvailable = availablePhases[phase.id];
                           return isVisible && isAvailable;
@@ -4041,7 +4087,7 @@ const ProjectTitleDashboard = () => {
               criticalIssues={criticalIssues}
               sopData={sopData}
               summaryData={summaryData}
-              visibleSections={visibleSections}
+              visibleSections={emailData.selectedSections}
               availablePhases={availablePhases}
               getTrackerForPhase={getTrackerForPhase}
               budgetTableData={budgetTableData}
@@ -4052,6 +4098,226 @@ const ProjectTitleDashboard = () => {
               chartImages={pdfChartImages}
             />
           </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Rich Text Editor Component
+const RichTextEditor = ({ value, onChange }) => {
+  const editorRef = useRef(null);
+
+  useEffect(() => {
+    if (editorRef.current && editorRef.current.innerHTML !== value && !editorRef.current.contains(document.activeElement)) {
+      editorRef.current.innerHTML = value || '';
+    }
+  }, [value]);
+
+  const handleCommand = (command) => {
+    document.execCommand(command, false, null);
+    if (editorRef.current) {
+      editorRef.current.focus();
+      onChange(editorRef.current.innerHTML);
+    }
+  };
+
+  return (
+    <div style={{ border: '1px solid #c0c0c0', borderRadius: '4px', overflow: 'hidden' }}>
+      <div style={{ backgroundColor: '#f8fafc', padding: '6px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '4px' }}>
+        <button type="button" onMouseDown={(e) => { e.preventDefault(); handleCommand('bold'); }} style={{ padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>B</button>
+        <button type="button" onMouseDown={(e) => { e.preventDefault(); handleCommand('italic'); }} style={{ padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer', fontStyle: 'italic' }}>I</button>
+        <button type="button" onMouseDown={(e) => { e.preventDefault(); handleCommand('underline'); }} style={{ padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>U</button>
+      </div>
+      <div
+        ref={editorRef}
+        contentEditable
+        onInput={(e) => onChange(e.currentTarget.innerHTML)}
+        style={{ padding: '12px', minHeight: '100px', outline: 'none', fontSize: '13px', backgroundColor: 'white' }}
+      />
+    </div>
+  );
+};
+
+// Recipient Input Component
+const RecipientInput = ({ label, type, emails, onUpdate, allEmployees, disabledEmails = [] }) => {
+  const [inputValue, setInputValue] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
+  const inputRef = useRef(null);
+
+  const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !email.includes('@') && email.length > 2;
+
+  const handleRemove = (index) => {
+    const newEmails = [...emails];
+    newEmails.splice(index, 1);
+    onUpdate(newEmails);
+    setErrorMsg('');
+  };
+
+  const handleAdd = (email, closeDropdown = true) => {
+    if (disabledEmails.includes(email)) {
+      setErrorMsg('This email is already added to another field');
+      setInputValue('');
+      return;
+    }
+    if (email && !emails.includes(email)) {
+      if (!isValidEmail(email)) {
+         setErrorMsg('Invalid email format');
+         return;
+      }
+      onUpdate([...emails, email]);
+    }
+    setInputValue('');
+    if (closeDropdown) {
+      setShowDropdown(false);
+    }
+    setErrorMsg('');
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',' || e.key === ' ') {
+      e.preventDefault();
+      if (inputValue.trim()) {
+        handleAdd(inputValue.trim());
+      }
+    } else if (e.key === 'Backspace' && !inputValue && emails.length > 0) {
+      handleRemove(emails.length - 1);
+    }
+  };
+
+  const filteredEmployees = allEmployees?.filter(emp =>
+    String(emp.name || '').toLowerCase().includes(inputValue.toLowerCase()) ||
+    String(emp.email || '').toLowerCase().includes(inputValue.toLowerCase())
+  ).slice(0, 50) || [];
+
+  return (
+    <div style={{ marginBottom: '12px' }}>
+      <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>{label}</label>
+      <div 
+        style={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          gap: '6px', 
+          padding: '6px 8px', 
+          border: '1px solid #c0c0c0', 
+          borderRadius: '4px',
+          backgroundColor: 'white',
+          minHeight: '34px',
+          alignItems: 'center',
+          position: 'relative',
+          cursor: 'text'
+        }}
+        onClick={() => inputRef.current?.focus()}
+      >
+        {emails.map((email, index) => (
+          <div key={`${type}-${index}`} style={{
+            display: 'flex',
+            alignItems: 'center',
+            backgroundColor: '#e2e8f0',
+            padding: '2px 8px',
+            borderRadius: '12px',
+            fontSize: '12px',
+            color: '#1e3a5f'
+          }}>
+            <span>{email}</span>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); handleRemove(index); }}
+              style={{
+                background: 'none',
+                border: 'none',
+                marginLeft: '4px',
+                cursor: 'pointer',
+                color: '#64748b',
+                fontWeight: 'bold',
+                fontSize: '14px',
+                padding: '0 2px'
+              }}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+        <input
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          onChange={(e) => {
+            setInputValue(e.target.value);
+            setShowDropdown(true);
+          }}
+          onFocus={() => setShowDropdown(true)}
+          onKeyDown={handleKeyDown}
+          onBlur={() => {
+            if (inputValue.trim() && inputValue.includes('@')) {
+               handleAdd(inputValue.trim());
+            } else {
+               setShowDropdown(false);
+               setInputValue('');
+            }
+          }}
+          placeholder={emails.length === 0 ? "Enter email address or search employee..." : ""}
+          style={{
+            flex: 1,
+            minWidth: '150px',
+            border: 'none',
+            outline: 'none',
+            fontSize: '13px',
+            backgroundColor: 'transparent'
+          }}
+        />
+
+        {errorMsg && (
+          <div style={{ position: 'absolute', bottom: '-18px', left: 0, color: '#ef4444', fontSize: '11px', fontWeight: 'bold' }}>
+            {errorMsg}
+          </div>
+        )}
+
+        {/* Dropdown */}
+        {showDropdown && filteredEmployees.length > 0 && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            backgroundColor: 'white',
+            border: '1px solid #e0e0e0',
+            borderRadius: '4px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            marginTop: '4px',
+            maxHeight: '180px',
+            overflowY: 'auto',
+            zIndex: 20
+          }}>
+            {filteredEmployees.map(contact => {
+              const isDisabled = disabledEmails.includes(contact.email) || emails.includes(contact.email);
+              return (
+              <div
+                key={contact.id}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  if (!isDisabled) {
+                    handleAdd(contact.email, false);
+                  }
+                }}
+                style={{
+                  padding: '8px 15px',
+                  cursor: isDisabled ? 'not-allowed' : 'pointer',
+                  borderBottom: '1px solid #f3f4f6',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  opacity: isDisabled ? 0.4 : 1,
+                  backgroundColor: isDisabled ? '#f8fafc' : 'white'
+                }}
+                onMouseEnter={(e) => { if (!isDisabled) e.currentTarget.style.backgroundColor = '#f0f7ff'; }}
+                onMouseLeave={(e) => { if (!isDisabled) e.currentTarget.style.backgroundColor = 'white'; }}
+              >
+                <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#1e3a5f' }}>{contact.name || 'Unknown Name'}</span>
+                <span style={{ fontSize: '11px', color: '#6b7280' }}>{contact.email} • {contact.department || 'No Dept'}</span>
+              </div>
+            )})}
+          </div>
         )}
       </div>
     </div>
@@ -4080,9 +4346,19 @@ const EmailModal = ({
   handleSendEmail,
   onPreviewPdf
 }) => {
+  const [showCc, setShowCc] = useState(false);
+  const [showBcc, setShowBcc] = useState(false);
+  const [formError, setFormError] = useState('');
+
   if (!show) return null;
 
-  const allSelected = Object.values(emailData.selectedSections).every(value => value);
+  const availableSectionKeys = Object.keys(emailData.selectedSections).filter(key => {
+    const metricKeys = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
+    if (metricKeys.includes(key)) return availablePhases[key];
+    return true;
+  });
+
+  const allSelected = availableSectionKeys.every(key => emailData.selectedSections[key]);
 
   const handleSelectAll = () => {
     const newState = !allSelected;
@@ -4167,234 +4443,48 @@ const EmailModal = ({
             Email the dashboard summary for <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{activeProject?.name}</span>.
           </p>
 
-          {/* Employee Search/Selection - PLACED AT TOP AS REQUESTED */}
-          <div style={{
-            marginBottom: '20px',
-            padding: '15px',
-            backgroundColor: '#f8fafc',
-            borderRadius: '6px',
-            border: '1px solid #e2e8f0'
-          }}>
-            <label style={{ display: 'block', marginBottom: '6px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>Choose Employees:</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="text"
-                value={employeeSearchTerm}
-                onChange={(e) => {
-                  setEmployeeSearchTerm(e.target.value);
-                  setShowEmployeeDropdown(true);
-                }}
-                onFocus={() => setShowEmployeeDropdown(true)}
-                placeholder="Type name or email to search employees..."
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  border: '1px solid #c0c0c0',
-                  borderRadius: '4px',
-                  fontSize: '13px',
-                  outline: 'none',
-                  boxShadow: showEmployeeDropdown ? '0 0 0 2px rgba(30, 58, 95, 0.1)' : 'none',
-                  transition: 'all 0.2s',
-                  position: 'relative',
-                  zIndex: showEmployeeDropdown ? 15 : 1
-                }}
-              />
-              <div style={{
-                position: 'absolute',
-                right: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: '#9ca3af',
-                pointerEvents: 'none',
-                fontSize: '12px'
-              }}>
-                ▼
-              </div>
-
-              {showEmployeeDropdown && (
-                <>
-                  <div
-                    onClick={() => setShowEmployeeDropdown(false)}
-                    style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 10 }}
-                  />
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    right: 0,
-                    backgroundColor: 'white',
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '4px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                    marginTop: '4px',
-                    maxHeight: '180px',
-                    overflowY: 'auto',
-                    zIndex: 20
-                  }}>
-                    {allEmployees
-                      ?.filter(emp =>
-                        String(emp.name || '').toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
-                        String(emp.email || '').toLowerCase().includes(employeeSearchTerm.toLowerCase())
-                      )
-                      .slice(0, 50)
-                      .map(contact => (
-                        <div
-                          key={contact.id}
-                          onClick={() => addContactFromList(contact.email, activeEmailField)}
-                          style={{
-                            padding: '8px 15px',
-                            cursor: 'pointer',
-                            borderBottom: '1px solid #f3f4f6',
-                            transition: 'background-color 0.2s',
-                            display: 'flex',
-                            flexDirection: 'column'
-                          }}
-                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f7ff'}
-                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
-                        >
-                          <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#1e3a5f' }}>{contact.name || 'Unknown Name'}</span>
-                          <span style={{ fontSize: '11px', color: '#6b7280' }}>{contact.email} • {contact.department || 'No Dept'}</span>
-                        </div>
-                      ))}
-                    {allEmployees?.length === 0 && (
-                      <div style={{ padding: '15px', textAlign: 'center', color: '#9ca3af', fontSize: '12px' }}>
-                        No employees loaded.
-                      </div>
-                    )}
-                    {allEmployees?.length > 0 && allEmployees.filter(emp =>
-                      String(emp.name || '').toLowerCase().includes(employeeSearchTerm.toLowerCase()) ||
-                      String(emp.email || '').toLowerCase().includes(employeeSearchTerm.toLowerCase())
-                    ).length === 0 && (
-                        <div style={{ padding: '15px', textAlign: 'center', color: '#9ca3af', fontSize: '12px' }}>
-                          No matches found for "{employeeSearchTerm}"
-                        </div>
-                      )}
-                  </div>
-                </>
-              )}
-            </div>
-            <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px', marginBottom: 0 }}>
-              * Click to add to the <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{activeEmailField.toUpperCase()}</span> field.
-            </p>
-          </div>
+          {formError && (
+             <div style={{ padding: '10px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: '4px', marginBottom: '15px', fontSize: '13px', fontWeight: 'bold' }}>
+               {formError}
+             </div>
+          )}
 
           {/* To, CC, BCC fields */}
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>To:</label>
-            {emailData.emailInputs.map((email, index) => (
-              <div key={`to-${index}`} style={{ display: 'flex', marginBottom: '4px', gap: '8px' }}>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => handleEmailInputChange(index, e.target.value, 'email')}
-                  onFocus={() => setActiveEmailField('email')}
-                  placeholder="Enter email address"
-                  style={{
-                    flex: 1,
-                    padding: '6px 8px',
-                    border: '1px solid #c0c0c0',
-                    borderRadius: '4px',
-                    fontSize: '13px'
-                  }}
-                />
-                {index < emailData.emailInputs.length - 1 && (
-                  <button
-                    onClick={() => removeEmailInput(index, 'email')}
-                    style={{
-                      padding: '4px 8px',
-                      backgroundColor: '#fee2e2',
-                      border: 'none',
-                      borderRadius: '4px',
-                      color: '#991b1b',
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                      fontSize: '14px'
-                    }}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '4px' }}>
+             <label style={{ fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>To: <span style={{ color: '#ef4444' }}>*</span></label>
+             <div style={{ display: 'flex', gap: '10px' }}>
+                {!showCc && <button style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '12px', cursor: 'pointer', padding: 0 }} onClick={() => setShowCc(true)}>Add CC</button>}
+                {!showBcc && <button style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '12px', cursor: 'pointer', padding: 0 }} onClick={() => setShowBcc(true)}>Add BCC</button>}
+             </div>
           </div>
-
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>CC:</label>
-            {emailData.ccInputs.map((email, index) => (
-              <div key={`cc-${index}`} style={{ display: 'flex', marginBottom: '4px', gap: '8px' }}>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => handleEmailInputChange(index, e.target.value, 'cc')}
-                  onFocus={() => setActiveEmailField('cc')}
-                  placeholder="Enter email address"
-                  style={{
-                    flex: 1,
-                    padding: '6px 8px',
-                    border: '1px solid #c0c0c0',
-                    borderRadius: '4px',
-                    fontSize: '13px'
-                  }}
-                />
-                {index < emailData.ccInputs.length - 1 && (
-                  <button
-                    onClick={() => removeEmailInput(index, 'cc')}
-                    style={{
-                      padding: '4px 8px',
-                      backgroundColor: '#fee2e2',
-                      border: 'none',
-                      borderRadius: '4px',
-                      color: '#991b1b',
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                      fontSize: '14px'
-                    }}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>BCC:</label>
-            {emailData.bccInputs.map((email, index) => (
-              <div key={`bcc-${index}`} style={{ display: 'flex', marginBottom: '4px', gap: '8px' }}>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => handleEmailInputChange(index, e.target.value, 'bcc')}
-                  onFocus={() => setActiveEmailField('bcc')}
-                  placeholder="Enter email address"
-                  style={{
-                    flex: 1,
-                    padding: '6px 8px',
-                    border: '1px solid #c0c0c0',
-                    borderRadius: '4px',
-                    fontSize: '13px'
-                  }}
-                />
-                {index < emailData.bccInputs.length - 1 && (
-                  <button
-                    onClick={() => removeEmailInput(index, 'bcc')}
-                    style={{
-                      padding: '4px 8px',
-                      backgroundColor: '#fee2e2',
-                      border: 'none',
-                      borderRadius: '4px',
-                      color: '#991b1b',
-                      cursor: 'pointer',
-                      fontWeight: 'bold',
-                      fontSize: '14px'
-                    }}
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
+          <RecipientInput 
+            label="" 
+            type="email" 
+            emails={emailData.emailInputs.filter(e => e.trim() !== '')} 
+            disabledEmails={[...emailData.ccInputs.filter(e => e.trim() !== ''), ...emailData.bccInputs.filter(e => e.trim() !== '')]}
+            onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, emailInputs: newEmails }))} 
+            allEmployees={allEmployees} 
+          />
+          {showCc && (
+            <RecipientInput 
+              label="CC:" 
+              type="cc" 
+              emails={emailData.ccInputs.filter(e => e.trim() !== '')} 
+              disabledEmails={[...emailData.emailInputs.filter(e => e.trim() !== ''), ...emailData.bccInputs.filter(e => e.trim() !== '')]}
+              onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, ccInputs: newEmails }))} 
+              allEmployees={allEmployees} 
+            />
+          )}
+          {showBcc && (
+            <RecipientInput 
+              label="BCC:" 
+              type="bcc" 
+              emails={emailData.bccInputs.filter(e => e.trim() !== '')} 
+              disabledEmails={[...emailData.emailInputs.filter(e => e.trim() !== ''), ...emailData.ccInputs.filter(e => e.trim() !== '')]}
+              onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, bccInputs: newEmails }))} 
+              allEmployees={allEmployees} 
+            />
+          )}
 
 
           {/* Subject */}
@@ -4417,20 +4507,35 @@ const EmailModal = ({
           {/* Message */}
           <div style={{ marginBottom: '12px' }}>
             <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>Message (Optional):</label>
-            <textarea
+            <RichTextEditor
               value={emailData.message}
-              onChange={(e) => setEmailData(prev => ({ ...prev, message: e.target.value }))}
-              rows="2"
-              style={{
-                width: '100%',
-                padding: '6px 8px',
-                border: '1px solid #c0c0c0',
-                borderRadius: '4px',
-                fontSize: '13px',
-                resize: 'vertical'
-              }}
-              placeholder="Add a message..."
+              onChange={(html) => setEmailData(prev => ({ ...prev, message: html }))}
             />
+          </div>
+
+          {/* Attachments */}
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>Attachments:</label>
+            {emailData.includePdf ? (
+              <div style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: '#f1f5f9', padding: '6px 12px', borderRadius: '20px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#334155' }}>
+                <span style={{ marginRight: '6px', fontSize: '14px' }}>📎</span> {activeProject?.name || 'Project'}_Dashboard_Report.pdf (Auto-generated)
+                <button 
+                  type="button" 
+                  onClick={() => setEmailData(prev => ({ ...prev, includePdf: false }))}
+                  style={{ background: 'none', border: 'none', marginLeft: '8px', cursor: 'pointer', color: '#ef4444', fontWeight: 'bold', fontSize: '14px', padding: '0' }}
+                >
+                  ×
+                </button>
+              </div>
+            ) : (
+              <button 
+                type="button"
+                onClick={() => setEmailData(prev => ({ ...prev, includePdf: true }))}
+                style={{ background: 'none', border: '1px dashed #c0c0c0', borderRadius: '4px', padding: '6px 12px', cursor: 'pointer', color: '#1e3a5f', fontSize: '12px', fontWeight: 'bold' }}
+              >
+                + Attach Dashboard PDF
+              </button>
+            )}
           </div>
 
           {/* Section selection */}
@@ -4543,7 +4648,15 @@ const EmailModal = ({
             </button>
 
             <button
-              onClick={handleSendEmail}
+              onClick={() => {
+                const validToEmails = emailData.emailInputs.filter(e => e.trim() !== '');
+                if (validToEmails.length === 0) {
+                  setFormError('Please add at least one valid recipient to the "To" field.');
+                  return;
+                }
+                setFormError('');
+                handleSendEmail();
+              }}
               style={{
                 padding: '10px 20px',
                 fontSize: '14px',
