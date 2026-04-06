@@ -9,6 +9,7 @@ class SubCategoryBase(BaseModel):
     estimated_value: float = 0.0
     utilized_value: float = 0.0
     balance: float = 0.0
+    department: Optional[str] = None
     custom_fields: Dict[str, Any] = {}
 
 
@@ -23,6 +24,7 @@ class SubCategoryUpdate(BaseModel):
     estimated_value: Optional[float] = None
     utilized_value: Optional[float] = None
     balance: Optional[float] = None
+    department: Optional[str] = None
     custom_fields: Optional[Dict[str, Any]] = None
 
 class SubCategoryResponse(SubCategoryBase):

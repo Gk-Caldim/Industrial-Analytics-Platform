@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import useCurrency from '../../hooks/useCurrency';
+import SearchableDropdown from '../SearchableDropdown';
 
 const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline = false }) => {
   const { format, symbol, code, convert } = useCurrency();
@@ -17,6 +18,7 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
 
   const initialColumns = [
     { id: 'sub_category', label: 'Sub-category', visible: true, sortable: true, type: 'text', required: true },
+    { id: 'department', label: 'Department', visible: true, sortable: true, type: 'select', required: true },
     { id: 'unit_type', label: 'Unit Type', visible: true, sortable: true, type: 'text', required: false },
     { id: 'no_of_counts_per_unit', label: 'No of counts Per unit', visible: true, sortable: true, type: 'number', required: false },
     { id: 'estimated_value', label: 'Budget', visible: true, sortable: true, type: 'number', required: true },
@@ -24,7 +26,7 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
     { id: 'balance', label: 'Balance Budget', visible: true, sortable: true, type: 'number', required: false, readonly: true },
   ];
 
-  const fixedColumnIds = ['id', 'project_id', 'sub_category', 'unit_type', 'no_of_counts_per_unit', 'estimated_value', 'utilized_value', 'balance', 'custom_fields'];
+  const fixedColumnIds = ['id', 'project_id', 'sub_category', 'department', 'unit_type', 'no_of_counts_per_unit', 'estimated_value', 'utilized_value', 'balance', 'custom_fields'];
 
   const [columns, setColumns] = useState(() => {
     const saved = localStorage.getItem('project_subcategory_columns_v1');
@@ -41,6 +43,7 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
   const [newColumnName, setNewColumnName] = useState('');
   const [editingColumn, setEditingColumn] = useState(null);
   const [tempColumnName, setTempColumnName] = useState('');
+  const [departmentList, setDepartmentList] = useState([]);
 
   useEffect(() => {
     localStorage.setItem('project_subcategory_columns_v1', JSON.stringify(columns));
@@ -50,7 +53,17 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
     if (project) {
       fetchSubCategories();
     }
+    fetchDepartments();
   }, [project]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await API.get('/departments/');
+      setDepartmentList(res.data.map(d => d.name) || []);
+    } catch (err) {
+      console.error("Error fetching departments", err);
+    }
+  };
 
   // Auto-calculate balance for form
   useEffect(() => {
@@ -110,6 +123,7 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
       let payload = {
         project_id: project.project_id,
         sub_category: convertedFormData.sub_category,
+        department: convertedFormData.department || '',
         unit_type: convertedFormData.unit_type || '',
         no_of_counts_per_unit: safeFloat(convertedFormData.no_of_counts_per_unit),
         estimated_value: safeFloat(convertedFormData.estimated_value),
@@ -308,14 +322,24 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
                           {symbol}
                         </span>
                       )}
-                      <input
-                        type={col.type === 'number' ? 'number' : 'text'}
-                        value={formData[col.id] ?? ''}
-                        onChange={(e) => handleInputChange(col.id, col.type === 'number' ? (e.target.value === '' ? '' : parseFloat(e.target.value)) : e.target.value)}
-                        disabled={col.readonly}
-                        className={`w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 text-[13.5px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all shadow-sm flex items-center gap-1 ${col.readonly ? 'bg-slate-100 dark:bg-slate-800/80 cursor-not-allowed opacity-80 text-slate-500 italic' : ''} ${(col.type === 'number' && (col.id.includes('value') || col.id === 'balance')) ? 'pl-8' : ''}`}
-                        placeholder={`Enter ${col.label.toLowerCase()}...`}
-                      />
+                      {col.id === 'department' ? (
+                        <SearchableDropdown
+                          options={departmentList}
+                          value={formData[col.id] || ''}
+                          onChange={(val) => handleInputChange(col.id, val)}
+                          placeholder="Select Department..."
+                          className="w-full"
+                        />
+                      ) : (
+                        <input
+                          type={col.type === 'number' ? 'number' : 'text'}
+                          value={formData[col.id] ?? ''}
+                          onChange={(e) => handleInputChange(col.id, col.type === 'number' ? (e.target.value === '' ? '' : parseFloat(e.target.value)) : e.target.value)}
+                          disabled={col.readonly}
+                          className={`w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 text-[13.5px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all shadow-sm flex items-center gap-1 ${col.readonly ? 'bg-slate-100 dark:bg-slate-800/80 cursor-not-allowed opacity-80 text-slate-500 italic' : ''} ${(col.type === 'number' && (col.id.includes('value') || col.id === 'balance')) ? 'pl-8' : ''}`}
+                          placeholder={`Enter ${col.label.toLowerCase()}...`}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}

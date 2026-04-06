@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, FolderTree, Activity, DollarSign, Calendar, Clock, Edit, Trash2, User, History } from 'lucide-react';
 import API from '../utils/api';
@@ -19,7 +19,54 @@ const ProjectDetail = () => {
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [notification, setNotification] = useState(null);
   const [departments, setDepartments] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
   const { format, symbol } = useCurrency();
+
+  // Calculated Department-wise Breakdown
+  const projectDepts = useMemo(() => {
+    if (!project) return [];
+    const deptMap = {};
+    
+    // 1. Group by Sub-Categories
+    subCategories.forEach(sc => {
+      const dName = sc.department || 'Unassigned';
+      if (!deptMap[dName]) {
+        deptMap[dName] = { name: dName, roll_alloc: 0, roll_util: 0, budget_allocation: 0, utilized_budget: 0 };
+      }
+      deptMap[dName].roll_alloc += (sc.estimated_value || 0);
+      deptMap[dName].roll_util += (sc.utilized_value || 0);
+      // For compatibility with legacy chart keys
+      deptMap[dName].budget_allocation = deptMap[dName].roll_alloc;
+      deptMap[dName].utilized_budget = deptMap[dName].roll_util;
+      deptMap[dName].balance_budget = deptMap[dName].budget_allocation - deptMap[dName].utilized_budget;
+    });
+
+    // 2. Merge with Manual Allocations
+    const manualDepts = departments.filter(d => d.project_name === project.name);
+    manualDepts.forEach(md => {
+      if (!deptMap[md.name]) {
+        deptMap[md.name] = { name: md.name, roll_alloc: 0, roll_util: 0, budget_allocation: 0, utilized_budget: 0 };
+      }
+      deptMap[md.name].manual_alloc = md.budget_allocation;
+    });
+
+    return Object.values(deptMap);
+  }, [project, subCategories, departments]);
+
+  const budgetStats = useMemo(() => {
+    const totalAlloc = projectDepts.reduce((sum, d) => sum + (d.roll_alloc || 0), 0);
+    const totalUtil = projectDepts.reduce((sum, d) => sum + (d.roll_util || 0), 0);
+    const masterBudget = project?.budget || 0;
+    return {
+      totalAlloc,
+      totalUtil,
+      totalBalance: totalAlloc - totalUtil,
+      masterBudget,
+      unallocated: masterBudget - totalAlloc,
+      utilPct: totalAlloc > 0 ? (totalUtil / totalAlloc) * 100 : 0,
+      allocPct: masterBudget > 0 ? (totalAlloc / masterBudget) * 100 : 0
+    };
+  }, [projectDepts, project]);
 
   const showNotif = (msg, type = 'success') => {
     setNotification({ msg, type });
@@ -47,6 +94,10 @@ const ProjectDetail = () => {
       // Fetch Departments for budget breakdown
       const deptRes = await API.get('/departments/');
       setDepartments(deptRes.data || []);
+
+      // Fetch Sub-categories for roll-up budget
+      const subRes = await API.get(`/project-sub-categories/${projRes.data.project_id}`);
+      setSubCategories(subRes.data || []);
       
     } catch (error) {
       console.error(error);
@@ -154,43 +205,35 @@ const ProjectDetail = () => {
         )}
         
         {/* OVERVIEW TAB */}
+        {/* OVERVIEW TAB */}
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="col-span-1 lg:col-span-2 space-y-6">
               {/* Main Info Card */}
               <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
                 <h2 className="text-lg font-semibold mb-6 text-slate-800 dark:text-white">Project Details</h2>
-                {(() => {
-                  const projectDepts = departments.filter(d => d.project_name === project.name);
-                  const totalAlloc = projectDepts.reduce((sum, d) => sum + (d.budget_allocation || 0), 0);
-                  const totalUtil = projectDepts.reduce((sum, d) => sum + (d.utilized_budget || 0), 0);
-                  const totalBalance = totalAlloc - totalUtil;
-
-                  return (
-                    <div className="grid grid-cols-2 gap-y-6 gap-x-8">
-                      <div>
-                        <span className="text-sm text-slate-500 dark:text-slate-400">Timeline</span>
-                        <p className="font-medium text-slate-800 dark:text-white mt-1 flex items-center gap-2">
-                            <Calendar size={16} className="text-slate-400"/> {project.timeline || 'Not Set'}
-                        </p>
-                      </div>
-                      <div>
-                        <span className="text-sm text-slate-500 dark:text-slate-400">Total Allocation</span>
-                        <p className="font-semibold text-slate-800 dark:text-white mt-1 text-lg">{format(totalAlloc)}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm text-slate-500 dark:text-slate-400">Utilized Budget</span>
-                        <p className="font-semibold text-amber-600 dark:text-amber-400 mt-1 text-lg">{format(totalUtil)}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm text-slate-500 dark:text-slate-400">Balance Budget</span>
-                        <p className={`font-bold mt-1 text-lg ${totalBalance < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
-                          {format(totalBalance)}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })()}
+                <div className="grid grid-cols-2 gap-y-6 gap-x-8">
+                  <div>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">Timeline</span>
+                    <p className="font-medium text-slate-800 dark:text-white mt-1 flex items-center gap-2">
+                        <Calendar size={16} className="text-slate-400"/> {project.timeline || 'Not Set'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">Total Allocation</span>
+                    <p className="font-semibold text-slate-800 dark:text-white mt-1 text-lg">{format(budgetStats.totalAlloc)}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">Utilized Budget</span>
+                    <p className="font-semibold text-amber-600 dark:text-amber-400 mt-1 text-lg">{format(budgetStats.totalUtil)}</p>
+                  </div>
+                  <div>
+                    <span className="text-sm text-slate-500 dark:text-slate-400">Balance Budget</span>
+                    <p className={`font-bold mt-1 text-lg ${budgetStats.totalBalance < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                      {format(budgetStats.totalBalance)}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Department wise budget breakdown */}
@@ -209,18 +252,25 @@ const ProjectDetail = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                      {departments.filter(d => d.project_name === project.name).length === 0 ? (
-                        <tr>
-                          <td colSpan="4" className="px-6 py-8 text-center text-slate-400 italic">No department budgets mapped to this project.</td>
+                      {projectDepts.length === 0 ? (
+                        <tr key="empty-depts">
+                          <td colSpan="4" className="px-6 py-8 text-center text-slate-400 italic">No sub-categories assigned to departments for this project.</td>
                         </tr>
                       ) : (
-                        departments.filter(d => d.project_name === project.name).map(dept => (
-                          <tr key={dept.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                            <td className="px-6 py-3.5 font-medium text-slate-800 dark:text-white">{dept.name}</td>
-                            <td className="px-6 py-3.5 text-slate-600 dark:text-slate-400">{format(dept.budget_allocation || 0)}</td>
-                            <td className="px-6 py-3.5 text-amber-600 font-medium">{format(dept.utilized_budget || 0)}</td>
-                            <td className={`px-6 py-3.5 text-right font-bold ${(dept.balance_budget || 0) < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
-                              {format(dept.balance_budget || 0)}
+                        projectDepts.map(dept => (
+                          <tr key={dept.name} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                            <td className="px-6 py-3.5 font-medium text-slate-800 dark:text-white">
+                              {dept.name}
+                              {dept.manual_alloc !== undefined && dept.manual_alloc !== dept.roll_alloc && (
+                                <span className="ml-2 inline-block" title={`Manual allocation in Dept Master (${format(dept.manual_alloc)}) differs from Scope roll-up (${format(dept.roll_alloc)})`}>
+                                  <AlertCircle size={14} className="text-amber-500" />
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-3.5 text-slate-600 dark:text-slate-400">{format(dept.roll_alloc || 0)}</td>
+                            <td className="px-6 py-3.5 text-amber-600 font-medium">{format(dept.roll_util || 0)}</td>
+                            <td className={`px-6 py-3.5 text-right font-bold ${(dept.roll_alloc - dept.roll_util) < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                              {format(dept.roll_alloc - dept.roll_util)}
                             </td>
                           </tr>
                         ))
@@ -299,7 +349,7 @@ const ProjectDetail = () => {
                         </td>
                     </tr>
                   ))}
-                  {team.length === 0 && <tr><td colSpan="5" className="px-6 py-8 text-center text-slate-500">No team members assigned yet.</td></tr>}
+                  {team.length === 0 && <tr key="empty-team"><td colSpan="5" className="px-6 py-8 text-center text-slate-500">No team members assigned yet.</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -323,18 +373,11 @@ const ProjectDetail = () => {
         {activeTab === 'budget' && (
           <div className="space-y-6">
             {(() => {
-              const projectDepts = departments.filter(d => d.project_name === project.name);
-              const masterBudget = project.budget || 0;
-              const totalAlloc = projectDepts.reduce((sum, d) => sum + (d.budget_allocation || 0), 0);
-              const totalUtil  = projectDepts.reduce((sum, d) => sum + (d.utilized_budget  || 0), 0);
-              const totalBal   = totalAlloc - totalUtil;
-              const unallocated= masterBudget - totalAlloc;
-              const utilPct    = totalAlloc > 0 ? (totalUtil / totalAlloc) * 100 : 0;
-              const allocPct   = masterBudget > 0 ? (totalAlloc / masterBudget) * 100 : 0;
-
               const fmt = (n) => n >= 1_000_000
                 ? `${symbol}${(n/1_000_000).toFixed(2)}M`
                 : n >= 1_000 ? `${symbol}${(n/1_000).toFixed(1)}K` : format(n);
+                
+              const { totalAlloc, totalUtil, totalBalance, masterBudget, unallocated, utilPct, allocPct } = budgetStats;
 
               /* ---------- CHART 1: Donut – Allocation Split ---------- */
               const donutOption = {
@@ -476,7 +519,7 @@ const ProjectDetail = () => {
                         { label: 'Master Budget', value: fmt(masterBudget), sub: 'Project Master total' },
                         { label: 'Dept Allocated', value: fmt(totalAlloc), sub: `${allocPct.toFixed(1)}% of master` },
                         { label: 'Utilized', value: fmt(totalUtil), sub: `${utilPct.toFixed(1)}% of allocation` },
-                        { label: 'Dept Balance', value: fmt(totalBal), sub: 'Remaining in depts', highlight: totalBal < 0 }
+                        { label: 'Dept Balance', value: fmt(totalBalance), sub: 'Remaining in depts', highlight: totalBalance < 0 }
                       ].map(c => (
                         <div key={c.label} className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
                           <p className="text-indigo-200 text-[10px] font-semibold uppercase tracking-wider">{c.label}</p>
@@ -582,13 +625,13 @@ const ProjectDetail = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
                           {projectDepts.length === 0 && (
-                            <tr><td colSpan="6" className="px-6 py-10 text-center text-slate-400 italic text-sm">No departments allocated to this project yet.</td></tr>
+                            <tr key="empty-budget-detail"><td colSpan="6" className="px-6 py-10 text-center text-slate-400 italic text-sm">No departments allocated to this project yet.</td></tr>
                           )}
                           {projectDepts.map(d => {
                             const uPct = d.budget_allocation > 0 ? Math.min((d.utilized_budget / d.budget_allocation) * 100, 100) : 0;
                             const bal = d.balance_budget || 0;
                             return (
-                              <tr key={d.id} className="hover:bg-indigo-50/30 dark:hover:bg-slate-700/30 transition-colors">
+                              <tr key={d.name} className="hover:bg-indigo-50/30 dark:hover:bg-slate-700/30 transition-colors">
                                 <td className="px-6 py-3.5">
                                   <span className="font-semibold text-slate-800 dark:text-white">{d.name}</span>
                                 </td>
@@ -617,7 +660,7 @@ const ProjectDetail = () => {
                               <td className="px-6 py-3 text-xs font-bold text-slate-600 dark:text-slate-300">Totals</td>
                               <td className="px-6 py-3 text-right font-mono text-xs font-bold text-slate-700 dark:text-slate-300">{fmt(totalAlloc)}</td>
                               <td className="px-6 py-3 text-right font-mono text-xs font-bold text-amber-600">{fmt(totalUtil)}</td>
-                              <td className={`px-6 py-3 text-right font-mono text-xs font-bold ${totalBal < 0 ? 'text-red-500' : 'text-emerald-600'}`}>{fmt(totalBal)}</td>
+                              <td className={`px-6 py-3 text-right font-mono text-xs font-bold ${totalBalance < 0 ? 'text-red-500' : 'text-emerald-600'}`}>{fmt(totalBalance)}</td>
                               <td className="px-6 py-3 text-center">
                                 <div className="flex items-center gap-2 justify-center">
                                   <div className="w-20 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
