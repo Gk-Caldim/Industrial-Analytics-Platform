@@ -36,6 +36,7 @@ const PdfPreviewModal = ({
     items.splice(result.destination.index, 0, reorderedItem);
     setSectionOrder(items);
   };
+  const { format, symbol } = useCurrency();
 
   if (!show) return null;
 
@@ -419,6 +420,52 @@ const PdfPreviewModal = ({
                               <th key={cat} style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>{cat}</th>
                             ))}
                             <th style={{ padding: '10px', textAlign: 'left', border: '1px solid #e2e8f0', fontSize: '12px', color: '#64748b' }}>Implementation</th>
+            {/* Budget Summary - Real Table from API */}
+            {visibleSections?.budget && (
+              <div style={{ marginBottom: '25px' }}>
+                <div style={{ 
+                  backgroundColor: '#1e3a5f', 
+                  color: 'white', 
+                  padding: '10px 15px', 
+                  fontWeight: 'bold', 
+                  fontSize: '15px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <span>Budget Summary{selectedBudgetProject ? ` — ${selectedBudgetProject}` : ''}</span>
+                  <span style={{ fontSize: '12px', fontWeight: 'normal', opacity: 0.85 }}>
+                    Status: {budgetStatus}
+                  </span>
+                </div>
+                {budgetTableData && budgetTableData.length > 1 ? (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', border: '1px solid #e2e8f0', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#f8fafc' }}>
+                        {budgetTableData[0].map((h, i) => (
+                          <th key={i} style={{ padding: '10px 12px', textAlign: 'left', border: '1px solid #e2e8f0', color: '#475569', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
+                            {h}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {budgetTableData.slice(1).map((row, idx) => {
+                        const isTotal = row[0] && row[0].toString().startsWith('Total');
+                        const isCategory = row[0] && (row[0] === 'CAPEX' || row[0] === 'Revenue');
+                        const fw = isTotal || isCategory ? 'bold' : 'normal';
+                        const color = isTotal ? '#1e3a5f' : '#475569';
+                        return (
+                          <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isTotal ? '#f0f7ff' : 'white' }}>
+                            {row.map((cell, colIdx) => {
+                              const isAmount = colIdx >= 2;
+                              const num = parseFloat(String(cell).replace(/[^0-9.-]+/g, ''));
+                              return (
+                                <td key={colIdx} style={{ padding: '10px 12px', border: '1px solid #e2e8f0', fontWeight: fw, color: color }}>
+                                  {isAmount && !isNaN(num) ? format(num) : cell}
+                                </td>
+                              );
+                            })}
                           </tr>
                         </thead>
                         <tbody>

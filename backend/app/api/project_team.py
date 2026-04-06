@@ -7,7 +7,7 @@ from app.models.employee_project import EmployeeProjectMap
 from app.models.employee import Employee
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.audit_log import AuditLog
+from app.utils.audit import log_activity
 from datetime import datetime
 
 router = APIRouter(
@@ -80,13 +80,18 @@ def assign_team_member(
         alloc_dict['employee_role'] = emp.role
         
     # Audit Log
-    db.add(AuditLog(
+    log_activity(
+        db=db,
         user_id=current_user.get("employee_id") or "System",
-        action="ASSIGNED",
+        action="ASSIGN TEAM MEMBER",
         module="Team Management",
-        entity_id=project_id,
-        details={"member": emp.name if emp else assignment.employee_id, "role": assignment.role}
-    ))
+        entity_id=str(project_id),
+        details={
+            "targetRole": assignment.role,
+            "summary": f"Assigned {emp.name if emp else 'Employee ' + str(assignment.employee_id)} to project",
+            "details": f"Role: {assignment.role} | Project ID: {project_id}"
+        }
+    )
     db.commit()
     
     return alloc_dict
@@ -110,13 +115,18 @@ def remove_team_member(
     db.commit()
     
     # Audit Log
-    db.add(AuditLog(
+    log_activity(
+        db=db,
         user_id=current_user.get("employee_id") or "System",
-        action="DELETED",
+        action="REMOVE TEAM MEMBER",
         module="Team Management",
-        entity_id=project_id,
-        details={"member": emp_id, "role": role}
-    ))
+        entity_id=str(project_id),
+        details={
+            "targetRole": role,
+            "summary": f"Removed member from project team",
+            "details": f"Allocation ID: {allocation_id} | Employee ID: {emp_id} | Role: {role}"
+        }
+    )
     db.commit()
     
     return {"message": "Team member removed successfully"}

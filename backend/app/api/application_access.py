@@ -9,6 +9,7 @@ from app.models.employee import Employee
 from app.schemas.application_access import ApplicationAccessOut, ApplicationAccessUpdate, ApplicationAccessCreate
 from app.core.security import get_current_user, hash_password
 from app.models.role import Role
+from app.utils.audit import log_activity, generate_diff_summary
 
 router = APIRouter(prefix="/application-access", tags=["Application Access"])
 
@@ -49,6 +50,9 @@ def update_access(
     if not access:
         raise HTTPException(status_code=404, detail="Access record not found")
     
+    # Generate diff before updating the object
+    diff_summary = generate_diff_summary(access, data)
+    
     if data.email:
         # Check if email taken
         existing = db.query(ApplicationAccess).filter(
@@ -65,8 +69,23 @@ def update_access(
         access.hashed_password = hash_password(data.password)
     
     access.updated_at = datetime.utcnow()
+    
     db.commit()
     db.refresh(access)
+    
+    # Audit Logging
+    log_activity(
+        db=db,
+        user_id=current_user.get("employee_id") or current_user.get("id"),
+        action="UPDATE PERMISSION",
+        module="ApplicationAccess",
+        entity_id=str(access.id),
+        details={
+            "targetRole": "User Access",
+            "summary": f"Updated permission for {access.email}: {diff_summary}",
+            "details": f"Modified application access record ID: {access.id}"
+        }
+    )
     
     # Get employee name
     emp_name = db.query(Employee.name).filter(Employee.id == access.employee_id).scalar()
@@ -89,4 +108,18 @@ def delete_access(
     
     db.delete(access)
     db.commit()
+
+    # Audit Logging
+    log_activity(
+        db=db,
+        user_id=current_user.get("employee_id") or current_user.get("id"),
+        action="DELETE PERMISSION",
+        module="ApplicationAccess",
+        entity_id=str(access_id),
+        details={
+            "targetRole": "User Access",
+            "summary": f"Revoked access for {access.email}",
+            "details": f"Deleted application access record ID: {access_id}"
+        }
+    )
     return None

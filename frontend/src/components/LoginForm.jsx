@@ -48,7 +48,7 @@ const LoginForm = ({ onLoginSuccess, onLoginStart }) => {
         if (onLoginSuccess) {
           onLoginSuccess();
         } else {
-          navigate('/dashboard');
+          navigate('/dashboard', { replace: true });
         }
       } else {
         throw new Error('Invalid response from server');

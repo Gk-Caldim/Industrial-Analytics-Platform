@@ -8,7 +8,7 @@ from app.crud import project as crud_project
 from app.crud import project_column as column_crud
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.audit_log import AuditLog
+from app.utils.audit import log_activity, generate_diff_summary
 
 router = APIRouter(
     prefix="/projects",
@@ -72,13 +72,18 @@ def add_project(
     db_project = crud_project.create_project(db, project)
     
     # Audit Log
-    db.add(AuditLog(
+    log_activity(
+        db=db,
         user_id=current_user.get("employee_id") or "System",
-        action="CREATED",
+        action="CREATE PROJECT",
         module="Project Master",
-        entity_id=db_project.project_id,
-        details={"name": db_project.name, "manager": db_project.manager}
-    ))
+        entity_id=str(db_project.project_id),
+        details={
+            "targetRole": "Project",
+            "summary": f"Created new project: {db_project.name}",
+            "details": f"Initialized project with ID: {db_project.project_id}"
+        }
+    )
     db.commit()
     
     return db_project
@@ -113,16 +118,24 @@ def update_project(
     if not check_project_permission(db_project, current_user, "edit"):
         raise HTTPException(status_code=403, detail="You do not have permission to edit this project")
         
+    # Generate diff before update
+    diff_summary = generate_diff_summary(db_project, project)
+    
     updated_project = crud_project.update_project(db, project_id, project)
     
     # Audit Log
-    db.add(AuditLog(
+    log_activity(
+        db=db,
         user_id=current_user.get("employee_id") or "System",
-        action="UPDATED",
+        action="UPDATE PROJECT",
         module="Project Master",
-        entity_id=updated_project.project_id,
-        details={"name": updated_project.name, "status": updated_project.status}
-    ))
+        entity_id=str(updated_project.project_id),
+        details={
+            "targetRole": "Project",
+            "summary": f"Updated {updated_project.name}: {diff_summary}",
+            "details": f"Modified project ID: {updated_project.project_id} | Name: {updated_project.name}"
+        }
+    )
     db.commit()
     
     return updated_project
@@ -147,13 +160,18 @@ def delete_project(
             raise HTTPException(status_code=404, detail="Project not found")
             
         # Audit Log
-        db.add(AuditLog(
+        log_activity(
+            db=db,
             user_id=current_user.get("employee_id") or "System",
-            action="DELETED",
+            action="DELETE PROJECT",
             module="Project Master",
-            entity_id=project_id_str,
-            details={"name": db_project.name}
-        ))
+            entity_id=str(project_id_str),
+            details={
+                "targetRole": "Project",
+                "summary": f"Deleted project: {db_project.name}",
+                "details": f"Removed project record ID: {project_id_str}"
+            }
+        )
         db.commit()
         
         return {"message": "Project deleted successfully"}

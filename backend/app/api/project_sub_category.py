@@ -6,7 +6,7 @@ from app.schemas.project_sub_category import SubCategoryCreate, SubCategoryUpdat
 from app.crud import project_sub_category as crud
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.audit_log import AuditLog
+from app.utils.audit import log_activity
 
 router = APIRouter(
     prefix="/project-sub-categories",
@@ -28,13 +28,18 @@ def add_sub_category(
     db_sub = crud.create_sub_category(db, sub_category)
     
     # Audit Log
-    db.add(AuditLog(
+    log_activity(
+        db=db,
         user_id=current_user.get("employee_id") or "System",
-        action="CREATED",
+        action="CREATE SUB CATEGORY",
         module="Sub Category",
-        entity_id=db_sub.project_id,
-        details={"sub_category": db_sub.sub_category, "estimated_value": db_sub.estimated_value}
-    ))
+        entity_id=str(db_sub.project_id),
+        details={
+            "targetRole": "Budget",
+            "summary": f"Added sub-category: {db_sub.sub_category}",
+            "details": f"Project ID: {db_sub.project_id} | Est. Value: {db_sub.estimated_value}"
+        }
+    )
     db.commit()
     
     return db_sub
@@ -52,13 +57,18 @@ def update_sub_category(
         raise HTTPException(status_code=404, detail="Sub-category not found")
         
     # Audit Log
-    db.add(AuditLog(
+    log_activity(
+        db=db,
         user_id=current_user.get("employee_id") or "System",
-        action="UPDATED",
+        action="UPDATE SUB CATEGORY",
         module="Sub Category",
-        entity_id=db_sub.project_id,
-        details={"sub_category": db_sub.sub_category, "utilized_value": db_sub.utilized_value}
-    ))
+        entity_id=str(db_sub.project_id),
+        details={
+            "targetRole": "Budget",
+            "summary": f"Updated sub-category: {db_sub.sub_category}",
+            "details": f"Project ID: {db_sub.project_id} | Utilized Value: {db_sub.utilized_value}"
+        }
+    )
     db.commit()
     
     return db_sub
@@ -82,13 +92,18 @@ def delete_sub_category(
         raise HTTPException(status_code=404, detail="Sub-category not found")
         
     # Audit Log
-    db.add(AuditLog(
+    log_activity(
+        db=db,
         user_id=current_user.get("employee_id") or "System",
-        action="DELETED",
+        action="DELETE SUB CATEGORY",
         module="Sub Category",
-        entity_id=project_id,
-        details={"sub_category": sub_cat_name}
-    ))
+        entity_id=str(project_id),
+        details={
+            "targetRole": "Budget",
+            "summary": f"Deleted sub-category: {sub_cat_name}",
+            "details": f"Removed from project ID: {project_id}"
+        }
+    )
     db.commit()
         
     return {"message": "Sub-category deleted successfully"}
