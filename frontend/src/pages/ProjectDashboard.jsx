@@ -11,6 +11,7 @@ import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import PdfPreviewModal from '../components/PdfPreviewModal';
+import useCurrency from "../hooks/useCurrency";
 
 
 import { HotTable } from '@handsontable/react';
@@ -155,8 +156,16 @@ const getDiversePalette = () => [
 const ProjectTitleDashboard = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const dispatch = useDispatch();
+  const { format, symbol } = useCurrency();
   const selectedFileId = useSelector(state => state.nav.selectedProjectFileId);
   const onClearSelection = () => dispatch(setSelectedProjectFileId(null));
+  
+  const parseNum = (val) => {
+    if (val === null || val === undefined || val === '') return 0;
+    const strVal = String(val).replace(/[^0-9.-]+/g, '');
+    const num = parseFloat(strVal);
+    return isNaN(num) ? 0 : num;
+  };
 
   // Projects data
   const projects = useSelector(state => state.project.projects);
@@ -540,9 +549,9 @@ const ProjectTitleDashboard = () => {
 
   // Summary data
   const [summaryData, setSummaryData] = useState({
-    budgetApproved: '$2,500,000',
-    budgetUtilized: '$1,850,000',
-    budgetBalance: '$650,000',
+    budgetApproved: 2500000,
+    budgetUtilized: 1850000,
+    budgetBalance: 650000,
     budgetOutlook: '72%',
     resourceDeployed: '24',
     resourceUtilized: '18',
@@ -1810,16 +1819,10 @@ const ProjectTitleDashboard = () => {
       "Total Revenue": null
     };
 
-    const parseNum = (val) => {
-      if (val === null || val === undefined || val === '') return 0;
-      const strVal = String(val).replace(/[^0-9.-]+/g, '');
-      const num = parseFloat(strVal);
-      return isNaN(num) ? 0 : num;
-    };
 
     const formatNum = (num, forceFormat = false) => {
       if (num === 0 && !forceFormat) return '';
-      return `${budgetCurrency} ` + num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+      return format(num);
     };
 
     let currentCategory = null;
@@ -1947,15 +1950,16 @@ const ProjectTitleDashboard = () => {
       };
 
       const handleCurrencyChange = (newCurr) => {
+        // Shifted to follow global currency, but keeping this for local overrides if needed
+        // however, we'll sync it with useCurrency's symbol
         setBudgetCurrency(newCurr);
-        // Sweep entire table and reformat raw numbers with new currency
         const updatedTable = budgetTableForm.map((row, rIdx) => {
           if (rIdx === 0) return row;
           return row.map((cell, cIdx) => {
             if (cIdx >= 2) {
               const num = parseNum(cell);
               if (num === 0 && (!cell || cell.toString().trim() === '')) return '';
-              return `${newCurr} ` + num.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+              return format(num);
             }
             return cell;
           });
@@ -2012,18 +2016,8 @@ const ProjectTitleDashboard = () => {
                   </select>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'white', border: '1px solid #cbd5e1', padding: '6px 12px', borderRadius: '6px' }}>
-                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 'bold' }}>Currency:</span>
-                  <select
-                    value={budgetCurrency}
-                    onChange={e => handleCurrencyChange(e.target.value)}
-                    style={{ border: 'none', color: '#1e3a5f', fontWeight: '800', fontSize: '14px', outline: 'none', cursor: 'pointer', backgroundColor: 'transparent' }}
-                  >
-                    <option style={{ color: 'black' }} value="$">USD ($)</option>
-                    <option style={{ color: 'black' }} value="€">EUR (€)</option>
-                    <option style={{ color: 'black' }} value="£">GBP (£)</option>
-                    <option style={{ color: 'black' }} value="₹">INR (₹)</option>
-                    <option style={{ color: 'black' }} value="A$">AUD (A$)</option>
-                  </select>
+                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 'bold' }}>System Currency:</span>
+                  <span style={{ color: '#1e3a5f', fontWeight: '800', fontSize: '14px' }}>{symbol}</span>
                 </div>
                 <div style={{ flex: 1 }}></div>
 
@@ -2163,12 +2157,24 @@ const ProjectTitleDashboard = () => {
               {currentConfig.fields.map(field => (
                 <div key={field.key}>
                   <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#4b5563', marginBottom: '5px' }}>{field.label}</label>
-                  <input
-                    type="text"
-                    value={summaryForm[field.key]}
-                    onChange={(e) => setSummaryForm({ ...summaryForm, [field.key]: e.target.value })}
-                    style={{ width: '100%', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '14px' }}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    {field.key.toLowerCase().includes('amount') || field.key.toLowerCase().includes('budget') ? (
+                      <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', fontWeight: 'bold', color: '#1e3a5f' }}>{symbol}</span>
+                    ) : null}
+                    <input
+                      type="text"
+                      value={summaryForm[field.key]}
+                      onChange={(e) => setSummaryForm({ ...summaryForm, [field.key]: e.target.value })}
+                      style={{ 
+                        width: '100%', 
+                        padding: '8px', 
+                        paddingLeft: (field.key.toLowerCase().includes('amount') || field.key.toLowerCase().includes('budget')) ? '30px' : '8px',
+                        border: '1px solid #cbd5e1', 
+                        borderRadius: '4px', 
+                        fontSize: '14px' 
+                      }}
+                    />
+                  </div>
                 </div>
               ))}
             </div>
@@ -3861,11 +3867,14 @@ const ProjectTitleDashboard = () => {
 
                                       return (
                                         <tr key={idx} style={{ backgroundColor: 'white', borderBottom: '1px solid #f1f5f9' }}>
-                                          {row.map((cell, colIdx) => (
-                                            <td key={colIdx} style={{ padding: '14px', fontWeight: fw, color: color }}>
-                                              {cell}
-                                            </td>
-                                          ))}
+                                          {row.map((cell, colIdx) => {
+                                            const isAmount = colIdx >= 2; // Data columns are amounts
+                                            return (
+                                              <td key={colIdx} style={{ padding: '14px', fontWeight: fw, color: color }}>
+                                                {isAmount ? format(parseNum(cell)) : cell}
+                                              </td>
+                                            );
+                                          })}
                                         </tr>
                                       )
                                     })}

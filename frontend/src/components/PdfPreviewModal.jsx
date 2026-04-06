@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { X, Download, Edit } from 'lucide-react';
+import useCurrency from '../hooks/useCurrency';
 
 const PdfPreviewModal = ({ 
   show, 
@@ -22,6 +23,7 @@ const PdfPreviewModal = ({
   chartImages
 }) => {
   const reportRef = useRef();
+  const { format, symbol } = useCurrency();
 
   if (!show) return null;
 
@@ -392,13 +394,15 @@ const PdfPreviewModal = ({
                         const color = isTotal ? '#1e3a5f' : '#475569';
                         return (
                           <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isTotal ? '#f0f7ff' : 'white' }}>
-                            {row.map((cell, colIdx) => (
-                              <td key={colIdx} style={{ padding: '10px 12px', border: '1px solid #e2e8f0', fontWeight: fw, color: color }}>
-                                {budgetCurrency && colIdx > 1 && cell !== '' && cell !== null && !isNaN(Number(cell)) 
-                                  ? `${budgetCurrency}${Number(cell).toLocaleString()}` 
-                                  : cell}
-                              </td>
-                            ))}
+                            {row.map((cell, colIdx) => {
+                              const isAmount = colIdx >= 2;
+                              const num = parseFloat(String(cell).replace(/[^0-9.-]+/g, ''));
+                              return (
+                                <td key={colIdx} style={{ padding: '10px 12px', border: '1px solid #e2e8f0', fontWeight: fw, color: color }}>
+                                  {isAmount && !isNaN(num) ? format(num) : cell}
+                                </td>
+                              );
+                            })}
                           </tr>
                         );
                       })}

@@ -11,9 +11,11 @@ import SearchableDropdown from "../../components/SearchableDropdown";
 import SubCategoryModal from "../../components/SubCategoryModal";
 
 import { useNavigate } from 'react-router-dom';
+import useCurrency from "../../hooks/useCurrency";
 
 const ProjectMaster = () => {
   const navigate = useNavigate();
+  const { format, symbol } = useCurrency();
   // Fixed columns matching backend Project model
   const initialColumns = [
     { id: 'project_id', label: 'Project ID', visible: true, sortable: true, type: 'text', required: true },
@@ -797,7 +799,11 @@ const ProjectMaster = () => {
     const dataToExport = sortedProjects.map(proj => {
       const row = {};
       columns.forEach(col => {
-        row[col.label] = proj[col.id] || '';
+        let val = proj[col.id] || '';
+        if (['budget', 'utilized_budget', 'balance_budget'].includes(col.id)) {
+          val = format(parseFloat(val) || 0);
+        }
+        row[col.label] = val;
       });
       return row;
     });
@@ -847,9 +853,15 @@ const ProjectMaster = () => {
 
   const exportToPDF = (data) => {
     const doc = new jsPDF();
-    const tableColumn = columns.map(col => col.label);
-    const tableRows = data.map(proj =>
-      columns.map(col => proj[col.label] || '')
+    const tableColumn = columns.filter(col => col.visible && col.id !== 'detailed_view').map(col => col.label);
+    const tableRows = sortedProjects.map(proj =>
+      columns.filter(col => col.visible && col.id !== 'detailed_view').map(col => {
+        let val = proj[col.id] || '';
+        if (['budget', 'utilized_budget', 'balance_budget'].includes(col.id)) {
+          return format(parseFloat(val) || 0);
+        }
+        return val;
+      })
     );
 
     doc.autoTable({
@@ -1321,15 +1333,11 @@ const ProjectMaster = () => {
       );
     }
     if (['budget', 'utilized_budget', 'balance_budget'].includes(col.id)) {
-      const numValue = parseFloat(value) || 0;
       return (
-        <span className={`text-sm font-medium ${col.id === 'balance_budget' && numValue < 0 ? 'text-red-600' : 'text-slate-700'}`}>
-          ${numValue.toLocaleString()}
+        <span className={`text-sm font-medium ${col.id === 'balance_budget' && (parseFloat(value) || 0) < 0 ? 'text-red-600' : 'text-slate-700'}`}>
+          {format(parseFloat(value) || 0)}
         </span>
       );
-    }
-    if (col.id === 'balance_budget') {
-      return <span className={`font-semibold ${value < 0 ? 'text-red-500' : 'text-emerald-600'}`}>${(value || 0).toLocaleString()}</span>;
     }
     if (col.type === 'detailed_view_button') {
       return (
@@ -2026,7 +2034,7 @@ const ProjectMaster = () => {
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Budget <span className="text-red-500">*</span></label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">{symbol}</span>
                       <input
                         type="number"
                         value={editForm.budget || ''}

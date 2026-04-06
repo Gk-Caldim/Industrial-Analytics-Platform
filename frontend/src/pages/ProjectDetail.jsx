@@ -6,6 +6,7 @@ import ManageTeamModal from '../components/project/ManageTeamModal';
 import ProjectSubCategoryMaster from '../components/project/ProjectSubCategoryMaster';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 import ReactECharts from 'echarts-for-react';
+import useCurrency from '../hooks/useCurrency';
 
 const ProjectDetail = () => {
   const { id } = useParams();
@@ -18,6 +19,7 @@ const ProjectDetail = () => {
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [notification, setNotification] = useState(null);
   const [departments, setDepartments] = useState([]);
+  const { format, symbol } = useCurrency();
 
   const showNotif = (msg, type = 'success') => {
     setNotification({ msg, type });
@@ -174,16 +176,16 @@ const ProjectDetail = () => {
                       </div>
                       <div>
                         <span className="text-sm text-slate-500 dark:text-slate-400">Total Allocation</span>
-                        <p className="font-semibold text-slate-800 dark:text-white mt-1 text-lg">${totalAlloc.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                        <p className="font-semibold text-slate-800 dark:text-white mt-1 text-lg">{format(totalAlloc)}</p>
                       </div>
                       <div>
                         <span className="text-sm text-slate-500 dark:text-slate-400">Utilized Budget</span>
-                        <p className="font-semibold text-amber-600 dark:text-amber-400 mt-1 text-lg">${totalUtil.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+                        <p className="font-semibold text-amber-600 dark:text-amber-400 mt-1 text-lg">{format(totalUtil)}</p>
                       </div>
                       <div>
                         <span className="text-sm text-slate-500 dark:text-slate-400">Balance Budget</span>
                         <p className={`font-bold mt-1 text-lg ${totalBalance < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
-                          ${totalBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                          {format(totalBalance)}
                         </p>
                       </div>
                     </div>
@@ -215,10 +217,10 @@ const ProjectDetail = () => {
                         departments.filter(d => d.project_name === project.name).map(dept => (
                           <tr key={dept.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                             <td className="px-6 py-3.5 font-medium text-slate-800 dark:text-white">{dept.name}</td>
-                            <td className="px-6 py-3.5 text-slate-600 dark:text-slate-400">${(dept.budget_allocation || 0).toLocaleString()}</td>
-                            <td className="px-6 py-3.5 text-amber-600 font-medium">${(dept.utilized_budget || 0).toLocaleString()}</td>
+                            <td className="px-6 py-3.5 text-slate-600 dark:text-slate-400">{format(dept.budget_allocation || 0)}</td>
+                            <td className="px-6 py-3.5 text-amber-600 font-medium">{format(dept.utilized_budget || 0)}</td>
                             <td className={`px-6 py-3.5 text-right font-bold ${(dept.balance_budget || 0) < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
-                              ${(dept.balance_budget || 0).toLocaleString()}
+                              {format(dept.balance_budget || 0)}
                             </td>
                           </tr>
                         ))
@@ -331,8 +333,8 @@ const ProjectDetail = () => {
               const allocPct   = masterBudget > 0 ? (totalAlloc / masterBudget) * 100 : 0;
 
               const fmt = (n) => n >= 1_000_000
-                ? `$${(n/1_000_000).toFixed(2)}M`
-                : n >= 1_000 ? `$${(n/1_000).toFixed(1)}K` : `$${n.toLocaleString()}`;
+                ? `${symbol}${(n/1_000_000).toFixed(2)}M`
+                : n >= 1_000 ? `${symbol}${(n/1_000).toFixed(1)}K` : format(n);
 
               /* ---------- CHART 1: Donut – Allocation Split ---------- */
               const donutOption = {
@@ -725,7 +727,7 @@ const ProjectDetail = () => {
                                    <span className="text-slate-400 capitalize">{key.replace(/_/g, ' ')}:</span>
                                    <span className="font-bold text-slate-700 dark:text-slate-200">
                                       {typeof val === 'number' ? 
-                                        (key.includes('value') || key.includes('budget') ? `$${val.toLocaleString()}` : val.toLocaleString()) : 
+                                        (key.includes('value') || key.includes('budget') ? format(val) : val.toLocaleString()) : 
                                         String(val)}
                                    </span>
                                  </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, Copy, ArrowUp, ArrowDown, Filter, Zap } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, Copy, ArrowUp, ArrowDown, Filter, Zap, MoreHorizontal, Info, FileText } from 'lucide-react';
 import * as XLSX from 'xlsx';
+import useCurrency from '../hooks/useCurrency';
 
 const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, loading, onDataUpdate, onProcessData }) => {
     // Convert string array of columns to object array for consistent handling
@@ -63,6 +64,12 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
     const [filterDraft, setFilterDraft] = useState({});
 
     // Checkbox selection state
+    const { format, symbol } = useCurrency();
+    
+    const isCurrencyField = (id, label) => {
+        const searchStr = (String(id) + String(label)).toLowerCase();
+        return ['budget', 'cost', 'estimation', 'approved', 'utilized', 'balance', 'outlook', 'likely', 'value', 'price', 'amount', 'expenditure', 'capex'].some(key => searchStr.includes(key));
+    };
     const [selectedRows, setSelectedRows] = useState([]);
     const [selectAll, setSelectAll] = useState(false);
 
@@ -512,19 +519,29 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
         setShowExportConfirmPrompt({ show: true, format: format, count: sortedData.length });
     };
 
-    const handleExport = (format) => {
+    const handleExport = (formatType) => {
         const exportData = sortedData.map(row => {
             const dataRow = { ...row };
             delete dataRow._local_id;
-            return dataRow;
+            
+            // Map keys to labels for better readability and format currency fields
+            const labeledRow = {};
+            columns.forEach(col => {
+                let val = dataRow[col.id] || '';
+                if (isCurrencyField(col.id, col.label)) {
+                    val = format(parseFloat(val) || 0);
+                }
+                labeledRow[col.label] = val;
+            });
+            return labeledRow;
         });
 
-        if (format === 'excel') {
+        if (formatType === 'excel') {
             const ws = XLSX.utils.json_to_sheet(exportData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Data");
             XLSX.writeFile(wb, `${fileName || 'export'}.xlsx`);
-        } else if (format === 'csv') {
+        } else if (formatType === 'csv') {
             const ws = XLSX.utils.json_to_sheet(exportData);
             const csv = XLSX.utils.sheet_to_csv(ws);
             const blob = new Blob([csv], { type: 'text/csv' });
@@ -533,7 +550,7 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
             a.href = url;
             a.download = `${fileName || 'export'}.csv`;
             a.click();
-        } else if (format === 'json') {
+        } else if (formatType === 'json') {
             const jsonStr = JSON.stringify(exportData, null, 2);
             const blob = new Blob([jsonStr], { type: 'application/json' });
             const url = window.URL.createObjectURL(blob);
@@ -821,8 +838,18 @@ const ExcelTableViewer = ({ columns: initialColumns, data, fileName, onRefresh, 
                             const isRowCurrentlyFrozen = isRowFrozen(actualRowIndex);
                             const isSelected = selectedRows.includes(row._local_id);
 
-                            const formatCellValue = (value, colId, colLabel) => {
-                                let strVal = value !== undefined && value !== null && String(value) !== "" ? String(value) : '-';
+                             const formatCellValue = (value, colId, colLabel) => {
+                                if (value === undefined || value === null || String(value) === "") return '-';
+                                
+                                // Check if it's a currency field
+                                if (isCurrencyField(colId, colLabel)) {
+                                    const num = parseFloat(String(value).replace(/[^0-9.-]+/g, ''));
+                                    if (!isNaN(num)) {
+                                        return format(num);
+                                    }
+                                }
+
+                                let strVal = String(value);
                                 if (strVal !== '-' && (String(colId).toLowerCase().includes('file') || String(colLabel).toLowerCase().includes('file'))) {
                                     strVal = strVal.replace(/\.(xlsx|xls|csv|pdf|docx|txt|json)$/i, "");
                                 }
