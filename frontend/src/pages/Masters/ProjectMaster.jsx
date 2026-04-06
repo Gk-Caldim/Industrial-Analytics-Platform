@@ -244,11 +244,20 @@ const ProjectMaster = () => {
   };
 
   const { user: currentUser } = useSelector(state => state.auth);
-  const isAdmin = currentUser?.role === 'Admin';
+  const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'Super Admin';
+
+  const canAddProject = isAdmin || currentUser?.permissions?.includes('Project Master:ADD');
+  const canEditProject = isAdmin || currentUser?.permissions?.includes('Project Master:EDIT');
+  const canDeleteProject = isAdmin || currentUser?.permissions?.includes('Project Master:DELETE');
+  const canAddCustomColumns = isAdmin || currentUser?.permissions?.includes('Project Master:CUSTOM_COLUMNS');
 
   const hasProjectPermission = (project, permissionType) => {
     if (isAdmin) return true;
     
+    // Check role-level global master permissions
+    if (permissionType === 'edit' && canEditProject) return true;
+    if (permissionType === 'delete' && canDeleteProject) return true;
+
     const empId = currentUser?.employee_id;
     if (!empId) return false;
 
@@ -2292,7 +2301,7 @@ const ProjectMaster = () => {
                   <div className="flex gap-2 mt-2 sm:mt-0 flex-wrap sm:flex-nowrap justify-end">
 
                     {/* Add Project Button */}
-                    {isAdmin && (
+                    {canAddProject && (
                       <button
                         onClick={handleAddProjectClick}
                         className="flex items-center gap-1.5 h-10 px-4 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
@@ -2303,7 +2312,7 @@ const ProjectMaster = () => {
                     )}
 
                     {/* Add Column Button */}
-                    {isAdmin && (
+                    {canAddCustomColumns && (
                       <button
                         onClick={() => setShowColumnModal(true)}
                         className="flex items-center gap-1.5 h-10 px-3 text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors whitespace-nowrap"
@@ -2575,26 +2584,30 @@ const ProjectMaster = () => {
                     </button>
                   </div>
 
-                  {/* Edit and Delete buttons - only show when projects are selected and user is Admin */}
-                  {selectedProjects.length > 0 && isAdmin ? (
+                  {/* Edit and Delete buttons - only show when projects are selected and user has permission */}
+                  {selectedProjects.length > 0 && (canEditProject || canDeleteProject) ? (
                     <div className="flex items-center gap-1 ml-1">
-                      <button
-                        onClick={handleBulkEdit}
-                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80"
-                        title="Edit selected project"
-                      >
-                        <Edit className="h-4 w-4" />
-                        {selectedProjects.length > 1 && <span>Edit ({selectedProjects.length})</span>}
-                      </button>
+                      {canEditProject && (
+                        <button
+                          onClick={handleBulkEdit}
+                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80"
+                          title="Edit selected project"
+                        >
+                          <Edit className="h-4 w-4" />
+                          {selectedProjects.length > 1 && <span>Edit ({selectedProjects.length})</span>}
+                        </button>
+                      )}
 
-                      <button
-                        onClick={handleBulkDelete}
-                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                        title={selectedProjects.length === 1 ? "Delete selected project" : "Delete selected projects"}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        {selectedProjects.length > 1 && <span>Delete ({selectedProjects.length})</span>}
-                      </button>
+                      {canDeleteProject && (
+                        <button
+                          onClick={handleBulkDelete}
+                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                          title={selectedProjects.length === 1 ? "Delete selected project" : "Delete selected projects"}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          {selectedProjects.length > 1 && <span>Delete ({selectedProjects.length})</span>}
+                        </button>
+                      )}
                     </div>
                   ) : null}
                 </div>

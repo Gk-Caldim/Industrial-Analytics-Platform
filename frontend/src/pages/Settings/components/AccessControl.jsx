@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { refreshUserProfile } from '../../../store/slices/authSlice';
 import {
   Shield, UserCheck, Lock, ChevronRight, CheckCircle2, Circle, Search, Plus, Boxes, LayoutDashboard,
   FileText, Settings, Users, ClipboardList, Briefcase, FileSearch, HelpCircle, Key, Activity,
@@ -15,6 +17,8 @@ const ROLE_ORDER = {
 };
 
 const AccessControl = () => {
+  const dispatch = useDispatch();
+  const { user: currentUser } = useSelector((state) => state.auth);
   const [roles, setRoles] = useState([]);
   const [selectedRole, setSelectedRole] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -44,7 +48,7 @@ const AccessControl = () => {
         { name: 'MOM', description: 'Minutes of Meeting management', tags: ['CREATE', 'VIEW'] },
       ]
     },
-    {
+  {
       id: 'masters',
       label: 'MASTER DATA',
       permissions: [
@@ -64,12 +68,26 @@ const AccessControl = () => {
           description: 'Project lifecycle and resource tracking',
           tags: ['MANAGE'],
           subPermissions: [
+            { id: 'ADD', label: 'Add Project' },
+            { id: 'EDIT', label: 'Edit Project' },
+            { id: 'DELETE', label: 'Delete Project' },
+            { id: 'CUSTOM_COLUMNS', label: 'Add Custom Columns' },
             { id: 'VIEW-SUBCATEGORY', label: 'View Subcategory' },
             { id: 'EDIT-SUBCATEGORY', label: 'Edit Subcategory' },
             { id: 'DELETE-SUBCATEGORY', label: 'Delete Subcategory' }
           ]
         },
-        { name: 'Department Master', description: 'Organizational hierarchy and departments', tags: ['MANAGE'] },
+        {
+          name: 'Department Master',
+          description: 'Organizational hierarchy and departments',
+          tags: ['MANAGE'],
+          subPermissions: [
+            { id: 'ADD', label: 'Add Department' },
+            { id: 'EDIT', label: 'Edit Department' },
+            { id: 'DELETE', label: 'Delete Department' },
+            { id: 'CUSTOM_COLUMNS', label: 'Add Custom Columns' }
+          ]
+        },
       ]
     },
     {
@@ -145,9 +163,12 @@ const AccessControl = () => {
     let currentPermissions = selectedRole.permissions || [];
     let updatedPermissions;
 
+    // Find the module object to know its sub-permissions
+    const moduleObj = permissionsGroups.flatMap(g => g.permissions).find(p => p.name === moduleName);
+    const moduleSubPermIds = moduleObj?.subPermissions?.map(sp => sp.id.includes('_') ? sp.id : `${moduleName}:${sp.id}`) || [];
+
     if (subPermId) {
       // Toggle a specific sub-permission
-      // If subPermId contains underscore, it's a granular permission (e.g. upload_tracker), use it as is
       const fullSubPerm = subPermId.includes('_') ? subPermId : `${moduleName}:${subPermId}`;
       updatedPermissions = currentPermissions.includes(fullSubPerm)
         ? currentPermissions.filter(p => p !== fullSubPerm)
@@ -156,18 +177,13 @@ const AccessControl = () => {
       // Toggle the main module
       const isEnabled = currentPermissions.includes(moduleName);
       if (isEnabled) {
-        // Disable main module AND all its sub-permissions
+        // Disable main module AND its specific sub-permissions ONLY
         updatedPermissions = currentPermissions.filter(p =>
-          p !== moduleName &&
-          !p.startsWith(`${moduleName}:`) &&
-          !p.endsWith('_tracker') &&
-          !p.endsWith('_budget')
+          p !== moduleName && !moduleSubPermIds.includes(p)
         );
       } else {
         // Enable main module AND all its sub-permissions by default
-        const moduleObj = permissionsGroups.flatMap(g => g.permissions).find(p => p.name === moduleName);
-        const subPerms = moduleObj?.subPermissions?.map(sp => sp.id.includes('_') ? sp.id : `${moduleName}:${sp.id}`) || [];
-        updatedPermissions = [...currentPermissions, moduleName, ...subPerms];
+        updatedPermissions = [...new Set([...currentPermissions, moduleName, ...moduleSubPermIds])];
       }
     }
 
@@ -182,6 +198,12 @@ const AccessControl = () => {
       await API.patch(`/roles/${selectedRole.id}`, {
         permissions: selectedRole.permissions
       });
+      
+      // Auto-reflect: Refresh the user's profile if the updated role is the current user's role
+      if (selectedRole.name === currentUser?.role) {
+        await dispatch(refreshUserProfile());
+      }
+      
       showNotification('Permissions updated successfully!');
     } catch (error) {
       console.error('Error saving role changes:', error);

@@ -49,7 +49,7 @@ const SystemSettings = () => {
           label: 'Controls',
           icon: Shield,
           subItems: [
-            { id: 'Access Control', label: 'Access Control' },
+            ...(isAdmin ? [{ id: 'Access Control', label: 'Access Control' }] : []),
             ...(isAdmin ? [{ id: 'Application Access', label: 'Application Access' }] : []),
           ]
         },
