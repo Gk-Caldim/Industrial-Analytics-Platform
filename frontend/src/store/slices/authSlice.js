@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
+import API from '../../utils/api';
 
 const initialState = {
   user: JSON.parse(sessionStorage.getItem('user')) || null,
@@ -43,4 +44,15 @@ const authSlice = createSlice({
 });
 
 export const { loginStart, loginSuccess, loginFailure, logout, setUser } = authSlice.actions;
+
+export const refreshUserProfile = () => async (dispatch) => {
+  try {
+    const response = await API.get('/auth/me');
+    dispatch(setUser(response.data));
+    return response.data;
+  } catch (error) {
+    console.error('Error refreshing user profile:', error);
+  }
+};
+
 export default authSlice.reducer;

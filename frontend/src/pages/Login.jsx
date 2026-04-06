@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { DotLottiePlayer } from '@dotlottie/react-player';
 import LoginForm from '../components/LoginForm';
@@ -11,7 +12,14 @@ const Login = () => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const { isAuthenticated } = useSelector((state) => state.auth);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     // Initial loader timeout
@@ -29,7 +37,7 @@ const Login = () => {
     setIsExiting(true);
     // Graceful delay for 3D flip (1.2s total)
     setTimeout(() => {
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     }, 1200);
   };
 

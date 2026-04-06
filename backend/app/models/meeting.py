@@ -30,9 +30,25 @@ class Meeting(Base):
     organizer_email = Column(String, nullable=True)
     attendees = Column(Text, nullable=True)  # JSON list of emails as string
     
-    # Status
-    status = Column(String(20), default='scheduled')  # scheduled, completed, cancelled
+    # Status & Cancellation
+    status = Column(String(20), default='scheduled')  # scheduled, completed, cancelled, archived
     invites_sent = Column(Boolean, default=False)
+    
+    # Cancellation Details
+    cancellation_reason = Column(String(100), nullable=True)
+    cancellation_note = Column(Text, nullable=True)
+    cancelled_by = Column(String(100), nullable=True)
+    cancelled_at = Column(DateTime, nullable=True)
+    attendees_notified = Column(Boolean, default=False)
+    
+    # Advanced / Rich content
+    agenda_text = Column(Text, nullable=True)
+    
+    # Analytics
+    actual_duration_minutes = Column(Integer, nullable=True)
+    attendance_rate = Column(Integer, nullable=True) # 0 to 100
+    mom_generated = Column(Boolean, default=False)
+    action_item_count = Column(Integer, default=0)
     
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))

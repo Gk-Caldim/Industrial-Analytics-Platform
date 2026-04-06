@@ -5,8 +5,11 @@ import API from '../../utils/api';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import useCurrency from '../../hooks/useCurrency';
+import SearchableDropdown from '../SearchableDropdown';
 
 const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline = false }) => {
+  const { format, symbol, code, convert } = useCurrency();
   const { user } = useSelector(state => state.auth);
   const isAdmin = user?.role === 'Admin' || user?.role === 'Super Admin';
   const permissions = user?.permissions || [];
@@ -15,6 +18,7 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
 
   const initialColumns = [
     { id: 'sub_category', label: 'Sub-category', visible: true, sortable: true, type: 'text', required: true },
+    { id: 'department', label: 'Department', visible: true, sortable: true, type: 'select', required: true },
     { id: 'unit_type', label: 'Unit Type', visible: true, sortable: true, type: 'text', required: false },
     { id: 'no_of_counts_per_unit', label: 'No of counts Per unit', visible: true, sortable: true, type: 'number', required: false },
     { id: 'estimated_value', label: 'Budget', visible: true, sortable: true, type: 'number', required: true },
@@ -22,7 +26,7 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
     { id: 'balance', label: 'Balance Budget', visible: true, sortable: true, type: 'number', required: false, readonly: true },
   ];
 
-  const fixedColumnIds = ['id', 'project_id', 'sub_category', 'unit_type', 'no_of_counts_per_unit', 'estimated_value', 'utilized_value', 'balance', 'custom_fields'];
+  const fixedColumnIds = ['id', 'project_id', 'sub_category', 'department', 'unit_type', 'no_of_counts_per_unit', 'estimated_value', 'utilized_value', 'balance', 'custom_fields'];
 
   const [columns, setColumns] = useState(() => {
     const saved = localStorage.getItem('project_subcategory_columns_v1');
@@ -39,6 +43,7 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
   const [newColumnName, setNewColumnName] = useState('');
   const [editingColumn, setEditingColumn] = useState(null);
   const [tempColumnName, setTempColumnName] = useState('');
+  const [departmentList, setDepartmentList] = useState([]);
 
   useEffect(() => {
     localStorage.setItem('project_subcategory_columns_v1', JSON.stringify(columns));
@@ -48,7 +53,17 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
     if (project) {
       fetchSubCategories();
     }
+    fetchDepartments();
   }, [project]);
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await API.get('/departments/');
+      setDepartmentList(res.data.map(d => d.name) || []);
+    } catch (err) {
+      console.error("Error fetching departments", err);
+    }
+  };
 
   // Auto-calculate balance for form
   useEffect(() => {
@@ -98,14 +113,22 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
         return isNaN(parsed) ? 0 : parsed;
       };
 
+      const convertedFormData = {
+        ...formData,
+        estimated_value: convert(formData.estimated_value || 0, code, 'USD'),
+        utilized_value: convert(formData.utilized_value || 0, code, 'USD'),
+        balance: convert(formData.balance || 0, code, 'USD'),
+      };
+
       let payload = {
         project_id: project.project_id,
-        sub_category: formData.sub_category,
-        unit_type: formData.unit_type || '',
-        no_of_counts_per_unit: safeFloat(formData.no_of_counts_per_unit),
-        estimated_value: safeFloat(formData.estimated_value),
-        utilized_value: safeFloat(formData.utilized_value),
-        balance: safeFloat(formData.balance),
+        sub_category: convertedFormData.sub_category,
+        department: convertedFormData.department || '',
+        unit_type: convertedFormData.unit_type || '',
+        no_of_counts_per_unit: safeFloat(convertedFormData.no_of_counts_per_unit),
+        estimated_value: safeFloat(convertedFormData.estimated_value),
+        utilized_value: safeFloat(convertedFormData.utilized_value),
+        balance: safeFloat(convertedFormData.balance),
         custom_fields: {}
       };
 
@@ -147,7 +170,12 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
   };
 
   const startEdit = (item) => {
-    setFormData(item);
+    setFormData({
+      ...item,
+      estimated_value: convert(item.estimated_value || 0, 'USD', code),
+      utilized_value: convert(item.utilized_value || 0, 'USD', code),
+      balance: convert(item.balance || 0, 'USD', code),
+    });
     setEditingId(item.id);
     setIsAdding(true);
   };
@@ -204,7 +232,11 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
     const dataToExport = filteredData.map(item => {
       const row = {};
       visibleColumns.forEach(col => {
-        row[col.label] = item[col.id] || '';
+        let val = item[col.id] || '';
+        if (col.type === 'number' && (col.id.includes('value') || col.id === 'balance')) {
+          val = format(val || 0);
+        }
+        row[col.label] = val;
       });
       return row;
     });
@@ -284,14 +316,31 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
                     <label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-[0.1em] mb-2.5 pl-0.5">
                       {col.label} {col.required && <span className="text-red-500">*</span>}
                     </label>
-                    <input
-                      type={col.type === 'number' ? 'number' : 'text'}
-                      value={formData[col.id] ?? ''}
-                      onChange={(e) => handleInputChange(col.id, col.type === 'number' ? (e.target.value === '' ? '' : parseFloat(e.target.value)) : e.target.value)}
-                      disabled={col.readonly}
-                      className={`w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 text-[13.5px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all shadow-sm flex items-center gap-1 ${col.readonly ? 'bg-slate-100 dark:bg-slate-800/80 cursor-not-allowed opacity-80 text-slate-500 italic' : ''}`}
-                      placeholder={`Enter ${col.label.toLowerCase()}...`}
-                    />
+                    <div className="relative">
+                      {col.type === 'number' && (col.id.includes('value') || col.id === 'balance') && (
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[13.5px] font-bold text-slate-400">
+                          {symbol}
+                        </span>
+                      )}
+                      {col.id === 'department' ? (
+                        <SearchableDropdown
+                          options={departmentList}
+                          value={formData[col.id] || ''}
+                          onChange={(val) => handleInputChange(col.id, val)}
+                          placeholder="Select Department..."
+                          className="w-full"
+                        />
+                      ) : (
+                        <input
+                          type={col.type === 'number' ? 'number' : 'text'}
+                          value={formData[col.id] ?? ''}
+                          onChange={(e) => handleInputChange(col.id, col.type === 'number' ? (e.target.value === '' ? '' : parseFloat(e.target.value)) : e.target.value)}
+                          disabled={col.readonly}
+                          className={`w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 text-[13.5px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all shadow-sm flex items-center gap-1 ${col.readonly ? 'bg-slate-100 dark:bg-slate-800/80 cursor-not-allowed opacity-80 text-slate-500 italic' : ''} ${(col.type === 'number' && (col.id.includes('value') || col.id === 'balance')) ? 'pl-8' : ''}`}
+                          placeholder={`Enter ${col.label.toLowerCase()}...`}
+                        />
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -352,7 +401,7 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
                             {col.type === 'number' ? (
                               <span className={col.id === 'balance' ? (item[col.id] < 0 ? 'text-red-500 px-2 py-0.5 rounded-full bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30' : 'text-emerald-600 px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-900/30') : ''}>
                                 {col.id.includes('value') || col.id === 'balance' ? 
-                                  `$${(item[col.id] || 0).toLocaleString()}` : 
+                                  format(item[col.id] || 0) : 
                                   (item[col.id]?.toLocaleString() || 0)}
                               </span>
                             ) : (
@@ -403,7 +452,7 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
           </div>
           <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
-              <span className="font-medium">Total Resource Allocation: <span className="text-emerald-700 dark:text-emerald-500 ml-0.5 font-bold">${subCategories.reduce((acc, curr) => acc + (curr.estimated_value || 0), 0).toLocaleString()}</span></span>
+              <span className="font-medium">Total Resource Allocation: <span className="text-emerald-700 dark:text-emerald-500 ml-0.5 font-bold">{format(subCategories.reduce((acc, curr) => acc + (curr.estimated_value || 0), 0))}</span></span>
           </div>
         </div>
         <div className="text-[10px] uppercase font-bold tracking-widest text-slate-300 dark:text-slate-700">Protected Module • v1.0.4</div>

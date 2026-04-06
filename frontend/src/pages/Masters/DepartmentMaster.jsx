@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Filter, Download, Eye, EyeOff, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, ArrowUp, ArrowDown, Copy } from 'lucide-react';
+import { useSelector } from 'react-redux';
 import API from '../../utils/api';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { getEmployees } from "../../utils/employeeApi";
 import SearchableDropdown from "../../components/SearchableDropdown";
+import useCurrency from "../../hooks/useCurrency";
 
 const DepartmentMaster = () => {
+  const { format, symbol } = useCurrency();
   // Fixed columns matching backend Department model
   const initialColumns = [
     { id: 'department_id', label: 'Department ID', visible: true, sortable: true, type: 'text', required: true, deletable: false },
@@ -102,6 +105,14 @@ const DepartmentMaster = () => {
       setNotification({ show: false, message: '', type: '' });
     }, 3000);
   };
+
+  const { user: currentUser } = useSelector(state => state.auth);
+  const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'Super Admin';
+
+  const canAddDept = isAdmin || currentUser?.permissions?.includes('Department Master:ADD');
+  const canEditDept = isAdmin || currentUser?.permissions?.includes('Department Master:EDIT');
+  const canDeleteDept = isAdmin || currentUser?.permissions?.includes('Department Master:DELETE');
+  const canAddCustomColumns = isAdmin || currentUser?.permissions?.includes('Department Master:CUSTOM_COLUMNS');
 
   const [projectList, setProjectList] = useState([]);
 
@@ -838,22 +849,32 @@ const DepartmentMaster = () => {
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
     );
-    if (col.type === 'number') return (
-      <div>
-        <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
-        <input
-          type="number"
-          value={value || (col.readonly ? (col.id === 'balance_budget' ? '0' : '') : '')}
-          onChange={e => onChange(col.id, e.target.value)}
-          className={`${inputClass} ${col.readonly ? 'bg-slate-50 dark:bg-slate-900/50 cursor-not-allowed opacity-75' : ''}`}
-          min="0"
-          step="0.01"
-          readOnly={col.readonly}
-          placeholder={col.readonly ? "Auto-calculated" : `Enter ${col.label.toLowerCase()}`}
-        />
-        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
-      </div>
-    );
+    if (col.type === 'number') {
+      const isBudget = ['budget', 'budget_allocation', 'utilized_budget', 'balance_budget'].includes(col.id);
+      return (
+        <div>
+          <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
+          <div className="relative">
+            {isBudget && (
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">
+                {symbol}
+              </span>
+            )}
+            <input
+              type="number"
+              value={value || (col.readonly ? (col.id === 'balance_budget' ? '0' : '') : '')}
+              onChange={e => onChange(col.id, e.target.value)}
+              className={`${inputClass} ${col.readonly ? 'bg-slate-50 dark:bg-slate-900/50 cursor-not-allowed opacity-75' : ''} ${isBudget ? 'pl-8' : ''}`}
+              min="0"
+              step="0.01"
+              readOnly={col.readonly}
+              placeholder={col.readonly ? "Auto-calculated" : `Enter ${col.label.toLowerCase()}`}
+            />
+          </div>
+          {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+        </div>
+      );
+    }
     if (col.id === 'name') return (
       <div>
         <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">{col.label} {col.required && <span className="text-red-500">*</span>}</label>
@@ -909,11 +930,15 @@ const DepartmentMaster = () => {
     });
   };
 
-  const handleExport = (format) => {
+  const handleExport = (formatType) => {
     const dataToExport = sortedDepartments.map(dept => {
       const row = {};
       columns.filter(col => col.visible).forEach(col => {
-        row[col.label] = dept[col.id] || '';
+        let val = dept[col.id] || '';
+        if (['budget', 'budget_allocation', 'utilized_budget', 'balance_budget'].includes(col.id)) {
+          val = format(parseFloat(val) || 0);
+        }
+        row[col.label] = val;
       });
       return row;
     });
@@ -956,8 +981,14 @@ const DepartmentMaster = () => {
   const exportToPDF = (data) => {
     const doc = new jsPDF();
     const tableColumn = columns.filter(col => col.visible).map(col => col.label);
-    const tableRows = data.map(dept =>
-      columns.filter(col => col.visible).map(col => dept[col.label] || '')
+    const tableRows = sortedDepartments.map(dept =>
+      columns.filter(col => col.visible).map(col => {
+        let val = dept[col.id] || '';
+        if (['budget', 'budget_allocation', 'utilized_budget', 'balance_budget'].includes(col.id)) {
+          return format(parseFloat(val) || 0);
+        }
+        return val;
+      })
     );
 
     doc.autoTable({
@@ -1015,7 +1046,7 @@ const DepartmentMaster = () => {
 
       return (
         <span className={`text-sm ${textColor}`}>
-          ${(parseFloat(value) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          {format(parseFloat(value) || 0)}
         </span>
       );
     }
@@ -1679,13 +1710,15 @@ const DepartmentMaster = () => {
                 <div className="flex gap-2 mt-2 sm:mt-0">
 
                   {/* Add Column Button */}
-                  <button
-                    onClick={() => setShowColumnModal(true)}
-                    className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 whitespace-nowrap master-table-tooltip"
-                    data-tooltip="Add column"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
+                  {canAddCustomColumns && (
+                    <button
+                      onClick={() => setShowColumnModal(true)}
+                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 whitespace-nowrap master-table-tooltip"
+                      data-tooltip="Add column"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  )}
 
                   {/* Freeze Column Button */}
                   <button
@@ -1895,20 +1928,24 @@ const DepartmentMaster = () => {
                             : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 group-hover:bg-slate-50 dark:group-hover:bg-slate-700/50 transition-colors'
                         }`}>
                           <div className="flex items-center justify-end gap-1 transition-opacity duration-200">
-                            <button
-                              onClick={(e) => { e.stopPropagation(); startEditing(dept); }}
-                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                              title="Edit"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); showDeleteConfirmation(dept.id, dept.name); }}
-                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            {canEditDept && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); startEditing(dept); }}
+                                className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                                title="Edit"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </button>
+                            )}
+                            {canDeleteDept && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); showDeleteConfirmation(dept.id, dept.name); }}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1933,13 +1970,15 @@ const DepartmentMaster = () => {
               {/* LEFT SIDE - Add Department and Action Buttons */}
               <div className="flex items-center gap-2">
                 <div className="flex gap-1">
-                  <button
-                    onClick={handleAddDeptClick}
-                    className="flex items-center gap-1 h-10 px-3 text-xs border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 master-table-tooltip"
-                    data-tooltip="Add department"
-                  >
-                    <Plus className="h-4 w-4" />
-                  </button>
+                  {canAddDept && (
+                    <button
+                      onClick={handleAddDeptClick}
+                      className="flex items-center gap-1 h-10 px-3 text-xs border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 master-table-tooltip"
+                      data-tooltip="Add department"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  )}
                   <button
                     onClick={toggleFreezeRow}
                     className={`flex items-center gap-1 h-10 px-3 text-xs border rounded master-table-tooltip ${frozenRows.length > 0
@@ -1953,26 +1992,30 @@ const DepartmentMaster = () => {
                   </button>
                 </div>
 
-                {/* Edit and Delete buttons - only show when departments are selected */}
-                {selectedDepartments.length > 0 ? (
+                {/* Edit and Delete buttons - only show when departments are selected and user has permission */}
+                {selectedDepartments.length > 0 && (canEditDept || canDeleteDept) ? (
                   <div className="flex items-center gap-1 ml-1">
-                    <button
-                      onClick={handleBulkEdit}
-                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80"
-                      title="Edit selected department"
-                    >
-                      <Edit className="h-4 w-4" />
-                      {selectedDepartments.length > 1 && <span>Edit ({selectedDepartments.length})</span>}
-                    </button>
+                    {canEditDept && (
+                      <button
+                        onClick={handleBulkEdit}
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80"
+                        title="Edit selected department"
+                      >
+                        <Edit className="h-4 w-4" />
+                        {selectedDepartments.length > 1 && <span>Edit ({selectedDepartments.length})</span>}
+                      </button>
+                    )}
 
-                    <button
-                      onClick={handleBulkDelete}
-                      className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                      title={selectedDepartments.length === 1 ? "Delete selected department" : "Delete selected departments"}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      {selectedDepartments.length > 1 && <span>Delete ({selectedDepartments.length})</span>}
-                    </button>
+                    {canDeleteDept && (
+                      <button
+                        onClick={handleBulkDelete}
+                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                        title={selectedDepartments.length === 1 ? "Delete selected department" : "Delete selected departments"}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        {selectedDepartments.length > 1 && <span>Delete ({selectedDepartments.length})</span>}
+                      </button>
+                    )}
                   </div>
                 ) : null}
               </div>
