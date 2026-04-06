@@ -4,9 +4,10 @@ from typing import List
 
 from app.schemas.audit_log import AuditLogCreate, AuditLogResponse
 from app.models.audit_log import AuditLog
+from app.models.employee import Employee
 from app.core.database import get_db
 from app.core.security import get_current_user
-from sqlalchemy import desc
+from sqlalchemy import desc, outerjoin
 
 router = APIRouter(
     prefix="/audit-logs",
@@ -22,7 +23,20 @@ def get_audit_logs(
     current_user: dict = Depends(get_current_user)
 ):
     """Get audit logs, optionally filtered by module and entity_id"""
-    query = db.query(AuditLog)
+    query = db.query(
+        AuditLog.id,
+        AuditLog.user_id,
+        AuditLog.action,
+        AuditLog.module,
+        AuditLog.entity_id,
+        AuditLog.details,
+        AuditLog.timestamp,
+        Employee.name.label("user_name"),
+        Employee.role.label("user_role")
+    ).outerjoin(
+        Employee, AuditLog.user_id == Employee.employee_id
+    )
+    
     if module:
         query = query.filter(AuditLog.module == module)
     if entity_id:

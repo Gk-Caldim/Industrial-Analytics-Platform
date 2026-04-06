@@ -20,6 +20,7 @@ const EmployeeMaster = () => {
     { id: 'department', label: 'Department', visible: true, sortable: true, type: 'text', required: true, deletable: false },
     { id: 'role', label: 'Role', visible: true, sortable: true, type: 'select', required: true, deletable: false },
     { id: 'status', label: 'Status', visible: true, sortable: true, type: 'select', required: true, deletable: false },
+    { id: 'project_name', label: 'Project Name', visible: true, sortable: true, type: 'text', deletable: false, required: false },
   ];
 
   const [employees, setEmployees] = useState([]);
@@ -62,7 +63,7 @@ const EmployeeMaster = () => {
 
   // Load columns from localStorage
   const [columns, setColumns] = useState(() => {
-    const savedColumns = localStorage.getItem('employee_columns_v4');
+    const savedColumns = localStorage.getItem('employee_columns_v5');
     return savedColumns ? JSON.parse(savedColumns) : initialColumns;
   });
 
@@ -304,7 +305,7 @@ const EmployeeMaster = () => {
 
   const handleDeleteColumn = (columnId) => {
     const column = columns.find(col => col.id === columnId);
-    const isFixedColumn = ['id', 'name', 'email', 'department', 'role', 'status'].includes(columnId);
+    const isFixedColumn = ['id', 'name', 'email', 'department', 'role', 'status', 'project_name'].includes(columnId);
 
     if (isFixedColumn) {
       setShowDeleteColumnPrompt({
@@ -350,7 +351,7 @@ const EmployeeMaster = () => {
 
   // Save columns to localStorage
   useEffect(() => {
-    localStorage.setItem('employee_columns_v4', JSON.stringify(columns));
+    localStorage.setItem('employee_columns_v5', JSON.stringify(columns));
   }, [columns]);
 
   // Filter employees - exclude dummy or missing data
@@ -466,13 +467,8 @@ const EmployeeMaster = () => {
       return;
     }
 
-    if (!newEmployee.password) {
-      showNotification('Password is required', 'error');
-      return;
-    }
-
-    if (newEmployee.password !== newEmployee.confirmPassword) {
-      showNotification('Passwords do not match', 'error');
+    if (!newEmployee.employee_id || !newEmployee.name || !newEmployee.email || !newEmployee.department) {
+      showNotification('Please fill in all required fields marked with *', 'error');
       return;
     }
 
@@ -832,6 +828,17 @@ const EmployeeMaster = () => {
       return (
         <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value || '-'}</span>
       )
+    }
+
+    if (column.id === 'project_name') {
+      if (value === 'not assigned') {
+        return <span className="text-xs text-slate-400 dark:text-slate-500 italic uppercase tracking-wider font-medium">{value}</span>;
+      }
+      return (
+        <span className="text-[13px] text-blue-600 dark:text-blue-400 font-medium">
+          {value}
+        </span>
+      );
     }
     return <span className="text-sm text-slate-700 dark:text-slate-300">{value || '-'}</span>;
   };
@@ -1348,52 +1355,6 @@ const EmployeeMaster = () => {
                 </div>
               </div>
 
-              {/* Password Section */}
-              <div className="mb-6">
-                <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3 flex items-center">
-                  Password <span className="text-red-500 ml-1">*</span>
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="relative">
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={newEmployee.password || ''}
-                        onChange={(e) => handleNewEmployeeChange('password', e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black pr-10"
-                        placeholder="Enter new password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm Password</label>
-                    <div className="relative">
-                      <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={newEmployee.confirmPassword || ''}
-                        onChange={(e) => handleNewEmployeeChange('confirmPassword', e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black pr-10"
-                        placeholder="Confirm new password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      >
-                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
 
               <div className="flex justify-end space-x-2">
@@ -1497,52 +1458,6 @@ const EmployeeMaster = () => {
                 </div>
               </div>
 
-               {/* Password Section */}
-               <div className="mb-6">
-                <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-3">
-                  Password <span className="text-slate-400 font-normal">(Leave blank to keep current)</span>
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="relative">
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
-                    <div className="relative">
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={editForm.password || ''}
-                        onChange={(e) => handleEditFormChange('password', e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black pr-10"
-                        placeholder="Enter new password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm Password</label>
-                    <div className="relative">
-                      <input
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={editForm.confirmPassword || ''}
-                        onChange={(e) => handleEditFormChange('confirmPassword', e.target.value)}
-                        className="w-full px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-black pr-10"
-                        placeholder="Confirm new password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                      >
-                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
 
               <div className="flex justify-end space-x-2">

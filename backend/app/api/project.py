@@ -8,6 +8,7 @@ from app.crud import project as crud_project
 from app.crud import project_column as column_crud
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.models.audit_log import AuditLog
 
 router = APIRouter(
     prefix="/projects",
@@ -68,7 +69,19 @@ def add_project(
     """Add a new project - Restricted to Admins"""
     if current_user.get("role") != "Admin":
         raise HTTPException(status_code=403, detail="Only Admins can create projects")
-    return crud_project.create_project(db, project)
+    db_project = crud_project.create_project(db, project)
+    
+    # Audit Log
+    db.add(AuditLog(
+        user_id=current_user.get("employee_id") or "System",
+        action="CREATED",
+        module="Project Master",
+        entity_id=db_project.project_id,
+        details={"name": db_project.name, "manager": db_project.manager}
+    ))
+    db.commit()
+    
+    return db_project
 
 @router.get("/{project_id}", response_model=ProjectResponse)
 def get_project(
@@ -100,7 +113,19 @@ def update_project(
     if not check_project_permission(db_project, current_user, "edit"):
         raise HTTPException(status_code=403, detail="You do not have permission to edit this project")
         
-    return crud_project.update_project(db, project_id, project)
+    updated_project = crud_project.update_project(db, project_id, project)
+    
+    # Audit Log
+    db.add(AuditLog(
+        user_id=current_user.get("employee_id") or "System",
+        action="UPDATED",
+        module="Project Master",
+        entity_id=updated_project.project_id,
+        details={"name": updated_project.name, "status": updated_project.status}
+    ))
+    db.commit()
+    
+    return updated_project
 
 @router.delete("/{project_id}")
 def delete_project(
@@ -116,9 +141,21 @@ def delete_project(
         raise HTTPException(status_code=403, detail="You do not have permission to delete this project")
 
     try:
+        project_id_str = db_project.project_id
         success = crud_project.delete_project(db, project_id)
         if not success:
             raise HTTPException(status_code=404, detail="Project not found")
+            
+        # Audit Log
+        db.add(AuditLog(
+            user_id=current_user.get("employee_id") or "System",
+            action="DELETED",
+            module="Project Master",
+            entity_id=project_id_str,
+            details={"name": db_project.name}
+        ))
+        db.commit()
+        
         return {"message": "Project deleted successfully"}
     except Exception as e:
         # Handle foreign key constraint violation specifically

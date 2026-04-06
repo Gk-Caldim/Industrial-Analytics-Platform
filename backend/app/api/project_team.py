@@ -7,6 +7,7 @@ from app.models.employee_project import EmployeeProjectMap
 from app.models.employee import Employee
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.models.audit_log import AuditLog
 from datetime import datetime
 
 router = APIRouter(
@@ -32,6 +33,8 @@ def get_project_team(
         if emp:
             alloc_dict['employee_name'] = emp.name
             alloc_dict['employee_email'] = emp.email
+            alloc_dict['employee_department'] = emp.department
+            alloc_dict['employee_role'] = emp.role
         result.append(alloc_dict)
         
     return result
@@ -73,7 +76,19 @@ def assign_team_member(
     if emp:
         alloc_dict['employee_name'] = emp.name
         alloc_dict['employee_email'] = emp.email
+        alloc_dict['employee_department'] = emp.department
+        alloc_dict['employee_role'] = emp.role
         
+    # Audit Log
+    db.add(AuditLog(
+        user_id=current_user.get("employee_id") or "System",
+        action="ASSIGNED",
+        module="Team Management",
+        entity_id=project_id,
+        details={"member": emp.name if emp else assignment.employee_id, "role": assignment.role}
+    ))
+    db.commit()
+    
     return alloc_dict
 
 @router.delete("/{project_id}/team/{allocation_id}")
@@ -88,6 +103,20 @@ def remove_team_member(
     if not alloc:
         raise HTTPException(status_code=404, detail="Allocation not found")
         
+    emp_id = alloc.employee_id
+    role = alloc.role
+    
     db.delete(alloc)
     db.commit()
+    
+    # Audit Log
+    db.add(AuditLog(
+        user_id=current_user.get("employee_id") or "System",
+        action="DELETED",
+        module="Team Management",
+        entity_id=project_id,
+        details={"member": emp_id, "role": role}
+    ))
+    db.commit()
+    
     return {"message": "Team member removed successfully"}

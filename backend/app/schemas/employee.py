@@ -30,6 +30,7 @@ class EmployeeUpdate(BaseModel):
 
 class EmployeeOut(EmployeeBase):
     id: int
+    project_name: str | None = "not assigned"
     created_at: datetime
     updated_at: datetime
 

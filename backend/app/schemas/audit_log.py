@@ -15,6 +15,8 @@ class AuditLogCreate(AuditLogBase):
 class AuditLogResponse(AuditLogBase):
     id: int
     timestamp: datetime
+    user_name: Optional[str] = None
+    user_role: Optional[str] = None
 
     class Config:
         orm_mode = True

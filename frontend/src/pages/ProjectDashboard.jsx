@@ -10,7 +10,8 @@ import ExcelTableViewer from '../components/ExcelTableViewer';
 import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings, Download, GripVertical } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import PdfPreviewModal from '../components/PdfPreviewModal';
+
 
 import { HotTable } from '@handsontable/react';
 import { registerAllModules } from 'handsontable/registry';
@@ -293,6 +294,7 @@ const ProjectTitleDashboard = () => {
   const [maximizedChart, setMaximizedChart] = useState(null);
   const [showAxisSelector, setShowAxisSelector] = useState(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
   const showSimulateModal = searchParams.get('configure') === 'true';
   const setShowSimulateModal = (show) => {
     if (show) {
@@ -340,7 +342,6 @@ const ProjectTitleDashboard = () => {
 
   // PDF Customization & Pagination States
   const [pdfPages, setPdfPages] = useState([[]]); // Array of pages [ [sectionKey1, sectionKey2], [sectionKey3] ]
-  const [activePageIndex, setActivePageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState('structure'); // 'structure', 'style', 'page'
   const [capacityWarning, setCapacityWarning] = useState('');
   const [pdfGlobalStyles, setPdfGlobalStyles] = useState({
@@ -1097,71 +1098,62 @@ const ProjectTitleDashboard = () => {
     }));
   };
 
-  // Handle direct download of PDF
-  const handleDownloadPdf = async () => {
-    try {
-      setLoading(true);
 
-      // Tier 3: Pre-capture all live echarts into base64 images BEFORE switching to PDF mode
-      const capturedImages = {};
-      Object.keys(chartRefs.current).forEach(id => {
-        const instance = chartRefs.current[id]?.getEchartsInstance();
-        if (instance) {
-          // getDataURL safely grabs current canvas as pixel-perfect snapshot
-          capturedImages[id] = instance.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#fff' });
-        }
-      });
-      setPdfChartImages(capturedImages);
 
-      setIsCapturingPdf(true);
-
-      // Give React time to remove editor scaffolding and swap echarts to <img> tags
-      await new Promise(resolve => setTimeout(resolve, 800));
-
-      const pageContainers = document.querySelectorAll('.pdf-page-container');
-      const pdf = new jsPDF('p', 'mm', pdfGlobalStyles.pageSize || 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      for (let i = 0; i < pageContainers.length; i++) {
-        const printableArea = pageContainers[i].querySelector('.pdf-printable-area');
-        if (!printableArea) continue;
-
-        const canvas = await html2canvas(printableArea, {
-          scale: 2,
-          useCORS: true,
-          logging: false,
-          allowTaint: true,
-          backgroundColor: null
-        });
-
-        const imgData = canvas.toDataURL('image/png');
-
-        const finalPdfWidth = pdfWidth;
-        const finalPdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-        if (i > 0) pdf.addPage();
-
-        // Smart vertical centering if content is shorter than A4
-        let yPos = 0;
-        if (finalPdfHeight < pdfHeight) {
-          yPos = (pdfHeight - finalPdfHeight) / 2;
-        }
-
-        pdf.addImage(imgData, 'PNG', 0, yPos, finalPdfWidth, finalPdfHeight);
+  // Capture chart images and open PDF preview
+  const handleOpenPdfPreview = () => {
+    const capturedImages = {};
+    Object.keys(chartRefs.current).forEach(id => {
+      const instance = chartRefs.current[id]?.getEchartsInstance();
+      if (instance) {
+        capturedImages[id] = instance.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#fff' });
       }
-
-      pdf.save(`Project_Report_${activeProject?.name?.replace(/\s+/g, '_') || 'Dashboard'}.pdf`);
-    } catch (error) {
-      console.error('PDF Download Failure:', error);
-      alert('Failed to download report. Technical logs available in console.');
-    } finally {
-      setLoading(false);
-      setIsCapturingPdf(false);
-    }
+    });
+    setPdfChartImages(capturedImages);
+    setShowEmailModal(false);
+    setShowPdfPreview(true);
   };
 
-  // Handle send email with multi-page capture
+  // Helper function to add header and footer to PDF pages
+  const addPdfHeaderFooter = (pdf, margin, pdfWidth, pdfHeight, pageNum) => {
+    const totalPages = Math.ceil(pdf.internal.getNumberOfPages());
+
+    // Add header
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(14);
+    pdf.setTextColor(30, 58, 95);
+    pdf.text(activeProject?.name || 'Project Dashboard', margin, margin + 8);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text('Industrial Analytics Platform', margin, margin + 14);
+
+    // Add date and time
+    pdf.setFontSize(8);
+    const dateStr = new Date().toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    pdf.text(`Generated: ${dateStr}`, margin, margin + 20);
+
+    // Add divider line
+    pdf.setDrawColor(226, 232, 240);
+    pdf.setLineWidth(0.3);
+    pdf.line(margin, margin + 22, pdfWidth - margin, margin + 22);
+
+    // Add footer with page number
+    pdf.setFontSize(9);
+    pdf.setTextColor(148, 163, 184);
+    pdf.text(`Page ${pageNum} of ${totalPages}`, pdfWidth - margin - 20, pdfHeight - margin - 5);
+
+    // Add bottom divider
+    pdf.setDrawColor(226, 232, 240);
+    pdf.line(margin, pdfHeight - margin - 8, pdfWidth - margin, pdfHeight - margin - 8);
+  };
   const handleSendEmail = async () => {
     const toEmails = emailData.emailInputs.filter(email => email.trim() !== '');
     const ccEmails = emailData.ccInputs.filter(email => email.trim() !== '');
@@ -1243,7 +1235,6 @@ const ProjectTitleDashboard = () => {
       alert('Strategic Report successfully dispatched!');
 
       setShowEmailModal(false);
-      setShowPdfPreviewModal(false);
     } catch (error) {
       console.error('Email Dispatch Failure:', error);
       alert('Failed to send report. Technical logs available in console.');
@@ -1310,1156 +1301,6 @@ const ProjectTitleDashboard = () => {
     );
   };
 
-  // Handle Print Preview via Search Params
-  const showPdfPreviewModal = searchParams.get('preview') === 'pdf';
-  const setShowPdfPreviewModal = (show) => {
-    if (show) {
-      setSearchParams(prev => {
-        prev.set('preview', 'pdf');
-        return prev;
-      });
-    } else {
-      setSearchParams(prev => {
-        prev.delete('preview');
-        return prev;
-      });
-    }
-  };
-  const [pdfLayoutOrder, setPdfLayoutOrder] = useState([]);
-
-  const openPrintPreview = () => {
-    const selected = Object.entries(emailData.selectedSections)
-      .filter(([_, selected]) => selected)
-      .map(([section]) => section);
-
-    if (selected.length === 0) {
-      alert('No sections selected to preview.');
-      return;
-    }
-
-    // Auto-Pagination Logic: Smartly distribute sections across pages to prevent clutter
-    // Enterprise Standard: Max 4 modules per page to maintain A4 aspect ratio readability
-    const SECTIONS_PER_PAGE = 4;
-    const paginatedSections = [];
-    for (let i = 0; i < selected.length; i += SECTIONS_PER_PAGE) {
-      paginatedSections.push(selected.slice(i, i + SECTIONS_PER_PAGE));
-    }
-
-    setPdfPages(paginatedSections.length > 0 ? paginatedSections : [[]]);
-    setActivePageIndex(0);
-
-    // Initialize custom content for each section if not present
-    setPdfCustomContent(prev => {
-      const newContent = { ...prev };
-      selected.forEach(key => {
-        if (!newContent[key]) {
-          const defaultTitle = key === 'sopTables' ? 'SOP Tables' :
-            key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1');
-          newContent[key] = {
-            title: defaultTitle,
-            notes: '',
-            alignment: 'left',
-            size: 'Medium'
-          };
-        }
-      });
-      return newContent;
-    });
-
-    setShowPdfPreviewModal(true);
-    setShowEmailModal(false);
-  };
-
-  // Space Analyzer Engine
-  const getMaxRows = () => {
-    if (pdfGlobalStyles.pageSize === 'a3') return 5;
-    if (pdfGlobalStyles.pageSize === 'letter') return 2;
-    return 3; // a4 is standard 3 full rows safely
-  };
-
-  const calculatePageRows = (pageItems) => {
-    let slots = 0;
-    let rows = 0;
-    (pageItems || []).forEach(key => {
-      const layout = pdfCustomContent[key]?.layout || '1-col';
-      const need = layout === '1-col' ? 2 : 1;
-      if (slots + need > 2) {
-        rows++;
-        slots = need;
-      } else {
-        slots += need;
-      }
-    });
-    if (slots > 0) rows++;
-    return rows;
-  };
-
-  const moveSectionUp = (pageIdx, secIdx) => {
-    if (pageIdx === 0 && secIdx === 0) return;
-
-    setPdfPages(prev => {
-      const newPages = [...prev.map(p => [...p])];
-      if (secIdx > 0) {
-        // Move within same page
-        const temp = newPages[pageIdx][secIdx];
-        newPages[pageIdx][secIdx] = newPages[pageIdx][secIdx - 1];
-        newPages[pageIdx][secIdx - 1] = temp;
-      } else {
-        // Move to previous page
-        const section = newPages[pageIdx].splice(secIdx, 1)[0];
-        newPages[pageIdx - 1].push(section);
-
-        if (calculatePageRows(newPages[pageIdx - 1]) > getMaxRows()) {
-          setCapacityWarning(`⚠️ Page ${pageIdx} exceeds optimal capacity. Items may overlap or compress when printed.`);
-          setTimeout(() => setCapacityWarning(''), 5000);
-        }
-      }
-      return newPages;
-    });
-  };
-
-  const moveSectionDown = (pageIdx, secIdx) => {
-    const isLastPage = pageIdx === pdfPages.length - 1;
-    const isLastSecOnPage = secIdx === pdfPages[pageIdx].length - 1;
-
-    if (isLastPage && isLastSecOnPage) return;
-
-    setPdfPages(prev => {
-      const newPages = [...prev.map(p => [...p])];
-      if (!isLastSecOnPage) {
-        // Move within same page
-        const temp = newPages[pageIdx][secIdx];
-        newPages[pageIdx][secIdx] = newPages[pageIdx][secIdx + 1];
-        newPages[pageIdx][secIdx + 1] = temp;
-      } else {
-        // Move to next page
-        const section = newPages[pageIdx].splice(secIdx, 1)[0];
-        if (!newPages[pageIdx + 1]) newPages[pageIdx + 1] = [];
-        newPages[pageIdx + 1].unshift(section);
-
-        if (calculatePageRows(newPages[pageIdx + 1]) > getMaxRows()) {
-          setCapacityWarning(`⚠️ Page ${pageIdx + 2} exceeds optimal capacity. Items may overlap or compress when printed.`);
-          setTimeout(() => setCapacityWarning(''), 5000);
-        }
-      }
-      return newPages;
-    });
-  };
-
-  const onDragEnd = (result) => {
-    const { source, destination } = result;
-    if (!destination) return; // Dropped outside valid droppable
-
-    const extractIdx = (id) => parseInt(id.replace(/[^0-9]/g, ''), 10);
-    const sourcePageIdx = extractIdx(source.droppableId);
-    const destPageIdx = extractIdx(destination.droppableId);
-
-    // If dropped in the same place
-    if (sourcePageIdx === destPageIdx && source.index === destination.index) return;
-
-    setPdfPages(prev => {
-      const newPages = prev.map(p => [...p]);
-      const [movedSection] = newPages[sourcePageIdx].splice(source.index, 1);
-
-      if (!newPages[destPageIdx]) newPages[destPageIdx] = [];
-      newPages[destPageIdx].splice(destination.index, 0, movedSection);
-
-      // Trigger capacity warning dynamically if moved to a different page and it exceeds limits
-      if (sourcePageIdx !== destPageIdx && calculatePageRows(newPages[destPageIdx]) > getMaxRows()) {
-        setCapacityWarning(`⚠️ Page ${destPageIdx + 1} exceeds optimal capacity. Items may overlap or compress when printed.`);
-        setTimeout(() => setCapacityWarning(''), 5000);
-      }
-
-      // Automatically jump the view to the destination page if they dropped cross-page
-      if (sourcePageIdx !== destPageIdx) {
-        setActivePageIndex(destPageIdx);
-      }
-
-      return newPages;
-    });
-  };
-
-  const addPage = () => {
-    setPdfPages(prev => [...prev, []]);
-    setActivePageIndex(pdfPages.length);
-  };
-
-  const removePage = (idx) => {
-    if (pdfPages.length <= 1) return;
-    setPdfPages(prev => prev.filter((_, i) => i !== idx));
-    setActivePageIndex(Math.max(0, idx - 1));
-  };
-
-  const handleUpdateCustomContent = (key, field, value) => {
-    setPdfCustomContent(prev => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        [field]: value
-      }
-    }));
-  };
-
-  // PDF Preview Modal Component
-  const renderPdfPreviewModal = () => {
-    if (!showPdfPreviewModal && !isCapturingPdf) return null;
-
-    const pageDim = pdfGlobalStyles.pageSize === 'a3' ? { w: '297mm', h: '420mm' } :
-      pdfGlobalStyles.pageSize === 'letter' ? { w: '215.9mm', h: '279.4mm' } :
-        { w: '210mm', h: '297mm' };
-
-    return (
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: '#0f172a',
-          backdropFilter: 'blur(20px)',
-          zIndex: 5000,
-          display: 'flex',
-          overflow: 'hidden',
-          fontFamily: pdfGlobalStyles.fontFamily
-        }}>
-          {/* Workspace Sidebar - Advanced Controls */}
-          {!isCapturingPdf && (
-            <div style={{
-              width: '400px',
-              backgroundColor: '#0f172a',
-              borderRight: '1px solid #334155',
-              display: 'flex',
-              flexDirection: 'column',
-              boxShadow: '20px 0 50px rgba(0,0,0,0.5)',
-              zIndex: 5001,
-              color: '#f8fafc'
-            }}>
-              <div style={{ padding: '32px 24px', backgroundColor: '#1e3a5f', borderBottom: '1px solid #334155', position: 'relative' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '900', letterSpacing: '-0.025em' }}>REPORT STUDIO</h2>
-                  <div style={{ backgroundColor: '#3b82f6', color: 'white', padding: '4px 8px', borderRadius: '6px', fontSize: '10px', fontWeight: '800' }}>PRO</div>
-                </div>
-                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#94a3b8' }}>Advanced Multi-Page Insights Engine</p>
-
-                {capacityWarning && (
-                  <div style={{ position: 'absolute', bottom: '-40px', left: '10px', right: '10px', backgroundColor: '#ef4444', color: 'white', padding: '10px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', zIndex: 10, boxShadow: '0 4px 6px rgba(0,0,0,0.3)', transition: 'all 0.3s' }}>
-                    {capacityWarning}
-                  </div>
-                )}
-              </div>
-
-              {/* Tab Navigation */}
-              <div style={{ display: 'flex', backgroundColor: '#111827', padding: '4px' }}>
-                {['structure', 'style', 'page'].map(tab => (
-                  <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      fontSize: '11px',
-                      fontWeight: '800',
-                      textTransform: 'uppercase',
-                      backgroundColor: activeTab === tab ? '#1f2937' : 'transparent',
-                      color: activeTab === tab ? '#3b82f6' : '#64748b',
-                      border: 'none',
-                      cursor: 'pointer',
-                      borderRadius: '6px',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
-                {activeTab === 'structure' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                    {/* Page Management */}
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <label style={{ fontSize: '11px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pages & Layout</label>
-                        <button
-                          onClick={addPage}
-                          style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700' }}
-                        >
-                          <Plus size={14} /> Add Page
-                        </button>
-                      </div>
-
-                      {/* NEW COVER PAGE TOGGLE */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', padding: '12px', backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155' }}>
-                        <input
-                          type="checkbox"
-                          checked={pdfGlobalStyles.includeCoverPage}
-                          onChange={e => setPdfGlobalStyles(prev => ({ ...prev, includeCoverPage: e.target.checked }))}
-                          style={{ cursor: 'pointer', width: '16px', height: '16px', accentColor: '#3b82f6' }}
-                        />
-                        <span style={{ fontSize: '13px', color: '#f8fafc', fontWeight: '700' }}>Include Cover Page</span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {pdfPages.map((page, idx) => {
-                          const mxR = getMaxRows();
-                          const rows = calculatePageRows(page);
-                          const usagePct = Math.min((rows / mxR) * 100, 100);
-                          const isOverloaded = rows > mxR;
-
-                          return (
-                            <div
-                              key={idx}
-                              onClick={() => setActivePageIndex(idx)}
-                              style={{
-                                padding: '12px 16px',
-                                backgroundColor: activePageIndex === idx ? '#1e293b' : '#111827',
-                                borderRadius: '10px',
-                                border: activePageIndex === idx ? '1px solid #3b82f6' : '1px solid #1f2937',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '6px',
-                                transition: 'all 0.2s'
-                              }}
-                            >
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '13px', fontWeight: activePageIndex === idx ? '700' : '500', color: activePageIndex === idx ? 'white' : '#94a3b8' }}>
-                                  Page {idx + 1} {page.length > 0 ? `(${page.length} modules)` : '(Empty)'}
-                                </span>
-                                {pdfPages.length > 1 && (
-                                  <button
-                                    onClick={(e) => { e.stopPropagation(); removePage(idx); }}
-                                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}
-                                  >
-                                    <Trash2 size={14} />
-                                  </button>
-                                )}
-                              </div>
-
-                              {/* Adaptive Engine Space Graph */}
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                opacity: activePageIndex === idx ? 1 : 0.6
-                              }}>
-                                <div style={{ flex: 1, height: '4px', backgroundColor: '#334155', borderRadius: '4px', overflow: 'hidden' }}>
-                                  <div style={{
-                                    height: '100%',
-                                    width: `${Math.max(usagePct, 2)}%`,
-                                    backgroundColor: isOverloaded ? '#ef4444' : (usagePct > 80 ? '#f59e0b' : '#10b981'),
-                                    transition: 'all 0.3s ease'
-                                  }} />
-                                </div>
-                                <span style={{ fontSize: '9px', fontWeight: '800', color: isOverloaded ? '#ef4444' : '#94a3b8' }}>
-                                  {rows}/{mxR} U
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Cross-Page Drag & Drop Logic */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', marginBottom: '16px', textTransform: 'uppercase' }}>Cross-Page Organization</label>
-                      <p style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '12px' }}>Drag sections between pages to visually reorder your PDF layout.</p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                        {pdfPages.map((pageSections, pIdx) => (
-                          <Droppable key={pIdx} droppableId={String(pIdx)}>
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.droppableProps}
-                                style={{
-                                  backgroundColor: snapshot.isDraggingOver ? '#1e293b' : 'transparent',
-                                  padding: '12px',
-                                  borderRadius: '8px',
-                                  border: '2px dashed',
-                                  borderColor: snapshot.isDraggingOver ? '#3b82f6' : (pIdx === activePageIndex ? '#475569' : '#1e293b'),
-                                  minHeight: pageSections.length === 0 ? '60px' : 'auto',
-                                  transition: 'all 0.2s',
-                                  opacity: (pIdx === activePageIndex || snapshot.isDraggingOver) ? 1 : 0.6
-                                }}
-                              >
-                                <h4 style={{ margin: '0 0 10px', fontSize: '11px', fontWeight: '800', color: pIdx === activePageIndex ? '#f8fafc' : '#64748b', display: 'flex', justifyContent: 'space-between' }}>
-                                  PAGE {pIdx + 1}
-                                  {snapshot.isDraggingOver && <span style={{ color: '#3b82f6' }}>Drop Here</span>}
-                                </h4>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                  {pageSections.map((sectionKey, secIdx) => (
-                                    <Draggable key={`sidebar-${sectionKey}`} draggableId={`sidebar-${sectionKey}`} index={secIdx}>
-                                      {(prov, snap) => (
-                                        <div
-                                          ref={prov.innerRef}
-                                          {...prov.draggableProps}
-                                          style={{
-                                            ...prov.draggableProps.style,
-                                            padding: '10px 12px',
-                                            backgroundColor: snap.isDragging ? '#2563eb' : '#0f172a',
-                                            borderRadius: '6px',
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            alignItems: 'center',
-                                            border: '1px solid',
-                                            borderColor: snap.isDragging ? '#60a5fa' : '#334155',
-                                            boxShadow: snap.isDragging ? '0 10px 25px rgba(0,0,0,0.5)' : 'none',
-                                            opacity: snap.isDragging ? 0.9 : 1
-                                          }}
-                                        >
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, overflow: 'hidden' }}>
-                                            <div {...prov.dragHandleProps} style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: snap.isDragging ? 'white' : '#64748b' }}>
-                                              <GripVertical size={16} />
-                                            </div>
-                                            <span style={{ fontSize: '12px', color: snap.isDragging ? 'white' : '#f8fafc', fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                              {pdfCustomContent[sectionKey]?.title || sectionKey.charAt(0).toUpperCase() + sectionKey.slice(1)}
-                                            </span>
-                                          </div>
-                                          <span style={{ fontSize: '9px', fontWeight: '800', backgroundColor: snap.isDragging ? '#1d4ed8' : '#1e293b', color: snap.isDragging ? '#bfdbfe' : '#64748b', padding: '2px 6px', borderRadius: '4px' }}>
-                                            {(pdfCustomContent[sectionKey]?.layout || '1-col').toUpperCase()}
-                                          </span>
-                                        </div>
-                                      )}
-                                    </Draggable>
-                                  ))}
-                                  {pageSections.length === 0 && !snapshot.isDraggingOver && (
-                                    <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic', textAlign: 'center', padding: '10px 0' }}>Empty Page</div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                          </Droppable>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'style' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                    {/* Typography Control */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', marginBottom: '16px', textTransform: 'uppercase' }}>Typography</label>
-                      <select
-                        value={pdfGlobalStyles.fontFamily}
-                        onChange={(e) => setPdfGlobalStyles(prev => ({ ...prev, fontFamily: e.target.value }))}
-                        style={{ width: '100%', padding: '12px', backgroundColor: '#111827', border: '1px solid #334155', borderRadius: '8px', color: 'white', outline: 'none' }}
-                      >
-                        <option value="Inter, sans-serif">Inter (Modern)</option>
-                        <option value="'Roboto', sans-serif">Roboto (Clean)</option>
-                        <option value="'Playfair Display', serif">Playfair (Premium)</option>
-                        <option value="system-ui, sans-serif">System UI</option>
-                      </select>
-                    </div>
-
-                    {/* Spacing Control */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', marginBottom: '16px', textTransform: 'uppercase' }}>Global Content Density</label>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        {['Compact', 'Normal', 'Comfortable'].map(s => (
-                          <button
-                            key={s}
-                            onClick={() => setPdfGlobalStyles(prev => ({ ...prev, spacing: s }))}
-                            style={{
-                              flex: 1,
-                              padding: '10px 4px',
-                              fontSize: '11px',
-                              borderRadius: '8px',
-                              backgroundColor: pdfGlobalStyles.spacing === s ? '#3b82f6' : '#111827',
-                              color: pdfGlobalStyles.spacing === s ? 'white' : '#64748b',
-                              border: 'none',
-                              cursor: 'pointer',
-                              fontWeight: '700'
-                            }}
-                          >
-                            {s}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Background Presets */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', marginBottom: '16px', textTransform: 'uppercase' }}>Background Design</label>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginBottom: '16px' }}>
-                        {[
-                          { name: 'Classic', color: '#ffffff', type: 'solid' },
-                          { name: 'Soft', color: '#f8fafc', type: 'solid' },
-                          { name: 'Enterprise', gradient: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)', type: 'gradient' },
-                          { name: 'Premium', gradient: 'linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%)', type: 'gradient' },
-                          { name: 'Corporate', gradient: 'linear-gradient(to right, #243b55, #141e30)', type: 'gradient' }
-                        ].map((bg, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => setPdfBackground({ ...pdfBackground, ...bg })}
-                            style={{
-                              width: '100%',
-                              aspectRatio: '1/1',
-                              borderRadius: '10px',
-                              background: bg.type === 'solid' ? bg.color : bg.gradient,
-                              border: pdfBackground.name === bg.name ? '2px solid #3b82f6' : '1px solid #334155',
-                              cursor: 'pointer',
-                              transition: 'all 0.2s',
-                              transform: pdfBackground.name === bg.name ? 'scale(1.1)' : 'scale(1)'
-                            }}
-                          />
-                        ))}
-                      </div>
-
-                      <div style={{ marginTop: '24px', padding: '16px', backgroundColor: '#111827', borderRadius: '12px', border: '1px solid #334155' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                          <Layout size={16} color="#3b82f6" />
-                          <span style={{ fontSize: '12px', fontWeight: '800', color: '#f8fafc' }}>PAGINATION ENGINE</span>
-                        </div>
-                        <button
-                          onClick={() => {
-                            const allSections = pdfPages.flat();
-                            const newPages = [[]];
-                            let currentPageIdx = 0;
-                            allSections.forEach((sec, idx) => {
-                              if (idx > 0 && idx % 4 === 0) {
-                                newPages.push([]);
-                                currentPageIdx++;
-                              }
-                              newPages[currentPageIdx].push(sec);
-                            });
-                            setPdfPages(newPages);
-                            setActivePageIndex(0);
-                          }}
-                          style={{
-                            width: '100%',
-                            padding: '10px',
-                            backgroundColor: '#1e293b',
-                            color: '#3b82f6',
-                            border: '1px solid #334155',
-                            borderRadius: '8px',
-                            fontSize: '11px',
-                            fontWeight: 'bold',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Auto-Distribute Sections
-                        </button>
-                      </div>
-
-                      {/* Custom Background Image */}
-                      <div>
-                        <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>BRAND IMAGE URL</span>
-                        <input
-                          type="text"
-                          placeholder="https://example.com/logo.png"
-                          value={pdfBackground.imageUrl}
-                          onChange={(e) => setPdfBackground(prev => ({ ...prev, imageUrl: e.target.value, type: e.target.value ? 'image' : prev.type }))}
-                          style={{ width: '100%', padding: '10px', backgroundColor: '#111827', border: '1px solid #334155', borderRadius: '8px', color: 'white', marginTop: '6px', fontSize: '13px' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {activeTab === 'page' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                    {/* Cover Page Options */}
-                    {pdfGlobalStyles.includeCoverPage && (
-                      <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', marginBottom: '16px', textTransform: 'uppercase' }}>Cover Page Details</label>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                          <div>
-                            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>PREPARED BY</span>
-                            <input
-                              type="text"
-                              placeholder="e.g. John Doe, Lead Analyst"
-                              value={pdfGlobalStyles.preparedBy || ''}
-                              onChange={(e) => setPdfGlobalStyles(prev => ({ ...prev, preparedBy: e.target.value }))}
-                              style={{ width: '100%', padding: '10px', backgroundColor: '#111827', border: '1px solid #334155', borderRadius: '8px', color: 'white', marginTop: '6px', fontSize: '13px' }}
-                            />
-                          </div>
-                          <div>
-                            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>COVER LOGO URL (Optional)</span>
-                            <input
-                              type="text"
-                              placeholder="https://example.com/logo.png"
-                              value={pdfGlobalStyles.coverLogoUrl || ''}
-                              onChange={(e) => setPdfGlobalStyles(prev => ({ ...prev, coverLogoUrl: e.target.value }))}
-                              style={{ width: '100%', padding: '10px', backgroundColor: '#111827', border: '1px solid #334155', borderRadius: '8px', color: 'white', marginTop: '6px', fontSize: '13px' }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Page Size Selector */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', marginBottom: '16px', textTransform: 'uppercase' }}>Page Size</label>
-                      <div style={{ display: 'flex', gap: '8px', marginBottom: '32px' }}>
-                        {['a4', 'a3', 'letter'].map(size => (
-                          <button
-                            key={size}
-                            onClick={() => setPdfGlobalStyles(prev => ({ ...prev, pageSize: size }))}
-                            style={{
-                              flex: 1,
-                              padding: '10px 4px',
-                              fontSize: '11px',
-                              borderRadius: '8px',
-                              backgroundColor: pdfGlobalStyles.pageSize === size ? '#3b82f6' : '#111827',
-                              color: pdfGlobalStyles.pageSize === size ? 'white' : '#64748b',
-                              border: 'none',
-                              cursor: 'pointer',
-                              fontWeight: '700',
-                              textTransform: 'uppercase'
-                            }}
-                          >
-                            {size}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Header Footer Controls */}
-                    <div>
-                      <label style={{ display: 'block', fontSize: '11px', fontWeight: '800', color: '#64748b', marginBottom: '16px', textTransform: 'uppercase' }}>Header & Footer</label>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        <div>
-                          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>HEADER LABEL</span>
-                          <input
-                            type="text"
-                            value={pdfGlobalStyles.headerText}
-                            onChange={(e) => setPdfGlobalStyles(prev => ({ ...prev, headerText: e.target.value }))}
-                            style={{ width: '100%', padding: '10px', backgroundColor: '#111827', border: '1px solid #334155', borderRadius: '8px', color: 'white', marginTop: '6px', fontSize: '13px' }}
-                          />
-                        </div>
-                        <div>
-                          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>FOOTER NOTE</span>
-                          <input
-                            type="text"
-                            value={pdfGlobalStyles.footerText}
-                            onChange={(e) => setPdfGlobalStyles(prev => ({ ...prev, footerText: e.target.value }))}
-                            style={{ width: '100%', padding: '10px', backgroundColor: '#111827', border: '1px solid #334155', borderRadius: '8px', color: 'white', marginTop: '6px', fontSize: '13px' }}
-                          />
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <input
-                            type="checkbox"
-                            checked={pdfGlobalStyles.showPageNumbers}
-                            onChange={(e) => setPdfGlobalStyles(prev => ({ ...prev, showPageNumbers: e.target.checked }))}
-                            style={{ cursor: 'pointer' }}
-                          />
-                          <span style={{ fontSize: '13px', color: '#94a3b8' }}>Include Page Numbers</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Bottom Primary Actions */}
-              <div style={{ padding: '24px', backgroundColor: '#111827', borderTop: '1px solid #334155' }}>
-                <button
-                  onClick={() => setShowEmailModal(true)}
-                  style={{
-                    width: '100%',
-                    padding: '16px',
-                    backgroundColor: '#3b82f6',
-                    color: 'white',
-                    borderRadius: '12px',
-                    border: 'none',
-                    fontWeight: '900',
-                    fontSize: '15px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '12px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s',
-                    boxShadow: '0 4px 14px 0 rgba(59, 130, 246, 0.4)',
-                    textTransform: 'uppercase'
-                  }}
-                >
-                  <Send size={18} /> Send via Email
-                </button>
-                <button
-                  onClick={handleDownloadPdf}
-                  style={{
-                    width: '100%',
-                    marginTop: '12px',
-                    padding: '16px',
-                    backgroundColor: 'transparent',
-                    color: '#3b82f6',
-                    borderRadius: '12px',
-                    border: '2px solid #3b82f6',
-                    fontWeight: '900',
-                    fontSize: '15px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '12px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s',
-                    textTransform: 'uppercase'
-                  }}
-                >
-                  <Download size={18} /> Download PDF
-                </button>
-                <button
-                  onClick={() => setShowPdfPreviewModal(false)}
-                  style={{
-                    width: '100%',
-                    marginTop: '12px',
-                    padding: '14px',
-                    background: 'none',
-                    border: '1px solid #334155',
-                    color: '#f87171',
-                    borderRadius: '12px',
-                    fontSize: '14px',
-                    fontWeight: '700',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Discard Draft
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Workspace Hub - Paginated PDF Rendering */}
-          <div style={{
-            flex: 1,
-            padding: isCapturingPdf ? '0' : '80px 40px',
-            overflowY: 'auto',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            backgroundColor: isCapturingPdf ? 'transparent' : '#0f172a',
-            scrollBehavior: 'smooth'
-          }}>
-            {/* Cover Page Rendering */}
-            {pdfGlobalStyles.includeCoverPage && (
-              <div
-                className="pdf-page-container"
-                style={{
-                  position: 'relative',
-                  marginBottom: isCapturingPdf ? '0' : '60px',
-                  opacity: 1,
-                  transform: 'scale(1)',
-                  transition: 'all 0.4s',
-                  fontFamily: pdfGlobalStyles.fontFamily
-                }}
-              >
-                {!isCapturingPdf && (
-                  <div style={{
-                    position: 'absolute',
-                    left: '-100px',
-                    top: '0',
-                    color: '#64748b',
-                    fontWeight: '900',
-                    fontSize: '14px',
-                    writerMode: 'vertical-rl',
-                    borderLeft: '2px solid #3b82f6',
-                    paddingLeft: '12px'
-                  }}>
-                    COVER PAGE
-                  </div>
-                )}
-                <div
-                  className="pdf-printable-area"
-                  style={{
-                    backgroundColor: pdfBackground.type === 'solid' ? (pdfBackground.color || '#ffffff') : 'transparent',
-                    backgroundImage: pdfBackground.type === 'image' && pdfBackground.imageUrl
-                      ? `linear-gradient(rgba(255,255,255,${1 - pdfBackground.imageOpacity}), rgba(255,255,255,${1 - pdfBackground.imageOpacity})), url(${pdfBackground.imageUrl})`
-                      : (pdfBackground.type === 'gradient' ? pdfBackground.gradient : 'none'),
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    width: pageDim.w,
-                    minHeight: pageDim.h,
-                    padding: '40mm',
-                    boxShadow: isCapturingPdf ? 'none' : '0 40px 100px rgba(0,0,0,0.6)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    color: '#1e3a5f',
-                    borderRadius: isCapturingPdf ? '0' : '4px',
-                    overflow: 'hidden',
-                    textAlign: 'center'
-                  }}
-                >
-                  {pdfGlobalStyles.coverLogoUrl && (
-                    <img
-                      src={pdfGlobalStyles.coverLogoUrl}
-                      alt="Cover Logo"
-                      style={{ maxHeight: '120px', maxWidth: '300px', marginBottom: '60px', objectFit: 'contain' }}
-                      crossOrigin="anonymous"
-                    />
-                  )}
-                  <div style={{ width: '100%', height: '6px', backgroundColor: '#3b82f6', marginBottom: '40px', maxWidth: '120px', borderRadius: '3px' }} />
-                  <h1 style={{ fontSize: '48px', fontWeight: '900', letterSpacing: '-0.03em', lineHeight: 1.1, marginBottom: '20px', color: '#0f172a' }}>
-                    {pdfGlobalStyles.headerText}
-                  </h1>
-                  <h2 style={{ fontSize: '28px', fontWeight: '700', color: '#1e3a5f', marginBottom: 'auto', opacity: 0.8 }}>
-                    Project: {activeProject?.name}
-                  </h2>
-
-                  <div style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', borderTop: '2px solid #e2e8f0', paddingTop: '40px' }}>
-                    {pdfGlobalStyles.preparedBy && (
-                      <div style={{ fontSize: '18px', color: '#334155', fontWeight: '700' }}>
-                        Prepared By: <span style={{ color: '#0f172a' }}>{pdfGlobalStyles.preparedBy}</span>
-                      </div>
-                    )}
-                    <div style={{ fontSize: '15px', color: '#64748b', fontWeight: '600' }}>
-                      Date Generated: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {pdfPages.map((pageSections, pageIdx) => {
-              const isPageEmpty = pageSections.length === 0;
-              return (
-                <div
-                  key={pageIdx}
-                  className="pdf-page-container"
-                  style={{
-                    position: 'relative',
-                    marginBottom: isCapturingPdf ? '0' : '60px',
-                    opacity: !isCapturingPdf && activePageIndex !== pageIdx ? 0.6 : 1,
-                    transform: !isCapturingPdf && activePageIndex !== pageIdx ? 'scale(0.98)' : 'none',
-                    transition: 'all 0.4s',
-                    zIndex: activePageIndex === pageIdx ? 10 : 1
-                  }}
-                >
-                  {/* Page Overlay Label */}
-                  {!isCapturingPdf && (
-                    <div style={{
-                      position: 'absolute',
-                      left: '-100px',
-                      top: '0',
-                      color: '#64748b',
-                      fontWeight: '900',
-                      fontSize: '14px',
-                      writerMode: 'vertical-rl',
-                      borderLeft: '2px solid #3b82f6',
-                      paddingLeft: '12px'
-                    }}>
-                      PAGE {pageIdx + 1}
-                    </div>
-                  )}
-
-                  <Droppable droppableId={`canvas-page-${pageIdx}`} direction="vertical">
-                    {(provided, snapshot) => (
-                      <div
-                        className="pdf-printable-area"
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        style={{
-                          backgroundColor: pdfBackground.type === 'solid' ? (pdfBackground.color || '#ffffff') : 'transparent',
-                          backgroundImage: pdfBackground.type === 'image' && pdfBackground.imageUrl
-                            ? `linear-gradient(rgba(255,255,255,${1 - pdfBackground.imageOpacity}), rgba(255,255,255,${1 - pdfBackground.imageOpacity})), url(${pdfBackground.imageUrl})`
-                            : (pdfBackground.type === 'gradient' ? pdfBackground.gradient : 'none'),
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center',
-                          width: pageDim.w,
-                          minHeight: pageDim.h,
-                          padding: '20mm',
-                          boxShadow: isCapturingPdf ? 'none' : '0 40px 100px rgba(0,0,0,0.6)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '30px',
-                          color: '#1e3a5f',
-                          borderRadius: isCapturingPdf ? '0' : '4px',
-                          overflow: 'hidden'
-                        }}
-                      >
-                        {/* Page Header */}
-                        <div style={{ borderBottom: '2px solid #1e3a5f', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-                          <div>
-                            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: '900', letterSpacing: '-0.02em' }}>{pdfGlobalStyles.headerText}</h1>
-                            <div style={{ fontSize: '13px', color: '#64748b', marginTop: '4px', fontWeight: '600' }}>Project: {activeProject?.name} • Confidential</div>
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '800' }}>REPORT ID: {activeProject?.code}-{Math.floor(Date.now() / 100000)}</div>
-                        </div>
-
-                        {/* Dynamic Content Rendering */}
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: 'repeat(2, 1fr)',
-                          alignItems: 'start',
-                          gap: pdfGlobalStyles.spacing === 'Compact' ? '20px' : (pdfGlobalStyles.spacing === 'Normal' ? '40px' : '60px')
-                        }}>
-                          {isPageEmpty && !snapshot.isDraggingOver ? (
-                            <div style={{ gridColumn: 'span 2', padding: '80px', border: '2px dashed #cbd5e1', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', opacity: 0.6 }}>
-                              <Layout size={40} color="#94a3b8" />
-                              <span style={{ fontSize: '14px', color: '#94a3b8', fontWeight: '600' }}>Empty Page - Move sections here from other pages</span>
-                            </div>
-                          ) : (
-                            pageSections.map((sectionKey, secIdx) => {
-                              const customContent = pdfCustomContent[sectionKey] || { title: sectionKey, notes: '', alignment: 'left', size: 'Medium', layout: '1-col' };
-                              const isMetric = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(sectionKey) || (activeProject?.submodules || []).some(sub => sub.id === sectionKey);
-
-                              return (
-                                <Draggable key={`canvas-${sectionKey}`} draggableId={`canvas-${sectionKey}`} index={secIdx} isDragDisabled={isCapturingPdf}>
-                                  {(prov, snap) => (
-                                    <div
-                                      ref={prov.innerRef}
-                                      {...prov.draggableProps}
-                                      style={{
-                                        ...prov.draggableProps.style,
-                                        boxSizing: 'border-box',
-                                        gridColumn: customContent.layout === '2-col' ? 'span 1' : 'span 2',
-                                        breakInside: 'avoid',
-                                        textAlign: customContent.alignment,
-                                        position: snap.isDragging ? 'fixed' : 'relative',
-                                        padding: isCapturingPdf ? '0' : '20px',
-                                        backgroundColor: isCapturingPdf ? 'transparent' : (snap.isDragging ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.3)'),
-                                        borderRadius: '16px',
-                                        border: isCapturingPdf ? 'none' : (snap.isDragging ? '2px solid #3b82f6' : '1px solid rgba(255,255,255,0.4)'),
-                                        boxShadow: snap.isDragging ? '0 30px 60px rgba(0,0,0,0.2)' : 'none',
-                                        zIndex: snap.isDragging ? 999999 : 'auto',
-                                      }}
-                                    >
-                                      {/* Section Header */}
-                                      <div style={{
-                                        backgroundColor: '#1e293b',
-                                        color: 'white',
-                                        padding: '10px 18px',
-                                        fontSize: '13px',
-                                        fontWeight: '900',
-                                        marginBottom: '16px',
-                                        borderRadius: '10px',
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        textTransform: 'uppercase',
-                                        letterSpacing: '0.05em'
-                                      }}>
-                                        {!isCapturingPdf ? (
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '60%' }}>
-                                            <div {...prov.dragHandleProps} style={{ cursor: 'grab', display: 'flex', color: snap.isDragging ? '#93c5fd' : '#94a3b8' }}>
-                                              <GripVertical size={16} />
-                                            </div>
-                                            <input
-                                              value={customContent.title}
-                                              onChange={(e) => handleUpdateCustomContent(sectionKey, 'title', e.target.value)}
-                                              style={{ background: 'transparent', border: 'none', color: 'white', fontWeight: '900', width: '100%', fontSize: '12px', outline: 'none' }}
-                                            />
-                                          </div>
-                                        ) : (
-                                          <span>{customContent.title}</span>
-                                        )}
-
-                                        {!isCapturingPdf && (
-                                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                            <div style={{ display: 'flex', gap: '3px', marginRight: '10px', borderRight: '1px solid #334155', paddingRight: '10px' }}>
-                                              <button title="1-Col" onClick={() => handleUpdateCustomContent(sectionKey, 'layout', '1-col')} style={{ padding: '4px 8px', backgroundColor: customContent.layout !== '2-col' ? '#3b82f6' : '#334155', border: 'none', borderRadius: '4px', cursor: 'pointer', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>1C</button>
-                                              <button title="2-Col" onClick={() => handleUpdateCustomContent(sectionKey, 'layout', '2-col')} style={{ padding: '4px 8px', backgroundColor: customContent.layout === '2-col' ? '#3b82f6' : '#334155', border: 'none', borderRadius: '4px', cursor: 'pointer', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>2C</button>
-                                              <button title="Left" onClick={() => handleUpdateCustomContent(sectionKey, 'alignment', 'left')} style={{ marginLeft: '6px', padding: '4px 8px', backgroundColor: customContent.alignment === 'left' ? '#3b82f6' : '#334155', border: 'none', borderRadius: '4px', cursor: 'pointer', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>L</button>
-                                              <button title="Center" onClick={() => handleUpdateCustomContent(sectionKey, 'alignment', 'center')} style={{ padding: '4px 8px', backgroundColor: customContent.alignment === 'center' ? '#3b82f6' : '#334155', border: 'none', borderRadius: '4px', cursor: 'pointer', color: 'white', fontSize: '10px', fontWeight: 'bold' }}>C</button>
-                                            </div>
-                                            <button
-                                              onClick={() => {
-                                                setPdfPages(prev => prev.map((p, i) => i === pageIdx ? p.filter(k => k !== sectionKey) : p));
-                                                handleSectionToggle(sectionKey);
-                                              }}
-                                              style={{ background: 'none', border: 'none', color: '#f87171', cursor: 'pointer', padding: '4px' }}
-                                            >
-                                              <Trash2 size={16} />
-                                            </button>
-                                          </div>
-                                        )}
-                                      </div>
-
-
-                                      {/* Notes and Metrics remain the same but use customContent for titles */}
-                                      {/* (Rest of internal rendering logic for tables and charts) */}
-                                      {sectionKey === 'milestones' && (
-                                        <div style={{ overflow: 'hidden', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-                                            <tr style={{ backgroundColor: '#1e293b', color: 'white' }}>
-                                              <th style={{ padding: '8px', border: '1px solid #334155' }}>Status</th>
-                                              {['A', 'B', 'C', 'D', 'E', 'F'].map(x => <th key={x} style={{ padding: '8px', border: '1px solid #334155' }}>{x}</th>)}
-                                            </tr>
-                                            <tr style={{ backgroundColor: '#ffffff' }}><td style={{ padding: '8px', border: '1px solid #e2e8f0', fontWeight: '800' }}>PLAN</td>{['a', 'b', 'c', 'd', 'e', 'f'].map(x => <td key={x} style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center' }}>{milestones[0].plan[x]}</td>)}</tr>
-                                            <tr style={{ backgroundColor: '#f1f5f9' }}><td style={{ padding: '8px', border: '1px solid #e2e8f0', fontWeight: '800' }}>ACTUAL</td>{['a', 'b', 'c', 'd', 'e', 'f'].map(x => <td key={x} style={{ padding: '8px', border: '1px solid #e2e8f0', textAlign: 'center', fontWeight: '700' }}>{milestones[0].actual[x]}</td>)}</tr>
-                                          </table>
-                                        </div>
-                                      )}
-
-                                      {sectionKey === 'criticalIssues' && (
-                                        <div style={{ overflow: 'hidden', borderRadius: '12px', border: '1px solid #fee2e2' }}>
-                                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-                                            <thead>
-                                              <tr style={{ backgroundColor: '#991b1b', color: 'white' }}>
-                                                <th style={{ padding: '10px', textAlign: 'left', width: '60%' }}>Issue Description</th>
-                                                <th style={{ padding: '10px', textAlign: 'center' }}>Severity</th>
-                                                <th style={{ padding: '10px', textAlign: 'center' }}>Target Date</th>
-                                              </tr>
-                                            </thead>
-                                            <tbody>
-                                              {(criticalIssues || []).map((issue, idx) => (
-                                                <tr key={idx} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#fef2f2', borderBottom: '1px solid #fee2e2' }}>
-                                                  <td style={{ padding: '8px 10px', fontWeight: '700', color: '#991b1b' }}>{issue.issue}</td>
-                                                  <td style={{ padding: '8px 10px', textAlign: 'center' }}><span style={{ backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', fontWeight: '800', fontSize: '9px' }}>{issue.status.toUpperCase()}</span></td>
-                                                  <td style={{ padding: '8px 10px', textAlign: 'center', color: '#ef4444', fontWeight: '800' }}>{issue.targetDate}</td>
-                                                </tr>
-                                              ))}
-                                            </tbody>
-                                          </table>
-                                        </div>
-                                      )}
-
-                                      {sectionKey === 'sopTables' && (
-                                        <div style={{ overflow: 'hidden', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-                                            <thead>
-                                              <tr style={{ backgroundColor: '#f8fafc', color: '#475569' }}>
-                                                <th style={{ padding: '10px', textAlign: 'left', borderBottom: '2px solid #e2e8f0' }}>Document Name</th>
-                                                <th style={{ padding: '10px', textAlign: 'center', borderBottom: '2px solid #e2e8f0' }}>Rev</th>
-                                                <th style={{ padding: '10px', textAlign: 'right', borderBottom: '2px solid #e2e8f0' }}>Status</th>
-                                              </tr>
-                                            </thead>
-                                            <tbody>
-                                              {sopData.map((sop, idx) => (
-                                                <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                                  <td style={{ padding: '8px 10px', fontWeight: '600' }}>{sop.name}</td>
-                                                  <td style={{ padding: '8px 10px', textAlign: 'center', color: '#64748b' }}>{sop.daysToGo} Days</td>
-                                                  <td style={{ padding: '8px 10px', textAlign: 'right' }}>
-                                                    <span style={{ fontSize: '10px', fontWeight: '800', color: sop.health === 'At Risk' ? '#dc2626' : '#059669', backgroundColor: sop.health === 'At Risk' ? '#fee2e2' : '#d1fae5', padding: '2px 8px', borderRadius: '99px' }}>{sop.status.toUpperCase()}</span>
-                                                  </td>
-                                                </tr>
-                                              ))}
-                                            </tbody>
-                                          </table>
-                                        </div>
-                                      )}
-
-                                      {sectionKey === 'budget' && (
-                                        <div style={{ overflow: 'hidden', borderRadius: '12px', border: '1px solid #bfdbfe', backgroundColor: '#ffffff', boxShadow: isCapturingPdf ? 'none' : '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
-                                          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '11px' }}>
-                                            <thead>
-                                              <tr>
-                                                {budgetTableData.length > 0 && budgetTableData[0].map((h, i) => (
-                                                  <th key={i} style={{ padding: '12px 10px', borderBottom: '2px solid #bfdbfe', backgroundColor: '#eff6ff', fontWeight: '800', color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
-                                                ))}
-                                              </tr>
-                                            </thead>
-                                            <tbody>
-                                              {budgetTableData.slice(1).map((row, idx) => {
-                                                const categoryVal = String(row[0] || '');
-                                                const isHighlight = categoryVal && (categoryVal.includes('Total') || categoryVal === 'CAPEX' || categoryVal === 'Revenue');
-                                                return (
-                                                  <tr key={idx} style={{ backgroundColor: isHighlight ? '#f8fafc' : '#ffffff' }}>
-                                                    {row.map((cell, colIdx) => (
-                                                      <td key={colIdx} style={{ padding: '10px', borderBottom: '1px solid #e2e8f0', color: colIdx === 0 && isHighlight ? '#0f172a' : '#475569', fontWeight: colIdx === 0 && isHighlight ? '800' : '500' }}>
-                                                        {cell}
-                                                      </td>
-                                                    ))}
-                                                  </tr>
-                                                )
-                                              })}
-                                            </tbody>
-                                          </table>
-                                        </div>
-                                      )}
-
-                                      {sectionKey === 'resource' && (
-                                        <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #dcfce7', overflow: 'hidden', boxShadow: isCapturingPdf ? 'none' : '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
-                                          <div style={{ padding: '12px 16px', backgroundColor: '#f0fdf4', borderBottom: '1px solid #dcfce7', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <div style={{ backgroundColor: '#22c55e', color: 'white', padding: '4px', borderRadius: '6px' }}><Check size={12} /></div>
-                                            <span style={{ fontSize: '13px', fontWeight: '800', color: '#14532d', letterSpacing: '0.05em' }}>RESOURCE STATE</span>
-                                          </div>
-                                          <div style={{ padding: '16px', display: 'grid', gap: '10px' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Deployed</span>
-                                              <span style={{ fontSize: '16px', fontWeight: '900', color: '#1e3a5f' }}>{summaryData.resourceDeployed}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Shortage</span>
-                                              <span style={{ fontSize: '16px', fontWeight: '900', color: '#ef4444' }}>{summaryData.resourceShortage}</span>
-                                            </div>
-                                            <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '4px 0' }} />
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Utilization</span>
-                                              <span style={{ fontSize: '16px', fontWeight: '900', color: '#f59e0b' }}>{summaryData.resourceUtilized}/{summaryData.resourceDeployed}</span>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      )}
-
-                                      {sectionKey === 'quality' && (
-                                        <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #ffedd5', overflow: 'hidden', boxShadow: isCapturingPdf ? 'none' : '0 10px 15px -3px rgba(0,0,0,0.05)' }}>
-                                          <div style={{ padding: '12px 16px', backgroundColor: '#fff7ed', borderBottom: '1px solid #ffedd5', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                            <div style={{ backgroundColor: '#f59e0b', color: 'white', padding: '4px', borderRadius: '6px' }}><Filter size={12} /></div>
-                                            <span style={{ fontSize: '13px', fontWeight: '800', color: '#78350f', letterSpacing: '0.05em' }}>QUALITY METRICS</span>
-                                          </div>
-                                          <div style={{ padding: '16px', display: 'grid', gap: '10px' }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Total Issues</span>
-                                              <span style={{ fontSize: '16px', fontWeight: '900', color: '#1e3a5f' }}>{summaryData.qualityTotal}</span>
-                                            </div>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Open</span>
-                                              <span style={{ fontSize: '16px', fontWeight: '900', color: '#ef4444' }}>{summaryData.qualityOpen}</span>
-                                            </div>
-                                            <div style={{ height: '1px', backgroundColor: '#f1f5f9', margin: '4px 0' }} />
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                                              <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Resolution</span>
-                                              <span style={{ fontSize: '16px', fontWeight: '900', color: '#10b981' }}>{summaryData.qualityCompleted} Closed</span>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      )}
-
-                                      {isMetric && (
-                                        <div style={{ height: '340px', width: '100%', border: '1px solid #e2e8f0', borderRadius: '12px', backgroundColor: '#ffffff', padding: '16px' }}>
-                                          {renderChart(sectionKey, chartTypes[activeProject.id]?.[sectionKey] || 'bar', false, getTrackerForPhase(sectionKey)?.trackerId)}
-                                        </div>
-                                      )}
-
-                                      {!isCapturingPdf ? (
-                                        <div style={{ marginTop: '16px' }}>
-                                          <div style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}>
-                                            <button onClick={() => handleUpdateCustomContent(sectionKey, 'notes', (customContent.notes || '') + ' **BOLD** ')} style={{ padding: '4px 8px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', color: '#1e3a5f', cursor: 'pointer' }}>B</button>
-                                            <button onClick={() => handleUpdateCustomContent(sectionKey, 'notes', (customContent.notes || '') + ' *italic* ')} style={{ padding: '4px 8px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '10px', fontStyle: 'italic', color: '#1e3a5f', cursor: 'pointer' }}>I</button>
-                                            <button onClick={() => handleUpdateCustomContent(sectionKey, 'notes', (customContent.notes || '') + '\n• ')} style={{ padding: '4px 8px', background: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '10px', color: '#1e3a5f', cursor: 'pointer' }}>List</button>
-                                          </div>
-                                          <textarea
-                                            value={customContent.notes}
-                                            onChange={(e) => handleUpdateCustomContent(sectionKey, 'notes', e.target.value)}
-                                            placeholder="Add strategic context..."
-                                            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '13px', fontStyle: 'italic', outline: 'none' }}
-                                          />
-                                        </div>
-                                      ) : customContent.notes && (
-                                        <div style={{ marginTop: '16px', padding: '12px 20px', backgroundColor: 'rgba(30,58,95,0.05)', borderLeft: '4px solid #1e3a5f', fontSize: '14px', fontStyle: 'italic', color: '#334155', whiteSpace: 'pre-wrap' }}>
-                                          {customContent.notes}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </Draggable>
-                              );
-                            })
-                          )}
-                          {provided.placeholder}
-                        </div>
-
-                        {/* Page Footer */}
-                        <div style={{ marginTop: 'auto', borderTop: '1px solid #e2e8f0', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', color: '#94a3b8', fontWeight: '700' }}>
-                          <div>{pdfGlobalStyles.footerText}</div>
-                          {pdfGlobalStyles.showPageNumbers && <div>PAGE {pageIdx + 1} OF {pdfPages.length}</div>}
-                        </div>
-                      </div>
-                    )}
-                  </Droppable>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </DragDropContext>
-    );
-  };
   const renderSimulateModal = () => {
     if (!showSimulateModal) return null;
 
@@ -2564,14 +1405,7 @@ const ProjectTitleDashboard = () => {
                     />
                     Critical Issues
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={tempVisibleSections.sopTables}
-                      onChange={() => handleSectionVisibilityToggle('sopTables')}
-                    />
-                    SOP Tables
-                  </label>
+
                 </div>
               </div>
 
@@ -2664,7 +1498,7 @@ const ProjectTitleDashboard = () => {
               <div style={{ fontSize: '13px', color: '#4b5563' }}>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {Object.entries(tempVisibleSections)
-                    .filter(([_, selected]) => selected)
+                    .filter(([section, selected]) => selected && section !== 'sopTables')
                     .map(([section]) => (
                       <span key={section} style={{
                         padding: '4px 10px',
@@ -2674,8 +1508,7 @@ const ProjectTitleDashboard = () => {
                         fontSize: '12px',
                         fontWeight: 'bold'
                       }}>
-                        {section === 'sopTables' ? 'SOP Tables' :
-                          (activeProject?.submodules || []).find(s => s.id === section)?.displayName ||
+                        {(activeProject?.submodules || []).find(s => s.id === section)?.displayName ||
                           (activeProject?.submodules || []).find(s => s.id === section)?.name ||
                           section.charAt(0).toUpperCase() + section.slice(1).replace(/([A-Z])/g, ' $1')}
                       </span>
@@ -4269,8 +3102,7 @@ const ProjectTitleDashboard = () => {
       padding: '20px',
       fontFamily: 'Arial, sans-serif'
     }}>
-      {/* PDF Preview Modal */}
-      {renderPdfPreviewModal()}
+
 
       {/* Save Notification Toast */}
       {showSaveNotification && (
@@ -4299,8 +3131,8 @@ const ProjectTitleDashboard = () => {
         removeEmailInput={removeEmailInput}
         availablePhases={availablePhases}
         getTrackerForPhase={getTrackerForPhase}
-        openPrintPreview={openPrintPreview}
         handleSendEmail={handleSendEmail}
+        onPreviewPdf={handleOpenPdfPreview}
       />
 
       {/* Simulate Modal */}
@@ -4433,6 +3265,8 @@ const ProjectTitleDashboard = () => {
                   <Mail className="h-4 w-4" />
                   Send Mail
                 </button>
+
+
               </>
             )}
           </div>
@@ -4623,7 +3457,7 @@ const ProjectTitleDashboard = () => {
 
 
               {/* Dashboard Content */}
-              <div style={{ padding: '20px 25px 25px 25px' }}>
+              <div id="dashboard-printable-area" style={{ padding: '20px 25px 25px 25px' }}>
                 {/* Milestones Section */}
                 {visibleSections.milestones && (
                   <div style={{
@@ -5189,6 +4023,25 @@ const ProjectTitleDashboard = () => {
               </div>
             </div>
             {/* End project-dashboard-main-content */}
+            
+            <PdfPreviewModal
+              show={showPdfPreview}
+              onClose={() => setShowPdfPreview(false)}
+              activeProject={activeProject}
+              milestones={milestones}
+              criticalIssues={criticalIssues}
+              sopData={sopData}
+              summaryData={summaryData}
+              visibleSections={visibleSections}
+              availablePhases={availablePhases}
+              getTrackerForPhase={getTrackerForPhase}
+              budgetTableData={budgetTableData}
+              submoduleData={submoduleData}
+              selectedBudgetProject={selectedBudgetProject}
+              masterProjects={masterProjects}
+              budgetCurrency={budgetCurrency}
+              chartImages={pdfChartImages}
+            />
           </>
         )}
       </div>
@@ -5215,8 +4068,8 @@ const EmailModal = ({
   removeEmailInput,
   availablePhases,
   getTrackerForPhase,
-  openPrintPreview,
-  handleSendEmail
+  handleSendEmail,
+  onPreviewPdf
 }) => {
   if (!show) return null;
 
@@ -5605,7 +4458,7 @@ const EmailModal = ({
                 { id: 'gateway', label: 'Gateway' },
                 { id: 'validation', label: 'Validation' },
                 { id: 'qualityIssues', label: 'Quality Issues' },
-                { id: 'sopTables', label: 'SOP Tables' }
+
               ].filter(section => {
                 const metricKeys = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
                 if (metricKeys.includes(section.id)) return availablePhases[section.id];
@@ -5659,21 +4512,27 @@ const EmailModal = ({
             >
               Cancel
             </button>
+
             <button
-              onClick={openPrintPreview}
+              onClick={onPreviewPdf}
               style={{
                 padding: '10px 20px',
                 fontSize: '14px',
                 borderRadius: '4px',
-                border: '1px solid #f59e0b',
-                backgroundColor: '#f59e0b',
-                color: 'white',
+                border: '1px solid #1e3a5f',
+                backgroundColor: 'white',
+                color: '#1e3a5f',
                 cursor: 'pointer',
-                fontWeight: 'bold'
+                fontWeight: 'bold',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
               }}
             >
+              <Download className="h-4 w-4" />
               Preview PDF
             </button>
+
             <button
               onClick={handleSendEmail}
               style={{
