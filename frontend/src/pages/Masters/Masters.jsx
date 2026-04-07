@@ -262,8 +262,7 @@ const FileContentViewer = ({ fileData, trackerInfo, onClose, onSaveData }) => {
 const getMasterIcon = (masterName) => {
   const icons = {
     'Employee Master': <Users className="h-5 w-5" />,
-    'Project Master': <FolderKanban className="h-5 w-5" />,
-    'Department Master': <Building className="h-5 w-5" />
+    'Project Master': <FolderKanban className="h-5 w-5" />
   };
   return icons[masterName] || <Database className="h-5 w-5" />;
 };
@@ -317,20 +316,7 @@ const Masters = () => {
       iconBg: 'bg-[#1e3a5f]',
       
     },
-    {
-      id: 5,
-      name: 'Department Master',
-      masterModuleId: 'department-master',
-      path: 'masters/departments',
-      type: 'master',
-      description: 'Organize departmental structures',
-      icon: <Building className="h-5 w-5" />,
-      gradient: 'from-[#1e3a5f] to-[#2a4870]',
-      lightGradient: 'from-[#e6eef8] to-[#d1e0f0]',
-      borderColor: 'border-[#1e3a5f]/20',
-      iconBg: 'bg-[#1e3a5f]',
-      
-    }
+
   ];
 
   // Load dynamic modules

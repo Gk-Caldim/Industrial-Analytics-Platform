@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -26,14 +26,26 @@
   --primary-color: #6366f1;
   --secondary-color: #0ea5e9;
   --primary-color-rgb: 99, 102, 241; /* Default RGB for Indigo 500 */
+
+  /* Redesign Colors */
+  --bg: #f0efe9;
+  --surface: #fafaf7;
+  --white: #ffffff;
+  --green: #16a34a;
+  --amber: #92400e;
+  --amber-mid: #fcd34d;
+  --blue: #2b5ce6;
+  --ink3: #5f5e5b;
 }
 
 
 @layer base {
   body {
-    @apply font-inter antialiased;
+    @apply antialiased;
+    font-family: 'DM Sans', sans-serif;
     min-height: 100vh;
-    background-color: #f8fafc;
+    background-color: var(--bg);
+    color: #1a1a1a;
   }
 
   h1,
@@ -43,6 +55,11 @@
   h5,
   h6 {
     @apply font-outfit tracking-tight;
+  }
+
+  .font-mono {
+    font-family: 'DM Mono', monospace;
+    font-variant-numeric: tabular-nums;
   }
 }
 
