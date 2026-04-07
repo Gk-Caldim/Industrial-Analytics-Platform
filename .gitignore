@@ -97,7 +97,11 @@ backend/google_service_account.json
 # Antigravity / Skills
 # =========================
 skills/
+full-stack-orchestration-full-stack-feature/
+senior-fullstack/
 
 # Microsoft Teams delegated OAuth token — contains refresh token, never commit
 ms_token.json
 backend/ms_token.json
+
+

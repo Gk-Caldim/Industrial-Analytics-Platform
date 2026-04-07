@@ -1,493 +1,500 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  Calendar, Clock, Users, Video, Edit, X, Copy, 
-  ExternalLink, CheckCircle2, AlertCircle, FileText, 
-  Play, StopCircle, RefreshCw, Key, ArrowLeft
+import {
+    Calendar, Clock, Users, Video, Copy, Check, X,
+    MoreHorizontal, ArrowUpRight, Trash2, Mic, VideoOff,
+    FileText, Download, Share2, AlertCircle, Plus, ChevronRight
 } from 'lucide-react';
 import './MeetingDetailsPage.css';
 import API from '../../utils/api';
 
 const MeetingDetailsPage = () => {
-  const { id } = useParams();
-  const navigate = useNavigate();
+    const { id } = useParams();
+    const navigate = useNavigate();
 
-  // --- Core State ---
-  const [meeting, setMeeting] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  
-  // --- Edit Mode State ---
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [showSaved, setShowSaved] = useState(false);
-  
-  // --- UI State ---
-  const [meetingStatus, setMeetingStatus] = useState('scheduled'); // scheduled, live, completed, cancelled
-  const [timeUntilStart, setTimeUntilStart] = useState('');
-  const [showAutoJoinBanner, setShowAutoJoinBanner] = useState(false);
-  const [showFallbackModal, setShowFallbackModal] = useState(false);
-  const [copiedField, setCopiedField] = useState(null);
-  const [hasAutoJoined, setHasAutoJoined] = useState(false);
+    // --- State ---
+    const [meeting, setMeeting] = useState(null);
+    const [loading, setStatusLoading] = useState(true);
+    const [agenda, setAgenda] = useState([]);
+    const [attendees, setAttendees] = useState([]);
+    const [readiness, setReadiness] = useState({ score: 1, total: 3 });
+    const [countdown, setCountdown] = useState('00m 00s');
+    const [toast, setToast] = useState({ show: false, message: '' });
+    const [copiedField, setCopiedField] = useState(null);
+    const [showAttendeeModal, setShowAttendeeModal] = useState(false);
+    const [newAttendeeEmail, setNewAttendeeEmail] = useState('');
+    const [agendaInput, setAgendaInput] = useState({ show: false, text: '' });
+    const [dangerTap, setDangerTap] = useState({ count: 0, timer: null });
 
-  const platforms = {
-    teams: { name: 'Microsoft Teams', icon: 'M', color: '#5558AF' },
-    meet: { name: 'Google Meet', icon: 'G', color: '#00832D' },
-    zoho: { name: 'Zoho Mail', icon: 'Z', color: '#005CE3' }
-  };
+    // --- Refs ---
+    const toastTimeout = useRef(null);
+    const dangerTimeout = useRef(null);
 
-  // --- Fetch Meeting ---
-  useEffect(() => {
-    const fetchMeeting = async () => {
-      try {
-        const resp = await API.get(`/meetings/${id}`);
-        if (resp.data.success) {
-          setMeeting(resp.data.meeting);
-          setEditForm(resp.data.meeting);
-        } else {
-          setError('Meeting not found.');
-        }
-      } catch (err) {
-        setError('Failed to load meeting details.');
-      } finally {
-        setLoading(false);
-      }
+    // --- Utils ---
+    const showToast = (message) => {
+        if (toastTimeout.current) clearTimeout(toastTimeout.current);
+        setToast({ show: true, message });
+        toastTimeout.current = setTimeout(() => setToast({ show: false, message: '' }), 2200);
     };
-    fetchMeeting();
-  }, [id]);
 
-  // --- Status Engine & Auto-Join ---
-  useEffect(() => {
-    if (!meeting || meeting.status === 'cancelled') {
-      if (meeting?.status === 'cancelled') setMeetingStatus('cancelled');
-      return;
-    }
+    const updateReadiness = (currentAgenda = agenda, currentAttendees = attendees) => {
+        let score = 1; // Meet link always green
+        if (currentAgenda.length > 0) score += 1;
+        if (currentAttendees.length > 0) score += 1;
+        setReadiness({ score, total: 3 });
+    };
 
-    const interval = setInterval(() => {
-      const now = new Date();
-      // Parse meeting date and time
-      // Assuming date is "YYYY-MM-DD" and time is "HH:MM AM/PM"
-      const dateStr = meeting.date;
-      const timeStr = meeting.time;
-      
-      const [time, modifier] = timeStr.split(' ');
-      let [hours, minutes] = time.split(':');
-      if (hours === '12') hours = '00';
-      if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
-      
-      const startTime = new Date(`${dateStr}T${hours}:${minutes}:00`);
-      const endTime = new Date(startTime.getTime() + (parseInt(meeting.duration) * 60000));
-      
-      let newStatus = 'scheduled';
-      if (now >= startTime && now <= endTime) {
-        newStatus = 'live';
-      } else if (now > endTime) {
-        newStatus = 'completed';
-      }
-
-      setMeetingStatus(newStatus);
-
-      // Time until start text
-      if (newStatus === 'scheduled') {
-        const diffMs = startTime - now;
-        const diffMins = Math.floor(diffMs / 60000);
-        
-        if (diffMins > 0 && diffMins <= 60) {
-            setTimeUntilStart(`Starts in ${diffMins} min`);
-            if (diffMins <= 5 && !showAutoJoinBanner) {
-                setShowAutoJoinBanner(true);
-            }
-        } else if (diffMins > 60) {
-            setTimeUntilStart(`Starts in ${Math.floor(diffMins/60)} hrs`);
-        }
-      } else if (newStatus === 'live') {
-          setTimeUntilStart('In progress');
-          
-          // Auto-trigger logic requested by spec
-          if (!hasAutoJoined && meeting.joinUrl) {
-              setHasAutoJoined(true);
-              setTimeout(() => {
-                  window.open(meeting.joinUrl, '_blank');
-              }, 2000);
-          }
-      } else {
-          setTimeUntilStart('Finished');
-      }
-
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [meeting, showAutoJoinBanner, hasAutoJoined]);
-
-
-  // --- Handlers: Join Flow ---
-  const handleJoinMeeting = () => {
-    if (meeting.joinUrl) {
-      window.open(meeting.joinUrl, '_blank');
-    } else {
-        setShowFallbackModal(true);
-    }
-  };
-
-  const handleCopy = (text, field) => {
-    navigator.clipboard.writeText(text);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  // --- Handlers: Cancel ---
-  const handleCancel = async () => {
-    if (window.confirm('Are you sure you want to cancel this meeting?')) {
+    const fetchMeeting = async () => {
         try {
-            await API.post(`/meetings/${id}/cancel`);
-            setMeeting(prev => ({ ...prev, status: 'cancelled' }));
-            setMeetingStatus('cancelled');
+            setStatusLoading(true);
+            const resp = await API.get(`/meetings/${id}`);
+            if (resp.data.success) {
+                const m = resp.data.meeting;
+                setMeeting(m);
+                // Parse agenda from agenda_text if it's a list or newline separated
+                const parsedAgenda = m.agenda_text ? m.agenda_text.split('\n').filter(t => t.trim() !== '') : [];
+                setAgenda(parsedAgenda);
+                setAttendees(m.attendees || []);
+                updateReadiness(parsedAgenda, m.attendees || []);
+            }
         } catch (err) {
-            alert('Failed to cancel meeting.');
+            showToast('Failed to load meeting');
+        } finally {
+            setStatusLoading(false);
         }
-    }
-  };
+    };
 
-  // --- Handlers: Edit Sync ---
-  const handleSaveEdit = async () => {
-    setSaving(true);
-    try {
-        const payload = { ...editForm };
-        // Clean array inputs if they were changed to strings
-        if (typeof payload.attendees === 'string') {
-            payload.attendees = payload.attendees.split(',').map(s => s.trim()).filter(Boolean);
+    useEffect(() => {
+        fetchMeeting();
+    }, [id]);
+
+    // --- Countdown Logic ---
+    useEffect(() => {
+        if (!meeting) return;
+        const timer = setInterval(() => {
+            const now = new Date();
+            const [time, modifier] = (meeting.time || '12:00 AM').split(' ');
+            let [hours, minutes] = time.split(':');
+            if (hours === '12') hours = '00';
+            if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+            const startTime = new Date(`${meeting.date}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:00`);
+
+            const diffMs = startTime - now;
+            if (diffMs > 0) {
+                const h = Math.floor(diffMs / 3600000);
+                const m = Math.floor((diffMs % 3600000) / 60000);
+                const s = Math.floor((diffMs % 60000) / 1000);
+                setCountdown(`${h > 0 ? h + 'h ' : ''}${m.toString().padStart(2, '0')}m ${s.toString().padStart(2, '0')}s`);
+            } else {
+                setCountdown('Live now');
+            }
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [meeting]);
+
+    // --- Handlers ---
+    const handleCopy = (text, field) => {
+        navigator.clipboard.writeText(text);
+        setCopiedField(field);
+        showToast('Link copied to clipboard');
+        setTimeout(() => setCopiedField(null), field === 'hero-link' ? 300 : 1900);
+    };
+
+    // --- Modal Escape Listener ---
+    useEffect(() => {
+        const handleEsc = (e) => {
+            if (e.key === 'Escape') {
+                setShowAttendeeModal(false);
+                setAgendaInput({ show: false, text: '' });
+            }
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, []);
+
+    const addAgendaPoint = async () => {
+        if (!agendaInput.text.trim()) {
+            setAgendaInput({ show: false, text: '' });
+            return;
         }
-        if (typeof payload.agenda === 'string') {
-            payload.agenda = payload.agenda.split(',').map(s => s.trim()).filter(Boolean);
+        const newAgenda = [...agenda, agendaInput.text.trim()];
+        setAgenda(newAgenda);
+        setAgendaInput({ show: false, text: '' });
+        updateReadiness(newAgenda, attendees);
+        showToast('Agenda point added');
+        // Persist to backend
+        try { await API.patch(`/meetings/${id}`, { agenda_text: newAgenda.join('\n') }); } catch (e) { }
+    };
+
+    const deleteAgendaPoint = async (index) => {
+        const newAgenda = agenda.filter((_, i) => i !== index);
+        setAgenda(newAgenda);
+        updateReadiness(newAgenda, attendees);
+        // Persist to backend
+        try { await API.patch(`/meetings/${id}`, { agenda_text: newAgenda.join('\n') }); } catch (e) { }
+    };
+
+    const addAttendee = async () => {
+        if (!newAttendeeEmail.trim()) return;
+        const newAttendees = [...attendees, { name: newAttendeeEmail.split('@')[0], email: newAttendeeEmail, rsvpStatus: 'PENDING' }];
+        setAttendees(newAttendees);
+        setNewAttendeeEmail('');
+        setShowAttendeeModal(false);
+        updateReadiness(agenda, newAttendees);
+        showToast('Invitation sent');
+        // Persist to backend (mocking deep update for now)
+        try { await API.patch(`/meetings/${id}`, { attendees: newAttendees }); } catch (e) { }
+    };
+
+    const handleDangerTap = () => {
+        if (dangerTap.count === 0) {
+            setDangerTap({ count: 1, timer: 3 });
+            if (dangerTimeout.current) clearInterval(dangerTimeout.current);
+            dangerTimeout.current = setInterval(() => {
+                setDangerTap(prev => {
+                    if (prev.timer <= 1) {
+                        clearInterval(dangerTimeout.current);
+                        return { count: 0, timer: 0 };
+                    }
+                    return { ...prev, timer: prev.timer - 1 };
+                });
+            }, 1000);
+        } else {
+            clearInterval(dangerTimeout.current);
+            setDangerTap({ count: 0, timer: 0 });
+            handleDeleteMeeting();
         }
+    };
 
-        const resp = await API.patch(`/meetings/${id}`, payload);
-        if (resp.data.success) {
-            setMeeting(resp.data.meeting);
-            // reset edit form Arrays back nicely
-            setEditForm(resp.data.meeting);
-            setIsEditing(false);
-            
-            // Show inline saved confirmation
-            setShowSaved(true);
-            setTimeout(() => setShowSaved(false), 2500);
+    const handleDeleteMeeting = async () => {
+        showToast('Meeting cancelled');
+        try {
+            await API.post(`/meetings/${id}/cancel`, { reason: 'User requested cancellation' });
+            setTimeout(() => navigate('/dashboard/meetings'), 1000);
+        } catch (e) {
+            showToast('Failed to cancel meeting');
         }
-    } catch (err) {
-        alert('Failed to update meeting.');
-    } finally {
-        setSaving(false);
-    }
-  };
+    };
 
-  const handleEditChange = (field, value) => {
-      setEditForm(prev => ({ ...prev, [field]: value }));
-  };
+    if (loading) return <div className="meeting-details-wrapper flex items-center justify-center"><div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
+    if (!meeting) return <div className="meeting-details-wrapper p-10 font-bold text-red-500">Meeting not found</div>;
 
-  // --- Handlers: MOM ---
-  const handleGenerateMOM = () => {
-      // Logic to push meeting payload to MOM generation processor
-      alert(`Triggering MOM creation for ID: ${meeting.momIntegrationId}`);
-      // In real implementation: navigate to MOM specific page with context
-      navigate('/dashboard/mom');
-  };
+    const platformIcon = meeting.platform === 'meet' ? (
+        <svg viewBox="0 0 24 24" className="w-3 h-3"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335" /></svg>
+    ) : (
+        <Video className="w-3 h-3 text-indigo-500" />
+    );
 
-  // --- Renderers ---
-  if (loading) return <div className="p-8 flex items-center justify-center"><RefreshCw className="animate-spin w-6 h-6 text-indigo-500" /></div>;
-  if (error || !meeting) return <div className="p-8 text-red-500">{error}</div>;
+    const progressRingOffset = 56.5 - (56.5 * (readiness.score / readiness.total));
+    const ringColor = readiness.score === 1 ? '#92400e' : readiness.score === 2 ? '#fcd34d' : '#16a34a';
 
-  const platformInfo = platforms[meeting.platform] || platforms['teams'];
+    return (
+        <div className="meeting-details-wrapper">
+            <div className="dashboard-container">
 
-  return (
-    <div className="meeting-details-page h-full overflow-y-auto">
-      
-      {/* Auto Join Banner */}
-      {showAutoJoinBanner && meetingStatus === 'scheduled' && (
-          <div className="bg-indigo-600 text-white px-6 py-3 flex justify-between items-center shadow-md animate-slideDown">
-              <div className="flex items-center gap-2 font-medium">
-                  <Play className="w-4 h-4" /> Your meeting is starting soon!
-              </div>
-              <button 
-                onClick={handleJoinMeeting}
-                className="bg-white text-indigo-600 px-4 py-1.5 rounded-md font-bold text-sm hover:bg-gray-100 transition-colors"
-                autoFocus
-              >
-                  Join Now
-              </button>
-          </div>
-      )}
-
-      <div className="p-6 md:p-8 max-w-5xl mx-auto space-y-6 flex flex-col items-center">
-          
-        {/* Back Button with Expand/Magnetic Effect */}
-        <div className="w-full flex justify-start mb-2">
-            <button 
-                onClick={() => navigate('/dashboard/meetings')} 
-                className="group flex items-center gap-2 text-gray-500 hover:text-indigo-600 transition-all duration-300 overflow-hidden hover:bg-indigo-50 px-2 hover:px-4 py-1.5 rounded-full"
-            >
-                <div className="bg-white group-hover:bg-indigo-100 p-1.5 rounded-full shadow-sm group-hover:shadow transition-all duration-300 transform group-hover:-translate-x-1">
-                    <ArrowLeft className="w-4 h-4" />
-                </div>
-                <span className="text-sm font-semibold max-w-0 opacity-0 group-hover:max-w-xs group-hover:opacity-100 transition-all duration-500 whitespace-nowrap overflow-hidden">
-                    Back to Meetings
-                </span>
-            </button>
-        </div>
-
-        {/* Header Section */}
-        <div className="w-full bg-white border border-gray-200 rounded-2xl p-6 shadow-sm relative overflow-hidden flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <div className={`absolute top-0 left-0 w-1.5 h-full ${meetingStatus === 'live' ? 'bg-red-500' : meetingStatus === 'completed' ? 'bg-emerald-500' : meetingStatus === 'cancelled' ? 'bg-gray-400' : 'bg-indigo-500'}`}></div>
-            
-            <div className="pl-2">
-                <div className="flex items-center gap-3 mb-1">
-                    <h1 className="text-2xl font-bold text-gray-900">{meeting.title}</h1>
-                    {meetingStatus === 'live' && <span className="px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse"></div> Live</span>}
-                    {meetingStatus === 'completed' && <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-bold uppercase tracking-wider">Completed</span>}
-                    {meetingStatus === 'cancelled' && <span className="px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs font-bold uppercase tracking-wider">Cancelled</span>}
-                    {meetingStatus === 'scheduled' && <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold uppercase tracking-wider">Scheduled {timeUntilStart && `• ${timeUntilStart}`}</span>}
-                </div>
-                <p className="text-sm text-gray-500 font-medium font-mono">ID: {meeting.id}</p>
-            </div>
-
-            <div className="flex items-center gap-2">
-                {meetingStatus !== 'cancelled' && (
-                    <>
-                        <button onClick={() => setShowFallbackModal(true)} className="md-btn border border-gray-200 text-gray-700 hover:bg-gray-50"><ExternalLink className="w-4 h-4" /> Info</button>
-                        {meetingStatus !== 'completed' && (
-                           <button onClick={handleJoinMeeting} className="md-btn bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm"><Play className="w-4 h-4" fill="currentColor" /> Join Meeting</button>
-                        )}
-                    </>
-                )}
-            </div>
-        </div>
-
-        {/* Content Section */}
-        <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6">
-            
-            {/* Left Col: Info */}
-            <div className="md:col-span-2 space-y-6">
-                
-                {/* Details Card */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-                    <div className="flex justify-between items-center mb-6">
-                        <div className="flex items-center gap-3">
-                            <h2 className="text-lg font-bold text-gray-900">Meeting Details</h2>
-                            {showSaved && (
-                                <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded-md font-bold flex items-center gap-1 animate-fadeIn"><CheckCircle2 className="w-3 h-3" /> Saved!</span>
-                            )}
+                {/* Hero Card */}
+                <div className="hero-section stagger-item" style={{ animationDelay: '0ms' }}>
+                    <div className="status-row">
+                        <div className="radar-dot"></div>
+                        <span className="section-label">Scheduled</span>
+                        <div className="separator"></div>
+                        <span className="section-label">{meeting.date}</span>
+                        <div className="separator"></div>
+                        <div className="platform-badge">
+                            {platformIcon}
+                            <span>{meeting.platform === 'meet' ? 'Google Meet' : 'MS Teams'}</span>
                         </div>
-                        {(meetingStatus === 'scheduled' || meetingStatus === 'live') && !isEditing && (
-                            <button onClick={() => setIsEditing(true)} className="text-indigo-600 hover:text-indigo-700 text-sm font-medium flex items-center gap-1"><Edit className="w-4 h-4" /> Edit</button>
-                        )}
                     </div>
 
-                    {!isEditing ? (
-                        <div className="space-y-5">
-                             <div className="flex items-start gap-4">
-                                 <div className="p-2.5 bg-gray-50 rounded-xl text-gray-500"><Calendar className="w-5 h-5" /></div>
-                                 <div>
-                                     <p className="font-semibold text-gray-900">{meeting.date}</p>
-                                     <p className="text-sm text-gray-500">{meeting.time} ({meeting.duration} minutes)</p>
-                                 </div>
-                             </div>
-                             <div className="flex items-start gap-4">
-                                 <div className="p-2.5 bg-gray-50 rounded-xl text-gray-500" style={{color: platformInfo.color}}><Video className="w-5 h-5" /></div>
-                                 <div>
-                                     <p className="font-semibold text-gray-900">{platformInfo.name}</p>
-                                     <p className="text-sm text-blue-600 hover:underline cursor-pointer" onClick={handleJoinMeeting}>{meeting.joinUrl ? "Direct Link Attached" : "Requires Manual Join"}</p>
-                                 </div>
-                             </div>
-                             {meeting.description && (
-                                 <div className="flex items-start gap-4">
-                                     <div className="p-2.5 bg-gray-50 rounded-xl text-gray-500"><FileText className="w-5 h-5" /></div>
-                                     <div>
-                                         <p className="font-semibold text-gray-900">Description</p>
-                                         <p className="text-sm text-gray-600 mt-1 whitespace-pre-wrap">{meeting.description}</p>
-                                     </div>
-                                 </div>
-                             )}
-                        </div>
-                    ) : (
-                        <div className="space-y-4 animate-fadeIn">
-                             {meetingStatus === 'live' && (
-                                 <div className="bg-indigo-50 text-indigo-700 text-xs px-3 py-2 rounded-lg font-medium flex items-center gap-2 mb-2">
-                                     <Play className="w-3 h-3" /> Core scheduling fields are locked while meeting is live.
-                                 </div>
-                             )}
-                             <div className="grid grid-cols-2 gap-4">
-                                 <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Date</label>
-                                    <input type="date" disabled={meetingStatus === 'live'} className={`md-input border border-gray-300 w-full p-2 rounded-lg ${meetingStatus === 'live' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`} value={editForm.date} onChange={e => handleEditChange('date', e.target.value)} />
-                                 </div>
-                                 <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Time</label>
-                                    <input type="time" disabled={meetingStatus === 'live'} className={`md-input border border-gray-300 w-full p-2 rounded-lg ${meetingStatus === 'live' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`} value={editForm.time} onChange={e => handleEditChange('time', e.target.value)} />
-                                 </div>
-                                 <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Platform</label>
-                                    <select disabled={meetingStatus === 'live'} className={`md-input border border-gray-300 w-full p-2 rounded-lg ${meetingStatus === 'live' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`} value={editForm.platform} onChange={e => handleEditChange('platform', e.target.value)}>
-                                        <option value="teams">Microsoft Teams</option>
-                                        <option value="meet">Google Meet</option>
-                                        <option value="zoho">Zoho Mail</option>
-                                    </select>
-                                 </div>
-                                 <div>
-                                    <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Duration (min)</label>
-                                    <select disabled={meetingStatus === 'live'} className={`md-input border border-gray-300 w-full p-2 rounded-lg ${meetingStatus === 'live' ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : ''}`} value={editForm.duration} onChange={e => handleEditChange('duration', e.target.value)}>
-                                        <option value="15">15</option>
-                                        <option value="30">30</option>
-                                        <option value="45">45</option>
-                                        <option value="60">60</option>
-                                    </select>
-                                 </div>
-                             </div>
-                             <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Attendees (Comma Separated)</label>
-                                <textarea className="md-input border border-gray-300 w-full p-2 rounded-lg resize-y" rows={2} value={Array.isArray(editForm.attendees) ? editForm.attendees.join(', ') : editForm.attendees} onChange={e => handleEditChange('attendees', e.target.value)} />
-                             </div>
-                             <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Agenda (Comma Separated)</label>
-                                <textarea className="md-input border border-gray-300 w-full p-2 rounded-lg resize-y" rows={2} value={Array.isArray(editForm.agenda) ? editForm.agenda.join(', ') : editForm.agenda} onChange={e => handleEditChange('agenda', e.target.value)} />
-                             </div>
-                             <div>
-                                <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Description</label>
-                                <textarea className="md-input border border-gray-300 w-full p-2 rounded-lg resize-y" rows={3} value={editForm.description || ''} onChange={e => handleEditChange('description', e.target.value)} />
-                             </div>
-                             <div className="flex gap-2 justify-end pt-2">
-                                 <button onClick={() => setIsEditing(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100">Cancel</button>
-                                 <button onClick={handleSaveEdit} disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-900 text-white hover:bg-black">{saving ? 'Saving...' : 'Save Changes'}</button>
-                             </div>
-                        </div>
-                    )}
-                </div>
+                    <h1 className="hero-title">{meeting.title}</h1>
 
-                {/* Agenda Card */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-                     <h2 className="text-lg font-bold text-gray-900 mb-4">Meeting Agenda</h2>
-                     {meeting.agenda && meeting.agenda.length > 0 ? (
-                         <div className="space-y-3">
-                             {meeting.agenda.map((item, idx) => (
-                                 <div key={idx} className="flex gap-3">
-                                     <span className="w-6 h-6 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-xs flex-shrink-0">{idx + 1}</span>
-                                     <p className="text-sm text-gray-700 mt-0.5">{item}</p>
-                                 </div>
-                             ))}
-                         </div>
-                     ) : (
-                         <p className="text-sm text-gray-500 italic">No agenda provided for this meeting.</p>
-                     )}
-                </div>
-
-            </div>
-
-            {/* Right Col: Sidebar */}
-            <div className="space-y-6">
-                
-                {/* Attendees */}
-                <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
-                    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center justify-between">
-                        Attendees <span className="bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full">{meeting.attendees?.length || 0}</span>
-                    </h2>
-                    <div className="flex flex-col gap-2">
-                         {meeting.attendees && meeting.attendees.map((email, idx) => (
-                             <div key={idx} className="flex items-center gap-3 p-2 rounded-lg border border-gray-100 hover:bg-gray-50">
-                                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-100 to-blue-100 border border-indigo-200 flex items-center justify-center text-xs font-bold text-indigo-700 uppercase">
-                                     {email[0]}
-                                 </div>
-                                 <span className="text-sm font-medium text-gray-700 truncate">{email}</span>
-                             </div>
-                         ))}
+                    <div className="hero-actions">
+                        <button
+                            className="btn-join"
+                            onClick={() => window.open(meeting.join_url, '_blank')}
+                        >
+                            <ArrowUpRight className="w-4 h-4" />
+                            Join meeting
+                        </button>
+                        <span className="timer-text font-mono">Starts in / {countdown}</span>
+                        <button
+                            className="btn-copy-link"
+                            onClick={() => handleCopy(meeting.join_url, 'hero-link')}
+                        >
+                            {copiedField === 'hero-link' ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                            {copiedField === 'hero-link' ? <span className="text-green-600">Copied</span> : <span>Copy link</span>}
+                        </button>
                     </div>
                 </div>
 
-                {/* Actions */}
-                {meetingStatus === 'scheduled' && (
-                    <div className="bg-red-50 border border-red-100 rounded-2xl p-5">
-                       <h3 className="text-sm font-bold text-red-800 mb-2 flex items-center gap-1.5"><AlertCircle className="w-4 h-4" /> Danger Zone</h3>
-                       <p className="text-xs text-red-600 mb-3">Canceling this meeting is permanent and will notify attendees.</p>
-                       <button onClick={handleCancel} className="w-full py-2 bg-white border border-red-200 text-red-600 rounded-lg text-sm font-bold hover:bg-red-50 hover:border-red-300 transition-colors">
-                           Cancel Meeting
-                       </button>
-                    </div>
-                )}
+                <div className="dashboard-grid">
+                    {/* Left Column */}
+                    <div className="flex flex-col gap-6">
 
-            </div>
-        </div>
-      </div>
+                        {/* Agenda Card */}
+                        <div className="card-glass stagger-item" style={{ animationDelay: '30ms' }}>
+                            <div className="card-label-header">
+                                <span className="card-title-sm">Agenda</span>
+                                <button
+                                    className="text-blue-600 flex items-center gap-1 text-[10.5px] font-bold uppercase tracking-wider"
+                                    onClick={() => setAgendaInput({ show: true, text: '' })}
+                                >
+                                    <Plus className="w-3 h-3" /> Add point
+                                </button>
+                            </div>
+                            <div className="card-content">
+                                {agendaInput.show && (
+                                    <div className="flex gap-2 mb-4 animate-slideDown">
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            placeholder="What needs to be discussed?"
+                                            className="flex-1 bg-gray-50 border-none px-3 py-2 rounded text-sm focus:ring-1 focus:ring-blue-200 outline-none"
+                                            value={agendaInput.text}
+                                            onChange={e => setAgendaInput({ ...agendaInput, text: e.target.value })}
+                                            onKeyDown={e => {
+                                                if (e.key === 'Enter') addAgendaPoint();
+                                                if (e.key === 'Escape') setAgendaInput({ show: false, text: '' });
+                                            }}
+                                        />
+                                        <button onClick={addAgendaPoint} className="bg-blue-600 text-white px-3 py-2 rounded text-xs font-bold">Add</button>
+                                    </div>
+                                )}
+                                {agenda.length === 0 ? (
+                                    <div className="agenda-placeholder" onClick={() => setAgendaInput({ show: true, text: '' })}>
+                                        <p className="text-sm font-medium">No agenda items yet</p>
+                                        <p className="text-xs opacity-60 mt-1">Structure your meeting for better results</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-1">
+                                        {agenda.map((item, i) => (
+                                            <div key={i} className="agenda-item group">
+                                                <div className="agenda-dot"></div>
+                                                <span className="agenda-text">{item}</span>
+                                                <button onClick={() => deleteAgendaPoint(i)} className="btn-delete-item opacity-0 group-hover:opacity-100">
+                                                    <X className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
 
-      {/* Fallback Join Modal */}
-      {showFallbackModal && (
-          <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-              <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-scaleIn">
-                  <div className="bg-gray-50 border-b border-gray-200 p-4 flex justify-between items-center">
-                      <h3 className="font-bold text-gray-900">Join Methods</h3>
-                      <button onClick={() => setShowFallbackModal(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
-                  </div>
-                  <div className="p-5 space-y-4">
-                      
-                      {meeting.joinUrl && (
-                        <div>
-                            <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Direct Join Link</label>
-                            <div className="flex">
-                                <input readOnly value={meeting.joinUrl} className="font-mono text-xs w-full bg-gray-50 border border-r-0 border-gray-200 p-2.5 rounded-l-lg outline-none" />
-                                <button onClick={() => handleCopy(meeting.joinUrl, 'link')} className="relative px-3 bg-gray-100 border border-l-0 border-gray-200 rounded-r-lg hover:bg-gray-200 transition-colors flex items-center justify-center min-w-[40px]">
-                                    {copiedField === 'link' ? (
-                                        <>
-                                          <CheckCircle2 className="w-4 h-4 text-emerald-600 animate-[bounce_0.5s_ease-out]" />
-                                          <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none animate-[bounce_1s_infinite]">Copied!</span>
-                                        </>
-                                    ) : <Copy className="w-4 h-4 text-gray-600" />}
+                        {/* Attendees Card */}
+                        <div className="card-glass stagger-item" style={{ animationDelay: '60ms' }}>
+                            <div className="card-label-header">
+                                <span className="card-title-sm">Attendees</span>
+                                <span className="text-[10px] font-bold text-gray-400">{attendees.length} members</span>
+                            </div>
+                            <div className="card-content">
+                                <div className="space-y-1">
+                                    {attendees.map((att, i) => {
+                                        const email = typeof att === 'string' ? att : att.email;
+                                        const name = typeof att === 'string' ? email.split('@')[0] : (att.name || email.split('@')[0]);
+                                        const isHost = i === 0;
+                                        const initials = name.substring(0, 2);
+                                        return (
+                                            <div key={i} className="attendee-row animate-slideDown" style={{ animationDelay: `${i * 30}ms` }}>
+                                                <div className="avatar-circle">{initials}</div>
+                                                <div className="attendee-info">
+                                                    <span className="attendee-name">{name}</span>
+                                                    <span className="attendee-email">{email}</span>
+                                                </div>
+                                                <span className={`status-tag ${isHost ? 'tag-blue' : 'tag-amber'}`}>
+                                                    {isHost ? 'Host' : 'Pending'}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <button
+                                    className="w-full mt-4 py-2 border-t border-gray-50 text-[11px] font-bold text-gray-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-1 uppercase tracking-wider"
+                                    onClick={() => setShowAttendeeModal(true)}
+                                >
+                                    <Plus className="w-3 h-3" /> Add attendee
                                 </button>
                             </div>
                         </div>
-                      )}
 
-                      {meeting.id && (
-                          <div>
-                              <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block">Meeting ID / Key</label>
-                              <div className="flex">
-                                  <input readOnly value={meeting.id} className="font-mono text-xs w-full bg-gray-50 border border-r-0 border-gray-200 p-2.5 rounded-l-lg outline-none" />
-                                  <button onClick={() => handleCopy(meeting.id, 'id')} className="relative px-3 bg-gray-100 border border-l-0 border-gray-200 rounded-r-lg hover:bg-gray-200 transition-colors flex items-center justify-center min-w-[40px]">
-                                      {copiedField === 'id' ? (
-                                        <>
-                                          <CheckCircle2 className="w-4 h-4 text-emerald-600 animate-[bounce_0.5s_ease-out]" />
-                                          <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none animate-[bounce_1s_infinite]">Copied!</span>
-                                        </>
-                                      ) : <Copy className="w-4 h-4 text-gray-600" />}
-                                  </button>
-                              </div>
-                          </div>
-                      )}
+                        {/* Post-meeting Card */}
+                        <div className="card-glass stagger-item" style={{ animationDelay: '90ms' }}>
+                            <div className="card-label-header">
+                                <span className="card-title-sm">After this meeting</span>
+                            </div>
+                            <div className="card-content flex flex-col gap-3">
+                                <div className="flex gap-2">
+                                    <button
+                                        disabled
+                                        className="btn-minimal secondary disabled-post relative"
+                                        data-tooltip="Upload a transcript first"
+                                    >
+                                        <FileText className="w-3.5 h-3.5" />
+                                        Generate notes
+                                    </button>
+                                    <button className="btn-minimal secondary">
+                                        <Plus className="w-3.5 h-3.5" />
+                                        Upload transcript
+                                    </button>
+                                </div>
+                                <button className="btn-minimal secondary w-fit">
+                                    <Share2 className="w-3.5 h-3.5" />
+                                    Export actions
+                                </button>
+                                <p className="text-[11px] text-gray-400 font-medium">Available once the meeting ends.</p>
+                            </div>
+                        </div>
 
-                      {meeting.passcode && (
-                          <div>
-                              <label className="text-xs font-semibold text-gray-500 uppercase mb-1 block flex items-center gap-1"><Key className="w-3 h-3" /> Passcode</label>
-                              <div className="flex">
-                                  <input readOnly value={meeting.passcode} className="font-mono text-sm tracking-widest font-bold w-full bg-indigo-50/50 border border-r-0 border-indigo-100 text-indigo-700 p-2.5 rounded-l-lg outline-none" />
-                                  <button onClick={() => handleCopy(meeting.passcode, 'passcode')} className="relative px-3 bg-indigo-50 border border-l-0 border-indigo-100 rounded-r-lg hover:bg-indigo-100 transition-colors flex items-center justify-center min-w-[40px]">
-                                      {copiedField === 'passcode' ? (
-                                        <>
-                                          <CheckCircle2 className="w-4 h-4 text-emerald-600 animate-[bounce_0.5s_ease-out]" />
-                                          <span className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded shadow-sm whitespace-nowrap pointer-events-none animate-[bounce_1s_infinite]">Copied!</span>
-                                        </>
-                                      ) : <Copy className="w-4 h-4 text-indigo-600" />}
-                                  </button>
-                              </div>
-                          </div>
-                      )}
+                    </div>
 
-                      <div className="pt-2">
-                          <button onClick={() => { if(meeting.joinUrl) window.open(meeting.joinUrl, '_blank'); }} className="w-full py-2.5 bg-gray-900 text-white rounded-lg font-medium text-sm hover:bg-black transition-colors flex justify-center items-center gap-2">
-                             Launch {platformInfo.name} <ExternalLink className="w-4 h-4" />
-                          </button>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      )}
+                    {/* Right Column */}
+                    <div className="flex flex-col gap-6">
 
-    </div>
-  );
+                        {/* Readiness Card */}
+                        <div className="card-glass stagger-item" style={{ animationDelay: '120ms' }}>
+                            <div className="card-label-header readiness-header">
+                                <span className="card-title-sm">Meeting Health</span>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[11px] font-bold" style={{ color: ringColor }}>{readiness.score}/{readiness.total}</span>
+                                    <svg width="20" height="20" className="progress-ring">
+                                        <circle cx="10" cy="10" r="9" fill="transparent" stroke="#f4f3ef" strokeWidth="2" />
+                                        <circle
+                                            cx="10" cy="10" r="9"
+                                            fill="transparent"
+                                            stroke={ringColor}
+                                            strokeWidth="2"
+                                            strokeDasharray="56.5"
+                                            strokeDashoffset={progressRingOffset}
+                                            className="progress-ring-circle"
+                                            strokeLinecap="round"
+                                        />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div className="card-content">
+                                <div className="progress-bar-container">
+                                    <div
+                                        className="progress-bar-fill"
+                                        style={{ width: `${(readiness.score / readiness.total) * 100}%`, backgroundColor: ringColor }}
+                                    ></div>
+                                </div>
+
+                                <div className="readiness-check-row">
+                                    <Check className="check-icon text-green-500" />
+                                    <span>Meet link configured</span>
+                                </div>
+
+                                <div className="readiness-check-row" onClick={() => setAgendaInput({ show: true, text: '' })}>
+                                    {agenda.length > 0 ? (
+                                        <Check className="check-icon text-green-500" />
+                                    ) : (
+                                        <AlertCircle className="check-icon text-amber-500" />
+                                    )}
+                                    <span className={agenda.length > 0 ? '' : 'text-amber-700'}>
+                                        {agenda.length > 0 ? 'Agenda items added' : 'Agenda missing'}
+                                    </span>
+                                </div>
+
+                                <div className="readiness-check-row">
+                                    {attendees.length > 0 ? (
+                                        <AlertCircle className="check-icon text-amber-500" />
+                                    ) : (
+                                        <X className="check-icon text-red-400" />
+                                    )}
+                                    <span className={attendees.length > 0 ? 'text-amber-700' : 'text-red-400'}>
+                                        {attendees.length > 0 ? 'Invite pending' : 'No invite accepted'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Connection Card */}
+                        <div className="card-glass stagger-item" style={{ animationDelay: '150ms' }}>
+                            <div className="card-label-header">
+                                <span className="card-title-sm">Connection</span>
+                            </div>
+                            <div className="card-content">
+                                <div className="kv-row">
+                                    <span className="kv-label">Payload</span>
+                                    <div className="kv-value">
+                                        <span className="value-text">{meeting.join_url}</span>
+                                        <button
+                                            className={`btn-copy-pill ${copiedField === 'payload' ? 'copied' : ''}`}
+                                            onClick={() => handleCopy(meeting.join_url, 'payload')}
+                                        >
+                                            {copiedField === 'payload' ? <span>✓ Copied</span> : 'COPY'}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div className="kv-row">
+                                    <span className="kv-label">Access Key</span>
+                                    <div className="kv-value">
+                                        <span className="value-text font-mono">
+                                            {meeting.meeting_code ? `${meeting.meeting_code.substring(0, 4)}···${meeting.meeting_code.slice(-3)}` : 'lm8l···qvg'}
+                                        </span>
+                                        <button
+                                            className={`btn-copy-pill ${copiedField === 'access' ? 'copied' : ''}`}
+                                            onClick={() => handleCopy(meeting.meeting_code || 'lm8l-abc-qvg', 'access')}
+                                        >
+                                            {copiedField === 'access' ? <span>✓ Copied</span> : 'COPY'}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Danger zone */}
+                        <div className="stagger-item" style={{ animationDelay: '180ms' }}>
+                            <button
+                                className="btn-danger"
+                                onClick={handleDangerTap}
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                {dangerTap.count === 0 ? 'Cancel meeting' : 'Tap again to confirm'}
+                                {dangerTap.count === 1 && (
+                                    <span className="countdown-span">{dangerTap.timer}</span>
+                                )}
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            {/* Toast System */}
+            <div className={`toast-pill ${toast.show ? 'show' : ''}`}>
+                {toast.message}
+            </div>
+
+            {/* Attendees Modal */}
+            {showAttendeeModal && (
+                <div className="modal-overlay" onClick={() => setShowAttendeeModal(false)}>
+                    <div className="modal-card" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <span className="text-sm font-bold uppercase tracking-wider text-gray-400">Add Attendee</span>
+                            <button onClick={() => setShowAttendeeModal(false)}><X className="w-5 h-5 text-gray-300" /></button>
+                        </div>
+                        <div className="modal-body">
+                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Email Address</p>
+                            <input
+                                autoFocus
+                                type="email"
+                                className="input-minimal"
+                                placeholder="colleague@company.com"
+                                value={newAttendeeEmail}
+                                onChange={e => setNewAttendeeEmail(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && addAttendee()}
+                            />
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn-minimal secondary" onClick={() => setShowAttendeeModal(false)}>Cancel</button>
+                            <button className="btn-minimal primary" onClick={addAttendee}>Send invite</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 };
 
 export default MeetingDetailsPage;

@@ -7,6 +7,7 @@ from app.models.employee_project import EmployeeProjectMap
 from app.models.employee import Employee
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.utils.audit import log_activity
 from datetime import datetime
 
 router = APIRouter(
@@ -32,6 +33,8 @@ def get_project_team(
         if emp:
             alloc_dict['employee_name'] = emp.name
             alloc_dict['employee_email'] = emp.email
+            alloc_dict['employee_department'] = emp.department
+            alloc_dict['employee_role'] = emp.role
         result.append(alloc_dict)
         
     return result
@@ -73,7 +76,24 @@ def assign_team_member(
     if emp:
         alloc_dict['employee_name'] = emp.name
         alloc_dict['employee_email'] = emp.email
+        alloc_dict['employee_department'] = emp.department
+        alloc_dict['employee_role'] = emp.role
         
+    # Audit Log
+    log_activity(
+        db=db,
+        user_id=current_user.get("employee_id") or "System",
+        action="ASSIGN TEAM MEMBER",
+        module="Team Management",
+        entity_id=str(project_id),
+        details={
+            "targetRole": assignment.role,
+            "summary": f"Assigned {emp.name if emp else 'Employee ' + str(assignment.employee_id)} to project",
+            "details": f"Role: {assignment.role} | Project ID: {project_id}"
+        }
+    )
+    db.commit()
+    
     return alloc_dict
 
 @router.delete("/{project_id}/team/{allocation_id}")
@@ -88,6 +108,25 @@ def remove_team_member(
     if not alloc:
         raise HTTPException(status_code=404, detail="Allocation not found")
         
+    emp_id = alloc.employee_id
+    role = alloc.role
+    
     db.delete(alloc)
     db.commit()
+    
+    # Audit Log
+    log_activity(
+        db=db,
+        user_id=current_user.get("employee_id") or "System",
+        action="REMOVE TEAM MEMBER",
+        module="Team Management",
+        entity_id=str(project_id),
+        details={
+            "targetRole": role,
+            "summary": f"Removed member from project team",
+            "details": f"Allocation ID: {allocation_id} | Employee ID: {emp_id} | Role: {role}"
+        }
+    )
+    db.commit()
+    
     return {"message": "Team member removed successfully"}

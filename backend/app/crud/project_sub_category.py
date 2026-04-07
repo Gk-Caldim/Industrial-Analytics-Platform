@@ -6,20 +6,23 @@ from app.schemas.project_sub_category import SubCategoryCreate, SubCategoryUpdat
 
 def sync_project_budget(db: Session, project_id: str):
     """
-    Recalculate project totals based on sub-categories.
+    Recalculate project and department totals based on sub-categories.
     """
-    # 1. Sum up all utilized_value for this project
+    # 1. Fetch project details
+    db_project = db.query(Project).filter(Project.project_id == project_id).first()
+    if not db_project:
+        return
+
+    # 2. Sum up all utilized_value for this project (Global)
     total_utilized = db.query(func.sum(ProjectSubCategory.utilized_value)).filter(
         ProjectSubCategory.project_id == project_id
     ).scalar() or 0.0
     
-    # 2. Update the parent Project
-    db_project = db.query(Project).filter(Project.project_id == project_id).first()
-    if db_project:
-        db_project.utilized_budget = total_utilized
-        db_project.balance_budget = (db_project.budget or 0.0) - total_utilized
-        db.commit()
-        db.refresh(db_project)
+    # 3. Update the parent Project
+    db_project.utilized_budget = total_utilized
+    db_project.balance_budget = (db_project.budget or 0.0) - total_utilized
+
+    db.commit()
 
 def get_sub_categories_by_project(db: Session, project_id: str):
     return db.query(ProjectSubCategory).filter(ProjectSubCategory.project_id == project_id).all()

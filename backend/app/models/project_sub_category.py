@@ -17,6 +17,7 @@ class ProjectSubCategory(Base):
     estimated_value = Column(Float, default=0.0)
     utilized_value = Column(Float, default=0.0)
     balance = Column(Float, default=0.0)
+    department = Column(String, nullable=True)
     custom_fields = Column(JSONB, default={})
 
     # Relationship to Project model

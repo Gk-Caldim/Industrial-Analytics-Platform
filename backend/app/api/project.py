@@ -8,6 +8,7 @@ from app.crud import project as crud_project
 from app.crud import project_column as column_crud
 from app.core.database import get_db
 from app.core.security import get_current_user
+from app.utils.audit import log_activity, generate_diff_summary
 
 router = APIRouter(
     prefix="/projects",
@@ -68,7 +69,24 @@ def add_project(
     """Add a new project - Restricted to Admins"""
     if current_user.get("role") != "Admin":
         raise HTTPException(status_code=403, detail="Only Admins can create projects")
-    return crud_project.create_project(db, project)
+    db_project = crud_project.create_project(db, project)
+    
+    # Audit Log
+    log_activity(
+        db=db,
+        user_id=current_user.get("employee_id") or "System",
+        action="CREATE PROJECT",
+        module="Project Master",
+        entity_id=str(db_project.project_id),
+        details={
+            "targetRole": "Project",
+            "summary": f"Created new project: {db_project.name}",
+            "details": f"Initialized project with ID: {db_project.project_id}"
+        }
+    )
+    db.commit()
+    
+    return db_project
 
 @router.get("/{project_id}", response_model=ProjectResponse)
 def get_project(
@@ -100,7 +118,27 @@ def update_project(
     if not check_project_permission(db_project, current_user, "edit"):
         raise HTTPException(status_code=403, detail="You do not have permission to edit this project")
         
-    return crud_project.update_project(db, project_id, project)
+    # Generate diff before update
+    diff_summary = generate_diff_summary(db_project, project)
+    
+    updated_project = crud_project.update_project(db, project_id, project)
+    
+    # Audit Log
+    log_activity(
+        db=db,
+        user_id=current_user.get("employee_id") or "System",
+        action="UPDATE PROJECT",
+        module="Project Master",
+        entity_id=str(updated_project.project_id),
+        details={
+            "targetRole": "Project",
+            "summary": f"Updated {updated_project.name}: {diff_summary}",
+            "details": f"Modified project ID: {updated_project.project_id} | Name: {updated_project.name}"
+        }
+    )
+    db.commit()
+    
+    return updated_project
 
 @router.delete("/{project_id}")
 def delete_project(
@@ -116,9 +154,26 @@ def delete_project(
         raise HTTPException(status_code=403, detail="You do not have permission to delete this project")
 
     try:
+        project_id_str = db_project.project_id
         success = crud_project.delete_project(db, project_id)
         if not success:
             raise HTTPException(status_code=404, detail="Project not found")
+            
+        # Audit Log
+        log_activity(
+            db=db,
+            user_id=current_user.get("employee_id") or "System",
+            action="DELETE PROJECT",
+            module="Project Master",
+            entity_id=str(project_id_str),
+            details={
+                "targetRole": "Project",
+                "summary": f"Deleted project: {db_project.name}",
+                "details": f"Removed project record ID: {project_id_str}"
+            }
+        )
+        db.commit()
+        
         return {"message": "Project deleted successfully"}
     except Exception as e:
         # Handle foreign key constraint violation specifically

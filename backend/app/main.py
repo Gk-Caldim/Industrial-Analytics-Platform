@@ -38,7 +38,7 @@ from app.api.auth import router as auth_router
 from app.api.employees import router as employee_router
 from app.api.employees import router as employee_router
 from app.api import project as project_router
-from app.api import department as department_router
+
 from app.api.datasets import router as datasets_router
 from app.api.email import router as email_router  # Added email router
 from app.api import budget as budget_router
@@ -49,6 +49,8 @@ from app.api.meetings import router as meetings_router
 from app.api.project_team import router as project_team_router
 from app.api.audit_logs import router as audit_logs_router
 from app.api.teams import router as teams_router
+from app.api.application_access import router as application_access_router
+from app.api.budget_revision import router as budget_revision_router
 from app.crud.role import seed_default_roles
 
 Base.metadata.create_all(bind=engine)
@@ -110,7 +112,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix=API_PREFIX)
 app.include_router(employee_router, prefix=API_PREFIX)
 app.include_router(project_router.router, prefix=API_PREFIX)
-app.include_router(department_router.router, prefix=API_PREFIX)
+
 app.include_router(datasets_router, prefix=API_PREFIX)
 app.include_router(email_router, prefix=f"{API_PREFIX}/email", tags=["Email"]) # Added email route
 app.include_router(budget_router.router, prefix=f"{API_PREFIX}/budget", tags=["Budget"])
@@ -121,6 +123,8 @@ app.include_router(meetings_router, prefix="/api/meetings", tags=["Meetings"])
 app.include_router(project_team_router, prefix=API_PREFIX)
 app.include_router(audit_logs_router, prefix=API_PREFIX)
 app.include_router(teams_router)  # prefix already set to /api/teams inside the router
+app.include_router(application_access_router, prefix=API_PREFIX)
+app.include_router(budget_revision_router, prefix=API_PREFIX)
 
 # Static Files
 UPLOAD_DIR = "static/uploads/logos"

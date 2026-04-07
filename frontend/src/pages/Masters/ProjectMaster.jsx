@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Filter, Download, Eye, EyeOff, Briefcase, DollarSign, Users, TrendingUp, CheckCircle, Clock, AlertTriangle, FileText, Calendar, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, ArrowUp, ArrowDown, Copy } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, X, Check, ChevronUp, ChevronDown, Filter, Download, Eye, EyeOff, Briefcase, DollarSign, Users, TrendingUp, CheckCircle, Clock, AlertTriangle, FileText, Calendar, CheckSquare, Square, Snowflake, ChevronLeft, ChevronRight, RefreshCw, ArrowUp, ArrowDown, Copy, FolderTree } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -11,9 +11,11 @@ import SearchableDropdown from "../../components/SearchableDropdown";
 import SubCategoryModal from "../../components/SubCategoryModal";
 
 import { useNavigate } from 'react-router-dom';
+import useCurrency from "../../hooks/useCurrency";
 
 const ProjectMaster = () => {
   const navigate = useNavigate();
+  const { format, symbol, code, convert } = useCurrency();
   // Fixed columns matching backend Project model
   const initialColumns = [
     { id: 'project_id', label: 'Project ID', visible: true, sortable: true, type: 'text', required: true },
@@ -27,7 +29,7 @@ const ProjectMaster = () => {
     { id: 'employee_name', label: 'Employee Name', visible: false, sortable: true, type: 'employee_name', required: false },
     { id: 'utilized_budget', label: 'Utilized Budget', visible: true, sortable: true, type: 'number', required: false, readonly: true },
     { id: 'balance_budget', label: 'Balance Budget', visible: true, sortable: true, type: 'number', required: false, readonly: true },
-    { id: 'sub_category', label: 'Sub Category', visible: true, sortable: false, type: 'sub_category_button', required: false },
+    { id: 'detailed_view', label: 'Detailed View', visible: true, sortable: false, type: 'detailed_view_button', required: false },
   ];
 
   // Status colors mapping
@@ -124,7 +126,7 @@ const ProjectMaster = () => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
   const API_URL = `${API_BASE_URL}/projects`;
 
-  const fixedColumnIds = ['id', 'project_id', 'name', 'manager', 'team_lead', 'status', 'budget', 'utilized_budget', 'balance_budget', 'timeline', 'employee_id', 'employee_name', 'sub_category', 'created_at', 'updated_at'];
+  const fixedColumnIds = ['id', 'project_id', 'name', 'manager', 'team_lead', 'status', 'budget', 'utilized_budget', 'balance_budget', 'timeline', 'employee_id', 'employee_name', 'detailed_view', 'created_at', 'updated_at'];
 
   const defaultPermissions = {
     view: true,
@@ -244,11 +246,20 @@ const ProjectMaster = () => {
   };
 
   const { user: currentUser } = useSelector(state => state.auth);
-  const isAdmin = currentUser?.role === 'Admin';
+  const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'Super Admin';
+
+  const canAddProject = isAdmin || currentUser?.permissions?.includes('Project Master:ADD');
+  const canEditProject = isAdmin || currentUser?.permissions?.includes('Project Master:EDIT');
+  const canDeleteProject = isAdmin || currentUser?.permissions?.includes('Project Master:DELETE');
+  const canAddCustomColumns = isAdmin || currentUser?.permissions?.includes('Project Master:CUSTOM_COLUMNS');
 
   const hasProjectPermission = (project, permissionType) => {
     if (isAdmin) return true;
     
+    // Check role-level global master permissions
+    if (permissionType === 'edit' && canEditProject) return true;
+    if (permissionType === 'delete' && canDeleteProject) return true;
+
     const empId = currentUser?.employee_id;
     if (!empId) return false;
 
@@ -577,7 +588,13 @@ const ProjectMaster = () => {
     }
 
     try {
-      const payload = transformProjectForSave(newProject);
+      const convertedForm = {
+        ...newProject,
+        budget: convert(newProject.budget || 0, code, 'USD'),
+        utilized_budget: convert(newProject.utilized_budget || 0, code, 'USD'),
+        balance_budget: convert(newProject.balance_budget || 0, code, 'USD'),
+      };
+      const payload = transformProjectForSave(convertedForm);
       await API.post('/projects', payload);
       await fetchProjects();
       setShowAddProjectModal(false);
@@ -630,7 +647,10 @@ const ProjectMaster = () => {
   const startEditing = (project) => {
     setEditForm({
       ...project,
-      id: project.id
+      id: project.id,
+      budget: convert(project.budget || 0, 'USD', code),
+      utilized_budget: convert(project.utilized_budget || 0, 'USD', code),
+      balance_budget: convert(project.balance_budget || 0, 'USD', code),
     });
     setEditingId(project.id);
     setValidationErrors({});
@@ -645,7 +665,13 @@ const ProjectMaster = () => {
     }
 
     try {
-      const payload = transformProjectForSave(editForm);
+      const convertedForm = {
+        ...editForm,
+        budget: convert(editForm.budget || 0, code, 'USD'),
+        utilized_budget: convert(editForm.utilized_budget || 0, code, 'USD'),
+        balance_budget: convert(editForm.balance_budget || 0, code, 'USD'),
+      };
+      const payload = transformProjectForSave(convertedForm);
       await API.put(`/projects/${editingId}`, payload);
       await fetchProjects();
       setEditingId(null);
@@ -788,7 +814,11 @@ const ProjectMaster = () => {
     const dataToExport = sortedProjects.map(proj => {
       const row = {};
       columns.forEach(col => {
-        row[col.label] = proj[col.id] || '';
+        let val = proj[col.id] || '';
+        if (['budget', 'utilized_budget', 'balance_budget'].includes(col.id)) {
+          val = format(parseFloat(val) || 0);
+        }
+        row[col.label] = val;
       });
       return row;
     });
@@ -838,9 +868,15 @@ const ProjectMaster = () => {
 
   const exportToPDF = (data) => {
     const doc = new jsPDF();
-    const tableColumn = columns.map(col => col.label);
-    const tableRows = data.map(proj =>
-      columns.map(col => proj[col.label] || '')
+    const tableColumn = columns.filter(col => col.visible && col.id !== 'detailed_view').map(col => col.label);
+    const tableRows = sortedProjects.map(proj =>
+      columns.filter(col => col.visible && col.id !== 'detailed_view').map(col => {
+        let val = proj[col.id] || '';
+        if (['budget', 'utilized_budget', 'balance_budget'].includes(col.id)) {
+          return format(parseFloat(val) || 0);
+        }
+        return val;
+      })
     );
 
     doc.autoTable({
@@ -1273,7 +1309,7 @@ const ProjectMaster = () => {
         {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
     );
-    if (col.type === 'sub_category_button') return null;
+
 
     return (
       <div>
@@ -1312,35 +1348,30 @@ const ProjectMaster = () => {
       );
     }
     if (['budget', 'utilized_budget', 'balance_budget'].includes(col.id)) {
-      const numValue = parseFloat(value) || 0;
       return (
-        <span className={`text-sm font-medium ${col.id === 'balance_budget' && numValue < 0 ? 'text-red-600' : 'text-slate-700'}`}>
-          ${numValue.toLocaleString()}
+        <span className={`text-sm font-medium ${col.id === 'balance_budget' && (parseFloat(value) || 0) < 0 ? 'text-red-600' : 'text-slate-700'}`}>
+          {format(parseFloat(value) || 0)}
         </span>
+      );
+    }
+    if (col.type === 'detailed_view_button') {
+      return (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            navigate(`/dashboard/masters/project-detail/${row.id}`);
+          }}
+          className="text-indigo-600 hover:text-indigo-800 font-medium text-xs bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-all shadow-sm flex items-center gap-1.5"
+        >
+          <Eye size={14}/>
+          Detailed View
+        </button>
       );
     }
     if (col.id === 'project_id') {
       return <span className="text-[13px] text-slate-500 dark:text-slate-400 font-mono tracking-tight">{value || '-'}</span>;
     }
-    if (col.type === 'sub_category_button') {
-      const hasViewPermission = isAdmin || (currentUser?.permissions || []).includes('Project Master:VIEW-SUBCATEGORY');
-      if (!hasViewPermission) {
-        return <span className="text-slate-400 text-xs flex items-center justify-center">-</span>;
-      }
-      return (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            setActiveSubCategoryProject(row);
-            setShowSubCategoryModal(true);
-          }}
-          className="text-blue-600 hover:text-blue-800 font-medium text-xs bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-all shadow-sm flex items-center gap-1.5"
-        >
-          <Briefcase className="h-3 w-3" />
-          Manage
-        </button>
-      );
-    }
+
     if (col.type === 'manager_multiselect' || col.type === 'team_lead_multiselect') {
       const users = Array.isArray(value) ? value : [];
       if (users.length === 0) return <span className="text-sm text-slate-400">—</span>;
@@ -1864,7 +1895,7 @@ const ProjectMaster = () => {
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Budget <span className="text-red-500">*</span></label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">{symbol}</span>
                       <input
                         type="number"
                         value={newProject.budget || ''}
@@ -2018,7 +2049,7 @@ const ProjectMaster = () => {
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5 uppercase tracking-wide">Budget <span className="text-red-500">*</span></label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">{symbol}</span>
                       <input
                         type="number"
                         value={editForm.budget || ''}
@@ -2098,7 +2129,20 @@ const ProjectMaster = () => {
               {/* Footer */}
               <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50 flex-shrink-0">
                 <p className="text-xs text-slate-400"><span className="text-red-500">*</span> Required fields</p>
-                <div className="flex gap-3">
+                <div className="flex gap-3 w-full items-center">
+                  {(isAdmin || (currentUser?.permissions || []).includes('Project Master:VIEW-SUBCATEGORY')) && (
+                    <button
+                      onClick={(e) => { 
+                        e.preventDefault(); 
+                        setActiveSubCategoryProject(editForm);
+                        setShowSubCategoryModal(true);
+                      }}
+                      className="px-4 py-2 text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors flex items-center gap-2 mr-auto"
+                    >
+                      <FolderTree className="h-4 w-4" />
+                      Sub Categories
+                    </button>
+                  )}
                   <button
                     onClick={cancelEdit}
                     className="px-5 py-2 text-sm font-medium border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-300"
@@ -2156,7 +2200,19 @@ const ProjectMaster = () => {
               </div>
 
               {/* Modal Footer */}
-              <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex justify-end">
+              <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center">
+                {(isAdmin || (currentUser?.permissions || []).includes('Project Master:VIEW-SUBCATEGORY')) && (
+                  <button
+                    onClick={() => { 
+                      setActiveSubCategoryProject(viewData);
+                      setShowSubCategoryModal(true);
+                    }}
+                    className="px-4 py-2 text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors flex items-center gap-2"
+                  >
+                    <FolderTree className="h-4 w-4" />
+                    Manage Sub Categories
+                  </button>
+                )}
                 <button
                   onClick={() => setShowViewModal(false)}
                   className="px-6 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-200 rounded-lg font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-sm shadow-sm"
@@ -2268,7 +2324,7 @@ const ProjectMaster = () => {
                   <div className="flex gap-2 mt-2 sm:mt-0 flex-wrap sm:flex-nowrap justify-end">
 
                     {/* Add Project Button */}
-                    {isAdmin && (
+                    {canAddProject && (
                       <button
                         onClick={handleAddProjectClick}
                         className="flex items-center gap-1.5 h-10 px-4 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors shadow-sm whitespace-nowrap"
@@ -2279,7 +2335,7 @@ const ProjectMaster = () => {
                     )}
 
                     {/* Add Column Button */}
-                    {isAdmin && (
+                    {canAddCustomColumns && (
                       <button
                         onClick={() => setShowColumnModal(true)}
                         className="flex items-center gap-1.5 h-10 px-3 text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:hover:bg-slate-800/80 transition-colors whitespace-nowrap"
@@ -2496,13 +2552,6 @@ const ProjectMaster = () => {
                               : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 group-hover:bg-slate-50 dark:group-hover:bg-slate-700/50 transition-colors'
                           }`}>
                             <div className="flex items-center justify-end gap-1 transition-opacity duration-200">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/masters/project-detail/${proj.id}`); }}
-                                className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
-                                title="View Details"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </button>
                               {hasProjectPermission(proj, 'edit') && (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); startEditing(proj); }}
@@ -2558,26 +2607,30 @@ const ProjectMaster = () => {
                     </button>
                   </div>
 
-                  {/* Edit and Delete buttons - only show when projects are selected and user is Admin */}
-                  {selectedProjects.length > 0 && isAdmin ? (
+                  {/* Edit and Delete buttons - only show when projects are selected and user has permission */}
+                  {selectedProjects.length > 0 && (canEditProject || canDeleteProject) ? (
                     <div className="flex items-center gap-1 ml-1">
-                      <button
-                        onClick={handleBulkEdit}
-                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80"
-                        title="Edit selected project"
-                      >
-                        <Edit className="h-4 w-4" />
-                        {selectedProjects.length > 1 && <span>Edit ({selectedProjects.length})</span>}
-                      </button>
+                      {canEditProject && (
+                        <button
+                          onClick={handleBulkEdit}
+                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80"
+                          title="Edit selected project"
+                        >
+                          <Edit className="h-4 w-4" />
+                          {selectedProjects.length > 1 && <span>Edit ({selectedProjects.length})</span>}
+                        </button>
+                      )}
 
-                      <button
-                        onClick={handleBulkDelete}
-                        className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
-                        title={selectedProjects.length === 1 ? "Delete selected project" : "Delete selected projects"}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        {selectedProjects.length > 1 && <span>Delete ({selectedProjects.length})</span>}
-                      </button>
+                      {canDeleteProject && (
+                        <button
+                          onClick={handleBulkDelete}
+                          className="flex items-center gap-1 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                          title={selectedProjects.length === 1 ? "Delete selected project" : "Delete selected projects"}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          {selectedProjects.length > 1 && <span>Delete ({selectedProjects.length})</span>}
+                        </button>
+                      )}
                     </div>
                   ) : null}
                 </div>

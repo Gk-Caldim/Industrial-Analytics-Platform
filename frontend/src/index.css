@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -26,14 +26,26 @@
   --primary-color: #6366f1;
   --secondary-color: #0ea5e9;
   --primary-color-rgb: 99, 102, 241; /* Default RGB for Indigo 500 */
+
+  /* Redesign Colors */
+  --bg: #f0efe9;
+  --surface: #fafaf7;
+  --white: #ffffff;
+  --green: #16a34a;
+  --amber: #92400e;
+  --amber-mid: #fcd34d;
+  --blue: #2b5ce6;
+  --ink3: #5f5e5b;
 }
 
 
 @layer base {
   body {
-    @apply font-inter antialiased;
+    @apply antialiased;
+    font-family: 'DM Sans', sans-serif;
     min-height: 100vh;
-    background-color: #f8fafc;
+    background-color: var(--bg);
+    color: #1a1a1a;
   }
 
   h1,
@@ -43,6 +55,11 @@
   h5,
   h6 {
     @apply font-outfit tracking-tight;
+  }
+
+  .font-mono {
+    font-family: 'DM Mono', monospace;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -376,4 +393,70 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ── MOM module shared styles ── */
+.mom-page {
+  font-family: 'DM Sans', 'Inter', sans-serif;
+}
+
+@keyframes recPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scaleY(1); }
+  50%      { transform: scaleY(1.5); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.3s ease both;
+}
+
+.animate-slideInUp {
+  animation: slideInUp 0.2s ease both;
+}
+
+.animate-rec-pulse {
+  animation: recPulse 1s infinite;
+}
+
+.animate-breathe {
+  animation: breathe 2s ease-in-out infinite;
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e8e8e8 50%, #f0f0f0 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+}
+
+.mom-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  animation: toastSlideIn 0.25s ease;
 }

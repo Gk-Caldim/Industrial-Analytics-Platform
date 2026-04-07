@@ -45,6 +45,8 @@ def check_permissions(required_permission: str):
         # 4. Validate permission
         permissions = role_obj.permissions or []
         if required_permission not in permissions:
+            print(f"PERMISSION DENIED: User {current_user.get('email')} (Role: {current_role}) lacks '{required_permission}'.")
+            print(f"User Permissions: {permissions}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Insufficient permissions. Required: {required_permission}"
