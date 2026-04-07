@@ -1,51 +1,39 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* ── Sidebar Glassmorphism Controls ── */
-  --glass-sidebar-opacity: 0.32;
-  /* Background white opacity (0 = fully transparent, 1 = solid white) */
-  --glass-sidebar-bg: rgba(255, 255, 255, var(--glass-sidebar-opacity));
-  --glass-sidebar-blur: 20px;
-  /* Blur intensity in px */
-  --glass-sidebar-saturate: 1.8;
-  /* Color saturation through glass (1 = normal, >1 = vibrant) */
-  --glass-sidebar-border-opacity: 0.3;
-  /* Border opacity */
-  --glass-sidebar-shadow-opacity: 0.07;
-  /* Shadow opacity */
-
-  --glass-header-opacity: 0.6;
-  --glass-header-bg: rgba(255, 255, 255, var(--glass-header-opacity));
-  --glass-header-blur: blur(12px);
-
   /* Branding Variables */
-  --primary-color: #6366f1;
-  --secondary-color: #0ea5e9;
-  --primary-color-rgb: 99, 102, 241; /* Default RGB for Indigo 500 */
+  --navy: #0E1B2E;
+  --accent: #2E7CF6;
+  --green: #12B76A;
+  --amber: #F79009;
+  --red: #F04438;
+  --text-primary: #0F172A;
+  --text-secondary: #64748B;
+  --text-tertiary: #94A3B8;
+  --border: rgba(0, 0, 0, 0.07);
+  --surface: #FFFFFF;
+  --bg: #F1F5F9;
 
-  /* Redesign Colors */
-  --bg: #f0efe9;
-  --surface: #fafaf7;
-  --white: #ffffff;
-  --green: #16a34a;
-  --amber: #92400e;
-  --amber-mid: #fcd34d;
-  --blue: #2b5ce6;
-  --ink3: #5f5e5b;
+  /* Typography */
+  --font-primary: 'DM Sans', -apple-system, sans-serif;
+  --font-mono: 'DM Mono', monospace;
 }
-
 
 @layer base {
   body {
     @apply antialiased;
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-primary);
     min-height: 100vh;
     background-color: var(--bg);
-    color: #1a1a1a;
+    color: var(--text-primary);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-primary);
   }
 
   h1,
@@ -211,15 +199,59 @@
   }
 
   /* ========================================================================== */
-  /* CENTRALIZED SIDEBAR STYLES                                                 */
+  /* CENTRALIZED SIDEBAR STYLES (EXECUTIVE UI)                                  */
   /* ========================================================================== */
   .app-sidebar {
-    @apply text-slate-700 z-30 flex flex-col transition-all duration-300 ease-in-out;
-    background-color: var(--glass-sidebar-bg);
-    backdrop-filter: blur(var(--glass-sidebar-blur)) saturate(var(--glass-sidebar-saturate));
-    -webkit-backdrop-filter: blur(var(--glass-sidebar-blur)) saturate(var(--glass-sidebar-saturate));
-    border-right: 1px solid rgba(255, 255, 255, var(--glass-sidebar-border-opacity));
-    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, var(--glass-sidebar-shadow-opacity));
+    @apply z-30 flex flex-col transition-all duration-300 ease-in-out;
+    background-color: var(--navy);
+    width: 220px;
+    flex-shrink: 0;
+  }
+  
+  .app-sidebar.collapsed {
+    width: 72px;
+  }
+
+  .sidebar-section-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.28);
+    padding: 20px 16px 8px;
+    font-weight: 500;
+  }
+
+  .sidebar-nav-item {
+    @apply w-full flex items-center cursor-pointer transition-all duration-200 select-none;
+    padding: 8px 16px;
+    color: rgba(255, 255, 255, 0.52);
+    border-radius: 6px;
+    margin: 0 8px 4px 8px;
+    width: calc(100% - 16px);
+  }
+
+  .sidebar-nav-item-active {
+    background: rgba(46, 124, 246, 0.18);
+    color: #ffffff;
+    font-weight: 500;
+  }
+
+  .sidebar-nav-item:hover:not(.sidebar-nav-item-active) {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .sidebar-nav-item-inactive {
+    color: rgba(255, 255, 255, 0.52);
+  }
+
+  .sidebar-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: auto;
   }
 
   .sidebar-scroll {
@@ -235,7 +267,7 @@
   }
 
   .sidebar-scroll::-webkit-scrollbar-thumb {
-    @apply bg-slate-300 rounded-full;
+    background: rgba(255,255,255,0.1);
   }
 
   .sidebar-scroll::-webkit-scrollbar-thumb:hover {
@@ -401,33 +433,75 @@
 }
 
 @keyframes recPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.5; transform: scale(0.85); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.5;
+    transform: scale(0.85);
+  }
 }
 
 @keyframes fadeInUp {
-  from { opacity: 0; transform: translateY(12px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slideInUp {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes breathe {
-  0%, 100% { transform: scaleY(1); }
-  50%      { transform: scaleY(1.5); }
+
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+
+  50% {
+    transform: scaleY(1.5);
+  }
 }
 
 @keyframes shimmer {
-  0%   { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
+  0% {
+    background-position: -400px 0;
+  }
+
+  100% {
+    background-position: 400px 0;
+  }
 }
 
 @keyframes toastSlideIn {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-fadeInUp {

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User, Settings, LogOut } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { fadeUp } from '../utils/animations';
 
 const Header = ({
     title,
@@ -52,7 +54,12 @@ const Header = ({
     }, [profileMenuOpen]);
 
     return (
-        <header className="app-header">
+        <motion.header
+            className="app-header"
+            variants={fadeUp}
+            initial="hidden"
+            animate="visible"
+        >
             <div className="px-6 py-4 flex items-center justify-between relative z-10 w-full">
                 {/* Left side - Empty for centering */}
                 <div className="w-48"></div>
@@ -135,7 +142,7 @@ const Header = ({
                     </div>
                 </div>
             </div>
-        </header>
+        </motion.header>
     );
 };
 
