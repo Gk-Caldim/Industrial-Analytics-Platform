@@ -77,17 +77,6 @@ const AccessControl = () => {
             { id: 'DELETE-SUBCATEGORY', label: 'Delete Subcategory' }
           ]
         },
-        {
-          name: 'Department Master',
-          description: 'Organizational hierarchy and departments',
-          tags: ['MANAGE'],
-          subPermissions: [
-            { id: 'ADD', label: 'Add Department' },
-            { id: 'EDIT', label: 'Edit Department' },
-            { id: 'DELETE', label: 'Delete Department' },
-            { id: 'CUSTOM_COLUMNS', label: 'Add Custom Columns' }
-          ]
-        },
       ]
     },
     {
