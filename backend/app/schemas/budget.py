@@ -6,7 +6,8 @@ class BudgetSummaryBase(BaseModel):
     project_name: str
     uploaded_by: Optional[str] = None
     department: Optional[str] = None
-    budget_data: List[List[Any]] = []
+    overall_budget: float = 0.0
+    budget_data: List[Any] = []
 
 class BudgetSummaryCreate(BudgetSummaryBase):
     pass
