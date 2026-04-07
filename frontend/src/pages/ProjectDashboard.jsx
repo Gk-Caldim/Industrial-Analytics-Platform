@@ -3319,28 +3319,112 @@ const ProjectTitleDashboard = () => {
         {/* Projects List or Dashboard Content */}
         {!activeProject ? (
           /* Projects List View */
-          <div style={{ padding: '30px' }}>
-            <motion.div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '20px'
-            }}
-              variants={staggerContainer}
-              initial="hidden"
-              animate="visible"
-            >
-              {projects.length === 0 ? (
-                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#6b7280', fontSize: '18px' }}>
-                  No projects found. Please add a project module to get started.
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg)', minHeight: '100vh' }}>
+            {/* Topbar */}
+            <div style={{ height: '56px', backgroundColor: '#FFFFFF', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 28px' }}>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Workspace / <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>Projects</span></div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'var(--green)' }} className="animate-pulse" />
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} · {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+              </div>
+            </div>
+
+            {/* Content Array */}
+            <div style={{ padding: '28px' }}>
+              {/* Page header row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
+                <div>
+                  <h1 style={{ fontSize: '22px', fontWeight: 500, margin: '0 0 4px 0', color: 'var(--text-primary)' }}>Projects</h1>
+                  <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>{projects.length} active · last synced just now</p>
                 </div>
-              ) : projects.map(project => (
-                <PremiumProjectCard
-                  key={project.id}
-                  project={project}
-                  onClick={handleProjectSelect}
-                />
-              ))}
-            </motion.div>
+                <button
+                  style={{
+                    backgroundColor: 'var(--accent)', color: '#FFFFFF', border: 'none', borderRadius: '10px',
+                    padding: '9px 16px', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px',
+                    cursor: 'pointer', transition: 'background 0.15s, transform 0.1s'
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1B6AE0'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--accent)'}
+                  onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
+                  onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  New Project
+                </button>
+              </div>
+
+              {/* Summary row */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '28px' }}>
+                {[
+                  {
+                    label: 'TOTAL PROJECTS',
+                    value: projects.length,
+                    sub: '+1 this month', badge: 'green'
+                  },
+                  {
+                    label: 'AVG. COMPLETION',
+                    value: projects.length ? `${Math.round(projects.reduce((acc, p) => acc + (p.completion_percent || 75), 0) / projects.length)}%` : '0%',
+                    sub: '+2% wk', badge: 'green'
+                  },
+                  {
+                    label: 'TOTAL SUBMODULES',
+                    value: projects.reduce((acc, p) => acc + (p.submodules ? p.submodules.length : 0), 0),
+                    sub: '2 pending', badge: 'amber'
+                  },
+                  {
+                    label: 'OPEN ISSUES',
+                    value: projects.reduce((acc, p) => acc + ((p.issues?.critical || 0) + (p.issues?.warning || 0) + (p.issues?.low || 0)), 0),
+                    sub: '-4 issues', badge: 'green'
+                  }
+                ].map((stat, i) => (
+                  <div key={i} style={{ background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px 18px' }}>
+                    <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', marginBottom: '8px', fontWeight: 500 }}>{stat.label}</div>
+                    <div style={{ fontSize: '24px', fontWeight: 500, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', marginBottom: '4px' }}>{stat.value}</div>
+                    <div style={{ display: 'inline-flex', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 500,
+                      background: stat.badge === 'green' ? 'rgba(18,183,106,0.1)' : 'rgba(247,144,9,0.1)',
+                      color: stat.badge === 'green' ? '#0B7A45' : '#92400E'
+                    }}>
+                      {stat.sub}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Section Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>Project Overview</h3>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', display: 'flex', padding: '4px' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                  </button>
+                  <button style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', padding: '4px' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Grid Content */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '14px'
+              }}>
+                {projects.length === 0 ? (
+                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                    No projects found. Please add a project module to get started.
+                  </div>
+                ) : projects.map((project, idx) => (
+                  <PremiumProjectCard
+                    key={project.id}
+                    project={project}
+                    onClick={handleProjectSelect}
+                    isFeatured={project.dashboardConfig && idx === projects.findIndex(p => p.dashboardConfig)}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         ) : selectedSubmodule ? (
           /* Submodule Detail View */

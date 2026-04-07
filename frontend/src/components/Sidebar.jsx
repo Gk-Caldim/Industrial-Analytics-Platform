@@ -1,142 +1,80 @@
-import React, { useState, useRef } from 'react';
-import {
-    ChevronLeft,
-    ChevronRight,
-    ChevronDown,
-    ChevronRight as ChevronRightIcon,
-    MessageSquare,
-    FolderTree,
-    FileText,
-    Layers,
-    BarChart3,
-    FileUp
-} from 'lucide-react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { slideInLeft } from '../utils/animations';
 
-// ─── Motion Variants ────────────────────────────────────────────────────────
-const EASE = [0.23, 1, 0.32, 1];
+// ─── Inline SVGs ────────────────────────────────────────────────────────────
+const IconProjects = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+        <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+        <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+        <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+    </svg>
+);
 
-const navListVariants = {
-    hidden: {},
-    visible: {
-        transition: { staggerChildren: 0.04, delayChildren: 0.1 }
-    }
-};
+const IconMOM = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+    </svg>
+);
 
-const sidebarItemVariants = {
-    hidden: { opacity: 0, x: -12 },
-    visible: (i) => ({
-        opacity: 1,
-        x: 0,
-        transition: {
-            delay: i * 0.04,
-            duration: 0.35,
-            ease: EASE
-        }
-    })
-};
+const IconMasters = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20 7h-9"></path>
+        <path d="M14 17H5"></path>
+        <circle cx="17" cy="17" r="3"></circle>
+        <circle cx="7" cy="7" r="3"></circle>
+    </svg>
+);
 
-// ─── Magnetic Nav Item ───────────────────────────────────────────────────────
-const MagneticNavItem = ({ children, className, onClick, isActive, index, style, as: Tag = 'div' }) => {
-    const ref = useRef(null);
-    const [mouseY, setMouseY] = useState(0);
-    const [isHovering, setIsHovering] = useState(false);
+const IconUpload = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+    </svg>
+);
 
-    const handleMouseMove = (e) => {
-        if (!ref.current) return;
-        const rect = ref.current.getBoundingClientRect();
-        const relY = e.clientY - rect.top - rect.height / 2;
-        setMouseY(relY);
-    };
+const IconSettings = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+    </svg>
+);
 
-    return (
-        <motion.div
-            ref={ref}
-            custom={index}
-            variants={sidebarItemVariants}
-            onMouseMove={handleMouseMove}
-            onMouseEnter={() => setIsHovering(true)}
-            onMouseLeave={() => { setIsHovering(false); setMouseY(0); }}
-            whileHover={{
-                x: 4,
-                y: mouseY * 0.04,
-                scale: 1.02,
-                transition: { type: 'spring', stiffness: 260, damping: 18 }
-            }}
-            style={{ position: 'relative' }}
-        >
-            {/* Glass hover background */}
-            <AnimatePresence>
-                {isHovering && !isActive && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.18 }}
-                        style={{
-                            position: 'absolute',
-                            inset: 0,
-                            borderRadius: '8px',
-                            background: 'rgba(255,255,255,0.08)',
-                            backdropFilter: 'blur(8px)',
-                            WebkitBackdropFilter: 'blur(8px)',
-                            pointerEvents: 'none',
-                            zIndex: 0
-                        }}
-                    />
-                )}
-            </AnimatePresence>
+const IconFile = () => (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+        <polyline points="10 9 9 9 8 9"></polyline>
+    </svg>
+);
 
-            {/* Active sliding pill */}
-            {isActive && (
-                <motion.div
-                    layoutId="active-pill"
-                    style={{
-                        position: 'absolute',
-                        left: '6px',
-                        top: '50%',
-                        translateY: '-50%',
-                        width: '4px',
-                        height: '28px',
-                        borderRadius: '999px',
-                        background: '#6366f1',
-                        zIndex: 2
-                    }}
-                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-                />
-            )}
+const IconChevron = ({ expanded }) => (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
+        <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+);
 
-            <div
-                onClick={onClick}
-                className={className}
-                style={{ position: 'relative', zIndex: 1, ...style }}
-            >
-                {children}
-            </div>
-        </motion.div>
-    );
-};
-
-// ─── Animated Icon ───────────────────────────────────────────────────────────
-const AnimatedIcon = ({ children, isActive }) => (
-    <motion.div
-        className={`flex-shrink-0 transition-colors ${isActive ? 'text-indigo-500' : 'text-slate-400'}`}
-        whileHover={{ scale: 1.1, color: '#818cf8' }}
-        transition={{ duration: 0.16 }}
-    >
-        {children}
-    </motion.div>
+const LogoBlock = () => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '24px 16px 16px' }}>
+        <div style={{ width: '32px', height: '32px', background: '#2E7CF6', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <div>
+            <div style={{ color: '#fff', fontSize: '15px', fontWeight: '600', letterSpacing: '-0.02em', lineHeight: '1.2' }}>Caldim</div>
+            <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px', letterSpacing: '0.02em', lineHeight: '1' }}>Industrial MOM</div>
+        </div>
+    </div>
 );
 
 // ─── Main Sidebar ────────────────────────────────────────────────────────────
 const Sidebar = ({
     activeModule,
-    hoveredModule,
-    setHoveredModule,
     expandedModules,
     sidebarCollapsed,
-    setSidebarCollapsed,
     sidebarRef,
     handleModuleClick,
     toggleModuleExpansion,
@@ -149,169 +87,122 @@ const Sidebar = ({
     handleProjectFileClick,
     hasAccess
 }) => {
-    const [sidebarHovered, setSidebarHovered] = useState(false);
 
-    const renderProjectDashboardModule = (index) => {
+    const renderProjectDashboardModule = () => {
         const isActive = activeModule === 'project-dashboard';
         const isExpanded = expandedModules['project-dashboard'];
-        const hasDynamicModules = projectDashboardModules.length > 0;
+        const hasDynamicModules = projectDashboardModules && projectDashboardModules.length > 0;
 
         return (
-            <MagneticNavItem
-                key="project-dashboard"
-                index={index}
-                isActive={isActive}
-                onClick={() => handleModuleClick('project-dashboard')}
-                className={`sidebar-nav-item ${isActive ? 'sidebar-nav-item-active' : 'sidebar-nav-item-inactive'} ${sidebarCollapsed ? 'justify-center px-2 py-3.5' : 'px-4 py-3.5'}`}
-            >
-                <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3.5'}`}>
-                    <AnimatedIcon isActive={isActive}>
-                        <BarChart3 className="h-5 w-5" />
-                    </AnimatedIcon>
-                    {!sidebarCollapsed && (
-                        <span className={`font-semibold text-base ${isActive ? 'text-slate-900' : 'text-slate-600'}`}>
-                            Dashboard
-                        </span>
-                    )}
-                </div>
-                {!sidebarCollapsed && hasDynamicModules && (
-                    <button
-                        onClick={(e) => { e.stopPropagation(); toggleModuleExpansion('project-dashboard', e); }}
-                        className={`p-1.5 rounded-lg transition-colors ${isActive ? 'hover:bg-indigo-500/20 text-indigo-300' : 'hover:bg-transparent/50 text-slate-500'}`}
-                    >
-                        {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    </button>
-                )}
-            </MagneticNavItem>
-        );
-    };
-
-    const renderUploadTrackersModule = (index) => {
-        const isActive = activeModule === 'upload-trackers';
-        const isExpanded = expandedModules['upload-trackers'];
-        const hasDynamicModules = uploadTrackerModules.length > 0;
-
-        return (
-            <MagneticNavItem
-                key="upload-trackers"
-                index={index}
-                isActive={isActive}
-                onClick={() => handleModuleClick('upload-trackers')}
-                className={`sidebar-nav-item ${isActive ? 'sidebar-nav-item-active' : 'sidebar-nav-item-inactive'} ${sidebarCollapsed ? 'justify-center px-2 py-3.5' : 'px-4 py-3.5'}`}
-            >
-                <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3.5'}`}>
-                    <AnimatedIcon isActive={isActive}>
-                        <FileUp className="h-5 w-5" />
-                    </AnimatedIcon>
-                    {!sidebarCollapsed && (
-                        <span className={`font-semibold text-base ${isActive ? 'text-slate-900' : 'text-slate-600'}`}>
-                            Trackers
-                        </span>
-                    )}
-                </div>
-                {!sidebarCollapsed && hasDynamicModules && (
-                    <button
-                        onClick={(e) => { e.stopPropagation(); toggleModuleExpansion('upload-trackers', e); }}
-                        className={`p-1.5 rounded-lg transition-colors ${isActive ? 'hover:bg-indigo-500/20 text-indigo-300' : 'hover:bg-transparent/50 text-slate-500'}`}
-                    >
-                        {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                    </button>
-                )}
-            </MagneticNavItem>
-        );
-    };
-
-    const renderMOMModule = (index) => {
-        const isActive = activeModule === 'mom-module';
-
-        return (
-            <MagneticNavItem
-                key="mom-module"
-                index={index}
-                isActive={isActive}
-                onClick={() => handleModuleClick('mom-module')}
-                className={`sidebar-nav-item ${isActive ? 'sidebar-nav-item-active' : 'sidebar-nav-item-inactive'} ${sidebarCollapsed ? 'justify-center px-2 py-3.5' : 'px-4 py-3.5'}`}
-            >
-                <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3.5'}`}>
-                    <AnimatedIcon isActive={isActive}>
-                        <MessageSquare className="h-5 w-5" />
-                    </AnimatedIcon>
-                    {!sidebarCollapsed && (
-                        <span className={`font-semibold text-base ${isActive ? 'text-slate-900' : 'text-slate-600'}`}>
-                            MOM
-                        </span>
-                    )}
-                </div>
-            </MagneticNavItem>
-        );
-    };
-
-    const renderMastersModule = (index) => {
-        const isExpanded = expandedModules['masters'];
-        const allowedSubmodules = hasAccess ? mastersSubmodules.filter(s => hasAccess(s.name)) : mastersSubmodules;
-        if (allowedSubmodules.length === 0) return null;
-        const isActive = activeModule === 'masters-main' || allowedSubmodules.some(s => s.id === activeModule);
-
-        return (
-            <div key="masters">
-                <MagneticNavItem
-                    index={index}
-                    isActive={isActive}
-                    onClick={() => handleModuleClick('masters-main')}
-                    className={`sidebar-nav-item ${isActive ? 'sidebar-nav-item-active' : 'sidebar-nav-item-inactive'} ${sidebarCollapsed ? 'justify-center px-2 py-3.5' : 'px-4 py-3.5'}`}
+            <div>
+                <div
+                    onClick={() => handleModuleClick('project-dashboard')}
+                    className={`sidebar-nav-item ${isActive ? 'sidebar-nav-item-active' : ''}`}
                 >
-                    <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3.5'}`}>
-                        <AnimatedIcon isActive={isActive}>
-                            <FolderTree className="h-5 w-5" />
-                        </AnimatedIcon>
-                        {!sidebarCollapsed && (
-                            <span className={`font-semibold text-base ${isActive ? 'text-slate-900' : 'text-slate-600'}`}>
-                                Masters
-                            </span>
-                        )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                        <IconProjects />
+                        {!sidebarCollapsed && <span style={{ fontSize: '13px' }}>Projects</span>}
                     </div>
-                    {!sidebarCollapsed && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); toggleModuleExpansion('masters', e); }}
-                            className={`p-1.5 rounded-lg transition-colors ${isActive ? 'hover:bg-indigo-500/20 text-indigo-300' : 'hover:bg-white/50 text-slate-500'}`}
-                        >
-                            {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                        </button>
+                    {!sidebarCollapsed && hasDynamicModules && (
+                        <div onClick={(e) => { e.stopPropagation(); toggleModuleExpansion('project-dashboard', e); }}>
+                            <IconChevron expanded={isExpanded} />
+                        </div>
                     )}
-                </MagneticNavItem>
-
+                </div>
+                {/* Embedded files drop-down (keeping exact original logic) */}
                 <AnimatePresence>
-                    {!sidebarCollapsed && isExpanded && (
+                    {isExpanded && (!sidebarCollapsed) && (
                         <motion.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.25, ease: EASE }}
-                            className="ml-7 mt-1.5 space-y-1.5 overflow-hidden"
+                            style={{ paddingLeft: '32px', overflow: 'hidden' }}
                         >
-                            {allowedSubmodules.map((submodule, i) => {
-                                const isSubActive = activeModule === submodule.id;
+                            {projectDashboardModules.map((pm, idx) => (
+                                <div key={pm.id || idx} style={{ marginBottom: '4px' }}>
+                                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', marginBottom: '4px', marginTop: '6px' }}>{pm.name}</div>
+                                    {pm.submodules && pm.submodules.map(fileModule => {
+                                        const isSelected = isFileSelected(fileModule, 'project-dashboard');
+                                        return (
+                                            <div
+                                                key={fileModule.id}
+                                                onClick={() => handleProjectFileClick({ ...fileModule, projectName: pm.name })}
+                                                className={`sidebar-nav-item ${isSelected ? 'sidebar-nav-item-active' : ''}`}
+                                                style={{ marginLeft: '-8px', padding: '6px 12px', fontSize: '12px' }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <IconFile />
+                                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {fileModule.displayName || fileModule.name.replace(/\.[^/.]+$/, "")}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+        );
+    };
+
+    const renderMOMModule = () => {
+        const isActive = activeModule === 'mom-module';
+        return (
+            <div
+                onClick={() => handleModuleClick('mom-module')}
+                className={`sidebar-nav-item ${isActive ? 'sidebar-nav-item-active' : ''}`}
+            >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <IconMOM />
+                    {!sidebarCollapsed && <span style={{ fontSize: '13px' }}>MOM</span>}
+                </div>
+            </div>
+        );
+    };
+
+    const renderMastersModule = () => {
+        const isExpanded = expandedModules['masters'];
+        const hasSubmodules = mastersSubmodules && mastersSubmodules.length > 0;
+        const isAnyMasterActive = activeModule === 'masters' || mastersSubmodules?.some(s => activeModule === s.id);
+
+        return (
+            <div>
+                <div
+                    onClick={() => handleModuleClick('masters')}
+                    className={`sidebar-nav-item ${isAnyMasterActive && !activeModule.startsWith('masters-') ? 'sidebar-nav-item-active' : ''}`}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                        <IconMasters />
+                        {!sidebarCollapsed && <span style={{ fontSize: '13px' }}>Masters</span>}
+                    </div>
+                    {!sidebarCollapsed && hasSubmodules && (
+                        <div onClick={(e) => { e.stopPropagation(); toggleModuleExpansion('masters', e); }}>
+                            <IconChevron expanded={isExpanded} />
+                        </div>
+                    )}
+                </div>
+                <AnimatePresence>
+                    {isExpanded && (!sidebarCollapsed) && (
+                        <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            style={{ paddingLeft: '24px', overflow: 'hidden' }}
+                        >
+                            {mastersSubmodules.map(module => {
+                                const isActive = activeModule === module.id;
                                 return (
-                                    <motion.button
-                                        key={submodule.id}
-                                        initial={{ opacity: 0, x: -8 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: i * 0.04, duration: 0.25, ease: EASE }}
-                                        onClick={() => handleModuleClick(submodule.id)}
-                                        whileHover={{ x: 3, transition: { type: 'spring', stiffness: 260, damping: 18 } }}
-                                        className={`sidebar-subnav-item w-full ${isSubActive ? 'sidebar-subnav-item-active' : 'sidebar-subnav-item-inactive'}`}
+                                    <div
+                                        key={module.id}
+                                        onClick={() => handleModuleClick(module.id)}
+                                        className={`sidebar-nav-item ${isActive ? 'sidebar-nav-item-active' : ''}`}
+                                        style={{ padding: '6px 12px', fontSize: '12px' }}
                                     >
-                                        <motion.div
-                                            className={`flex-shrink-0 ${isSubActive ? 'text-indigo-500' : 'text-slate-400'}`}
-                                            whileHover={{ scale: 1.1 }}
-                                            transition={{ duration: 0.16 }}
-                                        >
-                                            {submodule.icon}
-                                        </motion.div>
-                                        <span className={`truncate ${isSubActive ? 'text-indigo-900 font-medium' : 'text-inherit'}`}>
-                                            {submodule.name}
-                                        </span>
-                                    </motion.button>
+                                        {module.name}
+                                    </div>
                                 );
                             })}
                         </motion.div>
@@ -321,45 +212,57 @@ const Sidebar = ({
         );
     };
 
-    const renderProjectModule = (projectModule, context) => {
-        const projectKey = projectModule.id || projectModule.projectId || projectModule.name;
-        const uniqueId = `${context}-${projectKey}`;
-        const isExpanded = expandedModules[uniqueId] || false;
-        const hasFiles = projectModule.submodules?.length > 0;
+    const renderUploadTrackersModule = () => {
+        const isActive = activeModule === 'upload-trackers';
+        const isExpanded = expandedModules['upload-trackers'];
+        const hasDynamicModules = uploadTrackerModules && uploadTrackerModules.length > 0;
 
         return (
-            <div key={uniqueId} className="group">
-                <div className="flex items-center justify-between">
-                    <motion.div
-                        onClick={(e) => toggleModuleExpansion(uniqueId, e)}
-                        whileHover={{ x: 3, scale: 1.01, transition: { type: 'spring', stiffness: 260, damping: 18 } }}
-                        className="flex-1 flex items-center space-x-2.5 rounded-lg px-3 py-2 cursor-pointer text-sm text-slate-600 hover:bg-white/40"
-                    >
-                        <motion.div whileHover={{ scale: 1.1 }} transition={{ duration: 0.16 }}>
-                            <Layers className="h-4 w-4 flex-shrink-0 text-slate-400" />
-                        </motion.div>
-                        <span className="font-medium truncate">{projectModule.name}</span>
-                    </motion.div>
-                    {hasFiles && (
-                        <button
-                            onClick={(e) => { e.stopPropagation(); toggleModuleExpansion(uniqueId, e); }}
-                            className="p-1.5 rounded-lg hover:bg-slate-200/50 text-slate-500 ml-1 transition-colors"
-                        >
-                            {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                        </button>
+            <div>
+                <div
+                    onClick={() => handleModuleClick('upload-trackers')}
+                    className={`sidebar-nav-item ${isActive ? 'sidebar-nav-item-active' : ''}`}
+                >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
+                        <IconUpload />
+                        {!sidebarCollapsed && <span style={{ fontSize: '13px' }}>Uploads</span>}
+                    </div>
+                    {!sidebarCollapsed && hasDynamicModules && (
+                        <div onClick={(e) => { e.stopPropagation(); toggleModuleExpansion('upload-trackers', e); }}>
+                            <IconChevron expanded={isExpanded} />
+                        </div>
                     )}
                 </div>
-
                 <AnimatePresence>
-                    {isExpanded && hasFiles && (
+                    {isExpanded && (!sidebarCollapsed) && (
                         <motion.div
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.22, ease: EASE }}
-                            className="ml-6 mt-1 space-y-1 border-l border-slate-300/50 pl-2 overflow-hidden"
+                            style={{ paddingLeft: '32px', overflow: 'hidden' }}
                         >
-                            {projectModule.submodules.map(fileModule => renderFileModule(fileModule, context, projectKey))}
+                            {uploadTrackerModules.map(pm => (
+                                <div key={pm.id} style={{ marginBottom: '4px' }}>
+                                    {pm.submodules && pm.submodules.map(fileModule => {
+                                        const isSelected = isFileSelected(fileModule, 'upload-trackers');
+                                        return (
+                                            <div
+                                                key={fileModule.id}
+                                                onClick={() => handleFileModuleClick(fileModule)}
+                                                className={`sidebar-nav-item ${isSelected ? 'sidebar-nav-item-active' : ''}`}
+                                                style={{ marginLeft: '-8px', padding: '6px 12px', fontSize: '12px' }}
+                                            >
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    <IconFile />
+                                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                        {fileModule.displayName || fileModule.name.replace(/\.[^/.]+$/, "")}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ))}
                         </motion.div>
                     )}
                 </AnimatePresence>
@@ -367,53 +270,21 @@ const Sidebar = ({
         );
     };
 
-    const renderFileModule = (fileModule, context, projectKey) => {
-        const isSelected = isFileSelected(fileModule, context);
-        const fileId = `${context}-${fileModule.id}-${projectKey}`;
-
-        return (
-            <motion.button
-                key={fileId}
-                whileHover={{ x: 3, transition: { type: 'spring', stiffness: 260, damping: 18 } }}
-                onClick={() => {
-                    if (context === 'upload-trackers') handleFileModuleClick(fileModule);
-                    else if (context === 'project-dashboard') handleProjectFileClick({ ...fileModule, projectName: fileModule.projectName || projectKey });
-                }}
-                className={`w-full flex items-center space-x-2.5 rounded-md px-2.5 py-1.5 transition-all duration-200 text-sm text-left ${isSelected ? 'bg-indigo-500/10 text-indigo-700 font-semibold' : 'text-slate-500 hover:bg-white/50 hover:text-slate-800'}`}
-            >
-                <motion.div whileHover={{ scale: 1.1 }} transition={{ duration: 0.16 }}>
-                    <FileText className={`h-3.5 w-3.5 flex-shrink-0 ${isSelected ? 'text-indigo-500' : 'text-slate-400'}`} />
-                </motion.div>
-                <span className="truncate">
-                    {fileModule.displayName || (fileModule.name || '').replace(/\.(xlsx|xls|csv|json|txt)$/i, '')}
-                </span>
-            </motion.button>
-        );
-    };
-
-    const renderOtherModules = (startIndex) => {
-        const allowedOtherModules = hasAccess ? otherModules.filter(m => hasAccess(m.name)) : otherModules;
-        return allowedOtherModules.filter(m => m.id !== 'upload-trackers').map((module, i) => {
+    const renderOtherModules = () => {
+        const allowedOtherModules = hasAccess && otherModules ? otherModules.filter(m => hasAccess(m.name)) : (otherModules || []);
+        return allowedOtherModules.filter(m => m.id !== 'upload-trackers').map((module) => {
             const isActive = activeModule === module.id;
             return (
-                <MagneticNavItem
+                <div
                     key={module.id}
-                    index={startIndex + i}
-                    isActive={isActive}
                     onClick={() => handleModuleClick(module.id)}
-                    className={`sidebar-nav-item ${isActive ? 'sidebar-nav-item-active' : 'sidebar-nav-item-inactive'} ${sidebarCollapsed ? 'justify-center px-2 py-3.5' : 'px-4 py-3.5'}`}
+                    className={`sidebar-nav-item ${isActive ? 'sidebar-nav-item-active' : ''}`}
                 >
-                    <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3.5'}`}>
-                        <AnimatedIcon isActive={isActive}>
-                            {module.icon}
-                        </AnimatedIcon>
-                        {!sidebarCollapsed && (
-                            <span className={`font-semibold text-base ${isActive ? 'text-slate-900' : 'text-slate-600'}`}>
-                                {module.name}
-                            </span>
-                        )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <IconSettings />
+                        {!sidebarCollapsed && <span style={{ fontSize: '13px' }}>{module.name}</span>}
                     </div>
-                </MagneticNavItem>
+                </div>
             );
         });
     };
@@ -421,49 +292,40 @@ const Sidebar = ({
     return (
         <motion.div
             ref={sidebarRef}
-            className={`app-sidebar ${sidebarCollapsed ? 'w-16' : 'w-64'} fixed lg:relative inset-y-0 left-0 transform lg:transform-none`}
-            onMouseEnter={() => setSidebarHovered(true)}
-            onMouseLeave={() => setSidebarHovered(false)}
+            className={`app-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}
             variants={slideInLeft}
             initial="hidden"
             animate="visible"
         >
-            {/* Collapse Toggle Button */}
-            <AnimatePresence>
-                {sidebarHovered && (
-                    <motion.button
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.15 }}
-                        onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-                        className="sidebar-fixed-btn flex items-center justify-center text-slate-600 hover:text-slate-900"
-                        style={{
-                            left: sidebarCollapsed ? '52px' : '236px',
-                            transform: 'translateX(-50%)',
-                            zIndex: 9999
-                        }}
-                    >
-                        {sidebarCollapsed ? <ChevronRightIcon className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-                    </motion.button>
-                )}
-            </AnimatePresence>
+            <LogoBlock />
 
-            {/* Navigation */}
-            <motion.div
-                className="sidebar-scroll px-3 py-4 space-y-1.5 text-sm"
-                variants={navListVariants}
-                initial="hidden"
-                animate="visible"
-            >
-                {(!hasAccess || hasAccess('Dashboard')) && renderProjectDashboardModule(0)}
-                {(!hasAccess || hasAccess('MOM')) && renderMOMModule(1)}
-                {renderMastersModule(2)}
-                <div className="space-y-1.5">
-                    {(!hasAccess || hasAccess('Upload Trackers')) && renderUploadTrackersModule(3)}
-                    {renderOtherModules(4)}
+            <div className="sidebar-scroll">
+                {!sidebarCollapsed && <div className="sidebar-section-label">WORKSPACE</div>}
+                {(!hasAccess || hasAccess('Dashboard')) && renderProjectDashboardModule()}
+                {(!hasAccess || hasAccess('MOM')) && renderMOMModule()}
+                
+                {!sidebarCollapsed && <div className="sidebar-section-label" style={{ marginTop: '12px' }}>CONFIGURATION</div>}
+                {renderMastersModule()}
+                {(!hasAccess || hasAccess('Upload Trackers')) && renderUploadTrackersModule()}
+                {renderOtherModules()}
+            </div>
+
+            <div className="sidebar-footer">
+                <div style={{ 
+                    width: '30px', height: '30px', borderRadius: '50%', 
+                    background: 'rgba(255,255,255,0.1)', display: 'flex', 
+                    alignItems: 'center', justifyContent: 'center',
+                    fontSize: '11px', color: '#fff', fontWeight: 'bold'
+                }}>
+                    PR
                 </div>
-            </motion.div>
+                {!sidebarCollapsed && (
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                        <div style={{ color: '#fff', fontSize: '12px', fontWeight: '500', truncate: 'true' }}>Pradeep R.</div>
+                        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '11px' }}>Administrator</div>
+                    </div>
+                )}
+            </div>
         </motion.div>
     );
 };
