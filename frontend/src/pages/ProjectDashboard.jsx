@@ -991,15 +991,7 @@ const ProjectTitleDashboard = () => {
       'milestones', 'criticalIssues',
       'budget', 'resource', 'quality',
       ...['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'],
-      ...(activeProject?.submodules || [])
-        .filter(sub => {
-          const defaultIds = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
-          return !defaultIds.some(id => {
-            const tracker = getTrackerForPhase(id);
-            return tracker && tracker.id === sub.id;
-          });
-        })
-        .map(sub => sub.id)
+      ...dynamicTrackerKeys
     ].filter(key => {
       if (['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(key)) {
         return availablePhases[key];
@@ -1332,15 +1324,7 @@ const ProjectTitleDashboard = () => {
       'milestones', 'criticalIssues',
       'budget', 'resource', 'quality',
       ...['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'],
-      ...(activeProject?.submodules || [])
-        .filter(sub => {
-          const defaultIds = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
-          return !defaultIds.some(id => {
-            const tracker = getTrackerForPhase(id);
-            return tracker && tracker.id === sub.id;
-          });
-        })
-        .map(sub => sub.id)
+      ...dynamicTrackerKeys
     ].filter(key => {
       if (['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'].includes(key)) {
         return availablePhases[key];
@@ -3747,7 +3731,7 @@ const ProjectTitleDashboard = () => {
 
                       <div style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(2, 1fr)',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
                         gap: '24px',
                         width: '100%'
                       }}>
@@ -3762,21 +3746,10 @@ const ProjectTitleDashboard = () => {
                           // Also include all submodules as potential chart sources
                           ...(activeProject?.submodules || []).map(sub => ({ id: sub.id, label: sub.displayName || sub.name, isDynamic: true }))
                         ].filter((phase, index, self) => {
-                          // 1. Filter out exact ID duplicates
+                          // Filter out duplicates and check visibility/availability
                           const isDuplicate = self.findIndex(p => p.id === phase.id) !== index;
                           if (isDuplicate) return false;
 
-                          // 2. If this is a dynamic entry, filter it out if it is already covered by a default category mapping
-                          if (phase.isDynamic) {
-                            const defaultIds = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
-                            const isAlreadyMapped = defaultIds.some(id => {
-                              const tracker = getTrackerForPhase(id);
-                              return tracker && tracker.id === phase.id;
-                            });
-                            if (isAlreadyMapped) return false;
-                          }
-
-                          // 3. Check visibility and availability
                           const isVisible = visibleSections[phase.id];
                           const isAvailable = availablePhases[phase.id];
                           return isVisible && isAvailable;
