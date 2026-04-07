@@ -3,7 +3,8 @@ import { useSelector } from 'react-redux';
 import {
   Upload, Save, Check, RefreshCw, AlertCircle, Plus, Trash2, Edit2, X,
   AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
-  TrendingUp, Wallet, ArrowDownCircle, ArrowUp, ArrowDown, ChevronDown
+  TrendingUp, Wallet, ArrowDownCircle, ArrowUp, ArrowDown, ChevronDown,
+  FileText, History, Clock, FileUp, Download
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import API from '../../utils/api';
@@ -60,15 +61,39 @@ const BudgetMaster = () => {
   const [isParsing, setIsParsing] = useState(false);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
 
+  // Revision Workflow State
+  const [activeTab, setActiveTab] = useState('Table'); // 'Table' or 'Revisions'
+  const [showRevisionModal, setShowRevisionModal] = useState(false);
+  const [revisions, setRevisions] = useState([]);
+  const [revisionData, setRevisionData] = useState({
+    revised_budget: '',
+    reasons: '',
+    attachment: null
+  });
+  const [fetchingRevisions, setFetchingRevisions] = useState(false);
+  const [submittingRevision, setSubmittingRevision] = useState(false);
+  const [waitingDate, setWaitingDate] = useState('');
+  const [showWaitingModal, setShowWaitingModal] = useState(null); // stores revision ID
+
   const user = useSelector(state => state.auth.user);
+  const userRole = user?.role || 'Employee';
+  const isPM = userRole === 'Project Manager';
+  const isHead = userRole === 'Head' || userRole === 'Admin' || userRole === 'Super Admin';
+  const isFinance = userRole === 'Finance' || userRole === 'Admin' || userRole === 'Super Admin';
+  const canRequestRevision = isPM;
+  const canManageRevisions = isHead || isFinance;
+
   const { format, symbol } = useCurrency();
 
   useEffect(() => {
     fetchInitialData();
+    if (canManageRevisions) {
+      fetchRevisions();
+    }
     const handleClickOutside = () => setActiveDropdownColumn(null);
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
+  }, [userRole]);
 
   // Filtered & Sorted Data Logic
   const filteredData = useMemo(() => {
@@ -208,6 +233,89 @@ const BudgetMaster = () => {
       console.error('Error fetching data', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchRevisions = async () => {
+    setFetchingRevisions(true);
+    try {
+      const res = await API.get('/budget/revisions/');
+      setRevisions(res.data || []);
+    } catch (err) {
+      console.error('Error fetching revisions', err);
+    } finally {
+      setFetchingRevisions(false);
+    }
+  };
+
+  const handleRevisionSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedProject || !revisionData.revised_budget || !revisionData.reasons) {
+        showNotification('Please fill all required fields', 'error');
+        return;
+    }
+
+    setSubmittingRevision(true);
+    try {
+        const proj = projects.find(p => p.name === selectedProject);
+        const formData = new FormData();
+        formData.append('project_id', proj?.project_id || '');
+        formData.append('project_name', selectedProject);
+        formData.append('pm_name', user?.name || 'Unknown PM');
+        formData.append('previous_budget', overallBudget);
+        formData.append('revised_budget', revisionData.revised_budget);
+        formData.append('reasons', revisionData.reasons);
+        if (revisionData.attachment) {
+            formData.append('file', revisionData.attachment);
+        }
+
+        await API.post('/budget/revisions/', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+
+        showNotification('Budget revision request submitted successfully');
+        setShowRevisionModal(false);
+        setRevisionData({ revised_budget: '', reasons: '', attachment: null });
+        fetchRevisions();
+    } catch (err) {
+        showNotification('Failed to submit revision request', 'error');
+    } finally {
+        setSubmittingRevision(false);
+    }
+  };
+
+  const handleStatusUpdate = async (revisionId, newStatus, extraData = {}) => {
+    try {
+      await API.patch(`/budget/revisions/${revisionId}`, {
+        status: newStatus,
+        ...extraData
+      });
+      showNotification(`Revision ${newStatus.toLowerCase()} successfully`);
+      fetchRevisions();
+      if (newStatus === 'Approved') {
+          // Refresh project data to show new budget
+          fetchInitialData();
+          if (selectedProject) fetchBudgetData(selectedProject);
+      }
+    } catch (err) {
+      showNotification('Failed to update revision status', 'error');
+    }
+  };
+
+  const handleDownloadAttachment = async (revisionId, fileName) => {
+    try {
+      const res = await API.get(`/budget/revisions/${revisionId}/attachment`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName || 'attachment');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      showNotification('Failed to download attachment', 'error');
     }
   };
 
@@ -387,7 +495,22 @@ const BudgetMaster = () => {
           </div>
           <div>
             <h1 className="text-xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">Budget Master</h1>
-            <p className="text-xs text-slate-500 font-medium tracking-wide">Sync project-level budget and track itemized utilization.</p>
+            <div className="flex items-center gap-4 mt-1">
+              <button 
+                onClick={() => setActiveTab('Table')}
+                className={`text-[10px] uppercase font-bold tracking-widest transition-colors ${activeTab === 'Table' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                Budget Table
+              </button>
+              {(isHead || isFinance) && (
+                <button 
+                  onClick={() => setActiveTab('Revisions')}
+                  className={`text-[10px] uppercase font-bold tracking-widest transition-colors ${activeTab === 'Revisions' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  Incoming Revisions
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -399,9 +522,21 @@ const BudgetMaster = () => {
               <span>{isParsing ? 'Processing...' : 'Import Data'}</span>
             </button>
           </div>
+
+          {isPM && (
+            <button 
+              onClick={() => setShowRevisionModal(true)}
+              className="flex items-center gap-2 h-10 px-3 text-xs sm:text-sm bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-all font-medium shadow-sm"
+            >
+              <History className="h-4 w-4" />
+              <span>Revision Budget</span>
+            </button>
+          )}
         </div>
       </div>
 
+      {activeTab === 'Table' ? (
+      <>
       {/* Control Panel */}
       <div className="bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -614,58 +749,275 @@ const BudgetMaster = () => {
               )}
             </table>
           </div>
-        </div>
-
-
-        {/* Footer - Matching Employee Master Style */}
-        <div className="p-3 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 flex justify-between items-center text-xs">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-500">Show:</span>
-              <select
-                value={itemsPerPage}
-                onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                className="px-2 py-1 border border-slate-300 dark:border-slate-600 rounded focus:outline-none focus:ring-1 focus:ring-gray-500 bg-transparent"
-              >
-                {[10, 25, 50, 100].map(size => <option key={size} value={size}>{size}</option>)}
-              </select>
-            </div>
-            <span className="text-slate-500">
-              Showing {paginatedData.length} of {tableData.length} records
-            </span>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              className={`p-1.5 rounded ${currentPage === 1 ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-
-            <div className="flex gap-1">
-              {Array.from({ length: totalPages }).map((_, i) => (
-                <button
-                  key={i + 1}
-                  onClick={() => goToPage(i + 1)}
-                  className={`px-2 py-1 rounded ${currentPage === i + 1 ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
-                >
-                  {i + 1}
-                </button>
-              )).slice(Math.max(0, currentPage - 3), Math.min(totalPages, currentPage + 2))}
-            </div>
-
-            <button
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className={`p-1.5 rounded ${currentPage === totalPages ? 'text-slate-300 cursor-not-allowed' : 'text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
       </div>
+      </>
+      ) : (
+        /* Incoming Revisions UI */
+        <div className="space-y-4">
+          <div className="bg-white dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <History className="h-5 w-5 text-slate-400" />
+                <h2 className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider">Revision Requests</h2>
+              </div>
+              <button 
+                onClick={fetchRevisions}
+                disabled={fetchingRevisions}
+                className="p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+              >
+                <RefreshCw className={`h-4 w-4 text-slate-500 ${fetchingRevisions ? 'animate-spin' : ''}`} />
+              </button>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-900 text-white">
+                    <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">Project</th>
+                    <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">Requested By</th>
+                    <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap text-right">Prev Budget</th>
+                    <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap text-right">New Budget</th>
+                    <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">Status</th>
+                    <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">Attachment</th>
+                    <th className="py-3 px-4 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                  {fetchingRevisions ? (
+                    <tr>
+                      <td colSpan="7" className="py-12 text-center">
+                        <RefreshCw className="h-6 w-6 text-blue-500 animate-spin mx-auto mb-2" />
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Fetching Revisions...</span>
+                      </td>
+                    </tr>
+                  ) : revisions.length === 0 ? (
+                    <tr>
+                      <td colSpan="7" className="py-12 text-center text-slate-400 text-xs font-bold uppercase tracking-widest">
+                        No revision requests found.
+                      </td>
+                    </tr>
+                  ) : revisions.map(rev => (
+                    <tr key={rev.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="font-bold text-slate-800 dark:text-slate-200 text-sm">{rev.project_name}</div>
+                        <div className="text-[10px] text-slate-400 font-medium">ID: {rev.project_id}</div>
+                      </td>
+                      <td className="py-3 px-4 text-xs font-medium text-slate-600 dark:text-slate-400">{rev.pm_name}</td>
+                      <td className="py-3 px-4 text-xs font-bold text-slate-50 text-right font-mono bg-slate-900 border border-slate-700 rounded-sm px-1.5">{format(rev.previous_budget)}</td>
+                      <td className="py-3 px-4 text-xs font-bold text-blue-400 text-right font-mono bg-slate-900 border border-blue-900 rounded-sm px-1.5 ml-1">{format(rev.revised_budget)}</td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tighter ${
+                          rev.status === 'Approved' ? 'bg-green-600 text-white shadow-sm' :
+                          rev.status === 'Declined' ? 'bg-red-600 text-white shadow-sm' :
+                          rev.status === 'Cancelled' ? 'bg-slate-600 text-white shadow-sm' :
+                          rev.status === 'In Waiting Period' ? 'bg-amber-500 text-white shadow-sm' :
+                          'bg-blue-600 text-white shadow-sm'
+                        }`}>
+                          {rev.status}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        {rev.attachment_name ? (
+                          <button 
+                            onClick={() => handleDownloadAttachment(rev.id, rev.attachment_name)}
+                            className="flex items-center gap-1.5 text-xs font-bold text-blue-500 hover:text-blue-400 decoration-none"
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            <span className="truncate max-w-[100px]">{rev.attachment_name}</span>
+                          </button>
+                        ) : <span className="text-slate-500 text-[10px] font-bold tracking-widest">NO FILE</span>}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center justify-center gap-2">
+                          {isHead && rev.status === 'Pending Head' && (
+                            <>
+                              <button 
+                                onClick={() => handleStatusUpdate(rev.id, 'Pending Finance')}
+                                title="Review to Finance"
+                                className="p-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all shadow-md active:scale-95"
+                              >
+                                <ArrowUp className="h-4 w-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleStatusUpdate(rev.id, 'Cancelled')}
+                                title="Cancel Review"
+                                className="p-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-all shadow-md active:scale-95"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
+                          {isFinance && rev.status === 'Pending Finance' && (
+                            <>
+                              <button 
+                                onClick={() => handleStatusUpdate(rev.id, 'Approved')}
+                                title="Approve Revised Budget"
+                                className="p-1.5 bg-green-600 text-white rounded hover:bg-green-700 transition-all shadow-md active:scale-95"
+                              >
+                                <Check className="h-4 w-4" />
+                              </button>
+                              <button 
+                                onClick={() => setShowWaitingModal(rev.id)}
+                                title="Set Waiting Period"
+                                className="p-1.5 bg-amber-500 text-white rounded hover:bg-amber-600 transition-all shadow-md active:scale-95"
+                              >
+                                <Clock className="h-4 w-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleStatusUpdate(rev.id, 'Declined')}
+                                title="Decline Revised Budget"
+                                className="p-1.5 bg-red-600 text-white rounded hover:bg-red-700 transition-all shadow-md active:scale-95"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Revision Submission Modal (PM Only) */}
+      {showRevisionModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-lg border border-slate-200 dark:border-slate-800">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/10">
+              <div className="flex items-center gap-3">
+                <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2 rounded-lg">
+                  <History className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-tight">Revise Project Budget</h3>
+              </div>
+              <button 
+                onClick={() => setShowRevisionModal(false)}
+                className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <form onSubmit={handleRevisionSubmit} className="p-6 space-y-5">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Previous Budget</label>
+                  <div className="px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-500 font-bold text-sm">
+                    {format(overallBudget)}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Revised Budget</label>
+                  <input 
+                    type="number"
+                    required
+                    value={revisionData.revised_budget}
+                    onChange={(e) => setRevisionData({...revisionData, revised_budget: e.target.value})}
+                    placeholder="0.00"
+                    className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none transition-all shadow-inner"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Reason for Revision</label>
+                <textarea 
+                  required
+                  rows="3"
+                  value={revisionData.reasons}
+                  onChange={(e) => setRevisionData({...revisionData, reasons: e.target.value})}
+                  placeholder="Explain why the budget needs to be revised..."
+                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none shadow-inner"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Support Documents (PDF/Excel)</label>
+                <div className="relative group">
+                  <input 
+                    type="file"
+                    accept=".pdf,.xlsx,.xls"
+                    onChange={(e) => setRevisionData({...revisionData, attachment: e.target.files[0]})}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                  <div className="w-full px-3 py-3 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg group-hover:border-indigo-400 transition-colors flex items-center justify-center gap-3">
+                    <FileUp className="h-5 w-5 text-slate-400 group-hover:text-indigo-400" />
+                    <span className="text-xs font-bold text-slate-500 group-hover:text-indigo-500">
+                      {revisionData.attachment ? revisionData.attachment.name : "Click to select or drag and drop file"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-3">
+                <button 
+                  type="button"
+                  onClick={() => setShowRevisionModal(false)}
+                  className="px-6 py-2.5 text-sm font-bold text-slate-500 hover:text-slate-700 uppercase tracking-widest"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  disabled={submittingRevision}
+                  className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 uppercase tracking-widest font-black flex items-center gap-2 transition-all active:scale-95 disabled:bg-slate-400"
+                >
+                  {submittingRevision ? <RefreshCw className="h-4 w-4 animate-spin text-white" /> : <Save className="h-4 w-4" />}
+                  Submit Proposal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Waiting Period Modal (Finance Only) */}
+      {showWaitingModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-800">
+            <div className="p-6 text-center">
+              <div className="bg-amber-100 dark:bg-amber-900/30 p-3 rounded-full w-14 h-14 flex items-center justify-center mx-auto mb-4">
+                <Clock className="h-7 w-7 text-amber-600 dark:text-amber-400" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-tight mb-2">Set Waiting Period</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mb-6">Select a date until which the revision processing will be deferred.</p>
+              
+              <input 
+                type="date"
+                min={new Date().toISOString().split('T')[0]}
+                value={waitingDate}
+                onChange={(e) => setWaitingDate(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold focus:ring-2 focus:ring-amber-500 outline-none mb-6"
+              />
+
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => { setShowWaitingModal(null); setWaitingDate(''); }}
+                  className="flex-1 py-3 text-sm font-bold text-slate-500 uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => {
+                    handleStatusUpdate(showWaitingModal, 'In Waiting Period', { waiting_until: waitingDate });
+                    setShowWaitingModal(null);
+                    setWaitingDate('');
+                  }}
+                  disabled={!waitingDate}
+                  className="flex-1 py-3 bg-amber-500 text-white rounded-lg shadow-md hover:bg-amber-600 uppercase tracking-widest font-black transition-all active:scale-95 disabled:bg-slate-300"
+                >
+                  Set Period
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Caution Prompt Modal */}
       {showDeletePrompt && (
