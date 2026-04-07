@@ -12,6 +12,9 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import PdfPreviewModal from '../components/PdfPreviewModal';
 import useCurrency from "../hooks/useCurrency";
+import PremiumProjectCard from '../components/project/PremiumProjectCard';
+import { motion } from 'framer-motion';
+import { staggerContainer } from '../utils/animations';
 
 
 import { HotTable } from '@handsontable/react';
@@ -159,7 +162,7 @@ const ProjectTitleDashboard = () => {
   const { format, symbol } = useCurrency();
   const selectedFileId = useSelector(state => state.nav.selectedProjectFileId);
   const onClearSelection = () => dispatch(setSelectedProjectFileId(null));
-  
+
   const parseNum = (val) => {
     if (val === null || val === undefined || val === '') return 0;
     const strVal = String(val).replace(/[^0-9.-]+/g, '');
@@ -2200,13 +2203,13 @@ const ProjectTitleDashboard = () => {
                       type="text"
                       value={summaryForm[field.key]}
                       onChange={(e) => setSummaryForm({ ...summaryForm, [field.key]: e.target.value })}
-                      style={{ 
-                        width: '100%', 
-                        padding: '8px', 
+                      style={{
+                        width: '100%',
+                        padding: '8px',
                         paddingLeft: (field.key.toLowerCase().includes('amount') || field.key.toLowerCase().includes('budget')) ? '30px' : '8px',
-                        border: '1px solid #cbd5e1', 
-                        borderRadius: '4px', 
-                        fontSize: '14px' 
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '4px',
+                        fontSize: '14px'
                       }}
                     />
                   </div>
@@ -2589,7 +2592,7 @@ const ProjectTitleDashboard = () => {
               labelLayout: function (params) {
                 const instance = typeof chartRefs !== 'undefined' && chartRefs.current && chartRefs.current[chartId] ? chartRefs.current[chartId].getEchartsInstance() : null;
                 const liveWidth = instance ? instance.getWidth() : (isMaximized ? 800 : 450);
-                
+
                 const isLeft = params.labelRect.x < (liveWidth / 2);
                 const points = params.labelLinePoints;
                 if (!points) return;
@@ -3317,101 +3320,27 @@ const ProjectTitleDashboard = () => {
         {!activeProject ? (
           /* Projects List View */
           <div style={{ padding: '30px' }}>
-            <div style={{
+            <motion.div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
               gap: '20px'
-            }}>
+            }}
+              variants={staggerContainer}
+              initial="hidden"
+              animate="visible"
+            >
               {projects.length === 0 ? (
                 <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#6b7280', fontSize: '18px' }}>
                   No projects found. Please add a project module to get started.
                 </div>
               ) : projects.map(project => (
-                <div
+                <PremiumProjectCard
                   key={project.id}
-                  onClick={() => handleProjectSelect(project.id)}
-                  style={{
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '8px',
-                    padding: '25px',
-                    backgroundColor: 'white',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                    textAlign: 'center',
-                    ':hover': {
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                      borderColor: '#1e3a5f'
-                    }
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 44px 12px rgba(0,0,0,0.1)';
-                    e.currentTarget.style.borderColor = '#1e3a5f';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.05)';
-                    e.currentTarget.style.borderColor = '#e0e0e0';
-                  }}
-                >
-                  <div style={{
-                    width: '60px',
-                    height: '60px',
-                    borderRadius: '50%',
-                    backgroundColor: '#1e3a5f',
-                    color: 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '24px',
-                    fontWeight: 'bold',
-                    margin: '0 auto 15px'
-                  }}>
-                    {project.code.charAt(0)}
-                  </div>
-                  <h3 style={{
-                    fontSize: '18px',
-                    fontWeight: 'bold',
-                    color: '#1e3a5f',
-                    margin: '0 0 8px 0'
-                  }}>
-                    {project.name}
-                  </h3>
-                  <p style={{
-                    fontSize: '14px',
-                    color: '#4b5563',
-                    margin: '0 0 15px 0'
-                  }}>
-                    Code: {project.code}
-                  </p>
-                  {project.submodules && project.submodules.length > 0 && (
-                    <p style={{
-                      fontSize: '13px',
-                      color: '#1e3a5f',
-                      margin: '0 0 15px 0',
-                      fontWeight: '500'
-                    }}>
-                      Submodules: {project.submodules.length}
-                    </p>
-                  )}
-                  {project.dashboardConfig && (
-                    <span style={{
-                      display: 'inline-block',
-                      padding: '4px 12px',
-                      backgroundColor: '#d1fae5',
-                      color: '#065f46',
-                      borderRadius: '20px',
-                      fontSize: '12px',
-                      fontWeight: 'bold'
-                    }}>
-                      Dashboard Configured
-                    </span>
-                  )}
-                </div>
+                  project={project}
+                  onClick={handleProjectSelect}
+                />
               ))}
-            </div>
+            </motion.div>
           </div>
         ) : selectedSubmodule ? (
           /* Submodule Detail View */
@@ -4078,7 +4007,7 @@ const ProjectTitleDashboard = () => {
               </div>
             </div>
             {/* End project-dashboard-main-content */}
-            
+
             <PdfPreviewModal
               show={showPdfPreview}
               onClose={() => setShowPdfPreview(false)}
@@ -4164,8 +4093,8 @@ const RecipientInput = ({ label, type, emails, onUpdate, allEmployees, disabledE
     }
     if (email && !emails.includes(email)) {
       if (!isValidEmail(email)) {
-         setErrorMsg('Invalid email format');
-         return;
+        setErrorMsg('Invalid email format');
+        return;
       }
       onUpdate([...emails, email]);
     }
@@ -4195,13 +4124,13 @@ const RecipientInput = ({ label, type, emails, onUpdate, allEmployees, disabledE
   return (
     <div style={{ marginBottom: '12px' }}>
       <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>{label}</label>
-      <div 
-        style={{ 
-          display: 'flex', 
-          flexWrap: 'wrap', 
-          gap: '6px', 
-          padding: '6px 8px', 
-          border: '1px solid #c0c0c0', 
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '6px',
+          padding: '6px 8px',
+          border: '1px solid #c0c0c0',
           borderRadius: '4px',
           backgroundColor: 'white',
           minHeight: '34px',
@@ -4252,10 +4181,10 @@ const RecipientInput = ({ label, type, emails, onUpdate, allEmployees, disabledE
           onKeyDown={handleKeyDown}
           onBlur={() => {
             if (inputValue.trim() && inputValue.includes('@')) {
-               handleAdd(inputValue.trim());
+              handleAdd(inputValue.trim());
             } else {
-               setShowDropdown(false);
-               setInputValue('');
+              setShowDropdown(false);
+              setInputValue('');
             }
           }}
           placeholder={emails.length === 0 ? "Enter email address or search employee..." : ""}
@@ -4294,30 +4223,31 @@ const RecipientInput = ({ label, type, emails, onUpdate, allEmployees, disabledE
             {filteredEmployees.map(contact => {
               const isDisabled = disabledEmails.includes(contact.email) || emails.includes(contact.email);
               return (
-              <div
-                key={contact.id}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  if (!isDisabled) {
-                    handleAdd(contact.email, false);
-                  }
-                }}
-                style={{
-                  padding: '8px 15px',
-                  cursor: isDisabled ? 'not-allowed' : 'pointer',
-                  borderBottom: '1px solid #f3f4f6',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  opacity: isDisabled ? 0.4 : 1,
-                  backgroundColor: isDisabled ? '#f8fafc' : 'white'
-                }}
-                onMouseEnter={(e) => { if (!isDisabled) e.currentTarget.style.backgroundColor = '#f0f7ff'; }}
-                onMouseLeave={(e) => { if (!isDisabled) e.currentTarget.style.backgroundColor = 'white'; }}
-              >
-                <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#1e3a5f' }}>{contact.name || 'Unknown Name'}</span>
-                <span style={{ fontSize: '11px', color: '#6b7280' }}>{contact.email} • {contact.department || 'No Dept'}</span>
-              </div>
-            )})}
+                <div
+                  key={contact.id}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    if (!isDisabled) {
+                      handleAdd(contact.email, false);
+                    }
+                  }}
+                  style={{
+                    padding: '8px 15px',
+                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                    borderBottom: '1px solid #f3f4f6',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    opacity: isDisabled ? 0.4 : 1,
+                    backgroundColor: isDisabled ? '#f8fafc' : 'white'
+                  }}
+                  onMouseEnter={(e) => { if (!isDisabled) e.currentTarget.style.backgroundColor = '#f0f7ff'; }}
+                  onMouseLeave={(e) => { if (!isDisabled) e.currentTarget.style.backgroundColor = 'white'; }}
+                >
+                  <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#1e3a5f' }}>{contact.name || 'Unknown Name'}</span>
+                  <span style={{ fontSize: '11px', color: '#6b7280' }}>{contact.email} • {contact.department || 'No Dept'}</span>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
@@ -4445,45 +4375,45 @@ const EmailModal = ({
           </p>
 
           {formError && (
-             <div style={{ padding: '10px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: '4px', marginBottom: '15px', fontSize: '13px', fontWeight: 'bold' }}>
-               {formError}
-             </div>
+            <div style={{ padding: '10px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: '4px', marginBottom: '15px', fontSize: '13px', fontWeight: 'bold' }}>
+              {formError}
+            </div>
           )}
 
           {/* To, CC, BCC fields */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '4px' }}>
-             <label style={{ fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>To: <span style={{ color: '#ef4444' }}>*</span></label>
-             <div style={{ display: 'flex', gap: '10px' }}>
-                {!showCc && <button style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '12px', cursor: 'pointer', padding: 0 }} onClick={() => setShowCc(true)}>Add CC</button>}
-                {!showBcc && <button style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '12px', cursor: 'pointer', padding: 0 }} onClick={() => setShowBcc(true)}>Add BCC</button>}
-             </div>
+            <label style={{ fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>To: <span style={{ color: '#ef4444' }}>*</span></label>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {!showCc && <button style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '12px', cursor: 'pointer', padding: 0 }} onClick={() => setShowCc(true)}>Add CC</button>}
+              {!showBcc && <button style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '12px', cursor: 'pointer', padding: 0 }} onClick={() => setShowBcc(true)}>Add BCC</button>}
+            </div>
           </div>
-          <RecipientInput 
-            label="" 
-            type="email" 
-            emails={emailData.emailInputs.filter(e => e.trim() !== '')} 
+          <RecipientInput
+            label=""
+            type="email"
+            emails={emailData.emailInputs.filter(e => e.trim() !== '')}
             disabledEmails={[...emailData.ccInputs.filter(e => e.trim() !== ''), ...emailData.bccInputs.filter(e => e.trim() !== '')]}
-            onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, emailInputs: newEmails }))} 
-            allEmployees={allEmployees} 
+            onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, emailInputs: newEmails }))}
+            allEmployees={allEmployees}
           />
           {showCc && (
-            <RecipientInput 
-              label="CC:" 
-              type="cc" 
-              emails={emailData.ccInputs.filter(e => e.trim() !== '')} 
+            <RecipientInput
+              label="CC:"
+              type="cc"
+              emails={emailData.ccInputs.filter(e => e.trim() !== '')}
               disabledEmails={[...emailData.emailInputs.filter(e => e.trim() !== ''), ...emailData.bccInputs.filter(e => e.trim() !== '')]}
-              onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, ccInputs: newEmails }))} 
-              allEmployees={allEmployees} 
+              onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, ccInputs: newEmails }))}
+              allEmployees={allEmployees}
             />
           )}
           {showBcc && (
-            <RecipientInput 
-              label="BCC:" 
-              type="bcc" 
-              emails={emailData.bccInputs.filter(e => e.trim() !== '')} 
+            <RecipientInput
+              label="BCC:"
+              type="bcc"
+              emails={emailData.bccInputs.filter(e => e.trim() !== '')}
               disabledEmails={[...emailData.emailInputs.filter(e => e.trim() !== ''), ...emailData.ccInputs.filter(e => e.trim() !== '')]}
-              onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, bccInputs: newEmails }))} 
-              allEmployees={allEmployees} 
+              onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, bccInputs: newEmails }))}
+              allEmployees={allEmployees}
             />
           )}
 
@@ -4520,8 +4450,8 @@ const EmailModal = ({
             {emailData.includePdf ? (
               <div style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: '#f1f5f9', padding: '6px 12px', borderRadius: '20px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#334155' }}>
                 <span style={{ marginRight: '6px', fontSize: '14px' }}>📎</span> {activeProject?.name || 'Project'}_Dashboard_Report.pdf (Auto-generated)
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setEmailData(prev => ({ ...prev, includePdf: false }))}
                   style={{ background: 'none', border: 'none', marginLeft: '8px', cursor: 'pointer', color: '#ef4444', fontWeight: 'bold', fontSize: '14px', padding: '0' }}
                 >
@@ -4529,7 +4459,7 @@ const EmailModal = ({
                 </button>
               </div>
             ) : (
-              <button 
+              <button
                 type="button"
                 onClick={() => setEmailData(prev => ({ ...prev, includePdf: true }))}
                 style={{ background: 'none', border: '1px dashed #c0c0c0', borderRadius: '4px', padding: '6px 12px', cursor: 'pointer', color: '#1e3a5f', fontSize: '12px', fontWeight: 'bold' }}
