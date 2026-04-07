@@ -487,9 +487,8 @@ const sidebarManager = {
             }
 
             const tracker = trackers.find(t => t.id === file.trackerId);
-            if (tracker && (!file.metadata?.department || !file.metadata?.employeeName)) {
+            if (tracker && (!file.metadata?.employeeName)) {
               if (!file.metadata) file.metadata = {};
-              file.metadata.department = tracker.department;
               file.metadata.employeeName = tracker.employeeName;
               uploadModified = true;
             }
@@ -520,11 +519,7 @@ const sidebarManager = {
             }
 
             const tracker = trackers.find(t => t.id === file.trackerId);
-            if (tracker && (!file.metadata?.department)) {
-              if (!file.metadata) file.metadata = {};
-              file.metadata.department = tracker.department;
-              projectModified = true;
-            }
+
           });
         }
       });
@@ -731,19 +726,12 @@ const UploadTrackers = () => {
   // Initial columns configuration
   const initialColumns = [
     { id: 'project', label: 'Project Name', sortable: true, type: 'text', required: true, visible: true },
-    { id: 'department', label: 'Department', sortable: true, type: 'select', required: true, visible: true },
+
     { id: 'employeeName', label: 'Employee Name', sortable: true, type: 'text', required: true, visible: true },
     { id: 'fileName', label: 'Tracker Name', sortable: true, type: 'text', required: true, visible: true },
   ];
 
-  // Department options - Updated to match ProjectDashboard
-  const departmentOptions = [
-    'Design Release',
-    'Build',
-    'Gateway',
-    'Validation',
-    'Quality Issues',
-  ];
+
 
   // Load columns
   const [availableColumns, setAvailableColumns] = useState(initialColumns);

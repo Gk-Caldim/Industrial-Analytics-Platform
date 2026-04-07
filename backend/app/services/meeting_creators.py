@@ -185,19 +185,4 @@ class MicrosoftTeamsCreator(MeetingCreator):
         }
 
 
-class ZohoMeetCreator(MeetingCreator):
-    """Create Zoho Meet meeting (generates link only – invites sent separately)"""
 
-    def __init__(self, access_token: str, org_id: str):
-        self.access_token = access_token
-        self.org_id = org_id
-        self.zoho_api = "https://mail.zoho.com/api/accounts"
-
-    def create_meeting(self, meeting_data: dict) -> dict:
-        meeting_id = f"zoho_{uuid.uuid4().hex[:12]}"
-        join_url = f"https://zoho.com/meeting/{meeting_id}"
-        return {
-            "join_url": join_url,
-            "meeting_code": meeting_id,
-            "attendees_invited": False,
-        }

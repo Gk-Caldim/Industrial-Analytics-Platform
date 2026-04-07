@@ -31,7 +31,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.meeting import Meeting
-from app.services.meeting_creators import GoogleMeetCreator, MicrosoftTeamsCreator, ZohoMeetCreator
+from app.services.meeting_creators import GoogleMeetCreator, MicrosoftTeamsCreator
 from app.services.google_token_service import GoogleTokenService
 from app.services.email_service import email_service
 
@@ -323,15 +323,7 @@ async def publish_meeting(
             join_url     = result.get("join_url")
             meeting_code = result.get("meeting_code")
 
-        elif platform == "zoho":
-            zoho_token = os.environ.get("ZOHO_REFRESH_TOKEN")
-            zoho_org   = os.environ.get("ZOHO_ORG_ID")
-            if not zoho_token or not zoho_org:
-                raise HTTPException(status_code=400, detail="Zoho Mail not configured.")
-            creator = ZohoMeetCreator(zoho_token, zoho_org)
-            result  = creator.create_meeting(meeting_data)
-            join_url     = result.get("join_url")
-            meeting_code = result.get("meeting_code")
+
 
         else:
             raise HTTPException(status_code=400, detail=f"Unknown platform: {platform}")
