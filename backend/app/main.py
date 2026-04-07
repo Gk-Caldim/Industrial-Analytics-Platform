@@ -38,7 +38,7 @@ from app.api.auth import router as auth_router
 from app.api.employees import router as employee_router
 from app.api.employees import router as employee_router
 from app.api import project as project_router
-from app.api import department as department_router
+
 from app.api.datasets import router as datasets_router
 from app.api.email import router as email_router  # Added email router
 from app.api import budget as budget_router
@@ -111,7 +111,7 @@ app.add_middleware(
 app.include_router(auth_router, prefix=API_PREFIX)
 app.include_router(employee_router, prefix=API_PREFIX)
 app.include_router(project_router.router, prefix=API_PREFIX)
-app.include_router(department_router.router, prefix=API_PREFIX)
+
 app.include_router(datasets_router, prefix=API_PREFIX)
 app.include_router(email_router, prefix=f"{API_PREFIX}/email", tags=["Email"]) # Added email route
 app.include_router(budget_router.router, prefix=f"{API_PREFIX}/budget", tags=["Budget"])

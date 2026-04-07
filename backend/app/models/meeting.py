@@ -19,7 +19,7 @@ class Meeting(Base):
     timezone_name = Column(String(50), default='UTC')
     
     # Platform & Credentials
-    platform = Column(String(20), nullable=False)  # 'gmeet', 'teams', 'zoho'
+    platform = Column(String(20), nullable=False)  # 'gmeet', 'teams'
     meeting_id = Column(String(100), nullable=True)  # Legacy local reference
     meeting_code = Column(String(100), nullable=True) # Real platform ID
     meeting_password = Column(String(100), nullable=True)
