@@ -22,24 +22,52 @@ def get_budget_summary(project_name: str, db: Session = Depends(get_db)):
 
 @router.post("/{project_name}", response_model=BudgetSummaryResponse, dependencies=[Depends(check_permissions("upload_budget"))])
 def save_budget_summary(project_name: str, budget_data: BudgetSummaryCreate, db: Session = Depends(get_db)):
-    budget = db.query(BudgetSummary).filter(BudgetSummary.project_name == project_name).first()
-    if budget:
-        budget.budget_data = budget_data.budget_data
-        budget.uploaded_by = budget_data.uploaded_by
-        budget.department = budget_data.department
+    try:
+        budget = db.query(BudgetSummary).filter(BudgetSummary.project_name == project_name).first()
+        if budget:
+            budget.budget_data = budget_data.budget_data
+            budget.uploaded_by = budget_data.uploaded_by
+            budget.department = budget_data.department
+        else:
+            budget = BudgetSummary(
+                project_name=project_name, 
+                uploaded_by=budget_data.uploaded_by,
+                department=budget_data.department,
+                budget_data=budget_data.budget_data
+            )
+            db.add(budget)
+
+        # Sync Project Master with overall budget and aggregated row totals
+        total_utilized = 0.0
+        total_balance = 0.0
+
+        for row in budget_data.budget_data:
+            if isinstance(row, dict):
+                try:
+                    util_val = str(row.get("Total utilization", 0)).replace(',', '').strip()
+                    total_utilized += float(util_val) if util_val else 0.0
+                except (ValueError, TypeError):
+                    pass
+                try:
+                    bal_val = str(row.get("Balance", 0)).replace(',', '').strip()
+                    total_balance += float(bal_val) if bal_val else 0.0
+                except (ValueError, TypeError):
+                    pass
+
+        from app.models.project import Project
+        project = db.query(Project).filter(Project.name == project_name).first()
+        if project:
+            # overall_budget is now the project level input
+            project.budget = budget_data.overall_budget
+            project.utilized_budget = total_utilized
+            project.balance_budget = total_balance
+
         db.commit()
         db.refresh(budget)
-    else:
-        budget = BudgetSummary(
-            project_name=project_name, 
-            uploaded_by=budget_data.uploaded_by,
-            department=budget_data.department,
-            budget_data=budget_data.budget_data
-        )
-        db.add(budget)
-        db.commit()
-        db.refresh(budget)
-    return budget
+        return budget
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to save budget summary: {str(e)}")
 
 @router.delete("/{project_name}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(check_permissions("delete_budget"))])
 def delete_budget_summary(project_name: str, db: Annotated[Session, Depends(get_db)]):
