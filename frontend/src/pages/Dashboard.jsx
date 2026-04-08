@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import ReactDOM from 'react-dom';
+import Sidebar from '../components/Sidebar';
 import {
   setActiveModule,
   setExpandedModules,
@@ -1217,62 +1218,26 @@ const Dashboard = () => {
       `}</style>
 
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar - Blue color from project dashboard header (#1e3a5f) */}
-        <div
-          ref={sidebarRef}
-          className={`
-            fixed lg:relative inset-y-0 left-0 z-30
-            ${isSidebarExpanded ? 'w-60' : 'w-16'}
-            bg-[#1e3a5f]
-            transform transition-all duration-200 ease-in-out lg:transform-none
-            flex flex-col
-            shadow-xl
-            relative overflow-hidden
-          `}
-        >
-          {/* Subtle pattern overlay */}
-          <div className="absolute inset-0 pointer-events-none opacity-5"
-            style={{
-              backgroundImage: `radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.3) 0%, transparent 30%),
-                                   radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.3) 0%, transparent 30%)`
-            }}>
-          </div>
-
-          {/* Logo Section */}
-          <div className="relative px-6 py-4 z-10">
-            {isSidebarExpanded ? (
-              <div className="flex justify-center items-center">
-                <div className="relative w-full flex justify-center">
-                  <img
-                    src={companyLogo || "/caldimlogo.png"}
-                    className={`h-22 w-auto max-w-full object-contain relative ${!companyLogo ? 'brightness-0 invert' : ''}`}
-                    alt="Company Logo"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="flex justify-center py-2">
-                <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center shadow-md backdrop-blur-sm">
-                  <span className="text-white font-bold text-sm">
-                    {companyName ? companyName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'CD'}
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Navigation - All text white */}
-          <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5 relative z-10">
-            {renderProjectDashboardModule()}
-            {renderMOMModule()}
-            {renderMastersModule()}
-
-            <div className="space-y-1.5">
-              {renderUploadsModule()}
-              {renderOtherModules()}
-            </div>
-          </div>
-        </div>
+        {/* ── New Sidebar Component ── */}
+        <Sidebar
+          sidebarCollapsed={sidebarCollapsed}
+          activeModule={activeModule}
+          expandedModules={expandedModules}
+          projectDashboardModules={projectDashboardModules}
+          uploadTrackerModules={uploadTrackerModules}
+          selectedProjectFileId={selectedProjectFileId}
+          selectedUploadFileId={selectedUploadFileId}
+          companyLogo={companyLogo}
+          companyName={companyName}
+          user={user}
+          handleModuleClick={handleModuleClick}
+          toggleModuleExpansion={toggleModuleExpansion}
+          handleFileModuleClick={handleFileModuleClick}
+          handleProjectFileClick={handleProjectFileClick}
+          isFileSelected={isFileSelected}
+          hasPermission={hasPermission}
+          onLogout={handleLogout}
+        />
 
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white">
