@@ -177,7 +177,7 @@ const SecLabel = ({ label, collapsed }) =>
     : <div className="sb-sec">{label}</div>;
 
 /* ─── top-level nav button ──────────────────────────────── */
-function TopBtn({ icon: Icon, label, active, hasChev, chevOpen, onClick, collapsed, badge }) {
+function TopBtn({ icon: Icon, label, active, hasChev, chevOpen, onClick, onToggle, collapsed, badge }) {
   if (collapsed) {
     return (
       <div className="sb-tip">
@@ -210,7 +210,18 @@ function TopBtn({ icon: Icon, label, active, hasChev, chevOpen, onClick, collaps
         </span>
       )}
       {hasChev && (
-        <ChevronDown size={14} strokeWidth={2} className={`sb-chev${chevOpen ? ' open' : ''}`} />
+        <span 
+          style={{ padding: '0 4px', display: 'flex' }}
+          onClick={(e) => {
+            if (onToggle) {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggle(e);
+            }
+          }}
+        >
+          <ChevronDown size={14} strokeWidth={2} className={`sb-chev${chevOpen ? ' open' : ''}`} />
+        </span>
       )}
     </button>
   );
@@ -238,13 +249,14 @@ function FileBtn({ label, active, onClick }) {
 
 /* ─── project file group (inside dashboard) ─────────────── */
 function ProjectGroup({ proj, context, isFileSelected, onFileClick, expandedModules, toggleMod }) {
-  const key = proj.id;
-  const isOpen = !!(expandedModules[key] || expandedModules[`project-dashboard-${key}`]);
+  // Respect the original Dashboard.jsx context prefixing logic
+  const moduleId = context === 'project-dashboard' ? proj.id : `${context}-${proj.id}`;
+  const isOpen = !!(expandedModules[moduleId] || expandedModules[proj.id]);
   const hasFiles = proj.submodules?.length > 0;
 
   return (
     <div>
-      <button className="sb-grp" onClick={(e) => { e.stopPropagation(); toggleMod(key, e); }}>
+      <button className="sb-grp" onClick={(e) => { e.stopPropagation(); toggleMod(moduleId, e); }}>
         <span className="sb-grp-lbl">{proj.name}</span>
         {hasFiles && (
           <ChevronDown
@@ -378,6 +390,7 @@ export default function Sidebar({
               chevOpen={isOpen('project-dashboard')}
               collapsed={collapsed}
               onClick={() => handleModuleClick('project-dashboard')}
+              onToggle={(e) => toggleModuleExpansion('project-dashboard', e)}
             />
             {!collapsed && (
               <Panel open={isOpen('project-dashboard')}>
@@ -408,6 +421,7 @@ export default function Sidebar({
               chevOpen={isOpen('mom')}
               collapsed={collapsed}
               onClick={() => handleModuleClick('mom-module')}
+              onToggle={(e) => toggleModuleExpansion('mom', e)}
             />
             {!collapsed && (
               <Panel open={isOpen('mom')}>
@@ -441,6 +455,7 @@ export default function Sidebar({
             chevOpen={isOpen('masters')}
             collapsed={collapsed}
             onClick={() => handleModuleClick('masters-main')}
+            onToggle={(e) => toggleModuleExpansion('masters', e)}
           />
           {!collapsed && (
             <Panel open={isOpen('masters')}>
@@ -472,36 +487,57 @@ export default function Sidebar({
             <TopBtn
               icon={Upload}
               label="Uploads"
-              active={['upload-trackers', 'budget-upload'].includes(activeModule)}
+              active={['upload-trackers', 'budget-upload', 'uploads-main'].includes(activeModule)}
               hasChev={!collapsed}
               chevOpen={isOpen('uploads')}
               collapsed={collapsed}
-              onClick={() => handleModuleClick('upload-trackers')}
+              onClick={() => handleModuleClick('uploads-main')}
+              onToggle={(e) => toggleModuleExpansion('uploads', e)}
             />
             {!collapsed && (
               <Panel open={isOpen('uploads')}>
-                <SubBtn
-                  icon={Table2}
-                  label="Trackers Upload"
-                  active={activeModule === 'upload-trackers'}
-                  onClick={() => handleModuleClick('upload-trackers')}
-                />
+                {/* Trackers Button */}
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                   <SubBtn
+                     icon={Table2}
+                     label="Trackers Upload"
+                     active={activeModule === 'upload-trackers'}
+                     onClick={() => handleModuleClick('upload-trackers')}
+                   />
+                   <span 
+                      style={{ padding: '0 8px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                      onClick={(e) => { e.stopPropagation(); toggleModuleExpansion('upload-trackers', e); }}
+                   >
+                     {uploadTrackerModules?.length > 0 && (
+                        <ChevronDown size={14} strokeWidth={2} style={{
+                           color: 'rgba(255,255,255,0.2)',
+                           transition: 'transform 0.2s',
+                           transform: isOpen('upload-trackers') ? 'rotate(180deg)' : 'none'
+                        }} />
+                     )}
+                   </span>
+                </div>
+                {/* Trackers Projects Expansion */}
+                <Panel open={isOpen('upload-trackers')}>
+                  {uploadTrackerModules?.map((proj) => (
+                    <ProjectGroup
+                      key={proj.id}
+                      proj={proj}
+                      context="upload-trackers"
+                      isFileSelected={isFileSelected}
+                      onFileClick={handleFileModuleClick}
+                      expandedModules={expandedModules}
+                      toggleMod={toggleModuleExpansion}
+                    />
+                  ))}
+                </Panel>
+                {/* Budget Upload Button */}
                 <SubBtn
                   icon={Wallet}
                   label="Budget Upload"
                   active={activeModule === 'budget-upload'}
                   onClick={() => handleModuleClick('budget-upload')}
                 />
-                {uploadTrackerModules?.flatMap((proj) =>
-                  proj.submodules?.map((f) => (
-                    <FileBtn
-                      key={f.id}
-                      label={f.displayName || f.name?.replace(/\.[^/.]+$/, '') || ''}
-                      active={isFileSelected(f, 'upload-trackers')}
-                      onClick={() => handleFileModuleClick(f)}
-                    />
-                  )) || []
-                )}
               </Panel>
             )}
           </>

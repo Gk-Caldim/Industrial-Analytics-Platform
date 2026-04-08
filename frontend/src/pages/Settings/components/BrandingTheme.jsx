@@ -1,200 +1,229 @@
 import React from 'react';
-import { Palette, Sun, Moon, Laptop, Check, RefreshCcw } from 'lucide-react';
+import { Sun, Moon } from 'lucide-react';
 
 const BrandingTheme = ({ settings, onUpdate, themeSettings, onLocalUpdate }) => {
-  const primaryColor = settings.find(s => s.key === 'primary_color')?.value || '#6366f1';
-  const secondaryColor = settings.find(s => s.key === 'secondary_color')?.value || '#0ea5e9';
-  const displayMode = settings.find(s => s.key === 'display_mode')?.value || 'light';
+  const displayMode = settings.find((s) => s.key === 'display_mode')?.value
+    || themeSettings?.displayMode
+    || 'light';
 
-  const presets = [
-    { name: 'Indigo', primary: '#6366f1', secondary: '#818cf8' },
-    { name: 'Royal', primary: '#4f46e5', secondary: '#6366f1' },
-    { name: 'Ocean', primary: '#0ea5e9', secondary: '#38bdf8' },
-    { name: 'Emerald', primary: '#10b981', secondary: '#34d399' },
-    { name: 'Amber', primary: '#f59e0b', secondary: '#fbbf24' },
-    { name: 'Rose', primary: '#f43f5e', secondary: '#fb7185' },
-    { name: 'Slate', primary: '#475569', secondary: '#64748b' },
-  ];
+  const isDark = displayMode === 'dark';
+
+  const handleToggle = () => {
+    const next = isDark ? 'light' : 'dark';
+    // 1. Update the settings array (will be sent to API on "Sync")
+    onUpdate('display_mode', next);
+    // 2. Apply instantly to the DOM via ThemeContext
+    onLocalUpdate({ displayMode: next });
+  };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h2 className="text-xl font-semibold text-slate-800">Institutional Branding</h2>
-        <p className="text-slate-500 text-sm">Customize your enterprise identity and global interface</p>
+    <div style={{ maxWidth: 560 }}>
+      {/* Page header */}
+      <div style={{ marginBottom: 32 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.02em' }}>
+          Appearance
+        </h2>
+        <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 6 }}>
+          Switch between Light and Dark interface themes. The change applies immediately across all modules.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Color Palette Selection */}
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm space-y-6">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                <Palette className="h-5 w-5" />
-              </div>
-              <h3 className="font-medium text-slate-800">Atmosphere</h3>
-            </div>
-
-            <div className="space-y-6">
-              {/* Presets */}
-              <div className="flex flex-wrap gap-4">
-                {presets.map((p) => (
-                  <button
-                    key={p.name}
-                    onClick={() => {
-                      onUpdate('primary_color', p.primary);
-                      onUpdate('secondary_color', p.secondary);
-                      onLocalUpdate({ primaryColor: p.primary, secondaryColor: p.secondary });
-                    }}
-                    className={`w-14 h-14 rounded-full border-2 transition-all hover:scale-110 active:scale-95 flex items-center justify-center ${
-                      primaryColor === p.primary ? 'border-slate-800 ring-4 ring-slate-100 shadow-lg' : 'border-transparent shadow-sm'
-                    }`}
-                    style={{ backgroundColor: p.primary }}
-                    title={p.name}
-                  >
-                    {primaryColor === p.primary && <Check className="h-6 w-6 text-white drop-shadow-md" />}
-                  </button>
-                ))}
-              </div>
-
-              {/* Custom HEX */}
-              <div className="pt-6 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ml-1">
-                    Custom Primary HEX
-                  </label>
-                  <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-200">
-                    <div 
-                      className="w-10 h-10 rounded-lg shadow-sm border border-slate-200" 
-                      style={{ backgroundColor: primaryColor }}
-                    />
-                    <input
-                      type="text"
-                      value={primaryColor}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        onUpdate('primary_color', val);
-                        if (val.length === 7 && val.startsWith('#')) {
-                           onLocalUpdate({ primaryColor: val });
-                        }
-                      }}
-                      className="flex-1 bg-transparent border-none focus:ring-0 font-mono text-sm font-bold text-slate-700 uppercase"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 ml-1">
-                    Custom Secondary HEX
-                  </label>
-                  <div className="flex items-center gap-3 bg-slate-50 p-2 rounded-xl border border-slate-200">
-                    <div 
-                      className="w-10 h-10 rounded-lg shadow-sm border border-slate-200" 
-                      style={{ backgroundColor: secondaryColor }}
-                    />
-                    <input
-                      type="text"
-                      value={secondaryColor}
-                      onChange={(e) => {
-                         const val = e.target.value;
-                         onUpdate('secondary_color', val);
-                         if (val.length === 7 && val.startsWith('#')) {
-                            onLocalUpdate({ secondaryColor: val });
-                         }
-                      }}
-                      className="flex-1 bg-transparent border-none focus:ring-0 font-mono text-sm font-bold text-slate-700 uppercase"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+      {/* Theme toggle card */}
+      <div style={{
+        background: 'var(--card-bg)',
+        border: '1px solid var(--card-border)',
+        borderRadius: 16,
+        padding: '28px 28px',
+      }}>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '0.01em' }}>
+            Interface Theme
           </div>
-
-          {/* Display Mode */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                <Sun className="h-5 w-5" />
-              </div>
-              <h3 className="font-medium text-slate-800">Display Mode</h3>
-            </div>
-            
-            <div className="grid grid-cols-3 gap-3 p-1 bg-slate-100 rounded-xl">
-              {[
-                { id: 'light', icon: Sun, label: 'Light' },
-                { id: 'dark', icon: Moon, label: 'Dark' },
-                { id: 'system', icon: Laptop, label: 'System' }
-              ].map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => onUpdate('display_mode', m.id)}
-                  className={`flex flex-col items-center justify-center p-3 rounded-lg transition-all ${
-                    displayMode === m.id 
-                    ? 'bg-white shadow-sm ring-1 ring-slate-200 text-indigo-600' 
-                    : 'text-slate-500 hover:bg-white/50'
-                  }`}
-                >
-                  <m.icon className="h-5 w-5 mb-1" />
-                  <span className="text-[10px] font-bold uppercase">{m.label}</span>
-                </button>
-              ))}
-            </div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 4 }}>
+            Your preference is saved and persists across sessions.
           </div>
         </div>
 
-        {/* Live Preview Section */}
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/60 shadow-sm h-full">
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
-                  <RefreshCcw className="h-5 w-5" />
-                </div>
-                <h3 className="font-medium text-slate-800">Live Preview</h3>
-              </div>
-              <div className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[10px] font-bold">REAL-TIME</div>
-            </div>
-
-            <div className="space-y-8 p-6 bg-slate-50 rounded-3xl border border-slate-200/40 shadow-inner">
-              {/* Preview UI Components */}
-              <div className="space-y-4">
-                <div className="h-2 w-32 bg-slate-200 rounded-full" />
-                <div className="h-2 w-48 bg-slate-100 rounded-full" />
-                
-                <div className="flex gap-2">
-                  <button 
-                    className="px-6 py-2 rounded-xl text-white font-semibold text-sm shadow-lg transition-transform active:scale-95"
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    ACTION
-                  </button>
-                  <div 
-                    className="w-12 h-2 rounded-full self-center" 
-                    style={{ backgroundColor: secondaryColor, opacity: 0.5 }}
-                  />
-                  <div 
-                    className="w-12 h-2 rounded-full self-center" 
-                    style={{ backgroundColor: secondaryColor, opacity: 0.2 }}
-                  />
-                </div>
-              </div>
-
-              {/* Mock Sidebar Item */}
-              <div className="space-y-3">
-                 <div className="h-10 w-full rounded-xl flex items-center p-3 gap-3 transition-colors shadow-sm bg-white ring-1 ring-slate-100">
-                    <div className="w-5 h-5 rounded" style={{ backgroundColor: primaryColor }} />
-                    <div className="h-2 w-24 bg-slate-200 rounded-full" />
-                    <div className="ml-auto w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: primaryColor }}>3</div>
-                 </div>
-                 <div className="h-10 w-full rounded-xl flex items-center p-3 gap-3">
-                    <div className="w-5 h-5 rounded bg-slate-200" />
-                    <div className="h-2 w-20 bg-slate-100 rounded-full" />
-                 </div>
+        {/* Two option cards */}
+        <div style={{ display: 'flex', gap: 16 }}>
+          {/* Light option */}
+          <button
+            onClick={() => {
+              if (isDark) handleToggle();
+            }}
+            style={{
+              flex: 1,
+              border: `2px solid ${!isDark ? '#1e3a5f' : 'var(--card-border)'}`,
+              borderRadius: 12,
+              padding: '20px 16px',
+              background: !isDark ? 'rgba(30, 58, 95, 0.06)' : 'var(--input-bg)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              textAlign: 'left',
+            }}
+          >
+            {/* Mini preview — light */}
+            <div style={{
+              width: '100%', height: 72, borderRadius: 8,
+              background: '#F1F5F9',
+              border: '1px solid #E2E8F0',
+              marginBottom: 14,
+              overflow: 'hidden',
+              display: 'flex',
+            }}>
+              {/* fake sidebar */}
+              <div style={{ width: 28, background: '#1e3a5f', height: '100%' }} />
+              {/* fake content */}
+              <div style={{ flex: 1, padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ height: 6, width: '60%', background: '#CBD5E1', borderRadius: 4 }} />
+                <div style={{ height: 6, width: '40%', background: '#E2E8F0', borderRadius: 4 }} />
+                <div style={{ height: 6, width: '80%', background: '#E2E8F0', borderRadius: 4 }} />
               </div>
             </div>
-            
-            <p className="mt-6 text-[11px] text-slate-400 italic text-center">
-              Changes reflect instantly in this preview. Click "SYNC IDENTITY" to apply globally.
-            </p>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 8,
+                background: !isDark ? '#1e3a5f' : '#E2E8F0',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <Sun size={16} color={!isDark ? '#fff' : '#94A3B8'} strokeWidth={2} />
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Light</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Clean white interface</div>
+              </div>
+              {!isDark && (
+                <div style={{
+                  marginLeft: 'auto', width: 20, height: 20, borderRadius: '50%',
+                  background: '#1e3a5f', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4l2.5 2.5L9 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              )}
+            </div>
+          </button>
+
+          {/* Dark option */}
+          <button
+            onClick={() => {
+              if (!isDark) handleToggle();
+            }}
+            style={{
+              flex: 1,
+              border: `2px solid ${isDark ? '#5b9cf6' : 'var(--card-border)'}`,
+              borderRadius: 12,
+              padding: '20px 16px',
+              background: isDark ? 'rgba(91, 156, 246, 0.08)' : 'var(--input-bg)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              textAlign: 'left',
+            }}
+          >
+            {/* Mini preview — dark */}
+            <div style={{
+              width: '100%', height: 72, borderRadius: 8,
+              background: '#0F1117',
+              border: '1px solid #2D3148',
+              marginBottom: 14,
+              overflow: 'hidden',
+              display: 'flex',
+            }}>
+              {/* fake sidebar */}
+              <div style={{ width: 28, background: '#1e3a5f', height: '100%' }} />
+              {/* fake content */}
+              <div style={{ flex: 1, padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ height: 6, width: '60%', background: '#2D3148', borderRadius: 4 }} />
+                <div style={{ height: 6, width: '40%', background: '#252836', borderRadius: 4 }} />
+                <div style={{ height: 6, width: '80%', background: '#252836', borderRadius: 4 }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 8,
+                background: isDark ? '#5b9cf6' : '#F1F5F9',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <Moon size={15} color={isDark ? '#fff' : '#94A3B8'} strokeWidth={2} />
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>Dark</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Easy on the eyes</div>
+              </div>
+              {isDark && (
+                <div style={{
+                  marginLeft: 'auto', width: 20, height: 20, borderRadius: '50%',
+                  background: '#5b9cf6', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                    <path d="M1 4l2.5 2.5L9 1" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+              )}
+            </div>
+          </button>
+        </div>
+
+        {/* Toggle row below cards */}
+        <div style={{
+          marginTop: 24,
+          paddingTop: 20,
+          borderTop: '1px solid var(--card-border)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}>
+          <div>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>
+              {isDark ? 'Dark mode is ON' : 'Light mode is ON'}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+              Click "SYNC UPDATES" in the sidebar to save your preference permanently.
+            </div>
           </div>
+
+          {/* Toggle switch */}
+          <button
+            onClick={handleToggle}
+            style={{
+              position: 'relative',
+              width: 52,
+              height: 28,
+              borderRadius: 99,
+              border: 'none',
+              cursor: 'pointer',
+              background: isDark ? '#5b9cf6' : '#CBD5E1',
+              transition: 'background 0.25s ease',
+              flexShrink: 0,
+              padding: 0,
+            }}
+            title={isDark ? 'Switch to Light' : 'Switch to Dark'}
+          >
+            <span style={{
+              position: 'absolute',
+              top: 3,
+              left: isDark ? 27 : 3,
+              width: 22,
+              height: 22,
+              borderRadius: '50%',
+              background: '#fff',
+              transition: 'left 0.22s cubic-bezier(0.4,0,0.2,1)',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.25)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              {isDark
+                ? <Moon size={11} color="#5b9cf6" strokeWidth={2.2} />
+                : <Sun size={11} color="#94A3B8" strokeWidth={2.2} />
+              }
+            </span>
+          </button>
         </div>
       </div>
     </div>

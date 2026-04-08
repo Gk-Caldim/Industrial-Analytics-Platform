@@ -11,6 +11,8 @@
   --green: #12B76A;
   --amber: #F79009;
   --red: #F04438;
+
+  /* Light theme (default) */
   --text-primary: #0F172A;
   --text-secondary: #64748B;
   --text-tertiary: #94A3B8;
@@ -18,9 +20,252 @@
   --surface: #FFFFFF;
   --bg: #F1F5F9;
 
+  /* Component surfaces - light */
+  --card-bg: #FFFFFF;
+  --card-border: #E2E8F0;
+  --header-bg: #FFFFFF;
+  --header-border: #E2E8F0;
+  --input-bg: #FFFFFF;
+  --input-border: #CBD5E1;
+  --input-text: #0F172A;
+  --table-header-bg: #EFF6FF;
+  --table-row-hover: #F8FAFC;
+  --table-border: #E2E8F0;
+  --modal-bg: #FFFFFF;
+  --modal-overlay: rgba(15, 23, 42, 0.5);
+  --sidebar-content-bg: #FFFFFF;
+  --badge-bg: #F1F5F9;
+  --badge-text: #475569;
+  --select-bg: #FFFFFF;
+  --scrollbar-thumb: #CBD5E1;
+  --scrollbar-track: #F1F5F9;
+
   /* Typography */
   --font-primary: 'DM Sans', -apple-system, sans-serif;
   --font-mono: 'DM Mono', monospace;
+}
+
+/* ══════════════════════════════════════════
+   DARK THEME  — toggled via data-theme="dark" on <html>
+   Covers: bg, cards, headers, tables, inputs,
+           modals, badges, text, borders across all modules
+   ══════════════════════════════════════════ */
+[data-theme="dark"] {
+  /* Core surfaces */
+  --bg: #0F1117;
+  --surface: #1A1D27;
+  --card-bg: #1A1D27;
+  --card-border: #2D3148;
+  --border: rgba(255, 255, 255, 0.08);
+
+  /* Text */
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-tertiary: #475569;
+
+  /* Header */
+  --header-bg: #1A1D27;
+  --header-border: #2D3148;
+
+  /* Inputs & selects */
+  --input-bg: #252836;
+  --input-border: #3D4163;
+  --input-text: #F1F5F9;
+  --select-bg: #252836;
+
+  /* Tables */
+  --table-header-bg: #1E2235;
+  --table-row-hover: #252836;
+  --table-border: #2D3148;
+
+  /* Modals */
+  --modal-bg: #1A1D27;
+  --modal-overlay: rgba(0, 0, 0, 0.7);
+
+  /* Misc */
+  --sidebar-content-bg: #1A1D27;
+  --badge-bg: #252836;
+  --badge-text: #94A3B8;
+  --scrollbar-thumb: #3D4163;
+  --scrollbar-track: #1A1D27;
+}
+
+/* ── Apply dark theme to key elements ── */
+[data-theme="dark"] body {
+  background-color: var(--bg);
+  color: var(--text-primary);
+}
+
+/* Main layout backgrounds */
+[data-theme="dark"] .bg-white,
+[data-theme="dark"] .bg-\[#FFFFFF\],
+[data-theme="dark"] .bg-\[#F8FAFC\],
+[data-theme="dark"] .bg-\[#f8fafc\] {
+  background-color: var(--card-bg) !important;
+}
+
+[data-theme="dark"] .bg-\[#F1F5F9\],
+[data-theme="dark"] .bg-slate-50,
+[data-theme="dark"] .bg-gray-50 {
+  background-color: var(--bg) !important;
+}
+
+[data-theme="dark"] .bg-slate-100,
+[data-theme="dark"] .bg-gray-100 {
+  background-color: #252836 !important;
+}
+
+/* Borders */
+[data-theme="dark"] .border-slate-200,
+[data-theme="dark"] .border-slate-100,
+[data-theme="dark"] .border-gray-200,
+[data-theme="dark"] .border-gray-100,
+[data-theme="dark"] .border-\[\#E2E8F0\] {
+  border-color: var(--card-border) !important;
+}
+
+/* Text colours */
+[data-theme="dark"] .text-slate-800,
+[data-theme="dark"] .text-slate-900,
+[data-theme="dark"] .text-gray-900,
+[data-theme="dark"] .text-\[\#1E293B\],
+[data-theme="dark"] .text-\[\#0F172A\] {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .text-slate-600,
+[data-theme="dark"] .text-slate-700,
+[data-theme="dark"] .text-gray-600,
+[data-theme="dark"] .text-gray-700 {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .text-slate-400,
+[data-theme="dark"] .text-slate-500,
+[data-theme="dark"] .text-gray-400,
+[data-theme="dark"] .text-gray-500 {
+  color: var(--text-tertiary) !important;
+}
+
+/* Headers */
+[data-theme="dark"] header,
+[data-theme="dark"] .app-header {
+  background-color: var(--header-bg) !important;
+  border-color: var(--header-border) !important;
+}
+
+/* Tables (master-table covers EmployeeMaster, ProjectMaster, BudgetMaster etc.) */
+[data-theme="dark"] .master-table th {
+  background-color: var(--table-header-bg) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--table-border) !important;
+}
+
+[data-theme="dark"] .master-table td {
+  border-color: var(--table-border) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .master-table tbody tr:hover td {
+  background-color: var(--table-row-hover) !important;
+}
+
+[data-theme="dark"] .master-table-container {
+  background-color: var(--card-bg) !important;
+  border-color: var(--card-border) !important;
+}
+
+[data-theme="dark"] .master-table-scroll-inner {
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+[data-theme="dark"] .master-table-scroll-inner::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb) !important;
+}
+
+[data-theme="dark"] .master-table-scroll-inner::-webkit-scrollbar-track {
+  background: var(--scrollbar-track) !important;
+}
+
+/* Inputs across all modules */
+[data-theme="dark"] input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background-color: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+  color: var(--input-text) !important;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--text-tertiary) !important;
+}
+
+/* Modals / dialogs */
+[data-theme="dark"] .fixed.inset-0.bg-black\/50,
+[data-theme="dark"] .fixed.inset-0.bg-black\/40,
+[data-theme="dark"] .fixed.inset-0.bg-black\/30 {
+  background-color: var(--modal-overlay) !important;
+}
+
+[data-theme="dark"] .bg-white.rounded-xl,
+[data-theme="dark"] .bg-white.rounded-2xl,
+[data-theme="dark"] .bg-white.rounded-3xl,
+[data-theme="dark"] .bg-white.rounded-lg {
+  background-color: var(--modal-bg) !important;
+}
+
+/* Settings page */
+[data-theme="dark"] aside {
+  background-color: var(--card-bg) !important;
+  border-color: var(--card-border) !important;
+}
+
+/* MOM / Meetings pages */
+[data-theme="dark"] .mom-page {
+  background-color: var(--bg) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Badges / tags */
+[data-theme="dark"] .bg-blue-50 {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+}
+
+[data-theme="dark"] .bg-green-50 {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+}
+
+[data-theme="dark"] .bg-red-50 {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+}
+
+[data-theme="dark"] .bg-amber-50 {
+  background-color: rgba(245, 158, 11, 0.12) !important;
+}
+
+[data-theme="dark"] .bg-indigo-50 {
+  background-color: rgba(99, 102, 241, 0.12) !important;
+}
+
+[data-theme="dark"] .bg-slate-50 {
+  background-color: var(--badge-bg) !important;
+}
+
+[data-theme="dark"] .bg-gray-50 {
+  background-color: var(--badge-bg) !important;
+}
+
+/* Shadows — light them down in dark mode */
+[data-theme="dark"] .shadow-sm,
+[data-theme="dark"] .shadow,
+[data-theme="dark"] .shadow-md {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Skeleton loading */
+[data-theme="dark"] .skeleton {
+  background: linear-gradient(90deg, #252836 25%, #2D3148 50%, #252836 75%) !important;
 }
 
 @layer base {
@@ -32,7 +277,12 @@
     color: var(--text-primary);
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-primary);
   }
 
@@ -207,7 +457,7 @@
     width: 220px;
     flex-shrink: 0;
   }
-  
+
   .app-sidebar.collapsed {
     width: 72px;
   }
@@ -267,7 +517,7 @@
   }
 
   .sidebar-scroll::-webkit-scrollbar-thumb {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
   }
 
   .sidebar-scroll::-webkit-scrollbar-thumb:hover {

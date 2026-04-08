@@ -54,6 +54,7 @@ const SystemSettings = () => {
             ...(isAdmin ? [{ id: 'Application Access', label: 'Application Access' }] : []),
           ]
         },
+        { id: 'Appearance', label: 'Appearance', icon: Palette },
         { id: 'Audit Logs', label: 'Audit Logs', icon: ClipboardList },
         { id: 'Connections', label: 'Connections', icon: LinkIcon },
       ]
@@ -170,6 +171,15 @@ const SystemSettings = () => {
           default:
             return <AccessControl />;
         }
+      case 'Appearance':
+        return (
+          <BrandingTheme
+            settings={settings}
+            onUpdate={handleUpdate}
+            themeSettings={themeSettings}
+            onLocalUpdate={updateThemeLocally}
+          />
+        );
       case 'Audit Logs':
         return <AuditHistory />;
       case 'Connections':
