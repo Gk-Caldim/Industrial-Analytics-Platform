@@ -23,6 +23,7 @@ from app.models import employee_column  # noqa: F401
 from app.models import project  # noqa: F401
 from app.models import upload_tracker # noqa: F401
 from app.models import budget # noqa: F401
+from app.models import budget_revision # noqa: F401
 from app.models import project_sub_category # noqa: F401
 from app.models import meeting # noqa: F401
 from app.models import user_session # noqa: F401
@@ -32,6 +33,7 @@ from app.models.role import Role  # noqa: F401
 from app.models import employee_project # noqa: F401
 from app.models import project_permission # noqa: F401
 from app.models import audit_log # noqa: F401
+from app.models import application_access # noqa: F401
 
 # Import routers
 from app.api.auth import router as auth_router

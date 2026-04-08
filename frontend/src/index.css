@@ -135,7 +135,7 @@
   }
 
   .master-table th {
-    @apply bg-blue-50/80 text-black font-semibold text-[13px] border-b border-slate-200/80 py-3 px-6 text-left whitespace-nowrap;
+    @apply bg-blue-50 text-black font-semibold text-[13px] border-b border-slate-200/80 py-3 px-6 text-left whitespace-nowrap;
   }
 
   .master-table td {

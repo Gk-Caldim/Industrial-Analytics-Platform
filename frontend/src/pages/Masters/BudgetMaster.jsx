@@ -262,8 +262,8 @@ const BudgetMaster = () => {
         formData.append('project_id', proj?.project_id || '');
         formData.append('project_name', selectedProject);
         formData.append('pm_name', user?.name || 'Unknown PM');
-        formData.append('previous_budget', overallBudget);
-        formData.append('revised_budget', revisionData.revised_budget);
+        formData.append('previous_budget', parseFloat(overallBudget) || 0);
+        formData.append('revised_budget', parseFloat(revisionData.revised_budget) || 0);
         formData.append('reasons', revisionData.reasons);
         if (revisionData.attachment) {
             formData.append('file', revisionData.attachment);
@@ -598,12 +598,28 @@ const BudgetMaster = () => {
             <div className="flex flex-col">
               <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-0.5">Utilization</span>
               <span className={`text-[11px] font-bold ${isGlobalOverBudget ? 'text-red-500' : 'text-slate-700 dark:text-slate-300'}`}>
-                {format(totalSumUtilization)}
+                {format(totalSumUtilization, false)}
                 {isGlobalOverBudget && <span className="ml-2 text-[9px] bg-red-100 text-red-600 px-1 border border-red-200 rounded uppercase">Limit Exceeded</span>}
               </span>
             </div>
           </div>
         </div>
+
+      {/* Global Over-Budget Warning Banner */}
+      {selectedProject && isGlobalOverBudget && (
+        <div className="mb-4 px-4 py-3 bg-red-50 border-l-4 border-red-500 rounded-r shadow-sm flex items-center justify-between animate-pulse">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            <div>
+              <p className="text-sm font-bold text-red-800 uppercase tracking-tight">Project is Over Budget</p>
+              <p className="text-[10px] text-red-600 font-medium uppercase tracking-widest leading-none">Total utilization ({format(totalSumUtilization, false)}) exceeds allocated budget ({format(overallBudget, false)}) by {format(totalSumUtilization - overallBudget, false)}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-black bg-red-600 text-white px-2 py-1 rounded uppercase tracking-tighter shadow-sm">Critical Warning</span>
+          </div>
+        </div>
+      )}
 
         <div className="master-table-scroll">
           <div className="master-table-scroll-inner">
@@ -648,7 +664,7 @@ const BudgetMaster = () => {
                       </th>
                     );
                   })}
-                  <th className="py-3 px-6 text-[11px] font-bold uppercase tracking-wider text-center sticky right-0 z-50 bg-black text-white border-l border-slate-800 shadow-[-2px_0_5px_rgba(0,0,0,0.3)]">
+                  <th className="py-3 px-6 text-[11px] font-bold uppercase tracking-wider text-center sticky right-0 z-50 bg-blue-50 text-black border-l border-slate-200 shadow-[-4px_0_8px_rgba(0,0,0,0.05)]">
                     Actions
                   </th>
                 </tr>
@@ -696,7 +712,7 @@ const BudgetMaster = () => {
                           let displayVal = val !== undefined && val !== null && val !== '' ? val : '-';
                           if (displayVal !== '-' && isMonetary(header)) {
                             const num = parseFloat(displayVal);
-                            displayVal = !isNaN(num) ? format(num) : displayVal;
+                            displayVal = !isNaN(num) ? format(num, false) : displayVal;
                           }
                           const numeric = isMonetary(header) || header === "Unit count";
                           return (
@@ -705,7 +721,7 @@ const BudgetMaster = () => {
                             </td>
                           )
                         })}
-                        <td className={`p-2 text-center sticky right-0 z-30 border-l border-slate-200 dark:border-slate-700 ${isEdit ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-800 group-hover:bg-slate-50 dark:group-hover:bg-slate-700/50 transition-colors'}`}>
+                        <td className={`p-2 text-center sticky right-0 z-30 border-l border-slate-200 dark:border-slate-700 ${isEdit ? 'bg-blue-50 dark:bg-blue-900/20' : 'bg-white dark:bg-slate-800 group-hover:bg-slate-50 dark:group-hover:bg-slate-700/50 transition-colors shadow-[-4px_0_8px_rgba(0,0,0,0.03)]'}`}>
                           <div className="flex items-center justify-center gap-1.5">
                             {isEdit ? (
                               <button onClick={saveEdit} className="p-1.5 rounded bg-blue-600 text-white hover:bg-blue-700 transition-all shadow-sm">
@@ -732,9 +748,9 @@ const BudgetMaster = () => {
                   <tr>
                     {columns.map((col, idx) => {
                       let sum = '-';
-                      if (col.label === 'Estimated') sum = format(tableData.reduce((s, r) => s + (parseFloat(r['Estimated']) || 0), 0));
-                      if (col.label === 'Total utilization') sum = format(tableData.reduce((s, r) => s + (parseFloat(r['Total utilization']) || 0), 0));
-                      if (col.label === 'Balance') sum = format(tableData.reduce((s, r) => s + (parseFloat(r['Balance']) || 0), 0));
+                      if (col.label === 'Estimated') sum = format(tableData.reduce((s, r) => s + (parseFloat(r['Estimated']) || 0), 0), false);
+                      if (col.label === 'Total utilization') sum = format(tableData.reduce((s, r) => s + (parseFloat(r['Total utilization']) || 0), 0), false);
+                      if (col.label === 'Balance') sum = format(tableData.reduce((s, r) => s + (parseFloat(r['Balance']) || 0), 0), false);
                       
                       const numeric = isMonetary(col.label) || col.label === "Unit count";
                       return (
@@ -804,8 +820,8 @@ const BudgetMaster = () => {
                         <div className="text-[10px] text-slate-400 font-medium">ID: {rev.project_id}</div>
                       </td>
                       <td className="py-3 px-4 text-xs font-medium text-slate-600 dark:text-slate-400">{rev.pm_name}</td>
-                      <td className="py-3 px-4 text-xs font-bold text-slate-50 text-right font-mono bg-slate-900 border border-slate-700 rounded-sm px-1.5">{format(rev.previous_budget)}</td>
-                      <td className="py-3 px-4 text-xs font-bold text-blue-400 text-right font-mono bg-slate-900 border border-blue-900 rounded-sm px-1.5 ml-1">{format(rev.revised_budget)}</td>
+                      <td className="py-3 px-4 text-xs font-bold text-slate-50 text-right font-mono bg-slate-900 border border-slate-700 rounded-sm px-1.5">{format(rev.previous_budget, false)}</td>
+                      <td className="py-3 px-4 text-xs font-bold text-blue-400 text-right font-mono bg-slate-900 border border-blue-900 rounded-sm px-1.5 ml-1">{format(rev.revised_budget, false)}</td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-tighter ${
                           rev.status === 'Approved' ? 'bg-green-600 text-white shadow-sm' :
@@ -908,7 +924,7 @@ const BudgetMaster = () => {
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Previous Budget</label>
                   <div className="px-3 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-slate-500 font-bold text-sm">
-                    {format(overallBudget)}
+                    {format(overallBudget, false)}
                   </div>
                 </div>
                 <div className="space-y-1">
