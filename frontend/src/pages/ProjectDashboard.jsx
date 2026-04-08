@@ -7,7 +7,7 @@ import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import '../utils/echarts-theme-v5'; // Register the v5 theme
 import ExcelTableViewer from '../components/ExcelTableViewer';
-import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings, Download, GripVertical } from 'lucide-react';
+import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings, Download, GripVertical, FolderOpen, Layers, Activity, Grid, List } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import PdfPreviewModal from '../components/PdfPreviewModal';
@@ -636,7 +636,24 @@ const ProjectTitleDashboard = () => {
         const { default: API } = await import('../utils/api');
         const response = await API.get(`/budget/${encodeURIComponent(targetProject)}`);
         if (response.data && response.data.budget_data && response.data.budget_data.length > 0) {
-          setBudgetTableData(response.data.budget_data);
+          let bData = response.data.budget_data;
+          
+          // Defensive check: If bData is an array of objects, convert it to an array of arrays
+          if (bData.length > 0 && !Array.isArray(bData[0]) && typeof bData[0] === 'object') {
+            const headers = Object.keys(bData[0]);
+            const rows = bData.map(obj => headers.map(h => obj[h]));
+            bData = [headers, ...rows];
+          }
+          
+          // If for some reason bData[0] is still not an array at this point, provide fallback
+          if (!Array.isArray(bData[0])) {
+             bData = [
+                ['Category', 'Department', 'Estimation', 'Approved', 'Utilized', 'Balance', 'Outlook Spend', 'Likely Cummulative Spend'],
+                ['Fallback Row', '', '', '', '', '', '', '']
+             ];
+          }
+
+          setBudgetTableData(bData);
           setBudgetCurrency(response.data.currency || '$');
         } else {
           // Reset to default
@@ -1354,143 +1371,97 @@ const ProjectTitleDashboard = () => {
     const allSelected = availableSectionKeys.every(key => tempVisibleSections[key]);
 
     return (
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 2000,
-        padding: '20px'
-      }}>
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '8px',
-          width: '600px',
-          maxWidth: '100%',
-          maxHeight: '90vh',
-          overflow: 'auto',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
-        }}>
-          <div style={{
-            backgroundColor: '#1e3a5f',
-            color: 'white',
-            padding: '15px 20px',
-            fontSize: '18px',
-            fontWeight: 'bold',
-            borderBottom: '1px solid #2c4c7c',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            position: 'sticky',
-            top: 0,
-            zIndex: 1,
-            borderRadius: '8px 8px 0 0'
-          }}>
-            <span>Configure Dashboard - {activeProject?.name}</span>
+      <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[2000] p-4">
+        <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+          {/* Header */}
+          <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-start bg-slate-50">
+            <div className="flex items-center gap-4">
+              <div className="p-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl shadow-sm">
+                <Settings size={20} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-slate-800 m-0 tracking-tight leading-tight">Dashboard Configuration</h2>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs font-medium text-slate-500">Target Workspace</span>
+                  <span className="text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200/50 px-2 py-0.5 rounded-md tracking-wide">
+                    {activeProject?.name}
+                  </span>
+                </div>
+              </div>
+            </div>
             <button
               onClick={handleCancelConfig}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'white',
-                fontSize: '20px',
-                cursor: 'pointer',
-                padding: '0 5px'
-              }}
+              className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-200"
             >
-              ×
+              <X size={20} />
             </button>
           </div>
 
-          <div style={{ padding: '20px' }}>
-            <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '15px' }}>
-              Select which sections to display in the {activeProject?.name} dashboard. Unchecked sections will be hidden.
+          {/* Body */}
+          <div className="p-6 overflow-y-auto">
+            <p className="text-sm text-slate-500 mb-6">
+              Select the modules and metrics to display for <span className="font-semibold text-slate-700">{activeProject?.name}</span>. Unchecked sections will be hidden from the view.
             </p>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', color: '#1e3a5f' }}>Dashboard Sections:</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">Available Sections</h3>
               <button
                 onClick={handleSelectAllVisibility}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '13px',
-                  borderRadius: '4px',
-                  border: '1px solid #1e3a5f',
-                  backgroundColor: allSelected ? '#1e3a5f' : 'white',
-                  color: allSelected ? 'white' : '#1e3a5f',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}
+                className={`px-4 py-2 text-xs font-bold rounded-lg transition-colors border ${
+                  allSelected 
+                    ? 'bg-slate-800 text-white border-slate-800 hover:bg-slate-700' 
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                }`}
               >
                 {allSelected ? 'Deselect All' : 'Select All'}
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '15px' }}>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
               {/* Project Overview */}
               <div>
-                <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Project Overview</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={tempVisibleSections.milestones}
-                      onChange={() => handleSectionVisibilityToggle('milestones')}
-                    />
-                    Milestones
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={tempVisibleSections.criticalIssues}
-                      onChange={() => handleSectionVisibilityToggle('criticalIssues')}
-                    />
-                    Critical Issues
-                  </label>
-
+                <h4 className="text-sm font-semibold text-slate-800 mb-3 border-b border-slate-100 pb-2">Overview</h4>
+                <div className="flex flex-col gap-3">
+                  {['milestones', 'criticalIssues'].map(key => (
+                    <label key={key} className="flex items-center gap-3 text-sm text-slate-600 cursor-pointer hover:text-slate-900 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={tempVisibleSections[key] || false}
+                        onChange={() => handleSectionVisibilityToggle(key)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                      {key === 'milestones' ? 'Milestones' : 'Critical Issues'}
+                    </label>
+                  ))}
                 </div>
               </div>
 
               {/* Summary Cards */}
               <div>
-                <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Summary Cards</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={tempVisibleSections.budget}
-                      onChange={() => handleSectionVisibilityToggle('budget')}
-                    />
-                    Budget Summary
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={tempVisibleSections.resource}
-                      onChange={() => handleSectionVisibilityToggle('resource')}
-                    />
-                    Resource Summary
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={tempVisibleSections.quality}
-                      onChange={() => handleSectionVisibilityToggle('quality')}
-                    />
-                    Quality Summary
-                  </label>
+                <h4 className="text-sm font-semibold text-slate-800 mb-3 border-b border-slate-100 pb-2">Summary Cards</h4>
+                <div className="flex flex-col gap-3">
+                  {[
+                    { id: 'budget', label: 'Budget Summary' },
+                    { id: 'resource', label: 'Resource Summary' },
+                    { id: 'quality', label: 'Quality Summary' }
+                  ].map(item => (
+                    <label key={item.id} className="flex items-center gap-3 text-sm text-slate-600 cursor-pointer hover:text-slate-900 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={tempVisibleSections[item.id] || false}
+                        onChange={() => handleSectionVisibilityToggle(item.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                      {item.label}
+                    </label>
+                  ))}
                 </div>
               </div>
 
               {/* Project Metrics */}
-              <div style={{ gridColumn: 'span 2' }}>
-                <h4 style={{ margin: '10px 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#4b5563' }}>Project Metrics Charts</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+              <div className="md:col-span-2">
+                <h4 className="text-sm font-semibold text-slate-800 mb-3 border-b border-slate-100 pb-2">Metrics & Trackers</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                   {/* Default Phases */}
                   {[
                     { id: 'design', label: 'Design' },
@@ -1500,120 +1471,85 @@ const ProjectTitleDashboard = () => {
                     { id: 'validation', label: 'Validation' },
                     { id: 'qualityIssues', label: 'Quality Issues' }
                   ].map(phase => availablePhases[phase.id] && (
-                    <label key={phase.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                    <label key={phase.id} className="flex items-center gap-3 text-sm text-slate-600 cursor-pointer hover:text-slate-900 transition-colors bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                       <input
                         type="checkbox"
-                        checked={tempVisibleSections[phase.id]}
+                        checked={tempVisibleSections[phase.id] || false}
                         onChange={() => handleSectionVisibilityToggle(phase.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                       />
-                      {phase.label}
+                      <span className="truncate">{phase.label}</span>
                     </label>
                   ))}
 
                   {/* Dynamic Trackers */}
                   {(activeProject?.submodules || []).filter(sub => {
-                    // Avoid duplicating default phases if they are also in submodules
                     const defaultIds = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
-                    // We check if this submodule is already covered by a default phase mapping
                     const coveredByDefault = defaultIds.some(id => {
                       const tracker = getTrackerForPhase(id);
                       return tracker && tracker.id === sub.id;
                     });
                     return !coveredByDefault;
                   }).map(sub => (
-                    <label key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer' }}>
+                    <label key={sub.id} className="flex items-center gap-3 text-sm text-slate-600 cursor-pointer hover:text-slate-900 transition-colors bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                       <input
                         type="checkbox"
-                        checked={tempVisibleSections[sub.id]}
+                        checked={tempVisibleSections[sub.id] || false}
                         onChange={() => handleSectionVisibilityToggle(sub.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                       />
-                      {sub.displayName || sub.name}
+                      <span className="truncate">{sub.displayName || sub.name}</span>
                     </label>
                   ))}
                 </div>
               </div>
             </div>
+
             {/* Preview of visible sections */}
-            <div style={{
-              marginTop: '20px',
-              backgroundColor: '#f8f9fa',
-              padding: '15px',
-              borderRadius: '6px',
-              border: '1px solid #e0e0e0'
-            }}>
-              <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 'bold', color: '#1e3a5f' }}>Dashboard Preview:</h4>
-              <div style={{ fontSize: '13px', color: '#4b5563' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                  {Object.entries(tempVisibleSections)
-                    .filter(([section, selected]) => selected && section !== 'sopTables')
-                    .map(([section]) => (
-                      <span key={section} style={{
-                        padding: '4px 10px',
-                        backgroundColor: '#dbeafe',
-                        color: '#1e40af',
-                        borderRadius: '16px',
-                        fontSize: '12px',
-                        fontWeight: 'bold'
-                      }}>
-                        {(activeProject?.submodules || []).find(s => s.id === section)?.displayName ||
-                          (activeProject?.submodules || []).find(s => s.id === section)?.name ||
-                          section.charAt(0).toUpperCase() + section.slice(1).replace(/([A-Z])/g, ' $1')}
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <div className="flex justify-between items-center mb-3">
+                <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 m-0">Live Preview</h4>
+                <span className="text-xs font-mono font-medium text-slate-400 bg-white px-2 py-1 rounded-md border border-slate-200">
+                  {availableSectionKeys.filter(key => tempVisibleSections[key]).length} active
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(tempVisibleSections)
+                  .filter(([section, selected]) => selected && section !== 'sopTables')
+                  .map(([section]) => {
+                    const displayName = (activeProject?.submodules || []).find(s => s.id === section)?.displayName ||
+                        (activeProject?.submodules || []).find(s => s.id === section)?.name ||
+                        section.charAt(0).toUpperCase() + section.slice(1).replace(/([A-Z])/g, ' $1');
+                    return (
+                      <span key={section} className="px-3 py-1.5 bg-white border border-slate-300 text-slate-600 rounded-lg text-xs font-medium shadow-sm flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        {displayName}
                       </span>
-                    ))}
-                </div>
+                    );
+                  })}
                 {Object.values(tempVisibleSections).filter(v => v).length === 0 && (
-                  <div style={{ color: '#9ca3af', textAlign: 'center', padding: '10px' }}>
-                    No sections selected - dashboard will be empty
+                  <div className="text-slate-400 text-sm italic w-full text-center py-2">
+                    No sections selected
                   </div>
                 )}
-              </div>
-              <div style={{ marginTop: '10px', fontSize: '12px', color: '#1e3a5f', fontWeight: 'bold' }}>
-                Total visible sections: {availableSectionKeys.filter(key => tempVisibleSections[key]).length}
               </div>
             </div>
           </div>
 
-          <div style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: '10px',
-            padding: '15px 20px',
-            borderTop: '1px solid #e0e0e0',
-            backgroundColor: '#f9fafb',
-            borderRadius: '0 0 8px 8px',
-            position: 'sticky',
-            bottom: 0,
-            zIndex: 1
-          }}>
+          {/* Footer Actions */}
+          <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3">
             <button
               onClick={handleCancelConfig}
-              style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                borderRadius: '4px',
-                border: '1px solid #c0c0c0',
-                backgroundColor: 'white',
-                color: '#4b5563',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
+              className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
             >
               Cancel
             </button>
             <button
               onClick={handleApplyDashboardConfig}
-              style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                borderRadius: '4px',
-                border: 'none',
-                backgroundColor: '#1e3a5f',
-                color: 'white',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
+              className="px-5 py-2.5 text-sm font-semibold text-white bg-blue-600 border border-transparent rounded-xl hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
             >
-              Apply to {activeProject?.name}
+              <Check size={16} />
+              Apply Configuration
             </button>
           </div>
         </div>
@@ -3191,130 +3127,71 @@ const ProjectTitleDashboard = () => {
       {renderMaximizedChartModal()}
 
       {/* Main Dashboard Container */}
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '4px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        overflow: 'hidden',
-        maxWidth: '1600px',
-        margin: '0 auto'
-      }}>
-        {/* Header with navigation */}
-        <div style={{
-          backgroundColor: '#1e3a5f',
-          color: 'white',
-          padding: '15px 20px',
-          fontSize: '20px',
-          fontWeight: 'bold',
-          borderBottom: '3px solid #0f2b40',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flex: 1 }}>
-            {activeProject && (
+      <div className="flex flex-col flex-1 w-full relative">
+        {/* Header with navigation - ONLY show if activeProject is active so we don't duplicate titles */}
+        {activeProject && (
+          <div className="bg-[#1e3a5f] text-white py-4 px-6 text-xl font-bold border-b-[3px] border-[#0f2b40] flex justify-between items-center shadow-md z-10 sticky top-0">
+            <div className="flex items-center gap-4 flex-1">
               <button
                 onClick={selectedSubmodule ? handleBackToProjectDashboard : handleBackToProjects}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '14px',
-                  borderRadius: '4px',
-                  border: '1px solid white',
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}
+                className="px-3 py-1.5 text-sm rounded bg-white/10 hover:bg-white/20 border border-white/20 text-white cursor-pointer font-bold flex items-center gap-2 transition-colors"
               >
                 ← Back
               </button>
-            )}
+            </div>
+
+            <div className="text-center flex-2">
+              {selectedSubmodule ? (
+                <span>{getDisplayFileName(selectedSubmodule.name, selectedSubmodule.projectName)}</span>
+              ) : (
+                <span>{activeProject.name} Workspace</span>
+              )}
+            </div>
+
+            <div className="flex gap-2 justify-end flex-1">
+              {!selectedSubmodule && (
+                <>
+                  <button
+                    onClick={() => {
+                      setVisibleSections(activeProject.dashboardConfig?.visibleSections || {});
+                      setShowSimulateModal(true);
+                    }}
+                    className="px-4 py-2 text-sm rounded bg-white/10 hover:bg-white/20 border border-white/20 text-white cursor-pointer font-bold flex items-center gap-2 transition-colors"
+                  >
+                    Configure Layout
+                  </button>
+                  <button
+                    onClick={() => {
+                      const sections = {
+                        milestones: true,
+                        criticalIssues: true,
+                        budget: true,
+                        resource: true,
+                        quality: true,
+                        design: true,
+                        partDevelopment: true,
+                        build: true,
+                        gateway: true,
+                        validation: true,
+                        qualityIssues: true,
+                        sopTables: true
+                      };
+                      (activeProject?.submodules || []).forEach(sub => {
+                        sections[sub.id] = true;
+                      });
+                      setEmailData(prev => ({ ...prev, selectedSections: sections, includePdf: true }));
+                      setShowEmailModal(true);
+                    }}
+                    className="px-4 py-2 text-sm rounded bg-white/10 hover:bg-white/20 border border-white/20 text-white cursor-pointer font-bold flex items-center gap-2 transition-colors"
+                  >
+                    <Mail className="h-4 w-4" />
+                    Send Report
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-
-          <div style={{ textAlign: 'center', flex: 2 }}>
-            {selectedSubmodule ? (
-              <span>{getDisplayFileName(selectedSubmodule.name, selectedSubmodule.projectName)}</span>
-            ) : activeProject ? (
-              <span>{activeProject.name} Dashboard</span>
-            ) : (
-              <span>Project Dashboard</span>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flex: 1 }}>
-            {activeProject && !selectedSubmodule && (
-              <>
-                <button
-                  onClick={() => {
-                    setVisibleSections(activeProject.dashboardConfig?.visibleSections || {});
-                    setShowSimulateModal(true);
-                  }}
-                  style={{
-                    padding: '8px 16px',
-                    fontSize: '14px',
-                    borderRadius: '4px',
-                    border: '1px solid white',
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    outline: 'none'
-                  }}
-                >
-                  Configure Dashboard
-                </button>
-                <button
-                  onClick={() => {
-                    const sections = {
-                      milestones: true,
-                      criticalIssues: true,
-                      budget: true,
-                      resource: true,
-                      quality: true,
-                      design: true,
-                      partDevelopment: true,
-                      build: true,
-                      gateway: true,
-                      validation: true,
-                      qualityIssues: true,
-                      sopTables: true
-                    };
-                    (activeProject?.submodules || []).forEach(sub => {
-                      sections[sub.id] = true;
-                    });
-                    setEmailData(prev => ({ ...prev, selectedSections: sections, includePdf: true }));
-                    setShowEmailModal(true);
-                  }}
-                  style={{
-                    padding: '8px 16px',
-                    fontSize: '14px',
-                    borderRadius: '4px',
-                    border: '1px solid white',
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    outline: 'none'
-                  }}
-                >
-                  <Mail className="h-4 w-4" />
-                  Send Mail
-                </button>
-
-
-              </>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Projects List or Dashboard Content */}
         {!activeProject ? (
@@ -3340,79 +3217,87 @@ const ProjectTitleDashboard = () => {
                   <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>{projects.length} active · last synced just now</p>
                 </div>
                 <button
-                  style={{
-                    backgroundColor: 'var(--accent)', color: '#FFFFFF', border: 'none', borderRadius: '10px',
-                    padding: '9px 16px', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px',
-                    cursor: 'pointer', transition: 'background 0.15s, transform 0.1s'
-                  }}
-                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1B6AE0'}
-                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--accent)'}
-                  onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.98)'}
-                  onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                  className="bg-blue-600 hover:bg-blue-700 text-white border-none rounded-lg px-4 py-2.5 text-sm font-medium flex items-center gap-2 cursor-pointer transition-all shadow-sm"
                 >
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  <Plus size={16} />
                   New Project
                 </button>
               </div>
 
               {/* Summary row */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '28px' }}>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {[
                   {
-                    label: 'TOTAL PROJECTS',
+                    label: 'Total Workspaces',
                     value: projects.length,
-                    sub: '+1 this month', badge: 'green'
+                    sub: 'Active across platform',
+                    icon: <FolderOpen className="text-blue-600 h-6 w-6" />,
+                    bg: 'bg-blue-50',
+                    gradient: 'from-blue-600 to-blue-400',
+                    sparklineData: "M0,20 Q10,15 20,25 T40,10 T60,20 T80,5 T100,15"
                   },
                   {
-                    label: 'AVG. COMPLETION',
-                    value: projects.length ? `${Math.round(projects.reduce((acc, p) => acc + (p.completion_percent || 75), 0) / projects.length)}%` : '0%',
-                    sub: '+2% wk', badge: 'green'
+                    label: 'Configured Dashboards',
+                    value: projects.filter(p => p.dashboardConfig).length,
+                    sub: 'Ready for presentation',
+                    icon: <Layout className="text-emerald-600 h-6 w-6" />,
+                    bg: 'bg-emerald-50',
+                    gradient: 'from-emerald-600 to-emerald-400',
+                    sparklineData: "M0,15 Q15,5 30,20 T60,10 T80,25 T100,5"
                   },
                   {
-                    label: 'TOTAL SUBMODULES',
+                    label: 'Total Submodules Tracker',
                     value: projects.reduce((acc, p) => acc + (p.submodules ? p.submodules.length : 0), 0),
-                    sub: '2 pending', badge: 'amber'
-                  },
-                  {
-                    label: 'OPEN ISSUES',
-                    value: projects.reduce((acc, p) => acc + ((p.issues?.critical || 0) + (p.issues?.warning || 0) + (p.issues?.low || 0)), 0),
-                    sub: '-4 issues', badge: 'green'
+                    sub: 'Datasets integrated',
+                    icon: <Layers className="text-amber-600 h-6 w-6" />,
+                    bg: 'bg-amber-50',
+                    gradient: 'from-amber-500 to-orange-400',
+                    sparklineData: "M0,25 Q20,10 40,25 T60,5 T80,15 T100,10"
                   }
                 ].map((stat, i) => (
-                  <div key={i} style={{ background: '#FFFFFF', border: '1px solid var(--border)', borderRadius: '10px', padding: '16px 18px' }}>
-                    <div style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-tertiary)', marginBottom: '8px', fontWeight: 500 }}>{stat.label}</div>
-                    <div style={{ fontSize: '24px', fontWeight: 500, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', marginBottom: '4px' }}>{stat.value}</div>
-                    <div style={{ display: 'inline-flex', padding: '2px 6px', borderRadius: '4px', fontSize: '11px', fontWeight: 500,
-                      background: stat.badge === 'green' ? 'rgba(18,183,106,0.1)' : 'rgba(247,144,9,0.1)',
-                      color: stat.badge === 'green' ? '#0B7A45' : '#92400E'
-                    }}>
-                      {stat.sub}
+                  <div key={i} className="bg-white rounded-2xl p-6 border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all flex flex-col relative overflow-hidden group">
+                    <div className="flex items-start justify-between mb-2">
+                       <div className="flex flex-col z-10 w-full">
+                          <span className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">{stat.label}</span>
+                          <div className="text-4xl font-black text-slate-800 mb-1 font-mono tracking-tighter">{stat.value}</div>
+                       </div>
+                       <div className={`p-3 rounded-2xl ${stat.bg} shadow-inner transition-transform group-hover:scale-110 duration-300 z-10`}>
+                         {stat.icon}
+                       </div>
                     </div>
+                    
+                    <div className="flex justify-between items-end mt-4 z-10">
+                        <span className="text-sm font-medium text-slate-500 bg-slate-50 px-3 py-1 rounded-full border border-slate-100">{stat.sub}</span>
+                    </div>
+
+                    {/* Creative Background Element */}
+                    <div className={`absolute -bottom-10 -right-10 w-32 h-32 bg-gradient-to-tr ${stat.gradient} opacity-5 rounded-full blur-2xl group-hover:opacity-10 transition-opacity`}></div>
+                    
+                    {/* SVG Sparkline Decoration */}
+                    <svg className="absolute bottom-6 right-6 w-24 h-8 opacity-20 pointer-events-none stroke-current text-slate-400 group-hover:opacity-40 transition-opacity" viewBox="0 0 100 30" fill="none" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <path d={stat.sparklineData} />
+                    </svg>
                   </div>
                 ))}
               </div>
 
               {/* Section Header */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '13px', fontWeight: 500, color: 'var(--text-primary)', margin: 0 }}>Project Overview</h3>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <button style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', display: 'flex', padding: '4px' }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-slate-800 m-0">Project Overview</h3>
+                <div className="flex gap-2">
+                  <button className="p-2 hover:bg-slate-100 rounded-lg text-blue-600 transition-colors bg-white shadow-sm border border-slate-200">
+                    <Grid size={18} />
                   </button>
-                  <button style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', padding: '4px' }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                  <button className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors bg-white shadow-sm border border-slate-200">
+                    <List size={18} />
                   </button>
                 </div>
               </div>
 
               {/* Grid Content */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: '14px'
-              }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {projects.length === 0 ? (
-                  <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                  <div className="col-span-full text-center py-12 text-slate-500 bg-white rounded-2xl border border-slate-100 border-dashed">
                     No projects found. Please add a project module to get started.
                   </div>
                 ) : projects.map((project, idx) => (

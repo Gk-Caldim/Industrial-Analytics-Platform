@@ -7,7 +7,7 @@ import {
   Users, Package, Building, Briefcase,
   UserCog, FolderOpen, Square, Layers, BarChart3, FileUp,
   Shield, FolderKanban, Download, Share2, Star, MoreVertical,
-  Filter, Grid, List, Sparkles, Bookmark, Activity, Zap
+  Filter, Grid, List, Sparkles, Bookmark, Activity, Zap, Wallet
 } from 'lucide-react';
 
 // File Content Viewer Component (enhanced)
@@ -286,7 +286,7 @@ const Masters = () => {
     trackerInfo: null
   });
 
-  // Master modules data - Enhanced with modern design
+  // Master modules data
   const staticMasterModules = [
     {
       id: 1,
@@ -294,13 +294,14 @@ const Masters = () => {
       masterModuleId: 'employee-master',
       path: 'masters/employees',
       type: 'master',
-      description: 'Manage employee information and records',
+      description: 'Manage employee records and basic profiles.',
       icon: <Users className="h-5 w-5" />,
-      gradient: 'from-[#1e3a5f] to-[#2c4c7c]',
-      lightGradient: 'from-[#e6eef8] to-[#d1e0f0]',
-      borderColor: 'border-[#1e3a5f]/20',
-      iconBg: 'bg-[#1e3a5f]',
-      
+      imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+      gist: [
+        { label: 'Basic Info', val: 'Names, Contacts, Emails', icon: <UserCog className="h-4 w-4" /> },
+        { label: 'Organization', val: 'Departments & Designations', icon: <Building className="h-4 w-4" /> },
+        { label: 'Access', val: 'System Roles', icon: <Shield className="h-4 w-4" /> }
+      ]
     },
     {
       id: 3,
@@ -308,15 +309,30 @@ const Masters = () => {
       masterModuleId: 'project-master',
       path: 'masters/project-master',
       type: 'master',
-      description: 'Manage project portfolios and timelines',
+      description: 'Manage project client details and timelines.',
       icon: <FolderKanban className="h-5 w-5" />,
-      gradient: 'from-[#1e3a5f] to-[#2d4b72]',
-      lightGradient: 'from-[#e6eef8] to-[#d1e0f0]',
-      borderColor: 'border-[#1e3a5f]/20',
-      iconBg: 'bg-[#1e3a5f]',
-      
+      imageUrl: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+      gist: [
+        { label: 'Basic Info', val: 'Project Name & Client', icon: <Briefcase className="h-4 w-4" /> },
+        { label: 'Timelines', val: 'Start & End Dates', icon: <Clock className="h-4 w-4" /> },
+        { label: 'Management', val: 'Assigned PMs & Status', icon: <Layers className="h-4 w-4" /> }
+      ]
     },
-
+    {
+      id: 4,
+      name: 'Budget Master',
+      masterModuleId: 'budget-master',
+      path: 'masters/budget-master',
+      type: 'master',
+      description: 'Manage itemized project budgets.',
+      icon: <Wallet className="h-5 w-5" />,
+      imageUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+      gist: [
+        { label: 'Estimates', val: 'Unit Costs & Totals', icon: <Database className="h-4 w-4" /> },
+        { label: 'Tracking', val: 'Utilized & Committed', icon: <BarChart3 className="h-4 w-4" /> },
+        { label: 'Revisions', val: 'Status & Comments', icon: <Check className="h-4 w-4" /> }
+      ]
+    }
   ];
 
   // Load dynamic modules
@@ -527,184 +543,80 @@ const Masters = () => {
       )}
 
       {/* Masters Grid/List */}
-      {viewMode === 'grid' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredModules.map((master) => {
-            const fileCount = master.submodules?.length || 0;
-
-            return (
-              <div
-                key={master.id}
-                className={`
-                  group relative bg-white rounded-2xl shadow-lg overflow-hidden 
-                  transition-all duration-500 transform hover:-translate-y-1
-                  ${hoveredModule === master.id ? 'shadow-2xl' : 'shadow-lg hover:shadow-xl'}
-                `}
-                onMouseEnter={() => setHoveredModule(master.id)}
-                onMouseLeave={() => setHoveredModule(null)}
-              >
-                {/* Gradient Background Overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${master.lightGradient} opacity-50`}></div>
-                
-                {/* Decorative Elements */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#1e3a5f]/5 to-transparent rounded-bl-full transform translate-x-16 -translate-y-16 group-hover:translate-x-8 group-hover:-translate-y-8 transition-transform duration-700"></div>
-                
-                {/* Master Header */}
-                <div
-                  className="relative p-5 cursor-pointer"
-                  onClick={() => handleModuleClick(master)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-3 ${master.iconBg} rounded-xl shadow-lg shadow-[#1e3a5f]/20 transform group-hover:scale-110 transition-transform duration-300`}>
-                          {React.cloneElement(master.icon, { className: "h-5 w-5 text-white" })}
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-800">
-                            {master.name}
-                          </h3>
-                        </div>
-                      </div>
-                      
-                      
-                    </div>
-                  </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+        {filteredModules.map((master) => (
+          <div
+            key={master.id}
+            className="group relative bg-white dark:bg-slate-800 border hover:border-[#1e3a5f]/20 border-transparent dark:hover:border-blue-500/30 transition-all duration-500 cursor-pointer flex flex-col h-full rounded-[2rem] shadow-md hover:shadow-2xl overflow-hidden"
+            onClick={() => handleModuleClick(master)}
+          >
+            {/* Top Image Header */}
+            <div className="relative h-52 w-full overflow-hidden flex-shrink-0">
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent z-10 pointer-events-none"></div>
+              {master.imageUrl && (
+                <img 
+                  src={master.imageUrl} 
+                  alt={master.name} 
+                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700 ease-in-out"
+                />
+              )}
+              <div className="absolute bottom-5 left-6 right-6 z-20 flex items-center gap-4 text-white">
+                <div className="flex items-center justify-center h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-md shadow-lg border border-white/10 group-hover:bg-[#1e3a5f] group-hover:border-[#1e3a5f] transition-all duration-300">
+                  {React.cloneElement(master.icon, { className: "h-6 w-6 text-white" })}
                 </div>
-
-                {/* Content - Files List */}
-                <div className="relative p-5 pt-0">
-                  {fileCount > 0 ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center">
-                          <Zap className="h-3 w-3 mr-1" />
-                          RECENT FILES
-                        </span>
-                        <span className="text-xs text-[#1e3a5f] font-medium">{fileCount} total</span>
-                      </div>
-
-                      {master.submodules.slice(0, 2).map((file) => (
-                        <div
-                          key={file.id}
-                          onClick={(e) => handleFileClick(file, e)}
-                          className="flex items-center justify-between p-2.5 bg-gray-50/80 backdrop-blur-sm rounded-xl hover:bg-white transition-all duration-200 cursor-pointer group/file border border-transparent hover:border-[#1e3a5f]/20"
-                        >
-                          <div className="flex items-center space-x-3 min-w-0 flex-1">
-                            <div className="p-1.5 bg-white rounded-lg shadow-sm">
-                              {getFileIcon(file.name, file.type)}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-gray-700 truncate">
-                                {file.name.replace(/\.[^/.]+$/, '')}
-                              </p>
-                              <div className="flex items-center space-x-2 text-xs text-gray-400">
-                                <span>{getRelativeTime(file.uploadDate)}</span>
-                                <span>•</span>
-                                <span>{file.size}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <Eye className="h-4 w-4 text-gray-400 group-hover/file:text-[#1e3a5f] group-hover/file:scale-110 transition-all duration-200 flex-shrink-0 ml-2" />
-                        </div>
-                      ))}
-
-                      {fileCount > 2 && (
-                        <div
-                          className="relative pt-1"
-                          onClick={() => handleModuleClick(master)}
-                        >
-                          <button
-                            className="w-full px-3 py-2 bg-gray-50/80 backdrop-blur-sm hover:bg-white rounded-xl text-xs font-medium text-gray-600 hover:text-[#1e3a5f] transition-all duration-200 flex items-center justify-center border border-gray-200 hover:border-[#1e3a5f]/30 group/view"
-                          >
-                            View all {fileCount} files
-                            <ChevronRight className="h-3 w-3 ml-1 group-hover/view:translate-x-0.5 transition-transform" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="py-4 text-center">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenModule(master.masterModuleId);
-                        }}
-                        className="inline-flex items-center px-4 py-2 rounded-xl text-sm font-medium 
-                          transition-all duration-300 transform hover:scale-105
-                          bg-gradient-to-r from-[#1e3a5f] to-[#2c4c7c] text-white hover:from-[#2c4c7c] hover:to-[#1e3a5f] 
-                          shadow-lg shadow-[#1e3a5f]/20 hover:shadow-xl"
-                      >
-                        <Zap className="h-4 w-4 mr-1" />
-                        Open Module
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Quick action for modules with files */}
-                  {fileCount > 0 && (
-                    <div className="mt-3 pt-2 border-t border-gray-200 flex justify-between items-center">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Add to favorites or something
-                        }}
-                        className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                      >
-                        <Star className="h-3.5 w-3.5 text-gray-400 hover:text-amber-400" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenModule(master.masterModuleId);
-                        }}
-                        className="inline-flex items-center text-xs font-medium text-[#1e3a5f] hover:text-[#2c4c7c] transition-colors group/open"
-                      >
-                        Open Full Module
-                        <ChevronRight className="h-3 w-3 ml-1 group-hover/open:translate-x-0.5 transition-transform" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Hover Effect Gradient */}
-                <div className={`absolute inset-0 bg-gradient-to-t from-[#1e3a5f]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`}></div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        // List View
-        <div className="space-y-4">
-          {filteredModules.map((master) => (
-            <div
-              key={master.id}
-              className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100"
-            >
-              <div
-                className="p-5 cursor-pointer"
-                onClick={() => handleModuleClick(master)}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="p-3 bg-gradient-to-br from-[#1e3a5f] to-[#2c4c7c] rounded-xl shadow-lg">
-                      {React.cloneElement(master.icon, { className: "h-5 w-5 text-white" })}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800">{master.name}</h3>
-                      <p className="text-sm text-gray-500">{master.description}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                   
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
-                  </div>
+                <div>
+                  <h3 className="text-2xl font-bold tracking-tight text-white mb-0.5">
+                    {master.name}
+                  </h3>
+                  <p className="text-xs font-medium text-white/80 line-clamp-1">
+                    {master.description}
+                  </p>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+
+            <div className="flex flex-col flex-1 p-6 sm:p-8 bg-white dark:bg-slate-800 relative z-20">
+              {/* Information Gist Details */}
+              {master.gist && (
+                <div className="flex flex-col gap-3 flex-1 mb-8">
+                  {master.gist.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 hover:bg-white dark:bg-slate-700/30 border border-transparent dark:hover:bg-slate-700 hover:border-slate-200 dark:hover:border-slate-600 transition-all shadow-sm hover:shadow-md">
+                      <div className="flex items-center justify-center h-10 w-10 rounded-full bg-slate-200/50 dark:bg-slate-600 text-[#1e3a5f] dark:text-blue-400 group-hover:scale-110 transition-transform">
+                        {item.icon}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{item.label}</span>
+                        <span className="text-xs font-medium text-slate-500 mt-0.5">{item.val}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-auto">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenModule(master.masterModuleId);
+                  }}
+                  className="relative group/btn w-full inline-flex items-center justify-between px-6 py-4 overflow-hidden text-white font-bold rounded-2xl bg-[#1e3a5f] dark:bg-slate-700 shadow-[0_4px_15px_rgba(30,58,95,0.2)] hover:shadow-[0_8px_25px_rgba(30,58,95,0.4)] transition-all duration-300"
+                >
+                  <span className="absolute inset-0 w-0 bg-gradient-to-r from-[#2c538a] to-[#467abf] transition-all duration-500 ease-out group-hover/btn:w-full"></span>
+                  
+                  <span className="relative flex items-center gap-3 tracking-widest text-[11px] sm:text-xs uppercase z-10 font-black">
+                    <Zap className="h-4 w-4" />
+                    Open Master Data
+                  </span>
+                  
+                  <span className="relative flex items-center justify-center w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm group-hover/btn:bg-white group-hover/btn:text-[#1e3a5f] transition-all duration-500 z-10">
+                    <ChevronRight className="h-5 w-5 group-hover/btn:translate-x-0.5 transition-transform" />
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
