@@ -16,7 +16,7 @@ import { logout } from '../store/slices/authSlice';
 import {
   Layout as LayoutIcon, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, ChevronLeft, Check, Save, Settings,
   Users, Shield, FolderKanban, Package, Building, Database, FileUp, LogOut, Menu, User as UserIcon, Bell, ChevronRight, Projector, FileText, Globe, Clock, BarChart3, PieChart, LineChart,
-  MessageSquare, Layers, FolderTree, Calendar
+  MessageSquare, Layers, FolderTree, Calendar, Wallet
 } from 'lucide-react';
 
 import API from "../utils/api";
@@ -101,6 +101,7 @@ const Dashboard = () => {
   const mastersSubmodules = useMemo(() => [
     { id: 'employee-master', name: 'Employee Master', path: 'masters/employees', icon: <Users className="h-5 w-5" />, color: '#000000' },
     { id: 'project-master', name: 'Project Master', path: 'masters/project-master', icon: <FolderKanban className="h-5 w-5" />, color: '#333333' },
+    { id: 'budget-master', name: 'Budget Master', path: 'masters/budget-master', icon: <Wallet className="h-5 w-5" />, color: '#000000' },
   ], []);
 
   const mastersModules = useMemo(() => [
@@ -1276,7 +1277,7 @@ const Dashboard = () => {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white">
           {/* Header - White background */}
-          <header className="bg-white border-b border-gray-200 flex-shrink-0 sticky top-0 z-20 shadow-sm">
+          <header className="bg-white border-b border-gray-200 flex-shrink-0 sticky top-0 z-50 shadow-sm">
             <div className="px-6 py-4 flex items-center justify-between relative z-10">
               {/* Left side - Toggle button */}
               <div className="w-48 flex items-center">
