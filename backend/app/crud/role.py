@@ -55,7 +55,7 @@ def seed_default_roles(db: Session):
             "description": "Full system access and security oversight.", 
             "is_default": 1,
             "permissions": [
-                "Dashboard", "MOM", "Employee Master", "Project Master", "Department Master", 
+                "Dashboard", "MOM", "Employee Master", "Project Master", "Department Master", "Budget Master",
                 "Upload Trackers", "Budget Upload", "Settings",
                 "upload_tracker", "view_tracker", "delete_tracker",
                 "upload_budget", "view_budget", "delete_budget"
@@ -66,7 +66,7 @@ def seed_default_roles(db: Session):
             "description": "Full system configuration and master data oversight.", 
             "is_default": 1,
             "permissions": [
-                "Dashboard", "MOM", "Employee Master", "Project Master", "Department Master", 
+                "Dashboard", "MOM", "Employee Master", "Project Master", "Department Master", "Budget Master",
                 "Upload Trackers", "Budget Upload",
                 "upload_tracker", "view_tracker", "delete_tracker",
                 "upload_budget", "view_budget", "delete_budget"
@@ -77,8 +77,26 @@ def seed_default_roles(db: Session):
             "description": "Project lifecycle and resource tracking.", 
             "is_default": 1,
             "permissions": [
-                "Dashboard", "MOM", "Project Master", "Upload Trackers",
-                "upload_tracker", "view_tracker", "view_budget"
+                "Dashboard", "MOM", "Project Master", "Budget Master", "Upload Trackers",
+                "upload_tracker", "view_tracker", "view_budget", "request_revision"
+            ]
+        },
+        {
+            "name": "Head", 
+            "description": "Departmental head with budget review authority.", 
+            "is_default": 1,
+            "permissions": [
+                "Dashboard", "MOM", "Project Master", "Budget Master", "Upload Trackers",
+                "upload_tracker", "view_tracker", "view_budget", "review_revision"
+            ]
+        },
+        {
+            "name": "Finance", 
+            "description": "Financial controller with final budget approval authority.", 
+            "is_default": 1,
+            "permissions": [
+                "Dashboard", "MOM", "Project Master", "Budget Master", "Upload Trackers",
+                "upload_tracker", "view_tracker", "view_budget", "approve_revision"
             ]
         },
         {
@@ -86,7 +104,7 @@ def seed_default_roles(db: Session):
             "description": "Operations planning, approvals, and report generation.", 
             "is_default": 1,
             "permissions": [
-                "Dashboard", "MOM", "Upload Trackers",
+                "Dashboard", "MOM", "Budget Master", "Upload Trackers",
                 "upload_tracker", "view_tracker"
             ]
         },
@@ -94,7 +112,7 @@ def seed_default_roles(db: Session):
             "name": "Employee", 
             "description": "Standard user access.", 
             "is_default": 1,
-            "permissions": ["Dashboard", "view_tracker"]
+            "permissions": ["Dashboard", "Budget Master", "view_tracker"]
         }
     ]
     for r in default_roles:
@@ -102,8 +120,14 @@ def seed_default_roles(db: Session):
         if not existing:
             create_role(db, RoleCreate(**r))
         else:
-            # Update existing default role description but DO NOT overwrite permissions
-            # to preserve user-configured access controls across app restarts
+            # Sync permissions: Add any missing default permissions to existing roles
+            existing_perms = set(existing.permissions or [])
+            new_perms = set(r["permissions"])
+            updated_perms = list(existing_perms.union(new_perms))
+            
+            if len(updated_perms) > len(existing_perms):
+                existing.permissions = updated_perms
+                
             existing.description = r["description"]
             existing.is_default = 1
             db.commit()

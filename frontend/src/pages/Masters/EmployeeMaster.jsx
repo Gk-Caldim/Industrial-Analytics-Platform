@@ -5,7 +5,7 @@ import API from '../../utils/api';
 
 const MODULE_LIST = [
   'Dashboard', 'MOM', 'Employee Master', 'Project Master', 
-  'Department Master', 'Upload Trackers', 
+  'Upload Trackers', 
   'Budget Upload', 'Settings'
 ];
 

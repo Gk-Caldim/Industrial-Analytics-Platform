@@ -43,7 +43,7 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
   const [newColumnName, setNewColumnName] = useState('');
   const [editingColumn, setEditingColumn] = useState(null);
   const [tempColumnName, setTempColumnName] = useState('');
-  const [departmentList, setDepartmentList] = useState([]);
+
 
   useEffect(() => {
     localStorage.setItem('project_subcategory_columns_v1', JSON.stringify(columns));
@@ -53,17 +53,9 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
     if (project) {
       fetchSubCategories();
     }
-    fetchDepartments();
   }, [project]);
 
-  const fetchDepartments = async () => {
-    try {
-      const res = await API.get('/departments/');
-      setDepartmentList(res.data.map(d => d.name) || []);
-    } catch (err) {
-      console.error("Error fetching departments", err);
-    }
-  };
+
 
   // Auto-calculate balance for form
   useEffect(() => {
@@ -322,15 +314,6 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
                           {symbol}
                         </span>
                       )}
-                      {col.id === 'department' ? (
-                        <SearchableDropdown
-                          options={departmentList}
-                          value={formData[col.id] || ''}
-                          onChange={(val) => handleInputChange(col.id, val)}
-                          placeholder="Select Department..."
-                          className="w-full"
-                        />
-                      ) : (
                         <input
                           type={col.type === 'number' ? 'number' : 'text'}
                           value={formData[col.id] ?? ''}
@@ -339,7 +322,6 @@ const ProjectSubCategoryMaster = ({ project, showNotification, onRefresh, inline
                           className={`w-full px-4 py-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900/50 text-[13.5px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-all shadow-sm flex items-center gap-1 ${col.readonly ? 'bg-slate-100 dark:bg-slate-800/80 cursor-not-allowed opacity-80 text-slate-500 italic' : ''} ${(col.type === 'number' && (col.id.includes('value') || col.id === 'balance')) ? 'pl-8' : ''}`}
                           placeholder={`Enter ${col.label.toLowerCase()}...`}
                         />
-                      )}
                     </div>
                   </div>
                 ))}

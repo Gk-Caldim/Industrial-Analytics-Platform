@@ -1,7 +1,26 @@
 // ScheduleMeetingSidebar.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import API from '../../utils/api';
+import { RefreshCw } from 'lucide-react';
 import './ScheduleMeetingSidebar.css';
+
+const GoogleLogo = () => (
+    <svg viewBox="0 0 533.5 544.3" style={{ width: '18px', height: '18px' }}>
+      <path d="M533.5 277.3c0-19.7-1.8-38.6-5-56.6H272.1v107h146.6c-6.3 34.1-25.6 63-54.6 82.5l88.4 68.5c51.7-47.7 81-118.1 81-201.4z" fill="#4285f4"/>
+      <path d="M272.1 544.3c73.4 0 135.3-24.1 180.4-65.4l-88.4-68.5c-24.4 16.3-55.8 26.1-92 26.1-70.8 0-130.7-47.8-152.1-112H27.9v70.5c45.2 89.9 138.2 149.3 244.2 149.3z" fill="#34a853"/>
+      <path d="M120 324.4c-5.4-16.1-8.5-33.3-8.5-51.1 0-17.8 3.1-35.1 8.5-51.1V151.7H27.9c-18.1 36-28.5 76.5-28.5 119.3s10.4 83.3 28.5 119.3l92.1-71.2z" fill="#fbbc04"/>
+      <path d="M272.1 107.7c40 0 75.8 13.7 104.1 40.8l78-78C407.3 26.7 345.5 1.1 272.1 1.1 166.1 1.1 73.1 60.5 27.9 150.4l92.1 71.2c21.4-64.2 81.3-113.9 152.1-113.9z" fill="#ea4335"/>
+    </svg>
+);
+
+const MicrosoftLogo = () => (
+    <svg viewBox="0 0 23 23" style={{ width: '18px', height: '18px' }}>
+      <path fill="#f35325" d="M1 1h10v10H1z"/>
+      <path fill="#81bc06" d="M12 1h10v10H12z"/>
+      <path fill="#05a6f0" d="M1 12h10v10H1z"/>
+      <path fill="#ffba08" d="M12 12h10v10H12z"/>
+    </svg>
+);
 
 export function ScheduleMeetingSidebar({ isOpen, onClose, momData }) {
   // State
@@ -58,7 +77,7 @@ export function ScheduleMeetingSidebar({ isOpen, onClose, momData }) {
       title: (v) => v.trim().length > 0,
       date: (v) => /^\d{4}-\d{2}-\d{2}$/.test(v),
       time: (v) => /^\d{2}:\d{2}$/.test(v),
-      platform: (v) => ['teams', 'meet', 'zoho', 'gmeet'].includes(v),
+      platform: (v) => ['teams', 'meet', 'gmeet'].includes(v),
     };
 
     const isValid = rules[field]?.(value) ?? true;
@@ -228,22 +247,43 @@ export function ScheduleMeetingSidebar({ isOpen, onClose, momData }) {
                 Publish via <span className="badge">1 required</span>
               </label>
 
-              <div className="platform-grid">
+              <div className="platform-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 {[
-                  { id: 'teams', name: 'Microsoft Teams', icon: 'MS' },
-                  { id: 'meet', name: 'Google Meet', icon: 'GM' },
-                  { id: 'zoho', name: 'Zoho Mail', icon: 'Z' },
+                  { id: 'teams', name: 'Microsoft Teams', icon: <MicrosoftLogo />, color: '#00a1f1' },
+                  { id: 'meet', name: 'Google Meet', icon: <GoogleLogo />, color: '#ea4335' },
                 ].map(platform => (
                   <button
                     key={platform.id}
                     className={`platform-button ${formData.platform === platform.id ? 'selected' : ''}`}
                     onClick={(e) => selectPlatform(platform.id, e)}
                     onMouseDown={(e) => triggerRipple(e.currentTarget)}
+                    style={{
+                        position: 'relative',
+                        padding: '10px 4px',
+                        border: '1px solid',
+                        borderColor: formData.platform === platform.id ? '#4f46e5' : '#e5e7eb',
+                        background: formData.platform === platform.id ? '#f5f7ff' : '#ffffff',
+                        borderRadius: '10px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s ease',
+                        cursor: 'pointer'
+                    }}
                   >
-                    <div className="platform-icon">{platform.icon}</div>
-                    <span>{platform.name}</span>
-                    <span className="tooltip">{platform.name} integration</span>
-                    {formData.platform === platform.id && <span className="checkmark">&#10003;</span>}
+                    <div style={{
+                        width: '28px',
+                        height: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: formData.platform === platform.id ? '#ffffff' : '#f9fafb',
+                        borderRadius: '6px',
+                    }}>
+                        {platform.icon}
+                    </div>
+                    <span style={{ fontWeight: '600', fontSize: '9px', color: formData.platform === platform.id ? '#4338ca' : '#6b7280', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.02em' }}>{platform.name.split(' ')[1]}</span>
                   </button>
                 ))}
               </div>
@@ -260,7 +300,6 @@ export function ScheduleMeetingSidebar({ isOpen, onClose, momData }) {
                   type="date"
                   value={formData.date}
                   onChange={handleDateChange}
-                  className={uiState.errors.date ? 'error' : ''}
                 />
                 <input
                   type="time"

@@ -55,10 +55,27 @@ const ScheduleMeetingPage = () => {
   const [error, setError] = useState('');
 
   // Constants
+  const GoogleLogo = () => (
+    <svg viewBox="0 0 533.5 544.3" className="w-5 h-5">
+      <path d="M533.5 277.3c0-19.7-1.8-38.6-5-56.6H272.1v107h146.6c-6.3 34.1-25.6 63-54.6 82.5l88.4 68.5c51.7-47.7 81-118.1 81-201.4z" fill="#4285f4"/>
+      <path d="M272.1 544.3c73.4 0 135.3-24.1 180.4-65.4l-88.4-68.5c-24.4 16.3-55.8 26.1-92 26.1-70.8 0-130.7-47.8-152.1-112H27.9v70.5c45.2 89.9 138.2 149.3 244.2 149.3z" fill="#34a853"/>
+      <path d="M120 324.4c-5.4-16.1-8.5-33.3-8.5-51.1 0-17.8 3.1-35.1 8.5-51.1V151.7H27.9c-18.1 36-28.5 76.5-28.5 119.3s10.4 83.3 28.5 119.3l92.1-71.2z" fill="#fbbc04"/>
+      <path d="M272.1 107.7c40 0 75.8 13.7 104.1 40.8l78-78C407.3 26.7 345.5 1.1 272.1 1.1 166.1 1.1 73.1 60.5 27.9 150.4l92.1 71.2c21.4-64.2 81.3-113.9 152.1-113.9z" fill="#ea4335"/>
+    </svg>
+  );
+
+  const MicrosoftLogo = () => (
+    <svg viewBox="0 0 23 23" className="w-5 h-5">
+      <path fill="#f35325" d="M1 1h10v10H1z"/>
+      <path fill="#81bc06" d="M12 1h10v10H12z"/>
+      <path fill="#05a6f0" d="M1 12h10v10H1z"/>
+      <path fill="#ffba08" d="M12 12h10v10H12z"/>
+    </svg>
+  );
+
   const platforms = [
-    { id: 'teams', name: 'Microsoft Teams', icon: 'M', color: '#5558AF' },
-    { id: 'meet', name: 'Google Meet', icon: 'G', color: '#00832D' },
-    { id: 'zoho', name: 'Zoho Mail', icon: 'Z', color: '#005CE3' }
+    { id: 'teams', name: 'Microsoft Teams', icon: <MicrosoftLogo />, color: '#00a1f1' },
+    { id: 'meet', name: 'Google Meet', icon: <GoogleLogo />, color: '#ea4335' }
   ];
 
   // --- Pre-fill date from calendar "+ Add one" click ---
@@ -394,7 +411,7 @@ const ScheduleMeetingPage = () => {
       return;
     }
 
-    // ── Google Meet / Zoho path (unchanged) ────────────────────────────────
+    // ── Google Meet path (standard flow) ──────────────────────────────────
     const payload = {
       title: effectiveTitle,
       date: dateStr,
@@ -442,6 +459,12 @@ const ScheduleMeetingPage = () => {
   };
 
   // --- Render ---
+
+  // --- Recommendation Logic ---
+  const recommendedPlatform = useMemo(() => {
+    const internalTypes = ['quickSync', 'deepWork', 'interview'];
+    return internalTypes.includes(meetingType) ? 'teams' : 'meet';
+  }, [meetingType]);
 
   return (
     <div className="schedule-meeting-page h-full overflow-y-auto w-full">
@@ -664,25 +687,33 @@ const ScheduleMeetingPage = () => {
             {/* Platform Selector */}
             <div>
               <label className="block text-sm font-semibold text-gray-800 mb-2">Platform <span className="text-red-500">*</span></label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="platform-grid flex gap-3">
                 {platforms.map(p => (
                   <button
                     key={p.id} type="button"
                     disabled={teamsAuthChecking && p.id === 'teams'}
-                    className={`platform-btn flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all ${platform === p.id
-                        ? 'border-2 shadow-sm'
-                        : 'border-gray-200 bg-white hover:border-gray-300'
+                    className={`flex-1 group flex flex-col items-center gap-3 p-4 rounded-xl border transition-all duration-300 ${platform === p.id
+                        ? 'border-indigo-600 bg-indigo-50/20 shadow-sm'
+                        : 'border-gray-200 bg-white hover:border-indigo-200'
                       } ${teamsAuthChecking && p.id === 'teams' ? 'opacity-60 cursor-wait' : ''}`}
-                    style={platform === p.id ? { borderColor: p.color, background: `${p.color}10` } : {}}
                     onClick={() => handlePlatformSelect(p.id)}
                   >
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-white shadow-sm" style={{ backgroundColor: p.color }}>
-                      {teamsAuthChecking && p.id === 'teams' ? '...' : p.icon}
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${platform === p.id ? 'bg-white shadow-sm' : 'bg-gray-50/50'}`}>
+                      {teamsAuthChecking && p.id === 'teams' ? <RefreshCw className="animate-spin text-indigo-500 w-4 h-4" /> : p.icon}
                     </div>
-                    <span className="text-xs font-semibold text-gray-700">{p.name}</span>
-                    {platform === p.id && (
-                      <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: p.color }}>Selected</span>
-                    )}
+                    <div className="text-center">
+                      <span className={`text-[11px] font-semibold tracking-wide uppercase ${platform === p.id ? 'text-indigo-900' : 'text-gray-600'}`}>{p.name}</span>
+                      {platform === p.id ? (
+                        <div className="mt-1 flex items-center justify-center gap-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></div>
+                          <span className="text-[9px] font-bold text-indigo-600 uppercase tracking-tight">Active</span>
+                        </div>
+                      ) : recommendedPlatform === p.id ? (
+                        <div className="mt-1">
+                          <span className="text-[9px] font-semibold text-gray-400 uppercase tracking-tighter">Recommended</span>
+                        </div>
+                      ) : null}
+                    </div>
                   </button>
                 ))}
               </div>

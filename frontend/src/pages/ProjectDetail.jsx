@@ -18,7 +18,6 @@ const ProjectDetail = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [notification, setNotification] = useState(null);
-  const [departments, setDepartments] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
   const { format, symbol } = useCurrency();
 
@@ -41,17 +40,8 @@ const ProjectDetail = () => {
       deptMap[dName].balance_budget = deptMap[dName].budget_allocation - deptMap[dName].utilized_budget;
     });
 
-    // 2. Merge with Manual Allocations
-    const manualDepts = departments.filter(d => d.project_name === project.name);
-    manualDepts.forEach(md => {
-      if (!deptMap[md.name]) {
-        deptMap[md.name] = { name: md.name, roll_alloc: 0, roll_util: 0, budget_allocation: 0, utilized_budget: 0 };
-      }
-      deptMap[md.name].manual_alloc = md.budget_allocation;
-    });
-
     return Object.values(deptMap);
-  }, [project, subCategories, departments]);
+  }, [project, subCategories]);
 
   const budgetStats = useMemo(() => {
     const totalAlloc = projectDepts.reduce((sum, d) => sum + (d.roll_alloc || 0), 0);
@@ -91,9 +81,6 @@ const ProjectDetail = () => {
       const logRes = await API.get(`/audit-logs?entity_id=${projRes.data.project_id}`);
       setLogs(logRes.data);
       
-      // Fetch Departments for budget breakdown
-      const deptRes = await API.get('/departments/');
-      setDepartments(deptRes.data || []);
 
       // Fetch Sub-categories for roll-up budget
       const subRes = await API.get(`/project-sub-categories/${projRes.data.project_id}`);
@@ -261,11 +248,6 @@ const ProjectDetail = () => {
                           <tr key={dept.name} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
                             <td className="px-6 py-3.5 font-medium text-slate-800 dark:text-white">
                               {dept.name}
-                              {dept.manual_alloc !== undefined && dept.manual_alloc !== dept.roll_alloc && (
-                                <span className="ml-2 inline-block" title={`Manual allocation in Dept Master (${format(dept.manual_alloc)}) differs from Scope roll-up (${format(dept.roll_alloc)})`}>
-                                  <AlertCircle size={14} className="text-amber-500" />
-                                </span>
-                              )}
                             </td>
                             <td className="px-6 py-3.5 text-slate-600 dark:text-slate-400">{format(dept.roll_alloc || 0)}</td>
                             <td className="px-6 py-3.5 text-amber-600 font-medium">{format(dept.roll_util || 0)}</td>
