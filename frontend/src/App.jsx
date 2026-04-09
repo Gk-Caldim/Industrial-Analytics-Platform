@@ -21,6 +21,9 @@ import SystemSettings from './pages/Settings/SystemSettings';
 import BudgetUpload from './pages/Budget/BudgetUpload';
 import BudgetSummaryView from './pages/Budget/BudgetSummaryView';
 import ProjectDetail from './pages/ProjectDetail';
+import LandingPage from './pages/LandingPage';
+import PlatformPage from './pages/PlatformPage';
+import ImpactPage from './pages/ImpactPage';
 
 import { ThemeProvider } from './contexts/ThemeContext';
 import { useDispatch } from 'react-redux';
@@ -101,7 +104,9 @@ function App() {
             <Route path="settings" element={<SystemSettings />} />
           </Route>
 
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/platform" element={<PlatformPage />} />
+          <Route path="/impact" element={<ImpactPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Router>

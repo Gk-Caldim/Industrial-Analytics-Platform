@@ -8,7 +8,7 @@ const LoginForm = ({ onLoginSuccess, onLoginStart }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, error: reduxError } = useSelector((state) => state.auth);
-  
+
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -44,7 +44,7 @@ const LoginForm = ({ onLoginSuccess, onLoginStart }) => {
         const { access_token, user } = response.data;
         dispatch(loginSuccess({ token: access_token, user }));
         console.log('Login success...');
-        
+
         if (onLoginSuccess) {
           onLoginSuccess();
         } else {
@@ -191,7 +191,7 @@ const LoginForm = ({ onLoginSuccess, onLoginStart }) => {
 
       {/* Footer with Company Information */}
       <div className="mt-10 pt-6 border-t border-slate-200">
-        
+
       </div>
     </div>
   );
