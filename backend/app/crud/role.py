@@ -105,14 +105,14 @@ def seed_default_roles(db: Session):
             "is_default": 1,
             "permissions": [
                 "Dashboard", "MOM", "Budget Master", "Upload Trackers",
-                "upload_tracker", "view_tracker"
+                "upload_tracker", "view_tracker", "view_budget"
             ]
         },
         {
             "name": "Employee", 
             "description": "Standard user access.", 
             "is_default": 1,
-            "permissions": ["Dashboard", "Budget Master", "view_tracker"]
+            "permissions": ["Dashboard", "Budget Master", "view_tracker", "view_budget"]
         }
     ]
     for r in default_roles:

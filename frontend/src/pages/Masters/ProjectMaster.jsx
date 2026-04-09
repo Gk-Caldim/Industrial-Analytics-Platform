@@ -1081,42 +1081,16 @@ const ProjectMaster = () => {
       .filter(Boolean);
   };
 
-  // Toggle structured permission
-  const togglePermission = (formType, field, employeeId, permissionType) => {
-    const setter = formType === 'new' ? setNewProject : setEditForm;
-    setter(prev => {
-      const list = [...(prev[field] || [])];
-      const index = list.findIndex(u => u.employeeId === employeeId);
-      if (index !== -1) {
-        list[index] = {
-          ...list[index],
-          permissions: {
-            ...list[index].permissions,
-            [permissionType]: !list[index].permissions[permissionType]
-          }
-        };
-      }
-      return { ...prev, [field]: list };
-    });
-  };
-
-  // Handle multi-select change with structured data
+  // Handle multi-select change with simple data structure
   const handleUserSelectChange = (formType, field, selected) => {
     const setter = formType === 'new' ? setNewProject : setEditForm;
-    const getter = formType === 'new' ? newProject : editForm;
-    
     const selectedIds = (selected || []).map(s => s.value);
-    const currentList = getter[field] || [];
     
-    // Keep existing permissions for already selected users, add new ones with defaults
-    const newList = selectedIds.map(id => {
-      const existing = currentList.find(u => u.employeeId === id);
-      if (existing) return existing;
-      return {
-        employeeId: id,
-        permissions: { ...defaultPermissions }
-      };
-    });
+    // Simply map to an array of objects with employeeId
+    const newList = selectedIds.map(id => ({
+      employeeId: id,
+      permissions: { ...defaultPermissions } // Defaults maintained internally
+    }));
     
     setter(prev => ({ ...prev, [field]: newList }));
     if (formType === 'new' && validationErrors[field]) {
@@ -1124,66 +1098,6 @@ const ProjectMaster = () => {
     }
   };
 
-  // Component to render permission table in modals
-  const renderPermissionTable = (formType, field, users) => {
-    if (!users || users.length === 0) return null;
-
-    return (
-      <div className="mt-4 overflow-hidden border border-slate-200 dark:border-slate-700 rounded-lg bg-slate-50 dark:bg-slate-900/40">
-        <table className="w-full text-xs text-left">
-          <thead className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold uppercase tracking-wider">
-            <tr>
-              <th className="px-3 py-2">Selected User</th>
-              <th className="px-2 py-2 text-center">View</th>
-              <th className="px-2 py-2 text-center">Edit</th>
-              <th className="px-2 py-2 text-center">Delete</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-            {users.map((user) => {
-              const emp = employeeList.find(e => String(e.employee_id || e.id) === String(user.employeeId));
-              const name = emp ? emp.name : user.employeeId;
-              
-              return (
-                <tr key={user.employeeId} className="hover:bg-slate-100/50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td className="px-3 py-2.5 font-medium text-slate-700 dark:text-slate-300">
-                    <div className="flex flex-col">
-                      <span>{name}</span>
-                      <span className="text-[10px] text-slate-400 font-mono">ID: {user.employeeId}</span>
-                    </div>
-                  </td>
-                  <td className="px-2 py-2.5 text-center">
-                    <input
-                      type="checkbox"
-                      checked={user.permissions?.view}
-                      onChange={() => togglePermission(formType, field, user.employeeId, 'view')}
-                      className="h-3.5 w-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
-                    />
-                  </td>
-                  <td className="px-2 py-2.5 text-center">
-                    <input
-                      type="checkbox"
-                      checked={user.permissions?.edit}
-                      onChange={() => togglePermission(formType, field, user.employeeId, 'edit')}
-                      className="h-3.5 w-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
-                    />
-                  </td>
-                  <td className="px-2 py-2.5 text-center">
-                    <input
-                      type="checkbox"
-                      checked={user.permissions?.delete}
-                      onChange={() => togglePermission(formType, field, user.employeeId, 'delete')}
-                      className="h-3.5 w-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
 
   // Render input fields
   const renderInput = (col, value, onChange, error, isModal = false) => {
@@ -1949,7 +1863,6 @@ const ProjectMaster = () => {
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
-                    {renderPermissionTable('new', 'manager', newProject.manager)}
                     {validationErrors.manager && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{validationErrors.manager}</p>}
                   </div>
                   {/* Team Lead */}
@@ -1968,7 +1881,6 @@ const ProjectMaster = () => {
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
-                    {renderPermissionTable('new', 'team_lead', newProject.team_lead)}
                   </div>
                 </div>
               </div>
@@ -2102,7 +2014,6 @@ const ProjectMaster = () => {
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
-                    {renderPermissionTable('edit', 'manager', editForm.manager)}
                     {validationErrors.manager && <p className="text-red-500 text-xs mt-1 flex items-center gap-1"><span>⚠</span>{validationErrors.manager}</p>}
                   </div>
                   {/* Team Lead */}
@@ -2121,7 +2032,6 @@ const ProjectMaster = () => {
                       menuPortalTarget={document.body}
                       menuPosition="fixed"
                     />
-                    {renderPermissionTable('edit', 'team_lead', editForm.team_lead)}
                   </div>
                 </div>
               </div>

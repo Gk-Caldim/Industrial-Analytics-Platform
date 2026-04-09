@@ -43,6 +43,8 @@ def update_sub_category(db: Session, sub_category_id: int, sub_category_data: Su
     if db_sub_category:
         update_dict = sub_category_data.dict(exclude_unset=True)
         for key, value in update_dict.items():
+            if key in ["id"]:
+                continue
             setattr(db_sub_category, key, value)
         db.commit()
         db.refresh(db_sub_category)

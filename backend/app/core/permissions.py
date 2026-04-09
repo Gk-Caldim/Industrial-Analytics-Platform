@@ -44,12 +44,15 @@ def check_permissions(required_permission: str):
             
         # 4. Validate permission
         permissions = role_obj.permissions or []
+        print(f"DEBUG_PERM: User={current_user.get('email')}, Role={current_role}, Required={required_permission}, HasPerm={required_permission in permissions}")
+        
         if required_permission not in permissions:
-            print(f"PERMISSION DENIED: User {current_user.get('email')} (Role: {current_role}) lacks '{required_permission}'.")
+            error_msg = f"Insufficient permissions for {current_user.get('email') or 'Unknown'}. Role '{current_role}' requires '{required_permission}' permission."
+            print(f"PERMISSION DENIED: {error_msg}")
             print(f"User Permissions: {permissions}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Insufficient permissions. Required: {required_permission}"
+                detail=error_msg
             )
             
         return True

@@ -59,6 +59,8 @@ const BudgetMaster = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [attachmentName, setAttachmentName] = useState(null);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
 
   // Revision Workflow State
@@ -191,8 +193,11 @@ const BudgetMaster = () => {
   useEffect(() => {
     if (selectedProject) {
       fetchBudgetData(selectedProject);
+      setUploadedFile(null);
     } else {
       setTableData([]);
+      setUploadedFile(null);
+      setAttachmentName(null);
     }
     setCurrentPage(1); // reset pagination
   }, [selectedProject]);
@@ -201,6 +206,13 @@ const BudgetMaster = () => {
     setLoading(true);
     try {
       const res = await API.get(`/budget/${encodeURIComponent(projectName)}`);
+      
+      if (res.data && res.data.attachment_name) {
+          setAttachmentName(res.data.attachment_name);
+      } else {
+          setAttachmentName(null);
+      }
+
       if (res.data && res.data.budget_data && res.data.budget_data.length > 0) {
         setTableData(res.data.budget_data.map((row, i) => ({
           ...row,
@@ -319,6 +331,23 @@ const BudgetMaster = () => {
     }
   };
 
+  const handleDownloadBudgetFile = async (projectName, fileName) => {
+    try {
+      const res = await API.get(`/budget/${encodeURIComponent(projectName)}/attachment`, {
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName || 'budget_master.xlsx');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      showNotification('No stored file found or failed to download', 'error');
+    }
+  };
+
   const showNotification = (message, type = 'success') => {
     setNotification({ show: true, message, type });
     setTimeout(() => setNotification({ show: false, message: '', type: '' }), 4000);
@@ -328,6 +357,7 @@ const BudgetMaster = () => {
     const file = e.target.files[0];
     if (!file) return;
     setIsParsing(true);
+    setUploadedFile(file);
 
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -450,14 +480,19 @@ const BudgetMaster = () => {
         return rowData;
       });
 
-      const payload = {
-        project_name: selectedProject,
-        overall_budget: parseFloat(overallBudget) || 0,
-        uploaded_by: user?.name || 'Admin',
-        budget_data: dataToSave
-      };
+      const formData = new FormData();
+      formData.append('project_name', selectedProject);
+      formData.append('overall_budget', parseFloat(overallBudget) || 0);
+      formData.append('uploaded_by', user?.name || 'Admin');
+      formData.append('budget_data', JSON.stringify(dataToSave));
+      
+      if (uploadedFile) {
+        formData.append('file', uploadedFile);
+      }
 
-      await API.post(`/budget/${encodeURIComponent(selectedProject)}`, payload);
+      await API.post(`/budget/${encodeURIComponent(selectedProject)}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
       showNotification('Budget data synchronized with Project Master');
     } catch (err) {
       showNotification('Synchronization failed', 'error');
@@ -515,6 +550,17 @@ const BudgetMaster = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          {attachmentName && (
+            <button
+               onClick={() => handleDownloadBudgetFile(selectedProject, attachmentName)}
+               className="flex items-center gap-2 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 transition-all font-medium text-slate-700 dark:text-slate-300"
+               title="Download stored Master Excel file"
+            >
+               <Download className="h-4 w-4" />
+               <span className="hidden xl:inline">Stored Excel</span>
+            </button>
+          )}
+
           <div className="relative group">
             <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
             <button className={`flex items-center gap-2 h-10 px-3 text-xs sm:text-sm border border-slate-300 dark:border-slate-600 rounded hover:bg-slate-50 dark:bg-slate-800/80 transition-all font-medium ${isParsing ? 'text-slate-400' : 'text-slate-700 dark:text-slate-300'}`}>

@@ -21,7 +21,9 @@ def get_project(db: Session, project_id: int):
 def update_project(db: Session, project_id: int, project_data: ProjectCreate):
     db_project = db.query(Project).filter(Project.id == project_id).first()
     if db_project:
-        for key, value in project_data.dict().items():
+        for key, value in project_data.dict(exclude_unset=True).items():
+            if key in ["id", "project_id"] and not value:
+                continue
             setattr(db_project, key, value)
         db.commit()
         db.refresh(db_project)

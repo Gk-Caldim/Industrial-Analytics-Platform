@@ -173,6 +173,10 @@ const ProjectTitleDashboard = () => {
   // Projects data
   const projects = useSelector(state => state.project.projects);
 
+  const { user: currentUser } = useSelector(state => state.auth);
+  const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'Super Admin';
+  const canSaveBudget = isAdmin || currentUser?.permissions?.includes('upload_budget');
+
   useEffect(() => {
     const loadProjects = async () => {
       try {
@@ -623,15 +627,32 @@ const ProjectTitleDashboard = () => {
   // Sync selected budget project with activeProject initially
   useEffect(() => {
     if (activeProject && activeProject.name) {
+      if (masterProjects && masterProjects.length > 0) {
+        const match = masterProjects.find(p => p.name.toLowerCase() === activeProject.name.toLowerCase());
+        if (match) {
+          setSelectedBudgetProject(match.name);
+          return;
+        }
+      }
       setSelectedBudgetProject(activeProject.name);
     }
-  }, [activeProject]);
+  }, [activeProject, masterProjects]);
 
   // Fetch budget table data when selectedBudgetProject changes
   useEffect(() => {
     const fetchBudget = async () => {
-      const targetProject = selectedBudgetProject || (activeProject ? activeProject.name : null);
+      let targetProject = selectedBudgetProject;
+      if (!targetProject && activeProject) {
+         if (masterProjects && masterProjects.length > 0) {
+            const match = masterProjects.find(p => p.name.toLowerCase() === activeProject.name.toLowerCase());
+            targetProject = match ? match.name : activeProject.name;
+         } else {
+            targetProject = activeProject.name;
+         }
+      }
+      
       if (!targetProject) return;
+      
       try {
         const { default: API } = await import('../utils/api');
         const response = await API.get(`/budget/${encodeURIComponent(targetProject)}`);
@@ -655,6 +676,42 @@ const ProjectTitleDashboard = () => {
 
           setBudgetTableData(bData);
           setBudgetCurrency(response.data.currency || '$');
+          
+          // Calculate summaryData automatically from Budget Master
+          if (bData.length > 1 && Array.isArray(bData[0])) {
+             const headers = bData[0];
+             const approvedIdx = headers.findIndex((h) => typeof h === 'string' && h.toLowerCase().includes('approved'));
+             const utilizedIdx = headers.findIndex((h) => typeof h === 'string' && h.toLowerCase().includes('utilized'));
+             const balanceIdx = headers.findIndex((h) => typeof h === 'string' && h.toLowerCase().includes('balance'));
+             
+             let tApproved = 0, tUtilized = 0, tBalance = 0;
+             bData.slice(1).forEach(row => {
+                const category = row[0] ? row[0].toString() : '';
+                if (!category.toLowerCase().startsWith('total')) {
+                   if (approvedIdx !== -1) {
+                      const val = parseFloat(String(row[approvedIdx]).replace(/[^0-9.-]+/g, ''));
+                      if (!isNaN(val)) tApproved += val;
+                   }
+                   if (utilizedIdx !== -1) {
+                      const val = parseFloat(String(row[utilizedIdx]).replace(/[^0-9.-]+/g, ''));
+                      if (!isNaN(val)) tUtilized += val;
+                   }
+                   if (balanceIdx !== -1) {
+                      const val = parseFloat(String(row[balanceIdx]).replace(/[^0-9.-]+/g, ''));
+                      if (!isNaN(val)) tBalance += val;
+                   }
+                }
+             });
+             
+             setSummaryData(prev => ({
+                ...prev,
+                budgetApproved: tApproved,
+                budgetUtilized: tUtilized,
+                budgetBalance: tBalance,
+                budgetOutlook: tApproved ? ((tUtilized / tApproved) * 100).toFixed(0) + '%' : '0%'
+             }));
+          }
+
         } else {
           // Reset to default
           setBudgetCurrency('$');
@@ -665,13 +722,74 @@ const ProjectTitleDashboard = () => {
             ['Revenue', '', '', '', '', '', '', ''],
             ['Total Revenue', '', '', '', '', '', '', '']
           ]);
+          setSummaryData(prev => ({
+             ...prev,
+             budgetApproved: '',
+             budgetUtilized: '',
+             budgetBalance: '',
+             budgetOutlook: ''
+          }));
         }
       } catch (error) {
         console.error('Error fetching budget data:', error);
       }
     };
     fetchBudget();
-  }, [selectedBudgetProject, activeProject]);
+  }, [selectedBudgetProject, activeProject, masterProjects]);
+
+  // Transform detailed budget table into a summarized version grouped by category
+  const summarizedBudgetData = useMemo(() => {
+    if (!budgetTableData || budgetTableData.length <= 1) return [];
+    
+    const headers = budgetTableData[0];
+    const categoryIdx = headers.findIndex(h => typeof h === 'string' && h.toLowerCase().includes('category'));
+    const approvedIdx = headers.findIndex(h => typeof h === 'string' && (h.toLowerCase().includes('approved') || h.toLowerCase().includes('estimated')));
+    const utilizedIdx = headers.findIndex(h => typeof h === 'string' && h.toLowerCase().includes('utilized'));
+    const balanceIdx = headers.findIndex(h => typeof h === 'string' && h.toLowerCase().includes('balance'));
+
+    if (categoryIdx === -1) return [];
+
+    const summary = {};
+    budgetTableData.slice(1).forEach(row => {
+      let category = row[categoryIdx] ? String(row[categoryIdx]).trim() : 'Others';
+      
+      // Skip rows that are already summary/total rows in the source to avoid double aggregation
+      if (category.toLowerCase().startsWith('total')) return;
+      if (!category || category === '') category = 'Others';
+
+      if (!summary[category]) {
+        summary[category] = { category, approved: 0, utilized: 0, balance: 0 };
+      }
+
+      if (approvedIdx !== -1) {
+        const val = parseFloat(String(row[approvedIdx]).replace(/[^0-9.-]+/g, ''));
+        if (!isNaN(val)) summary[category].approved += val;
+      }
+      if (utilizedIdx !== -1) {
+        const val = parseFloat(String(row[utilizedIdx]).replace(/[^0-9.-]+/g, ''));
+        if (!isNaN(val)) summary[category].utilized += val;
+      }
+      if (balanceIdx !== -1) {
+        const val = parseFloat(String(row[balanceIdx]).replace(/[^0-9.-]+/g, ''));
+        if (!isNaN(val)) summary[category].balance += val;
+      }
+    });
+
+    let result = Object.values(summary);
+    
+    // Add Grand Total row
+    if (result.length > 0) {
+      const grandTotal = result.reduce((acc, curr) => ({
+        category: 'Grand Total',
+        approved: acc.approved + curr.approved,
+        utilized: acc.utilized + curr.utilized,
+        balance: acc.balance + curr.balance
+      }), { category: 'Grand Total', approved: 0, utilized: 0, balance: 0 });
+      result.push(grandTotal);
+    }
+
+    return result;
+  }, [budgetTableData]);
 
   // Load submodule data from API
   const loadSubmoduleData = async (trackerId) => {
@@ -1855,6 +1973,11 @@ const ProjectTitleDashboard = () => {
     if (!showEditSummary) return null;
 
     const handleSave = async () => {
+      if (!canSaveBudget) {
+        console.error('Permission Denied: User does not have upload_budget permission');
+        return;
+      }
+
       if (editType === 'budgetTable') {
         const calculatedForm = calculateBudgetTable(budgetTableForm);
         const targetProject = modalProjectName.trim() || selectedBudgetProject || (activeProject ? activeProject.name : null);
@@ -1870,7 +1993,7 @@ const ProjectTitleDashboard = () => {
               budget_data: calculatedForm
             });
 
-            // 2. Sync to Project Master Database
+            // 2. Save Budget Summary to DB and update Project Master
             const existingMaster = masterProjects.find(p => p.name === targetProject);
             if (existingMaster) {
               await API.put(`/projects/${existingMaster.id}`, {
@@ -1899,6 +2022,9 @@ const ProjectTitleDashboard = () => {
             setBudgetTableData(calculatedForm);
             setShowSaveNotification(true);
             setTimeout(() => setShowSaveNotification(false), 3000);
+            
+            // Re-fetch budget to ensure UI is in sync with DB
+            await fetchBudget();
           } catch (error) {
             console.error('Error saving budget/project data to backend:', error);
           }
@@ -2080,7 +2206,7 @@ const ProjectTitleDashboard = () => {
 
             <div style={{ padding: '16px 24px', borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'flex-end', gap: '12px', backgroundColor: 'white' }}>
               <button onClick={() => setShowEditSummary(false)} style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#475569', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
-              <button onClick={handleSave} style={{ padding: '10px 20px', borderRadius: '6px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Save Changes</button>
+              <button onClick={handleSave} style={{ padding: '10px 20px', borderRadius: '6px', backgroundColor: '#1e3a5f', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>Save Budget</button>
             </div>
           </div>
         </div>
@@ -3088,7 +3214,7 @@ const ProjectTitleDashboard = () => {
       {showSaveNotification && (
         <div style={{ position: 'fixed', bottom: '30px', right: '30px', backgroundColor: '#10b981', color: 'white', padding: '16px 24px', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', gap: '10px', zIndex: 9999, transition: 'opacity 0.3s ease' }}>
           <span style={{ fontSize: '18px', fontWeight: 'bold' }}>✓</span>
-          <span style={{ fontWeight: '600', fontSize: '15px' }}>Changes saved to Budget Summary</span>
+          <span style={{ fontWeight: '600', fontSize: '15px' }}>Budget Summary Saved & Master Updated Successfully</span>
         </div>
       )}
 
@@ -3771,54 +3897,58 @@ const ProjectTitleDashboard = () => {
                                   {masterProjects.find(p => p.name === selectedBudgetProject)?.status || activeProject?.status || 'Active'}
                                 </span>
                               </div>
-                              <button
-                                onClick={() => {
-                                  const currentName = selectedBudgetProject || activeProject?.name || '';
-                                  const currentStatus = masterProjects.find(p => p.name === currentName)?.status || activeProject?.status || 'Active';
-                                  setModalProjectName(currentName);
-                                  setModalProjectStatus(currentStatus);
-                                  setEditType('budgetTable');
-                                  setBudgetTableForm([...budgetTableData]);
-                                  setShowEditSummary(true);
-                                }}
-                                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '6px', border: '1px solid #3b82f6', backgroundColor: '#ffffff', color: '#3b82f6', fontWeight: '700', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-                                onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; }}
-                                onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#ffffff'; }}
-                              >
-                                <Edit size={16} /> Edit
-                              </button>
+                                {canSaveBudget && (
+                                  <button
+                                    onClick={() => {
+                                      const currentName = selectedBudgetProject || activeProject?.name || '';
+                                      const currentStatus = masterProjects.find(p => p.name === currentName)?.status || activeProject?.status || 'Active';
+                                      setModalProjectName(currentName);
+                                      setModalProjectStatus(currentStatus);
+                                      setEditType('budgetTable');
+                                      setBudgetTableForm([...budgetTableData]);
+                                      setShowEditSummary(true);
+                                    }}
+                                    style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 16px', borderRadius: '6px', border: '1px solid #3b82f6', backgroundColor: '#ffffff', color: '#3b82f6', fontWeight: '700', fontSize: '14px', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                                    onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; }}
+                                    onMouseOut={(e) => { e.currentTarget.style.backgroundColor = '#ffffff'; }}
+                                  >
+                                    <Edit size={16} /> Edit Budget
+                                  </button>
+                                )}
                             </div>
                           </div>
                           <div style={{ padding: '24px 20px', backgroundColor: '#ffffff' }}>
-                            {budgetTableData && budgetTableData.length > 0 ? (
+                            {summarizedBudgetData && summarizedBudgetData.length > 0 ? (
                               <div style={{ borderRadius: '8px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                                <table style={{ minWidth: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                                <table style={{ minWidth: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
                                   <thead style={{ backgroundColor: '#f8fafc' }}>
                                     <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
-                                      {budgetTableData[0].map((h, i) => (
-                                        <th key={i} style={{ padding: '12px 14px', color: '#475569', fontWeight: 'bold', whiteSpace: 'nowrap' }}>
-                                          {h}
-                                        </th>
-                                      ))}
+                                      <th style={{ padding: '14px 20px', color: '#475569', fontWeight: 'bold' }}>Category</th>
+                                      <th style={{ padding: '14px 20px', color: '#475569', fontWeight: 'bold', textAlign: 'right' }}>Estimated</th>
+                                      <th style={{ padding: '14px 20px', color: '#475569', fontWeight: 'bold', textAlign: 'right' }}>Utilized</th>
+                                      <th style={{ padding: '14px 20px', color: '#475569', fontWeight: 'bold', textAlign: 'right' }}>Balance</th>
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {budgetTableData.slice(1).map((row, idx) => {
-                                      const isTotal = row[0] && row[0].toString().startsWith('Total');
-                                      const isCategory = row[0] && (row[0] === 'CAPEX' || row[0] === 'Revenue');
-                                      const fw = isTotal || isCategory ? 'bold' : 'normal';
-                                      const color = isTotal ? '#1e3a5f' : '#475569';
+                                    {summarizedBudgetData.map((row, idx) => {
+                                      const isGrandTotal = row.category === 'Grand Total';
+                                      const bg = isGrandTotal ? '#f1f5f9' : 'white';
+                                      const fw = isGrandTotal ? 'bold' : 'normal';
+                                      const color = isGrandTotal ? '#1e3a5f' : '#475569';
 
                                       return (
-                                        <tr key={idx} style={{ backgroundColor: 'white', borderBottom: '1px solid #f1f5f9' }}>
-                                          {row.map((cell, colIdx) => {
-                                            const isAmount = colIdx >= 2; // Data columns are amounts
-                                            return (
-                                              <td key={colIdx} style={{ padding: '14px', fontWeight: fw, color: color }}>
-                                                {isAmount ? format(parseNum(cell)) : cell}
-                                              </td>
-                                            );
-                                          })}
+                                        <tr key={idx} style={{ backgroundColor: bg, borderBottom: '1px solid #f1f5f9' }}>
+                                          <td style={{ padding: '14px 20px', fontWeight: fw, color: color }}>{row.category}</td>
+                                          <td style={{ padding: '14px 20px', fontWeight: fw, color: color, textAlign: 'right' }}>{format(row.approved)}</td>
+                                          <td style={{ padding: '14px 20px', fontWeight: fw, color: color, textAlign: 'right' }}>{format(row.utilized)}</td>
+                                          <td style={{ padding: '14px 20px', fontWeight: fw, color: color, textAlign: 'right' }}>
+                                            <span style={{ 
+                                              color: row.balance < 0 ? '#ef4444' : isGrandTotal ? '#1e3a5f' : '#10b981',
+                                              fontWeight: 'bold'
+                                            }}>
+                                              {format(row.balance)}
+                                            </span>
+                                          </td>
                                         </tr>
                                       )
                                     })}

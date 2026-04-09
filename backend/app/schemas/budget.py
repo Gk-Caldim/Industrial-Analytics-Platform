@@ -15,5 +15,6 @@ class BudgetSummaryCreate(BudgetSummaryBase):
 class BudgetSummaryResponse(BudgetSummaryBase):
     id: int
     updated_at: Optional[datetime] = None
+    attachment_name: Optional[str] = None
 
     model_config = {"from_attributes": True}
