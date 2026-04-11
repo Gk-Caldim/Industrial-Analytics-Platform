@@ -7,7 +7,7 @@ import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import '../utils/echarts-theme-v5'; // Register the v5 theme
 import ExcelTableViewer from '../components/ExcelTableViewer';
-import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings, Download, GripVertical, FolderOpen, Layers, Activity, Grid, List } from 'lucide-react';
+import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings, Download, GripVertical, FolderOpen, Layers, Activity, Grid, List, Bold, Italic, Underline, Eye, Paperclip } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import PdfPreviewModal from '../components/PdfPreviewModal';
@@ -2447,7 +2447,7 @@ const ProjectTitleDashboard = () => {
         }
       },
       toolbox: {
-        show: true,
+        show: isMaximized,
         right: '2%',
         top: '2%',
         feature: {
@@ -3256,7 +3256,7 @@ const ProjectTitleDashboard = () => {
       <div className="flex flex-col flex-1 w-full relative">
         {/* Header with navigation - ONLY show if activeProject is active so we don't duplicate titles */}
         {activeProject && (
-          <div className="bg-[#1e3a5f] text-white py-4 px-6 text-xl font-bold border-b-[3px] border-[#0f2b40] flex justify-between items-center shadow-md z-10 sticky top-0">
+          <div className="bg-[#1e3a5f] text-white py-4 px-6 text-xl font-bold border-b-[3px] border-[#0f2b40] flex justify-between items-center shadow-md z-30 sticky top-0">
             <div className="flex items-center gap-4 flex-1">
               <button
                 onClick={selectedSubmodule ? handleBackToProjectDashboard : handleBackToProjects}
@@ -3761,7 +3761,7 @@ const ProjectTitleDashboard = () => {
                       (activeProject?.submodules || []).some(sub => sub.id === key)
                   )
                 )) && (
-                    <div style={{ marginBottom: '40px' }}>
+                    <div style={{ marginBottom: '40px', paddingTop: '40px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px', gap: '6px' }}>
                         <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#1e3a5f', margin: 0, letterSpacing: '-0.02em', textAlign: 'center' }}>
                           Project Metrics Summary
@@ -4152,17 +4152,61 @@ const RichTextEditor = ({ value, onChange }) => {
   };
 
   return (
-    <div style={{ border: '1px solid #c0c0c0', borderRadius: '4px', overflow: 'hidden' }}>
-      <div style={{ backgroundColor: '#f8fafc', padding: '6px', borderBottom: '1px solid #e2e8f0', display: 'flex', gap: '4px' }}>
-        <button type="button" onMouseDown={(e) => { e.preventDefault(); handleCommand('bold'); }} style={{ padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>B</button>
-        <button type="button" onMouseDown={(e) => { e.preventDefault(); handleCommand('italic'); }} style={{ padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer', fontStyle: 'italic' }}>I</button>
-        <button type="button" onMouseDown={(e) => { e.preventDefault(); handleCommand('underline'); }} style={{ padding: '4px 8px', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>U</button>
+    <div style={{ 
+      border: '1.5px solid #e2e8f0', 
+      borderRadius: '12px', 
+      overflow: 'hidden',
+      transition: 'all 0.2s ease',
+      backgroundColor: 'white'
+    }}
+    onFocus={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
+    onBlur={(e) => e.currentTarget.style.borderColor = '#e2e8f0'}
+    >
+      <div style={{ 
+        backgroundColor: '#f8fafc', 
+        padding: '8px 12px', 
+        borderBottom: '1px solid #e2e8f0', 
+        display: 'flex', 
+        gap: '6px' 
+      }}>
+        <button 
+          type="button" 
+          onMouseDown={(e) => { e.preventDefault(); handleCommand('bold'); }} 
+          style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          className="hover:bg-gray-200 transition-colors"
+        >
+          <Bold size={16} color="#1e3a5f" />
+        </button>
+        <button 
+          type="button" 
+          onMouseDown={(e) => { e.preventDefault(); handleCommand('italic'); }} 
+          style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          className="hover:bg-gray-200 transition-colors"
+        >
+          <Italic size={16} color="#1e3a5f" />
+        </button>
+        <button 
+          type="button" 
+          onMouseDown={(e) => { e.preventDefault(); handleCommand('underline'); }} 
+          style={{ padding: '6px', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          className="hover:bg-gray-200 transition-colors"
+        >
+          <Underline size={16} color="#1e3a5f" />
+        </button>
       </div>
       <div
         ref={editorRef}
         contentEditable
         onInput={(e) => onChange(e.currentTarget.innerHTML)}
-        style={{ padding: '12px', minHeight: '100px', outline: 'none', fontSize: '13px', backgroundColor: 'white' }}
+        style={{ 
+          padding: '16px', 
+          minHeight: '120px', 
+          outline: 'none', 
+          fontSize: '14px', 
+          lineHeight: '1.5',
+          backgroundColor: 'transparent',
+          color: '#334155'
+        }}
       />
     </div>
   );
@@ -4221,21 +4265,32 @@ const RecipientInput = ({ label, type, emails, onUpdate, allEmployees, disabledE
   ).slice(0, 50) || [];
 
   return (
-    <div style={{ marginBottom: '12px' }}>
-      <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>{label}</label>
+    <div style={{ marginBottom: '16px' }}>
+      {label && <label style={{ display: 'block', marginBottom: '6px', fontWeight: '700', color: '#1e3a5f', fontSize: '13px', letterSpacing: '0.025em' }}>{label}</label>}
       <div
         style={{
           display: 'flex',
           flexWrap: 'wrap',
-          gap: '6px',
-          padding: '6px 8px',
-          border: '1px solid #c0c0c0',
-          borderRadius: '4px',
-          backgroundColor: 'white',
-          minHeight: '34px',
+          gap: '8px',
+          padding: '8px 12px',
+          border: '1.5px solid #e2e8f0',
+          borderRadius: '12px',
+          backgroundColor: '#f8fafc',
+          minHeight: '44px',
           alignItems: 'center',
           position: 'relative',
-          cursor: 'text'
+          cursor: 'text',
+          transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+        }}
+        onFocus={(e) => {
+          e.currentTarget.style.borderColor = '#3b82f6';
+          e.currentTarget.style.backgroundColor = 'white';
+          e.currentTarget.style.boxShadow = '0 0 0 4px rgba(59, 130, 246, 0.1)';
+        }}
+        onBlur={(e) => {
+          e.currentTarget.style.borderColor = '#e2e8f0';
+          e.currentTarget.style.backgroundColor = '#f8fafc';
+          e.currentTarget.style.boxShadow = 'none';
         }}
         onClick={() => inputRef.current?.focus()}
       >
@@ -4243,28 +4298,39 @@ const RecipientInput = ({ label, type, emails, onUpdate, allEmployees, disabledE
           <div key={`${type}-${index}`} style={{
             display: 'flex',
             alignItems: 'center',
-            backgroundColor: '#e2e8f0',
-            padding: '2px 8px',
+            backgroundColor: '#1e3a5f',
+            padding: '4px 10px',
             borderRadius: '12px',
             fontSize: '12px',
-            color: '#1e3a5f'
-          }}>
+            fontWeight: '600',
+            color: 'white',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+            transition: 'transform 0.1s ease'
+          }}
+          className="hover:scale-105"
+          >
             <span>{email}</span>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); handleRemove(index); }}
               style={{
-                background: 'none',
+                background: 'rgba(255,255,255,0.2)',
                 border: 'none',
-                marginLeft: '4px',
+                marginLeft: '6px',
                 cursor: 'pointer',
-                color: '#64748b',
-                fontWeight: 'bold',
-                fontSize: '14px',
-                padding: '0 2px'
+                color: 'white',
+                width: '18px',
+                height: '18px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                transition: 'background 0.2s'
               }}
+              className="hover:bg-white/40"
             >
-              ×
+              <X size={10} />
             </button>
           </div>
         ))}
@@ -4279,12 +4345,14 @@ const RecipientInput = ({ label, type, emails, onUpdate, allEmployees, disabledE
           onFocus={() => setShowDropdown(true)}
           onKeyDown={handleKeyDown}
           onBlur={() => {
-            if (inputValue.trim() && inputValue.includes('@')) {
-              handleAdd(inputValue.trim());
-            } else {
-              setShowDropdown(false);
-              setInputValue('');
-            }
+            setTimeout(() => {
+              if (inputValue.trim() && inputValue.includes('@')) {
+                handleAdd(inputValue.trim());
+              } else {
+                setShowDropdown(false);
+                setInputValue('');
+              }
+            }, 200);
           }}
           placeholder={emails.length === 0 ? "Enter email address or search employee..." : ""}
           style={{
@@ -4293,12 +4361,13 @@ const RecipientInput = ({ label, type, emails, onUpdate, allEmployees, disabledE
             border: 'none',
             outline: 'none',
             fontSize: '13px',
-            backgroundColor: 'transparent'
+            backgroundColor: 'transparent',
+            color: '#1e3a5f'
           }}
         />
 
         {errorMsg && (
-          <div style={{ position: 'absolute', bottom: '-18px', left: 0, color: '#ef4444', fontSize: '11px', fontWeight: 'bold' }}>
+          <div style={{ position: 'absolute', bottom: '-20px', left: '12px', color: '#ef4444', fontSize: '11px', fontWeight: '700' }}>
             {errorMsg}
           </div>
         )}
@@ -4307,17 +4376,18 @@ const RecipientInput = ({ label, type, emails, onUpdate, allEmployees, disabledE
         {showDropdown && filteredEmployees.length > 0 && (
           <div style={{
             position: 'absolute',
-            top: '100%',
+            top: 'calc(100% + 8px)',
             left: 0,
             right: 0,
             backgroundColor: 'white',
-            border: '1px solid #e0e0e0',
-            borderRadius: '4px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            marginTop: '4px',
-            maxHeight: '180px',
+            border: '1px solid #e2e8f0',
+            borderRadius: '16px',
+            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+            marginTop: '0',
+            maxHeight: '220px',
             overflowY: 'auto',
-            zIndex: 20
+            zIndex: 100,
+            overflowX: 'hidden'
           }}>
             {filteredEmployees.map(contact => {
               const isDisabled = disabledEmails.includes(contact.email) || emails.includes(contact.email);
@@ -4331,19 +4401,37 @@ const RecipientInput = ({ label, type, emails, onUpdate, allEmployees, disabledE
                     }
                   }}
                   style={{
-                    padding: '8px 15px',
+                    padding: '10px 16px',
                     cursor: isDisabled ? 'not-allowed' : 'pointer',
-                    borderBottom: '1px solid #f3f4f6',
+                    borderBottom: '1px solid #f1f5f9',
                     display: 'flex',
-                    flexDirection: 'column',
-                    opacity: isDisabled ? 0.4 : 1,
-                    backgroundColor: isDisabled ? '#f8fafc' : 'white'
+                    alignItems: 'center',
+                    gap: '12px',
+                    opacity: isDisabled ? 0.5 : 1,
+                    backgroundColor: isDisabled ? 'transparent' : 'white',
+                    transition: 'all 0.2s ease'
                   }}
-                  onMouseEnter={(e) => { if (!isDisabled) e.currentTarget.style.backgroundColor = '#f0f7ff'; }}
+                  onMouseEnter={(e) => { if (!isDisabled) e.currentTarget.style.backgroundColor = '#f8fafc'; }}
                   onMouseLeave={(e) => { if (!isDisabled) e.currentTarget.style.backgroundColor = 'white'; }}
                 >
-                  <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#1e3a5f' }}>{contact.name || 'Unknown Name'}</span>
-                  <span style={{ fontSize: '11px', color: '#6b7280' }}>{contact.email} • {contact.department || 'No Dept'}</span>
+                  <div style={{ 
+                    width: '32px', 
+                    height: '32px', 
+                    borderRadius: '50%', 
+                    backgroundColor: '#1e3a5f', 
+                    color: 'white', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    fontSize: '12px',
+                    fontWeight: '700'
+                  }}>
+                    {(contact.name || 'U').charAt(0)}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontWeight: '700', fontSize: '13px', color: '#1e3a5f' }}>{contact.name || 'Unknown Name'}</span>
+                    <span style={{ fontSize: '11px', color: '#64748b' }}>{contact.email} • {contact.department || 'No Dept'}</span>
+                  </div>
                 </div>
               )
             })}
@@ -4390,7 +4478,7 @@ const EmailModal = ({
 
   const allSelected = availableSectionKeys.every(key => emailData.selectedSections[key]);
 
-  const handleSelectAll = () => {
+  const handleSelectAllVisibility = () => {
     const newState = !allSelected;
     const updatedSections = {};
     Object.keys(emailData.selectedSections).forEach(key => {
@@ -4410,299 +4498,286 @@ const EmailModal = ({
   };
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      backgroundColor: 'rgba(0,0,0,0.5)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      zIndex: 2000,
-      padding: '20px'
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: '8px',
-        width: '700px',
-        maxWidth: '100%',
-        maxHeight: '90vh',
-        display: 'flex',
-        flexDirection: 'column',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
-        overflow: 'hidden'
-      }}>
+    <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[2000] p-4">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden"
+      >
         {/* Header */}
-        <div style={{
-          backgroundColor: '#1e3a5f',
-          color: 'white',
-          padding: '15px 20px',
-          fontSize: '18px',
-          fontWeight: 'bold',
-          borderBottom: '1px solid #2c4c7c',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexShrink: 0
-        }}>
-          <span>Send Project Dashboard Summary</span>
+        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-start bg-slate-50">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl shadow-sm">
+              <Mail size={20} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-800 m-0 tracking-tight leading-tight">Send Project Report</h2>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs font-medium text-slate-500">Target Workspace</span>
+                <span className="text-[11px] font-bold text-blue-700 bg-blue-50 border border-blue-200/50 px-2 py-0.5 rounded-md tracking-wide">
+                  {activeProject?.name}
+                </span>
+              </div>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'white',
-              fontSize: '20px',
-              cursor: 'pointer',
-              padding: '0 5px'
-            }}
+            className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-200"
           >
-            ×
+            <X size={20} />
           </button>
         </div>
 
-        {/* Scrollable Content */}
-        <div style={{
-          padding: '20px',
-          overflowY: 'auto',
-          flex: 1
-        }}>
-          <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '15px' }}>
-            Email the dashboard summary for <span style={{ fontWeight: 'bold', color: '#1e3a5f' }}>{activeProject?.name}</span>.
-          </p>
-
+        {/* Scrollable Body */}
+        <div className="p-6 overflow-y-auto space-y-6">
           {formError && (
-            <div style={{ padding: '10px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: '4px', marginBottom: '15px', fontSize: '13px', fontWeight: 'bold' }}>
+            <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-bold flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-xs">!</span>
               {formError}
             </div>
           )}
 
-          {/* To, CC, BCC fields */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '4px' }}>
-            <label style={{ fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>To: <span style={{ color: '#ef4444' }}>*</span></label>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              {!showCc && <button style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '12px', cursor: 'pointer', padding: 0 }} onClick={() => setShowCc(true)}>Add CC</button>}
-              {!showBcc && <button style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '12px', cursor: 'pointer', padding: 0 }} onClick={() => setShowBcc(true)}>Add BCC</button>}
+          {/* Recipients Row */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-4">
+              <RecipientInput
+                label="To"
+                type="to"
+                emails={emailData.emailInputs}
+                onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, emailInputs: newEmails }))}
+                allEmployees={allEmployees}
+                disabledEmails={[...emailData.ccInputs, ...emailData.bccInputs]}
+              />
+              
+              <div className="flex gap-4">
+                {!showCc && (
+                  <button onClick={() => setShowCc(true)} className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors">+ Add Cc</button>
+                )}
+                {!showBcc && (
+                  <button onClick={() => setShowBcc(true)} className="text-xs font-bold text-blue-600 hover:text-blue-700 transition-colors">+ Add Bcc</button>
+                )}
+              </div>
+
+              {showCc && (
+                <RecipientInput
+                  label="Cc"
+                  type="cc"
+                  emails={emailData.ccInputs}
+                  onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, ccInputs: newEmails }))}
+                  allEmployees={allEmployees}
+                  disabledEmails={[...emailData.emailInputs, ...emailData.bccInputs]}
+                />
+              )}
+
+              {showBcc && (
+                <RecipientInput
+                  label="Bcc"
+                  type="bcc"
+                  emails={emailData.bccInputs}
+                  onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, bccInputs: newEmails }))}
+                  allEmployees={allEmployees}
+                  disabledEmails={[...emailData.emailInputs, ...emailData.ccInputs]}
+                />
+              )}
+            </div>
+
+            {/* Subject */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Subject</label>
+              <input
+                type="text"
+                value={emailData.subject}
+                onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
+                placeholder="Enter report subject..."
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+              />
+            </div>
+
+            {/* Message */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Message (Optional)</label>
+              <RichTextEditor
+                value={emailData.message}
+                onChange={(html) => setEmailData(prev => ({ ...prev, message: html }))}
+              />
             </div>
           </div>
-          <RecipientInput
-            label=""
-            type="email"
-            emails={emailData.emailInputs.filter(e => e.trim() !== '')}
-            disabledEmails={[...emailData.ccInputs.filter(e => e.trim() !== ''), ...emailData.bccInputs.filter(e => e.trim() !== '')]}
-            onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, emailInputs: newEmails }))}
-            allEmployees={allEmployees}
-          />
-          {showCc && (
-            <RecipientInput
-              label="CC:"
-              type="cc"
-              emails={emailData.ccInputs.filter(e => e.trim() !== '')}
-              disabledEmails={[...emailData.emailInputs.filter(e => e.trim() !== ''), ...emailData.bccInputs.filter(e => e.trim() !== '')]}
-              onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, ccInputs: newEmails }))}
-              allEmployees={allEmployees}
-            />
-          )}
-          {showBcc && (
-            <RecipientInput
-              label="BCC:"
-              type="bcc"
-              emails={emailData.bccInputs.filter(e => e.trim() !== '')}
-              disabledEmails={[...emailData.emailInputs.filter(e => e.trim() !== ''), ...emailData.ccInputs.filter(e => e.trim() !== '')]}
-              onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, bccInputs: newEmails }))}
-              allEmployees={allEmployees}
-            />
-          )}
 
-
-          {/* Subject */}
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>Subject:</label>
-            <input
-              type="text"
-              value={emailData.subject}
-              onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
-              style={{
-                width: '100%',
-                padding: '6px 8px',
-                border: '1px solid #c0c0c0',
-                borderRadius: '4px',
-                fontSize: '13px'
-              }}
-            />
+          {/* Attachments Section */}
+          <div className="space-y-3">
+             <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Attachments</label>
+             <div className="flex flex-wrap gap-3">
+                {emailData.includePdf ? (
+                  <div className="inline-flex items-center gap-3 bg-blue-50/50 border border-blue-100 px-4 py-2.5 rounded-xl text-sm font-semibold text-blue-700 shadow-sm">
+                    <Paperclip className="h-4 w-4 text-blue-500" />
+                    <span className="max-w-[200px] truncate">{activeProject?.name || 'Project'}_Report.pdf</span>
+                    <button
+                      type="button"
+                      onClick={() => setEmailData(prev => ({ ...prev, includePdf: false }))}
+                      className="text-blue-400 hover:text-red-500 transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEmailData(prev => ({ ...prev, includePdf: true }))}
+                    className="flex items-center gap-2 px-4 py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 text-sm font-bold hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all"
+                  >
+                    <Plus size={16} /> Attach Dashboard PDF
+                  </button>
+                )}
+             </div>
           </div>
 
-          {/* Message */}
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>Message (Optional):</label>
-            <RichTextEditor
-              value={emailData.message}
-              onChange={(html) => setEmailData(prev => ({ ...prev, message: html }))}
-            />
-          </div>
-
-          {/* Attachments */}
-          <div style={{ marginBottom: '12px' }}>
-            <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>Attachments:</label>
-            {emailData.includePdf ? (
-              <div style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: '#f1f5f9', padding: '6px 12px', borderRadius: '20px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#334155' }}>
-                <span style={{ marginRight: '6px', fontSize: '14px' }}>📎</span> {activeProject?.name || 'Project'}_Dashboard_Report.pdf (Auto-generated)
-                <button
-                  type="button"
-                  onClick={() => setEmailData(prev => ({ ...prev, includePdf: false }))}
-                  style={{ background: 'none', border: 'none', marginLeft: '8px', cursor: 'pointer', color: '#ef4444', fontWeight: 'bold', fontSize: '14px', padding: '0' }}
-                >
-                  ×
-                </button>
+          {/* Grouped Section Selection */}
+          <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 space-y-6">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 bg-white border border-slate-200 rounded-lg shadow-sm text-slate-600">
+                  <Grid size={16} />
+                </div>
+                <h3 className="text-sm font-bold text-slate-800 m-0">Included Sections</h3>
               </div>
-            ) : (
               <button
-                type="button"
-                onClick={() => setEmailData(prev => ({ ...prev, includePdf: true }))}
-                style={{ background: 'none', border: '1px dashed #c0c0c0', borderRadius: '4px', padding: '6px 12px', cursor: 'pointer', color: '#1e3a5f', fontSize: '12px', fontWeight: 'bold' }}
-              >
-                + Attach Dashboard PDF
-              </button>
-            )}
-          </div>
-
-          {/* Section selection */}
-          <div style={{ marginBottom: '12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-              <label style={{ fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>Select Sections to Include:</label>
-              <button
-                onClick={handleSelectAll}
-                style={{
-                  padding: '2px 8px',
-                  fontSize: '11px',
-                  borderRadius: '4px',
-                  border: '1px solid #1e3a5f',
-                  backgroundColor: allSelected ? '#1e3a5f' : 'white',
-                  color: allSelected ? 'white' : '#1e3a5f',
-                  cursor: 'pointer'
-                }}
+                onClick={handleSelectAllVisibility}
+                className={`px-4 py-2 text-xs font-bold rounded-lg transition-all border ${
+                  allSelected 
+                    ? 'bg-slate-800 text-white border-slate-800 hover:bg-slate-700' 
+                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                }`}
               >
                 {allSelected ? 'Deselect All' : 'Select All'}
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-              {/* Default Sections */}
-              {[
-                { id: 'milestones', label: 'Milestones' },
-                { id: 'criticalIssues', label: 'Critical Issues' },
-                { id: 'budget', label: 'Budget Summary' },
-                { id: 'resource', label: 'Resource Summary' },
-                { id: 'quality', label: 'Quality Summary' },
-                { id: 'design', label: 'Design' },
-                { id: 'partDevelopment', label: 'Part Development' },
-                { id: 'build', label: 'Build' },
-                { id: 'gateway', label: 'Gateway' },
-                { id: 'validation', label: 'Validation' },
-                { id: 'qualityIssues', label: 'Quality Issues' },
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Overview Group */}
+              <div>
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3 border-b border-slate-200/60 pb-1.5">Overview</h4>
+                <div className="space-y-2">
+                  {[
+                    { id: 'milestones', label: 'Milestones' },
+                    { id: 'criticalIssues', label: 'Critical Issues' }
+                  ].map(item => (
+                    <label key={item.id} className="flex items-center gap-3 p-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 cursor-pointer hover:border-blue-200 hover:bg-blue-50/30 transition-all shadow-sm">
+                      <input
+                        type="checkbox"
+                        checked={emailData.selectedSections[item.id]}
+                        onChange={() => handleSectionToggle(item.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                      {item.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
 
-              ].filter(section => {
-                const metricKeys = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
-                if (metricKeys.includes(section.id)) return availablePhases[section.id];
-                return true;
-              }).map(section => (
-                <label key={section.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={emailData.selectedSections[section.id] || false}
-                    onChange={() => handleSectionToggle(section.id)}
-                  />
-                  {section.label}
-                </label>
-              ))}
+              {/* Summary Cards Group */}
+              <div>
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3 border-b border-slate-200/60 pb-1.5">Summary Cards</h4>
+                <div className="space-y-2">
+                  {[
+                    { id: 'budget', label: 'Budget Summary' },
+                    { id: 'resource', label: 'Resource Summary' },
+                    { id: 'quality', label: 'Quality Summary' }
+                  ].map(item => (
+                    <label key={item.id} className="flex items-center gap-3 p-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 cursor-pointer hover:border-blue-200 hover:bg-blue-50/30 transition-all shadow-sm">
+                      <input
+                        type="checkbox"
+                        checked={emailData.selectedSections[item.id]}
+                        onChange={() => handleSectionToggle(item.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                      {item.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
 
-              {/* Dynamic Trackers */}
-              {(activeProject?.submodules || []).filter(sub => {
-                const defaultIds = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
-                const coveredByDefault = defaultIds.some(id => {
-                  const tracker = getTrackerForPhase(id);
-                  return tracker && tracker.id === sub.id;
-                });
-                return !coveredByDefault;
-              }).map(sub => (
-                <label key={sub.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={emailData.selectedSections[sub.id] || false}
-                    onChange={() => handleSectionToggle(sub.id)}
-                  />
-                  {sub.displayName || sub.name}
-                </label>
-              ))}
+              {/* Metrics & Trackers Group */}
+              <div className="md:col-span-2">
+                <h4 className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3 border-b border-slate-200/60 pb-1.5">Metrics & Trackers</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    { id: 'design', label: 'Design' },
+                    { id: 'partDevelopment', label: 'Part Development' },
+                    { id: 'build', label: 'Build' },
+                    { id: 'gateway', label: 'Gateway' },
+                    { id: 'validation', label: 'Validation' },
+                    { id: 'qualityIssues', label: 'Quality Issues' },
+                  ].filter(section => availablePhases[section.id]).map(section => (
+                    <label key={section.id} className="flex items-center gap-3 p-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 cursor-pointer hover:border-blue-200 hover:bg-blue-50/30 transition-all shadow-sm">
+                      <input
+                        type="checkbox"
+                        checked={emailData.selectedSections[section.id]}
+                        onChange={() => handleSectionToggle(section.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <span className="truncate">{section.label}</span>
+                    </label>
+                  ))}
+
+                  {/* Dynamic Trackers */}
+                  {(activeProject?.submodules || []).filter(sub => {
+                    const defaultIds = ['design', 'partDevelopment', 'build', 'gateway', 'validation', 'qualityIssues'];
+                    const coveredByDefault = defaultIds.some(id => {
+                      const tracker = getTrackerForPhase(id);
+                      return tracker && tracker.id === sub.id;
+                    });
+                    return !coveredByDefault;
+                  }).map(sub => (
+                    <label key={sub.id} className="flex items-center gap-3 p-2.5 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 cursor-pointer hover:border-blue-200 hover:bg-blue-50/30 transition-all shadow-sm">
+                      <input
+                        type="checkbox"
+                        checked={emailData.selectedSections[sub.id]}
+                        onChange={() => handleSectionToggle(sub.id)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                      <span className="truncate">{sub.displayName || sub.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-
-          {/* Action buttons */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', borderTop: '1px solid #e0e0e0', paddingTop: '15px' }}>
-            <button
-              onClick={onClose}
-              style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                borderRadius: '4px',
-                border: '1px solid #c0c0c0',
-                backgroundColor: 'white',
-                color: '#4b5563',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
-            >
-              Cancel
-            </button>
-
-            <button
-              onClick={onPreviewPdf}
-              style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                borderRadius: '4px',
-                border: '1px solid #1e3a5f',
-                backgroundColor: 'white',
-                color: '#1e3a5f',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              <Download className="h-4 w-4" />
-              Preview PDF
-            </button>
-
-            <button
-              onClick={() => {
-                const validToEmails = emailData.emailInputs.filter(e => e.trim() !== '');
-                if (validToEmails.length === 0) {
-                  setFormError('Please add at least one valid recipient to the "To" field.');
-                  return;
-                }
-                setFormError('');
-                handleSendEmail();
-              }}
-              style={{
-                padding: '10px 20px',
-                fontSize: '14px',
-                borderRadius: '4px',
-                border: 'none',
-                backgroundColor: '#1e3a5f',
-                color: 'white',
-                cursor: 'pointer',
-                fontWeight: 'bold'
-              }}
-            >
-              Send Email
-            </button>
-          </div>
         </div>
-      </div>
+        {/* Footer Actions */}
+        <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 text-sm font-semibold text-slate-600 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-sm"
+          >
+            Cancel
+          </button>
+          
+          <button
+            onClick={onPreviewPdf}
+            className="px-5 py-2.5 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-xl hover:bg-slate-50 transition-colors shadow-sm flex items-center gap-2"
+          >
+            <Eye size={16} />
+            Preview Summary
+          </button>
+
+          <button
+            onClick={() => {
+              const validToEmails = emailData.emailInputs.filter(e => e.trim() !== '');
+              if (validToEmails.length === 0) {
+                setFormError('Please add at least one valid recipient to the "To" field.');
+                return;
+              }
+              setFormError('');
+              handleSendEmail();
+            }}
+            className="px-6 py-2.5 text-sm font-semibold text-white bg-blue-600 border border-transparent rounded-xl hover:bg-blue-700 transition-colors shadow-sm flex items-center gap-2"
+          >
+            <Send size={18} />
+            Send Email
+          </button>
+        </div>
+      </motion.div>
     </div>
   );
 };
