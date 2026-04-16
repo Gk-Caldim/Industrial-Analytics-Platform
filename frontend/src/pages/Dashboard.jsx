@@ -10,7 +10,8 @@ import {
   setSelectedUploadFileId,
   setActiveProjectName,
   setSidebarCollapsed,
-  setBranding
+  setBranding,
+  triggerMailModal
 } from '../store/slices/navSlice';
 import { logout } from '../store/slices/authSlice';
 import {
@@ -96,6 +97,7 @@ const Dashboard = () => {
   const sidebarRef = useRef(null);
   const hoverTimeoutRef = useRef(null);
   const [profileMenuPosition, setProfileMenuPosition] = useState({ top: 0, right: 0 });
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
 
   // Masters submodules
   const mastersSubmodules = useMemo(() => [
@@ -156,7 +158,7 @@ const Dashboard = () => {
         API.get('/datasets/'),
         API.get('/budget/')
       ]);
-      
+
       const datasets = datasetsResp.data;
       const budgets = budgetsResp.data || [];
       const projectsWithBudget = new Set(budgets.map(b => capitalizeFirstLetter(b.project_name)));
@@ -523,12 +525,19 @@ const Dashboard = () => {
     return 'U';
   };
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   const getAvatarColor = () => {
     return 'bg-black';
   };
 
   const getActiveModuleName = () => {
-    if (activeModule === 'project-dashboard') return 'Project Dashboard';
+    if (activeModule === 'project-dashboard') return 'Dashboard';
     if (activeModule === 'masters-main') return 'Masters';
     if (activeModule === 'mom-module') return 'Minutes of Meeting';
     if (activeModule === 'meetings') return 'Meetings Console';
@@ -543,35 +552,19 @@ const Dashboard = () => {
   // FIXED: Get header title using context-specific selected file IDs
   // ==========================================================================
   const getHeaderTitle = () => {
-    if (activeModule === 'upload-trackers' && selectedUploadFileId) {
-      for (const proj of uploadTrackerModules) {
-        const file = proj.submodules?.find(s => s.trackerId === selectedUploadFileId);
-        if (file) {
-          // Use displayName which is now cleaned in loadDynamicModules
-          return file.displayName || capitalizeFirstLetter((file.name || '').replace(/\.(xlsx|xls|csv|json|txt)$/i, ''));
-        }
-      }
-      return 'Upload Trackers';
-    }
-    if (activeModule === 'project-dashboard' && selectedProjectFileId) {
-      for (const proj of projectDashboardModules) {
-        const file = proj.submodules?.find(s => s.trackerId === selectedProjectFileId);
-        if (file) {
-          // Use displayName which is now cleaned in loadDynamicModules
-          return file.displayName || capitalizeFirstLetter((file.name || '').replace(/\.(xlsx|xls|csv|json|txt)$/i, ''));
-        }
-      }
-    }
-    if (activeModule === 'project-dashboard' && activeProjectName) {
-      return `${capitalizeFirstLetter(activeProjectName)} Dashboard`;
-    }
+    if (location.pathname.includes('/meetings')) return 'Meetings';
+    if (location.pathname.includes('/schedule-meeting')) return 'Schedule Meeting';
+    if (location.pathname.includes('/mom')) return 'MOM';
+
+    if (activeModule === 'project-dashboard') return 'Dashboard';
+
     return getActiveModuleName();
   };
 
   // ==========================================================================
   // HANDLE MODULE CLICK - UPDATED to match Masters behavior
   // ==========================================================================
-    const handleModuleClick = (moduleId) => {
+  const handleModuleClick = (moduleId) => {
     dispatch(setActiveModule(moduleId));
 
     // Build path
@@ -597,21 +590,15 @@ const Dashboard = () => {
     }
 
     if (moduleId === 'project-dashboard') {
-      if (projectDashboardModules.length > 0 && !expandedModules['project-dashboard']) {
-        dispatch(setExpandedModules({ 'project-dashboard': true }));
-      }
+      dispatch(toggleExpansion('project-dashboard'));
     } else if (moduleId === 'masters-main') {
       dispatch(toggleExpansion('masters'));
     } else if (moduleId === 'uploads-main') {
       dispatch(toggleExpansion('uploads'));
     } else if (moduleId === 'mom-module') {
-      if (!expandedModules['mom']) {
-        dispatch(setExpandedModules({ 'mom': true }));
-      }
+      dispatch(toggleExpansion('mom'));
     } else if (moduleId === 'upload-trackers') {
-      if (uploadTrackerModules.length > 0 && !expandedModules['upload-trackers']) {
-        dispatch(setExpandedModules({ 'upload-trackers': true }));
-      }
+      dispatch(toggleExpansion('upload-trackers'));
     }
   };
 
@@ -872,13 +859,12 @@ const Dashboard = () => {
                 onMouseEnter={() => setHoveredModule('budget-upload')}
                 onMouseLeave={() => setHoveredModule(null)}
                 onClick={() => handleModuleClick('budget-upload')}
-                className={`w-full flex items-center space-x-3.5 rounded-lg px-3 py-2.5 transition-all duration-300 ${
-                  activeModule === 'budget-upload'
-                    ? 'bg-white/20 shadow-sm text-white'
-                    : hoveredModule === 'budget-upload'
-                      ? 'bg-white/15 shadow-sm text-white'
-                      : 'hover:bg-white/10 text-white'
-                }`}
+                className={`w-full flex items-center space-x-3.5 rounded-lg px-3 py-2.5 transition-all duration-300 ${activeModule === 'budget-upload'
+                  ? 'bg-white/20 shadow-sm text-white'
+                  : hoveredModule === 'budget-upload'
+                    ? 'bg-white/15 shadow-sm text-white'
+                    : 'hover:bg-white/10 text-white'
+                  }`}
               >
                 <div className="text-white">
                   <FileUp className="h-5 w-5" />
@@ -948,13 +934,12 @@ const Dashboard = () => {
               onMouseEnter={() => setHoveredModule('meetings')}
               onMouseLeave={() => setHoveredModule(null)}
               onClick={() => handleModuleClick('meetings')}
-              className={`w-full flex items-center space-x-3.5 rounded-lg px-3 py-2.5 transition-all duration-300 ${
-                activeModule === 'meetings'
-                  ? 'bg-white/20 shadow-sm text-white'
-                  : hoveredModule === 'meetings'
-                    ? 'bg-white/15 shadow-sm text-white'
-                    : 'hover:bg-white/10 text-white'
-              }`}
+              className={`w-full flex items-center space-x-3.5 rounded-lg px-3 py-2.5 transition-all duration-300 ${activeModule === 'meetings'
+                ? 'bg-white/20 shadow-sm text-white'
+                : hoveredModule === 'meetings'
+                  ? 'bg-white/15 shadow-sm text-white'
+                  : 'hover:bg-white/10 text-white'
+                }`}
             >
               <div className="text-white">
                 <Calendar className="h-5 w-5" />
@@ -1156,7 +1141,7 @@ const Dashboard = () => {
   const renderOtherModules = () => {
     return otherModules.filter(module => module.id !== 'upload-trackers').map((module, index) => {
       if (!hasPermission(module.name)) return null;
-      
+
       const isActive = activeModule === module.id;
       const isHovered = hoveredModule === module.id;
 
@@ -1221,6 +1206,8 @@ const Dashboard = () => {
         {/* Sidebar - Blue color from project dashboard header (#1e3a5f) */}
         <div
           ref={sidebarRef}
+          onMouseEnter={() => setIsSidebarHovered(true)}
+          onMouseLeave={() => setIsSidebarHovered(false)}
           className={`
             fixed lg:relative inset-y-0 left-0 z-30
             ${isSidebarExpanded ? 'w-60' : 'w-16'}
@@ -1228,16 +1215,24 @@ const Dashboard = () => {
             transform transition-all duration-200 ease-in-out lg:transform-none
             flex flex-col
             shadow-xl
-            relative overflow-hidden
+            relative overflow-visible
           `}
         >
-          {/* Subtle pattern overlay */}
-          <div className="absolute inset-0 pointer-events-none opacity-5"
-            style={{
-              backgroundImage: `radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.3) 0%, transparent 30%),
-                                   radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.3) 0%, transparent 30%)`
-            }}>
-          </div>
+          {/* Floating Toggle Button - Visible only on hover */}
+          <button
+            onClick={() => dispatch(setSidebarCollapsed(!sidebarCollapsed))}
+            className={`
+              absolute -right-3 top-20 z-50
+              bg-white text-[#1e3a5f] rounded-full p-1.5
+              shadow-lg border border-gray-200
+              transition-all duration-300 transform
+              ${isSidebarHovered ? 'opacity-100 scale-100' : 'opacity-0 scale-75 pointer-events-none'}
+              hover:bg-gray-50 hover:scale-110
+            `}
+            title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+          >
+            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
 
           {/* Logo Section */}
           <div className="relative px-6 py-4 z-10">
@@ -1280,32 +1275,64 @@ const Dashboard = () => {
           {/* Header - White background */}
           <header className="bg-white border-b border-gray-200 flex-shrink-0 sticky top-0 z-20 shadow-sm">
             <div className="px-6 py-4 flex items-center justify-between relative z-10">
-              {/* Left side - Toggle button */}
-              <div className="w-48 flex items-center">
-                <button
-                  onClick={() => dispatch(setSidebarCollapsed(!sidebarCollapsed))}
-                  className="p-2 rounded-lg text-[#1e3a5f] hover:bg-gray-100 transition-colors"
-                  title={sidebarCollapsed ? "Open Sidebar" : "Close Sidebar"}
-                >
-                  {sidebarCollapsed ? <Menu className="h-6 w-6" /> : <ChevronLeft className="h-6 w-6" />}
-                </button>
+              {/* Left side - Conditional Global Back Button */}
+              <div className="flex-1 hidden sm:flex items-center">
+                {(location.search !== '' || (!location.pathname.endsWith('/projects') && location.pathname !== '/dashboard' && location.pathname !== '/dashboard/')) && (
+                  <button
+                    onClick={() => navigate(-1)}
+                    className="flex items-center space-x-2 text-gray-500 hover:text-[#1e3a5f] bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-lg border border-gray-100 transition-all group"
+                    title="Go Back"
+                  >
+                    <ChevronLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+                    <span className="text-sm font-semibold">Back</span>
+                  </button>
+                )}
               </div>
 
-              {/* Center - Title */}
-              <div className="flex-1 flex justify-center items-center">
-                <h1 className="text-2xl font-bold text-[#1e3a5f] tracking-tight">
+              {/* Center - Title (Reduced Size, More Minimal) */}
+              <div className="flex-1 flex justify-center items-center overflow-hidden">
+                <h1 className="text-xl font-bold text-[#1e3a5f] tracking-tight truncate px-4">
                   {getHeaderTitle()}
                 </h1>
               </div>
 
               {/* Right side - Date/Time and Profile */}
-              <div className="flex items-center space-x-6 min-w-[300px] justify-end">
+              <div className="flex-1 flex items-center space-x-6 min-w-[300px] justify-end">
                 {/* Date and Time - Updated for white header */}
                 <div className="flex items-center space-x-3 bg-gray-50 px-4 py-2 rounded-lg shadow-sm border border-gray-200">
                   <span className="text-sm font-medium text-gray-700 tabular-nums">{currentTime}</span>
                   <span className="text-gray-300">|</span>
                   <span className="text-sm font-medium text-gray-700">{currentDate}</span>
                 </div>
+
+                {/* Notification Bell */}
+                <div className="relative group">
+                  <button className="p-2.5 rounded-full text-gray-500 hover:text-[#1e3a5f] hover:bg-gray-100 transition-all relative">
+                    <Bell className="h-6 w-6" />
+                    {notifications > 0 && (
+                      <span className="absolute top-1.5 right-1.5 h-4.5 min-w-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+                        {notifications}
+                      </span>
+                    )}
+                  </button>
+                  <div className="absolute top-full right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-50 p-4">
+                    <p className="text-sm font-bold text-gray-800">Notifications</p>
+                    <div className="mt-2 space-y-2">
+                      <div className="text-xs text-gray-500 py-1 border-b border-gray-50">New dataset uploaded for Project X</div>
+                      <div className="text-xs text-gray-500 py-1">Budget approved for Department Y</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Send Mail Button */}
+                <button
+                  onClick={() => dispatch(triggerMailModal())}
+                  disabled={!location.search.includes('projectId=')}
+                  className="p-2.5 rounded-full text-gray-500 hover:text-[#1e3a5f] hover:bg-gray-100 transition-all relative disabled:opacity-30 disabled:cursor-not-allowed"
+                  title={location.search.includes('projectId=') ? "Send Project Report" : "Select a project first"}
+                >
+                  <Mail className="h-6 w-6" />
+                </button>
 
                 {/* Profile Menu with black background */}
                 <div className="relative" ref={profileMenuRef}>

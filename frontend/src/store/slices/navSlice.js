@@ -14,7 +14,8 @@ const initialState = {
   companyLogo: sessionStorage.getItem('company_logo') || null,
   companyName: sessionStorage.getItem('company_name') || 'Industrial Analytics Platform',
   baseCurrency: sessionStorage.getItem('base_currency') || 'USD ($)',
-  exchangeRates: JSON.parse(sessionStorage.getItem('exchange_rates')) || { 'USD': 1, 'INR': 83.2, 'EUR': 0.92 }
+  exchangeRates: JSON.parse(sessionStorage.getItem('exchange_rates')) || { 'USD': 1, 'INR': 83.2, 'EUR': 0.92 },
+  mailModalTriggered: false
 };
 
 const navSlice = createSlice({
@@ -81,6 +82,12 @@ const navSlice = createSlice({
       state.exchangeRates = action.payload;
       sessionStorage.setItem('exchange_rates', JSON.stringify(action.payload));
     },
+    triggerMailModal: (state) => {
+      state.mailModalTriggered = true;
+    },
+    resetMailModalTrigger: (state) => {
+      state.mailModalTriggered = false;
+    },
   },
 });
 
@@ -93,7 +100,9 @@ export const {
   setActiveProjectName,
   setSidebarCollapsed,
   setBranding,
-  setExchangeRates
+  setExchangeRates,
+  triggerMailModal,
+  resetMailModalTrigger
 } = navSlice.actions;
 
 export default navSlice.reducer;

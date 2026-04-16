@@ -2,12 +2,12 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { setProjects, updateProjectConfig } from '../store/slices/projectSlice';
-import { setSelectedProjectFileId } from '../store/slices/navSlice';
+import { setSelectedProjectFileId, setActiveProjectName, resetMailModalTrigger } from '../store/slices/navSlice';
 import ReactECharts from 'echarts-for-react';
 import * as echarts from 'echarts';
 import '../utils/echarts-theme-v5'; // Register the v5 theme
 import ExcelTableViewer from '../components/ExcelTableViewer';
-import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, Check, Save, Settings, Download, GripVertical } from 'lucide-react';
+import { Layout, Maximize2, Minimize2, Send, Mail, Search, Edit, Plus, Trash2, X, Filter, ChevronUp, ChevronDown, ChevronLeft, Check, Save, Settings, Download, GripVertical } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import PdfPreviewModal from '../components/PdfPreviewModal';
@@ -158,8 +158,16 @@ const ProjectTitleDashboard = () => {
   const dispatch = useDispatch();
   const { format, symbol } = useCurrency();
   const selectedFileId = useSelector(state => state.nav.selectedProjectFileId);
+  const user = useSelector(state => state.auth.user);
   const onClearSelection = () => dispatch(setSelectedProjectFileId(null));
-  
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+
   const parseNum = (val) => {
     if (val === null || val === undefined || val === '') return 0;
     const strVal = String(val).replace(/[^0-9.-]+/g, '');
@@ -231,6 +239,7 @@ const ProjectTitleDashboard = () => {
     };
   }, []);
 
+
   // Handle open project dashboard main event
   useEffect(() => {
     const handleOpenDashboardProject = (event) => {
@@ -281,6 +290,15 @@ const ProjectTitleDashboard = () => {
   const projectId = searchParams.get('projectId');
   const submoduleId = searchParams.get('submoduleId');
 
+  // Listen for global mail trigger from header
+  const mailModalTriggered = useSelector(state => state.nav.mailModalTriggered);
+  useEffect(() => {
+    if (mailModalTriggered) {
+      setShowEmailModal(true);
+      dispatch(resetMailModalTrigger());
+    }
+  }, [mailModalTriggered, dispatch]);
+
   const activeProject = useMemo(() => {
     if (!projectId) return null;
     return projects.find(p => p.id === projectId || p.name === projectId);
@@ -290,6 +308,17 @@ const ProjectTitleDashboard = () => {
     if (!activeProject || !submoduleId) return null;
     return activeProject.submodules?.find(s => s.id === submoduleId || s.trackerId === submoduleId || `project-file-${s.trackerId}` === submoduleId);
   }, [activeProject, submoduleId]);
+
+  // Sync active project name to Redux to enable the header Mail button
+  useEffect(() => {
+    if (activeProject) {
+      dispatch(setActiveProjectName(activeProject.name));
+    }
+    return () => {
+      dispatch(setActiveProjectName(null));
+    };
+  }, [activeProject, dispatch]);
+
 
   // Submodule data (from uploaded Excel)
   const [submoduleData, setSubmoduleData] = useState({});
@@ -2184,13 +2213,13 @@ const ProjectTitleDashboard = () => {
                       type="text"
                       value={summaryForm[field.key]}
                       onChange={(e) => setSummaryForm({ ...summaryForm, [field.key]: e.target.value })}
-                      style={{ 
-                        width: '100%', 
-                        padding: '8px', 
+                      style={{
+                        width: '100%',
+                        padding: '8px',
                         paddingLeft: (field.key.toLowerCase().includes('amount') || field.key.toLowerCase().includes('budget')) ? '30px' : '8px',
-                        border: '1px solid #cbd5e1', 
-                        borderRadius: '4px', 
-                        fontSize: '14px' 
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '4px',
+                        fontSize: '14px'
                       }}
                     />
                   </div>
@@ -2573,7 +2602,7 @@ const ProjectTitleDashboard = () => {
               labelLayout: function (params) {
                 const instance = typeof chartRefs !== 'undefined' && chartRefs.current && chartRefs.current[chartId] ? chartRefs.current[chartId].getEchartsInstance() : null;
                 const liveWidth = instance ? instance.getWidth() : (isMaximized ? 800 : 450);
-                
+
                 const isLeft = params.labelRect.x < (liveWidth / 2);
                 const points = params.labelLinePoints;
                 if (!points) return;
@@ -3180,127 +3209,117 @@ const ProjectTitleDashboard = () => {
         maxWidth: '1600px',
         margin: '0 auto'
       }}>
-        {/* Header with navigation */}
-        <div style={{
-          backgroundColor: '#1e3a5f',
-          color: 'white',
-          padding: '15px 20px',
-          fontSize: '20px',
-          fontWeight: 'bold',
-          borderBottom: '3px solid #0f2b40',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flex: 1 }}>
-            {activeProject && (
-              <button
-                onClick={selectedSubmodule ? handleBackToProjectDashboard : handleBackToProjects}
-                style={{
-                  padding: '6px 12px',
-                  fontSize: '14px',
-                  borderRadius: '4px',
-                  border: '1px solid white',
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  color: 'white',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}
-              >
-                ← Back
-              </button>
-            )}
+        {/* Action Toolbar - Clean and Minimalist */}
+        {(activeProject || selectedSubmodule) && (
+          <div className="no-print" style={{
+            padding: '12px 20px',
+            backgroundColor: '#fff',
+            borderBottom: '1px solid #edf2f7',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '15px'
+          }}>
+            {/* Left Placeholder to maintain center alignment */}
+            <div style={{ flex: 1 }}></div>
+
+            <div style={{ flex: 1, textAlign: 'center' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <span style={{ fontSize: '20px', fontWeight: '800', color: '#1e3a5f' }}>
+                  {activeProject?.name || 'Dashboard'}
+                </span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flex: 1, justifyContent: 'flex-end' }}>
+              {activeProject && !selectedSubmodule && (
+                <>
+                  <button
+                    onClick={() => {
+                      setVisibleSections(activeProject.dashboardConfig?.visibleSections || {});
+                      setShowSimulateModal(true);
+                    }}
+                    style={{
+                      padding: '8px 16px',
+                      fontSize: '13px',
+                      borderRadius: '6px',
+                      border: '1px solid #1e3a5f',
+                      backgroundColor: '#1e3a5f',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'all 0.2s',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2a4a7a'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}
+                  >
+                    <Settings className="h-4 w-4" /> Configure Dashboard
+                  </button>
+                  <button
+                    onClick={() => {
+                      const sections = {
+                        milestones: true,
+                        criticalIssues: true,
+                        budget: true,
+                        resource: true,
+                        quality: true,
+                        design: true,
+                        partDevelopment: true,
+                        build: true,
+                        gateway: true,
+                        validation: true,
+                        qualityIssues: true,
+                        sopTables: true
+                      };
+                      (activeProject?.submodules || []).forEach(sub => {
+                        sections[sub.id] = true;
+                      });
+                      setEmailData(prev => ({ ...prev, selectedSections: sections, includePdf: true }));
+                      setShowEmailModal(true);
+                    }}
+                    style={{
+                      padding: '8px 16px',
+                      fontSize: '13px',
+                      borderRadius: '6px',
+                      border: '1px solid #1e3a5f',
+                      backgroundColor: '#1e3a5f',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      transition: 'all 0.2s',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2a4a7a'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1e3a5f'}
+                  >
+                    <Mail className="h-4 w-4" /> Send Mail
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-
-          <div style={{ textAlign: 'center', flex: 2 }}>
-            {selectedSubmodule ? (
-              <span>{getDisplayFileName(selectedSubmodule.name, selectedSubmodule.projectName)}</span>
-            ) : activeProject ? (
-              <span>{activeProject.name} Dashboard</span>
-            ) : (
-              <span>Project Dashboard</span>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flex: 1 }}>
-            {activeProject && !selectedSubmodule && (
-              <>
-                <button
-                  onClick={() => {
-                    setVisibleSections(activeProject.dashboardConfig?.visibleSections || {});
-                    setShowSimulateModal(true);
-                  }}
-                  style={{
-                    padding: '8px 16px',
-                    fontSize: '14px',
-                    borderRadius: '4px',
-                    border: '1px solid white',
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    outline: 'none'
-                  }}
-                >
-                  Configure Dashboard
-                </button>
-                <button
-                  onClick={() => {
-                    const sections = {
-                      milestones: true,
-                      criticalIssues: true,
-                      budget: true,
-                      resource: true,
-                      quality: true,
-                      design: true,
-                      partDevelopment: true,
-                      build: true,
-                      gateway: true,
-                      validation: true,
-                      qualityIssues: true,
-                      sopTables: true
-                    };
-                    (activeProject?.submodules || []).forEach(sub => {
-                      sections[sub.id] = true;
-                    });
-                    setEmailData(prev => ({ ...prev, selectedSections: sections, includePdf: true }));
-                    setShowEmailModal(true);
-                  }}
-                  style={{
-                    padding: '8px 16px',
-                    fontSize: '14px',
-                    borderRadius: '4px',
-                    border: '1px solid white',
-                    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    outline: 'none'
-                  }}
-                >
-                  <Mail className="h-4 w-4" />
-                  Send Mail
-                </button>
-
-
-              </>
-            )}
-          </div>
-        </div>
+        )}
 
         {/* Projects List or Dashboard Content */}
         {!activeProject ? (
           /* Projects List View */
           <div style={{ padding: '30px' }}>
+            <div style={{ marginBottom: '30px' }}>
+              <h2 style={{ fontSize: '14px', fontWeight: '600', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {getGreeting()},
+              </h2>
+              <h1 style={{ fontSize: '28px', fontWeight: '800', color: '#1e3a5f', marginTop: '4px' }}>
+                Welcome, {user?.full_name?.split(' ')[0] || 'User'}!
+              </h1>
+
+            </div>
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
@@ -4051,7 +4070,7 @@ const ProjectTitleDashboard = () => {
               </div>
             </div>
             {/* End project-dashboard-main-content */}
-            
+
             <PdfPreviewModal
               show={showPdfPreview}
               onClose={() => setShowPdfPreview(false)}
@@ -4137,8 +4156,8 @@ const RecipientInput = ({ label, type, emails, onUpdate, allEmployees, disabledE
     }
     if (email && !emails.includes(email)) {
       if (!isValidEmail(email)) {
-         setErrorMsg('Invalid email format');
-         return;
+        setErrorMsg('Invalid email format');
+        return;
       }
       onUpdate([...emails, email]);
     }
@@ -4168,13 +4187,13 @@ const RecipientInput = ({ label, type, emails, onUpdate, allEmployees, disabledE
   return (
     <div style={{ marginBottom: '12px' }}>
       <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>{label}</label>
-      <div 
-        style={{ 
-          display: 'flex', 
-          flexWrap: 'wrap', 
-          gap: '6px', 
-          padding: '6px 8px', 
-          border: '1px solid #c0c0c0', 
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: '6px',
+          padding: '6px 8px',
+          border: '1px solid #c0c0c0',
           borderRadius: '4px',
           backgroundColor: 'white',
           minHeight: '34px',
@@ -4225,10 +4244,10 @@ const RecipientInput = ({ label, type, emails, onUpdate, allEmployees, disabledE
           onKeyDown={handleKeyDown}
           onBlur={() => {
             if (inputValue.trim() && inputValue.includes('@')) {
-               handleAdd(inputValue.trim());
+              handleAdd(inputValue.trim());
             } else {
-               setShowDropdown(false);
-               setInputValue('');
+              setShowDropdown(false);
+              setInputValue('');
             }
           }}
           placeholder={emails.length === 0 ? "Enter email address or search employee..." : ""}
@@ -4267,30 +4286,31 @@ const RecipientInput = ({ label, type, emails, onUpdate, allEmployees, disabledE
             {filteredEmployees.map(contact => {
               const isDisabled = disabledEmails.includes(contact.email) || emails.includes(contact.email);
               return (
-              <div
-                key={contact.id}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  if (!isDisabled) {
-                    handleAdd(contact.email, false);
-                  }
-                }}
-                style={{
-                  padding: '8px 15px',
-                  cursor: isDisabled ? 'not-allowed' : 'pointer',
-                  borderBottom: '1px solid #f3f4f6',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  opacity: isDisabled ? 0.4 : 1,
-                  backgroundColor: isDisabled ? '#f8fafc' : 'white'
-                }}
-                onMouseEnter={(e) => { if (!isDisabled) e.currentTarget.style.backgroundColor = '#f0f7ff'; }}
-                onMouseLeave={(e) => { if (!isDisabled) e.currentTarget.style.backgroundColor = 'white'; }}
-              >
-                <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#1e3a5f' }}>{contact.name || 'Unknown Name'}</span>
-                <span style={{ fontSize: '11px', color: '#6b7280' }}>{contact.email} • {contact.department || 'No Dept'}</span>
-              </div>
-            )})}
+                <div
+                  key={contact.id}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    if (!isDisabled) {
+                      handleAdd(contact.email, false);
+                    }
+                  }}
+                  style={{
+                    padding: '8px 15px',
+                    cursor: isDisabled ? 'not-allowed' : 'pointer',
+                    borderBottom: '1px solid #f3f4f6',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    opacity: isDisabled ? 0.4 : 1,
+                    backgroundColor: isDisabled ? '#f8fafc' : 'white'
+                  }}
+                  onMouseEnter={(e) => { if (!isDisabled) e.currentTarget.style.backgroundColor = '#f0f7ff'; }}
+                  onMouseLeave={(e) => { if (!isDisabled) e.currentTarget.style.backgroundColor = 'white'; }}
+                >
+                  <span style={{ fontWeight: 'bold', fontSize: '12px', color: '#1e3a5f' }}>{contact.name || 'Unknown Name'}</span>
+                  <span style={{ fontSize: '11px', color: '#6b7280' }}>{contact.email} • {contact.department || 'No Dept'}</span>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
@@ -4418,45 +4438,45 @@ const EmailModal = ({
           </p>
 
           {formError && (
-             <div style={{ padding: '10px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: '4px', marginBottom: '15px', fontSize: '13px', fontWeight: 'bold' }}>
-               {formError}
-             </div>
+            <div style={{ padding: '10px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: '4px', marginBottom: '15px', fontSize: '13px', fontWeight: 'bold' }}>
+              {formError}
+            </div>
           )}
 
           {/* To, CC, BCC fields */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '4px' }}>
-             <label style={{ fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>To: <span style={{ color: '#ef4444' }}>*</span></label>
-             <div style={{ display: 'flex', gap: '10px' }}>
-                {!showCc && <button style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '12px', cursor: 'pointer', padding: 0 }} onClick={() => setShowCc(true)}>Add CC</button>}
-                {!showBcc && <button style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '12px', cursor: 'pointer', padding: 0 }} onClick={() => setShowBcc(true)}>Add BCC</button>}
-             </div>
+            <label style={{ fontWeight: 'bold', color: '#1e3a5f', fontSize: '13px' }}>To: <span style={{ color: '#ef4444' }}>*</span></label>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {!showCc && <button style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '12px', cursor: 'pointer', padding: 0 }} onClick={() => setShowCc(true)}>Add CC</button>}
+              {!showBcc && <button style={{ background: 'none', border: 'none', color: '#3b82f6', fontSize: '12px', cursor: 'pointer', padding: 0 }} onClick={() => setShowBcc(true)}>Add BCC</button>}
+            </div>
           </div>
-          <RecipientInput 
-            label="" 
-            type="email" 
-            emails={emailData.emailInputs.filter(e => e.trim() !== '')} 
+          <RecipientInput
+            label=""
+            type="email"
+            emails={emailData.emailInputs.filter(e => e.trim() !== '')}
             disabledEmails={[...emailData.ccInputs.filter(e => e.trim() !== ''), ...emailData.bccInputs.filter(e => e.trim() !== '')]}
-            onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, emailInputs: newEmails }))} 
-            allEmployees={allEmployees} 
+            onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, emailInputs: newEmails }))}
+            allEmployees={allEmployees}
           />
           {showCc && (
-            <RecipientInput 
-              label="CC:" 
-              type="cc" 
-              emails={emailData.ccInputs.filter(e => e.trim() !== '')} 
+            <RecipientInput
+              label="CC:"
+              type="cc"
+              emails={emailData.ccInputs.filter(e => e.trim() !== '')}
               disabledEmails={[...emailData.emailInputs.filter(e => e.trim() !== ''), ...emailData.bccInputs.filter(e => e.trim() !== '')]}
-              onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, ccInputs: newEmails }))} 
-              allEmployees={allEmployees} 
+              onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, ccInputs: newEmails }))}
+              allEmployees={allEmployees}
             />
           )}
           {showBcc && (
-            <RecipientInput 
-              label="BCC:" 
-              type="bcc" 
-              emails={emailData.bccInputs.filter(e => e.trim() !== '')} 
+            <RecipientInput
+              label="BCC:"
+              type="bcc"
+              emails={emailData.bccInputs.filter(e => e.trim() !== '')}
               disabledEmails={[...emailData.emailInputs.filter(e => e.trim() !== ''), ...emailData.ccInputs.filter(e => e.trim() !== '')]}
-              onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, bccInputs: newEmails }))} 
-              allEmployees={allEmployees} 
+              onUpdate={(newEmails) => setEmailData(prev => ({ ...prev, bccInputs: newEmails }))}
+              allEmployees={allEmployees}
             />
           )}
 
@@ -4493,8 +4513,8 @@ const EmailModal = ({
             {emailData.includePdf ? (
               <div style={{ display: 'inline-flex', alignItems: 'center', backgroundColor: '#f1f5f9', padding: '6px 12px', borderRadius: '20px', border: '1px solid #e2e8f0', fontSize: '12px', color: '#334155' }}>
                 <span style={{ marginRight: '6px', fontSize: '14px' }}>📎</span> {activeProject?.name || 'Project'}_Dashboard_Report.pdf (Auto-generated)
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setEmailData(prev => ({ ...prev, includePdf: false }))}
                   style={{ background: 'none', border: 'none', marginLeft: '8px', cursor: 'pointer', color: '#ef4444', fontWeight: 'bold', fontSize: '14px', padding: '0' }}
                 >
@@ -4502,7 +4522,7 @@ const EmailModal = ({
                 </button>
               </div>
             ) : (
-              <button 
+              <button
                 type="button"
                 onClick={() => setEmailData(prev => ({ ...prev, includePdf: true }))}
                 style={{ background: 'none', border: '1px dashed #c0c0c0', borderRadius: '4px', padding: '6px 12px', cursor: 'pointer', color: '#1e3a5f', fontSize: '12px', fontWeight: 'bold' }}
